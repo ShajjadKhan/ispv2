@@ -1,0 +1,18 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite Databases & Logs
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.log
+
+# Environments & OS
+.env
+.DS_Store
+.idea/
+.vscode/
+venv/

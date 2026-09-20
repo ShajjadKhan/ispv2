@@ -1,0 +1,1302 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Operations & Financial Command Center{% endblock %}
+{% block heading %}Operations & Billing Command Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     COMMAND CENTER STYLES
+     ========================================================= */
+  .dashboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  /* TOP ACTION BAR */
+  .control-header-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .header-info-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-info-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  .header-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .month-picker-select {
+    background: #0b1120;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 9px;
+    padding: 8px 14px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .month-picker-select:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+  }
+
+  .btn-report-modal {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    padding: 8px 15px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s;
+  }
+  .btn-report-modal:hover {
+    background: rgba(56, 189, 248, 0.22);
+    color: #ffffff;
+    border-color: #38bdf8;
+  }
+
+  /* 6-CARD KPI GRID */
+  .kpi-deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .kpi-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .kpi-icon-pill {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .kpi-icon-pill svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .kpi-val-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .kpi-main-number {
+    font-size: 26px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #ffffff;
+    line-height: 1.1;
+  }
+
+  .kpi-sub-text {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .kpi-progress-bar {
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .kpi-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+
+  /* COLOR THEMING FOR KPIS */
+  .theme-cyan .kpi-icon-pill { background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+  .theme-cyan .kpi-progress-fill { background: #38bdf8; }
+  .theme-emerald .kpi-icon-pill { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+  .theme-emerald .kpi-progress-fill { background: #10b981; }
+  .theme-amber .kpi-icon-pill { background: rgba(245, 158, 11, 0.12); color: #fbbf24; }
+  .theme-amber .kpi-progress-fill { background: #f59e0b; }
+  .theme-rose .kpi-icon-pill { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+  .theme-rose .kpi-progress-fill { background: #ef4444; }
+  .theme-purple .kpi-icon-pill { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
+  .theme-purple .kpi-progress-fill { background: #a855f7; }
+
+  /* MIDDLE SECTION: PERFORMANCE METERS */
+  .meters-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+  }
+
+  .meter-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .meter-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .meter-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .meter-bar-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .meter-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .meter-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+
+  /* WILL-SUSPEND TIER FILTER BAR */
+  .tier-filter-deck {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tier-deck-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 6px;
+  }
+
+  .tier-pill-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 7px 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .tier-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  .tier-pill-btn.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+  .tier-pill-btn.danger-pill.active {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border-color: #ef4444;
+  }
+  .tier-pill-btn.warning-pill.active {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: #f59e0b;
+  }
+
+  .tier-count-badge {
+    background: rgba(255, 255, 255, 0.12);
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+
+  /* PRIORITY ACTION QUEUE TABLE */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .section-card-header {
+    padding: 18px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .search-input-box {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    width: 260px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input-box:focus {
+    border-color: #38bdf8;
+  }
+
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 12px 18px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+  .clean-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* BADGES */
+  .badge-tier {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .badge-tier.overdue, .badge-tier.suspended {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .badge-tier.today {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .badge-tier.in_3d {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.35);
+  }
+  .badge-tier.in_7d {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+  .badge-tier.in_15d {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+  }
+  .badge-tier.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+
+  .badge-mode {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .mode-prepaid { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .mode-postpaid { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+
+  /* BUTTONS */
+  .btn-quick-collect {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    padding: 6px 13px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .btn-quick-collect:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+  }
+
+  .btn-table-manage {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .btn-table-manage:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  /* FINANCIAL & AUDIT DECK */
+  .audit-deck-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
+  }
+
+  /* MODAL OVERLAY */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+
+  .modal-container {
+    background: var(--bg-card);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .btn-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .btn-modal-close:hover { color: #ffffff; }
+
+  .modal-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .form-input {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+  }
+  .form-input:focus { border-color: #38bdf8; }
+
+  /* PRINT VIEW STYLES */
+  @media print {
+    body * { visibility: hidden; }
+    #printableReportArea, #printableReportArea * { visibility: visible; }
+    #printableReportArea {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      background: #ffffff !important;
+      color: #000000 !important;
+      padding: 20px;
+    }
+    .no-print { display: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+  <!-- TOP HEADER / CONTROL BAR -->
+  <div class="control-header-card">
+    <div>
+      <div class="header-info-title">
+        <span>Operations &amp; Billing Command Center</span>
+        <span class="badge-tier active" style="font-size:10px; padding:2px 8px;">LIVE ROS SYNC</span>
+      </div>
+      <div class="header-info-sub">
+        Real-time telemetry, subscriber lifecycle management, and financial collections for <strong>{{ metrics.month_label }}</strong>.
+      </div>
+    </div>
+
+    <div class="header-controls-group">
+      <!-- Month Filter Dropdown -->
+      <div>
+        <select class="month-picker-select" id="monthSelector" onchange="switchMonth(this.value)">
+          {% for m in metrics.available_months %}
+            <option value="{{ m.value }}" {% if m.is_selected %}selected{% endif %}>{{ m.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Date Range Custom Audit Button -->
+      <button type="button" class="btn-report-modal" onclick="openDateRangeReportModal()">
+        <svg style="width:15px; height:15px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>Custom Range Report</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 6-CARD PRIMARY KPI DECK -->
+  <div class="kpi-deck-grid">
+    <!-- Card 1: Network & Connected Devices -->
+    <div class="kpi-card theme-cyan">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Live Active Devices</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number">{{ metrics.online_devices }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.total_approved_devices }}</span></div>
+        <div class="kpi-sub-text">{{ metrics.active_subscribers_online }} subscribers online now</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: {{ metrics.connectivity_rate }}%;"></div>
+      </div>
+    </div>
+
+    <!-- Card 2: Active Subscribers & Capacity -->
+    <div class="kpi-card theme-purple">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Subscribers &amp; Capacity</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number">{{ metrics.total_subscribers }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.capacity_limit }}</span></div>
+        <div class="kpi-sub-text">{{ metrics.active_subscribers }} Active &bull; {{ metrics.suspended_count }} Suspended</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: {{ metrics.capacity_percent }}%;"></div>
+      </div>
+    </div>
+
+    <!-- Card 3: Collected Revenue (SAR) -->
+    <div class="kpi-card theme-emerald">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Collected This Month</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number text-emerald">{{ "%.2f"|format(metrics.collected_month_sar) }} <span style="font-size:15px; font-weight:500;">SAR</span></div>
+        <div class="kpi-sub-text">{{ metrics.collections_count }} payments recorded</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: 100%;"></div>
+      </div>
+    </div>
+
+    <!-- Card 4: Outstanding Due (SAR) -->
+    <div class="kpi-card theme-amber">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Outstanding Due</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number text-amber">{{ "%.2f"|format(metrics.outstanding_sar) }} <span style="font-size:15px; font-weight:500;">SAR</span></div>
+        <div class="kpi-sub-text">{{ metrics.due_customers_count }} accounts pending collection</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: {% if metrics.outstanding_sar > 0 %}100{% else %}0{% endif %}%;"></div>
+      </div>
+    </div>
+
+    <!-- Card 5: Collection Rate Efficiency -->
+    <div class="kpi-card {% if metrics.collection_rate >= 80 %}theme-emerald{% elif metrics.collection_rate >= 50 %}theme-amber{% else %}theme-rose{% endif %}">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Collection Rate</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number">{{ metrics.collection_rate }}%</div>
+        <div class="kpi-sub-text">Target: {{ "%.2f"|format(metrics.target_revenue_sar) }} SAR</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: {{ metrics.collection_rate }}%;"></div>
+      </div>
+    </div>
+
+    <!-- Card 6: Expiring Accounts / Action Needed -->
+    <div class="kpi-card theme-rose">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Will Suspend / Expiring</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number text-rose">{{ metrics.expiring_tiers.total }} <span style="font-size:15px; font-weight:500;">Accounts</span></div>
+        <div class="kpi-sub-text">{{ metrics.expiring_tiers.today_overdue }} Overdue/Today &bull; {{ metrics.expiring_tiers.in_3d }} in 3d</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.total > 0 %}100{% else %}0{% endif %}%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDDLE SECTION: PERFORMANCE METERS -->
+  <div class="meters-row">
+    <!-- Network Connectivity & Capacity Meter -->
+    <div class="meter-card">
+      <div class="meter-title-row">
+        <div class="meter-title">
+          <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          <span>Network &amp; Hotspot Subscriber Capacity</span>
+        </div>
+        <span class="font-mono text-cyan" style="font-size:13px; font-weight:700;">{{ metrics.capacity_percent }}%</span>
+      </div>
+      <div class="meter-bar-track">
+        <div class="meter-bar-fill" style="width: {{ metrics.capacity_percent }}%; background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%);"></div>
+      </div>
+      <div class="meter-stats-row">
+        <span>Active Subscribers: <strong>{{ metrics.active_subscribers }}</strong></span>
+        <span>Gateway Limit: <strong>{{ metrics.capacity_limit }} users</strong></span>
+        <span>Connected Devices: <strong>{{ metrics.online_devices }} / {{ metrics.total_approved_devices }}</strong></span>
+      </div>
+    </div>
+
+    <!-- Revenue Target Realization Meter -->
+    <div class="meter-card">
+      <div class="meter-title-row">
+        <div class="meter-title">
+          <svg style="width:16px; height:16px; fill:#10b981;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          <span>Monthly Revenue Collection Realization</span>
+        </div>
+        <span class="font-mono text-emerald" style="font-size:13px; font-weight:700;">{{ metrics.collection_rate }}%</span>
+      </div>
+      <div class="meter-bar-track">
+        <div class="meter-bar-fill" style="width: {{ metrics.collection_rate }}%; background: linear-gradient(90deg, #059669 0%, #10b981 100%);"></div>
+      </div>
+      <div class="meter-stats-row">
+        <span>Collected: <strong class="text-emerald">{{ "%.2f"|format(metrics.collected_month_sar) }} SAR</strong></span>
+        <span>Target: <strong>{{ "%.2f"|format(metrics.target_revenue_sar) }} SAR</strong></span>
+        <span>Due: <strong class="text-amber">{{ "%.2f"|format(metrics.outstanding_sar) }} SAR</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WILL SUSPEND TIER FILTER BAR -->
+  <div class="tier-filter-deck">
+    <span class="tier-deck-title">Priority Expiration Filter:</span>
+
+    <button type="button" class="tier-pill-btn active" data-filter="all" onclick="filterQueueByTier('all')">
+      <span>All Priority Accounts</span>
+      <span class="tier-count-badge">{{ metrics.expiring_tiers.total }}</span>
+    </button>
+
+    <button type="button" class="tier-pill-btn danger-pill" data-filter="overdue" onclick="filterQueueByTier('overdue')">
+      <span>🚨 Overdue / Today</span>
+      <span class="tier-count-badge">{{ metrics.expiring_tiers.today_overdue }}</span>
+    </button>
+
+    <button type="button" class="tier-pill-btn warning-pill" data-filter="in_3d" onclick="filterQueueByTier('in_3d')">
+      <span>⚠️ Within 3 Days</span>
+      <span class="tier-count-badge">{{ metrics.expiring_tiers.in_3d }}</span>
+    </button>
+
+    <button type="button" class="tier-pill-btn" data-filter="in_7d" onclick="filterQueueByTier('in_7d')">
+      <span>📅 Within 7 Days</span>
+      <span class="tier-count-badge">{{ metrics.expiring_tiers.in_7d }}</span>
+    </button>
+
+    <button type="button" class="tier-pill-btn" data-filter="in_15d" onclick="filterQueueByTier('in_15d')">
+      <span>⏳ Within 15 Days</span>
+      <span class="tier-count-badge">{{ metrics.expiring_tiers.in_15d }}</span>
+    </button>
+  </div>
+
+  <!-- PRIORITY ACTION QUEUE (EXPIRING & DUE TABLE) -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <div>
+        <div style="font-size:15px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#fbbf24;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+          <span>Priority Action Queue (Expiring &amp; Due Accounts)</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
+          Direct 1-click collection, auto-split advance handling, and subscriber management
+        </div>
+      </div>
+
+      <div>
+        <input type="text" id="queueSearchInput" class="search-input-box" placeholder="Search by name, phone, or package..." onkeyup="filterQueueSearch()">
+      </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="clean-table" id="priorityQueueTable">
+        <thead>
+          <tr>
+            <th>Subscriber</th>
+            <th>Type</th>
+            <th>Package &amp; Fee</th>
+            <th>Due / Expiry Date</th>
+            <th>Credit Balance</th>
+            <th>Status / Urgent Tier</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="queueTableBody">
+          {% if not metrics.priority_queue %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 36px; color: var(--text-dim);">
+              <svg style="width: 36px; height: 36px; fill: #10b981; margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <div style="font-size: 14px; font-weight: 700; color: #ffffff;">All Accounts In Good Standing</div>
+              <div style="font-size: 12px; margin-top: 4px;">No subscribers are currently overdue or expiring within the next 15 days.</div>
+            </td>
+          </tr>
+          {% else %}
+            {% for c in metrics.priority_queue %}
+            <tr data-tier="{{ c.tier }}" data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }}">
+              <td>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik{% else %}Offline{% endif %}"></span>
+                  <div>
+                    <div style="font-weight: 700; color: #ffffff;">{{ c.name }}</div>
+                    <div class="font-mono text-dim" style="font-size: 11px;">{{ c.phone }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge-mode mode-{{ c.billing_type }}">{{ c.billing_type }}</span>
+              </td>
+              <td>
+                <div style="font-weight: 600; color: #ffffff;">{{ c.package_name }}</div>
+                <div class="font-mono text-cyan" style="font-size: 12px;">{{ "%.2f"|format(c.monthly_fee) }} SAR/mo</div>
+              </td>
+              <td>
+                <div class="font-mono" style="font-weight: 600; color: #ffffff;">{{ c.due_date or c.expiry_date or '—' }}</div>
+                <div style="margin-top: 3px;">
+                  <span class="badge-tier {{ c.tier_badge }}">{{ c.tier_label }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 700; {% if c.credit_balance > 0 %}color:#34d399;{% else %}color:var(--text-dim);{% endif %}">
+                  {{ "%.2f"|format(c.credit_balance) }} SAR
+                </span>
+              </td>
+              <td>
+                {% if c.status == 'suspended' %}
+                  <span class="badge-tier suspended">SUSPENDED</span>
+                {% elif c.is_expired %}
+                  <span class="badge-tier overdue">OVERDUE</span>
+                {% elif c.is_due %}
+                  <span class="badge-tier in_3d">DUE FOR RENEWAL</span>
+                {% else %}
+                  <span class="badge-tier active">ACTIVE</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                  <button type="button" class="btn-quick-collect" onclick="openQuickCollectModal({{ c.id }}, '{{ c.name }}', '{{ c.phone }}', {{ c.monthly_fee }}, {{ c.credit_balance }})">
+                    <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+                    <span>Collect</span>
+                  </button>
+                  <a href="/customers?manage={{ c.id }}" class="btn-table-manage">
+                    <span>Manage</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FINANCIAL AUDIT & STAFF PERFORMANCE DECK (FROM billing_reminder) -->
+  <div class="audit-deck-row">
+    <!-- Staff Performance Breakdown Table -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <div style="font-size:14px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
+          <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Staff &amp; Collector Performance ({{ metrics.month_label }})</span>
+        </div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="clean-table">
+          <thead>
+            <tr>
+              <th>Collector</th>
+              <th>Payments</th>
+              <th>Total Collected</th>
+              <th>Avg Ticket</th>
+              <th>Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not metrics.staff_performance %}
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">
+                No payments collected yet in this cycle.
+              </td>
+            </tr>
+            {% else %}
+              {% for s in metrics.staff_performance %}
+              <tr>
+                <td style="font-weight: 700; color: #ffffff;">{{ s.collector_name }}</td>
+                <td class="font-mono text-cyan">{{ s.tx_count }} tx</td>
+                <td class="font-mono text-emerald" style="font-weight: 700;">{{ "%.2f"|format(s.total_amount) }} SAR</td>
+                <td class="font-mono text-dim">{{ "%.2f"|format(s.avg_amount) }} SAR</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="font-mono" style="font-size: 11px; width: 36px;">{{ s.share_percent }}%</span>
+                    <div style="flex-grow: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; min-width: 40px;">
+                      <div style="height: 100%; width: {{ s.share_percent }}%; background: #38bdf8; border-radius: 999px;"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Collections Activity Feed -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <div style="font-size:14px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
+          <svg style="width:16px; height:16px; fill:#10b981;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          <span>Recent Payment Ledger Feed</span>
+        </div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="clean-table">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Customer</th>
+              <th>Amount</th>
+              <th>Collector</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not metrics.recent_collections %}
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px;">
+                No payment history available.
+              </td>
+            </tr>
+            {% else %}
+              {% for col in metrics.recent_collections %}
+              <tr>
+                <td class="font-mono text-dim" style="font-size: 11px;">{{ col.collected_at }}</td>
+                <td>
+                  <div style="font-weight: 700; color: #ffffff;">{{ col.customer_name or ('Customer #' ~ col.customer_id) }}</div>
+                  <div class="font-mono text-dim" style="font-size: 11px;">{{ col.customer_phone }}</div>
+                </td>
+                <td>
+                  <span class="font-mono text-emerald" style="font-weight: 800;">+{{ "%.2f"|format(col.amount) }} SAR</span>
+                </td>
+                <td class="text-dim font-mono" style="font-size: 12px;">{{ col.collected_by }}</td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUICK COLLECT MODAL -->
+<div id="quickCollectModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3>⚡ Quick Collect Due Bill</h3>
+      <button type="button" class="btn-modal-close" onclick="closeQuickCollectModal()">&times;</button>
+    </div>
+    <form id="quickCollectForm" onsubmit="submitQuickCollect(event)">
+      <div class="modal-body">
+        <input type="hidden" id="qcCustomerId" name="customer_id">
+
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 15px; font-weight: 800; color: #ffffff;" id="qcCustomerName">—</div>
+            <div class="font-mono text-dim" style="font-size: 12px;" id="qcCustomerPhone">—</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="font-mono text-cyan" style="font-size: 16px; font-weight: 800;" id="qcMonthlyFee">— SAR/mo</div>
+            <div class="font-mono text-emerald" style="font-size: 11px;" id="qcCreditBal">Credit: 0.00 SAR</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Payment Amount Received (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="qcAmount" name="amount" required oninput="previewAdvanceCalculation()">
+        </div>
+
+        <div class="form-group">
+          <label>Collection Notes / Ledger Receipt</label>
+          <input type="text" class="form-input" id="qcNotes" name="notes" value="Direct Cycle Bill Collection">
+        </div>
+
+        <!-- Real-time Advance Calculation Callout -->
+        <div id="qcAdvanceNotice" style="display:none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; font-size: 12px; color: #34d399;">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+          <button type="button" class="btn-table-manage" onclick="closeQuickCollectModal()">Cancel</button>
+          <button type="submit" class="btn-quick-collect" id="qcSubmitBtn" style="padding: 10px 20px; font-size: 13px;">
+            <span>Record Payment &amp; Activate</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CUSTOM DATE RANGE REPORT MODAL -->
+<div id="dateRangeModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 800px;">
+    <div class="modal-header">
+      <h3>📄 Custom Date Range Financial Audit</h3>
+      <button type="button" class="btn-modal-close" onclick="closeDateRangeReportModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Filter Inputs -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: flex-end;">
+        <div class="form-group">
+          <label>From Date</label>
+          <input type="date" class="form-input font-mono" id="reportStartDate">
+        </div>
+        <div class="form-group">
+          <label>To Date</label>
+          <input type="date" class="form-input font-mono" id="reportEndDate">
+        </div>
+        <div>
+          <button type="button" class="btn-quick-collect" style="padding: 10px 18px;" onclick="generateDateRangeReport()">
+            <span>Generate Audit</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Report View Area -->
+      <div id="printableReportArea" style="margin-top: 10px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--border-subtle); padding-bottom: 14px; margin-bottom: 16px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff;" id="rptHeading">Collections Audit Report</h2>
+            <div style="font-size: 12px; color: var(--text-dim);" id="rptPeriod">Period: 2026-09-01 to 2026-09-19</div>
+          </div>
+          <div class="no-print">
+            <button type="button" class="btn-report-modal" onclick="window.print()">
+              <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-4 11H9v-5h6v5zm4-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+              <span>Print / Save PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 KPI Summary Cards for Report -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;">
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Total Revenue</div>
+            <div style="font-size: 18px; font-weight: 800; color: #34d399; font-family: var(--font-mono);" id="rptTotalSar">0.00 SAR</div>
+          </div>
+          <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Transactions</div>
+            <div style="font-size: 18px; font-weight: 800; color: #38bdf8; font-family: var(--font-mono);" id="rptTxCount">0</div>
+          </div>
+          <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Unique Customers</div>
+            <div style="font-size: 18px; font-weight: 800; color: #c084fc; font-family: var(--font-mono);" id="rptCustCount">0</div>
+          </div>
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 12px;">
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Average Payment</div>
+            <div style="font-size: 18px; font-weight: 800; color: #fbbf24; font-family: var(--font-mono);" id="rptAvgTx">0.00 SAR</div>
+          </div>
+        </div>
+
+        <!-- Ledger Table -->
+        <div style="max-height: 350px; overflow-y: auto;">
+          <table class="clean-table" id="rptTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Amount</th>
+                <th>Collector</th>
+              </tr>
+            </thead>
+            <tbody id="rptTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let currentActiveCustomer = null;
+
+  // Month Switcher
+  function switchMonth(m) {
+    if (!m) return;
+    window.location.href = '/?month=' + encodeURIComponent(m);
+  }
+
+  // Tier Filter Pills
+  function filterQueueByTier(tier) {
+    const pills = document.querySelectorAll('.tier-pill-btn');
+    pills.forEach(p => p.classList.remove('active'));
+
+    const targetPill = document.querySelector(`.tier-pill-btn[data-filter="${tier}"]`);
+    if (targetPill) targetPill.classList.add('active');
+
+    const rows = document.querySelectorAll('#queueTableBody tr[data-tier]');
+    rows.forEach(r => {
+      const rowTier = r.getAttribute('data-tier');
+      if (tier === 'all') {
+        r.style.display = '';
+      } else if (tier === 'overdue') {
+        if (rowTier === 'overdue' || rowTier === 'today' || rowTier === 'suspended') {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
+        }
+      } else {
+        r.style.display = (rowTier === tier) ? '' : 'none';
+      }
+    });
+  }
+
+  // Search Filter in Priority Table
+  function filterQueueSearch() {
+    const q = document.getElementById('queueSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#queueTableBody tr[data-search]');
+    rows.forEach(r => {
+      const text = r.getAttribute('data-search') || '';
+      if (!q || text.includes(q)) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  }
+
+  // Quick Collect Modal Logic
+  function openQuickCollectModal(id, name, phone, fee, credit) {
+    currentActiveCustomer = { id, name, phone, fee, credit };
+    document.getElementById('qcCustomerId').value = id;
+    document.getElementById('qcCustomerName').textContent = name;
+    document.getElementById('qcCustomerPhone').textContent = phone;
+    document.getElementById('qcMonthlyFee').textContent = parseFloat(fee).toFixed(2) + ' SAR/mo';
+    document.getElementById('qcCreditBal').textContent = 'Credit: ' + parseFloat(credit).toFixed(2) + ' SAR';
+    document.getElementById('qcAmount').value = parseFloat(fee).toFixed(2);
+    document.getElementById('qcNotes').value = 'Direct Cycle Bill Collection';
+
+    previewAdvanceCalculation();
+    document.getElementById('quickCollectModal').classList.add('open');
+  }
+
+  function closeQuickCollectModal() {
+    document.getElementById('quickCollectModal').classList.remove('open');
+    currentActiveCustomer = null;
+  }
+
+  function previewAdvanceCalculation() {
+    if (!currentActiveCustomer) return;
+    const fee = currentActiveCustomer.fee;
+    const amt = parseFloat(document.getElementById('qcAmount').value || 0);
+    const box = document.getElementById('qcAdvanceNotice');
+
+    if (fee > 0 && amt > fee) {
+      const months = Math.floor(amt / fee);
+      const surplus = (amt - (months * fee)).toFixed(2);
+      box.style.display = 'block';
+      box.innerHTML = `<strong>⚡ Advance Payment Detected:</strong> ${amt.toFixed(2)} SAR covers <strong>${months} month(s)</strong> (${months * 30} days). Surplus of <strong>+${surplus} SAR</strong> will be automatically credited to customer balance and account will switch to <strong>PREPAID</strong>.`;
+    } else if (amt > 0 && amt < fee) {
+      const comb = (amt + currentActiveCustomer.credit).toFixed(2);
+      box.style.display = 'block';
+      box.innerHTML = `<strong>Partial Payment:</strong> ${amt.toFixed(2)} SAR will be credited to balance. Total Credit: <strong>${comb} / ${fee.toFixed(2)} SAR</strong>.`;
+    } else {
+      box.style.display = 'none';
+    }
+  }
+
+  async function submitQuickCollect(e) {
+    e.preventDefault();
+    if (!currentActiveCustomer) return;
+    const id = currentActiveCustomer.id;
+    const amount = parseFloat(document.getElementById('qcAmount').value);
+    const notes = document.getElementById('qcNotes').value;
+    const btn = document.getElementById('qcSubmitBtn');
+
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    try {
+      const res = await fetch(`/api/customers/${id}/quick-collect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amount,
+          notes: notes,
+          extend_days: 30,
+          advance_mode: 'credit'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeQuickCollectModal();
+        // Refresh page to update all KPIs and table
+        window.location.reload();
+      } else {
+        alert('Collection failed: ' + (data.error || 'Unknown error'));
+        btn.disabled = false;
+        btn.textContent = 'Record Payment & Activate';
+      }
+    } catch (err) {
+      alert('Error recording payment: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Record Payment & Activate';
+    }
+  }
+
+  // Date Range Report Modal
+  function openDateRangeReportModal() {
+    const today = new Date().toISOString().split('T')[0];
+    const firstDay = today.substring(0, 8) + '01';
+    document.getElementById('reportStartDate').value = firstDay;
+    document.getElementById('reportEndDate').value = today;
+
+    document.getElementById('dateRangeModal').classList.add('open');
+    generateDateRangeReport();
+  }
+
+  function closeDateRangeReportModal() {
+    document.getElementById('dateRangeModal').classList.remove('open');
+  }
+
+  async function generateDateRangeReport() {
+    const start = document.getElementById('reportStartDate').value;
+    const end = document.getElementById('reportEndDate').value;
+    if (!start || !end) return;
+
+    try {
+      const res = await fetch(`/api/reports/collections?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to fetch report');
+
+      const r = data.report;
+      document.getElementById('rptPeriod').textContent = `Period: ${r.start_date} to ${r.end_date}`;
+      document.getElementById('rptTotalSar').textContent = parseFloat(r.total_collected).toFixed(2) + ' SAR';
+      document.getElementById('rptTxCount').textContent = r.tx_count;
+      document.getElementById('rptCustCount').textContent = r.unique_customers;
+      document.getElementById('rptAvgTx').textContent = parseFloat(r.avg_transaction).toFixed(2) + ' SAR';
+
+      const tbody = document.getElementById('rptTableBody');
+      tbody.innerHTML = '';
+
+      if (!r.items || r.items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-dim);">No collections recorded in this date range.</td></tr>';
+      } else {
+        r.items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="font-mono text-dim" style="font-size:11px;">${item.collected_at}</td>
+            <td style="font-weight:700; color:#fff;">${item.customer_name || 'Customer #' + item.customer_id}</td>
+            <td class="font-mono text-dim" style="font-size:11px;">${item.phone || '—'}</td>
+            <td class="font-mono text-emerald" style="font-weight:800;">+${parseFloat(item.amount).toFixed(2)} SAR</td>
+            <td class="font-mono text-dim" style="font-size:12px;">${item.collected_by || 'Admin'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('printableReportArea').style.display = 'block';
+    } catch (err) {
+      alert('Report error: ' + err.message);
+    }
+  }
+
+  // Hook into live telemetry poller from base.html to update live connectivity numbers without full reload
+  function handleTelemetryUpdate(d) {
+    // If telemetry status updates, poll /api/dashboard/metrics
+    fetch('/api/dashboard/metrics')
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.metrics) {
+          // Optional subtle live updates can be bound here
+        }
+      })
+      .catch(() => {});
+  }
+</script>
+{% endblock %}

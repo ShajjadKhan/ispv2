@@ -1,0 +1,782 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | OLT &amp; Connected ONUs Monitor{% endblock %}
+{% block heading %}OLT Optical Diagnostics &amp; Connected ONUs{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     OLT MONITOR & UPTIME LEDGER STYLES
+     ========================================================= */
+  .olt-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  /* CHASSIS STATUS BANNER */
+  .olt-chassis-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .olt-chassis-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+  }
+
+  .chassis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .chassis-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .chassis-avatar svg {
+    width: 30px;
+    height: 30px;
+    fill: #38bdf8;
+  }
+
+  .telemetry-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .tele-box {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .tele-box .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tele-box .value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: var(--font-mono);
+  }
+
+  /* OPTICAL ERROR DIAGNOSTIC CARD */
+  .alarm-center-card {
+    background: #0f172a;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.1);
+  }
+
+  .alarm-header {
+    padding: 16px 22px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.15) 100%);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .alarm-healthy-card {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #34d399;
+  }
+
+  .alarm-item-box {
+    padding: 16px 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .alarm-item-box:last-child {
+    border-bottom: none;
+  }
+
+  /* PON RACK */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .section-card-header {
+    padding: 18px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .pon-ports-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    padding: 20px 24px;
+  }
+
+  @media (max-width: 900px) {
+    .pon-ports-bar { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .pon-card {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pon-card:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    background: #0d1527;
+  }
+  .pon-card.active-port {
+    border-color: #38bdf8;
+    background: #0f1c36;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  }
+
+  .optical-led {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background-color: #334155;
+  }
+  .optical-led.up {
+    background-color: #10b981;
+    box-shadow: 0 0 6px #10b981;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 12px 18px;
+  }
+
+  .pill-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  .pill-btn.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+  .pill-btn.danger.active {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border-color: #ef4444;
+  }
+
+  /* TABLES */
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 12px 18px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table td {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+  .clean-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* BADGES */
+  .badge-optical {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .badge-optical.good {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .badge-optical.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .badge-optical.critical {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+
+  .btn-rename {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .btn-rename:hover {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-container {
+    background: var(--bg-card);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+  .modal-header {
+    padding: 16px 20px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .form-input {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+  .form-input:focus { border-color: #38bdf8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="olt-wrapper">
+
+  <!-- CHASSIS STATUS & TELEMETRY -->
+  {% if selected_olt %}
+  <div class="olt-chassis-card">
+    <div class="chassis-header">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="chassis-avatar">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 18h-2v-2h2v2zm1-5h-4v-2h4v2zm2-5H8V8h8v2z"/></svg>
+        </div>
+        <div>
+          <h1 style="font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            <span>{{ selected_olt.name }}</span>
+            <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">({{ selected_olt.brand }} {{ selected_olt.model }})</span>
+          </h1>
+          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+            <span>{{ selected_olt.pon_type }} Optical Plant</span>
+            <span>&bull;</span>
+            <span class="font-mono text-cyan">{{ selected_olt.ip_address }}:{{ selected_olt.port }}</span>
+            <span>&bull;</span>
+            <span>{{ onus | length }} Connected ONUs</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="status-pill" style="font-size: 12px; padding: 6px 14px;">
+          <span class="pulse-dot"></span>
+          <span>OLT ONLINE &bull; {{ selected_olt.temperature }}&deg;C</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="telemetry-row">
+      <div class="tele-box">
+        <span class="label">OLT Uptime</span>
+        <span class="value text-cyan">{{ selected_olt.uptime }}</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">CPU Utilization</span>
+        <span class="value">{{ selected_olt.cpu_usage }}%</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">Memory (RAM)</span>
+        <span class="value">{{ selected_olt.memory_usage }}%</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">PON Downlinks Active</span>
+        <span class="value text-emerald">{{ selected_olt.ports | length }} PON Ports Active</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- OPTICAL ERRORS & ALARMS CENTER ("if any error having") -->
+  {% if active_errors %}
+  <div class="alarm-center-card">
+    <div class="alarm-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="pulse-dot" style="background-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);"></span>
+        <span style="font-size: 14px; font-weight: 800; color: #f87171;">
+          ⚠️ {{ active_errors | length }} Active Optical Link Error(s) Detected
+        </span>
+      </div>
+      <span class="font-mono" style="font-size: 11px; color: var(--text-dim);">Immediate Technician Action Recommended</span>
+    </div>
+
+    <div>
+      {% for err in active_errors %}
+      <div class="alarm-item-box">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge-optical {{ err.diag_severity }}" style="font-size: 10px; padding: 2px 7px;">{{ err.diag_badge }}</span>
+            <strong style="font-size: 14px; color: #ffffff;">{{ err.name }}</strong>
+            <span class="font-mono text-dim" style="font-size: 12px;">({{ err.serial_number }})</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            Location: <strong>PON {{ err.pon_port }} (ID: {{ err.onu_id }})</strong> &bull;
+            Distance: <strong>{{ err.distance_km }} km</strong> &bull;
+            {% if err.customer_name %}Subscriber: <strong>{{ err.customer_name }}</strong> ({{ err.customer_phone }}){% else %}Unassigned ONT{% endif %}
+          </div>
+          <div style="font-size: 12px; color: #fbbf24; margin-top: 2px;">
+            <strong>Root Cause:</strong> {{ err.diag_title }}
+          </div>
+          <div style="font-size: 12px; color: var(--text-dim);">
+            <strong>Remedy:</strong> {{ err.diag_solution }}
+          </div>
+        </div>
+
+        <div style="text-align: right;">
+          <div class="font-mono" style="font-size: 17px; font-weight: 800; color: {{ err.signal_color }};">
+            {{ "%.1f"|format(err.rx_power) }} dBm
+          </div>
+          <div class="font-mono text-dim" style="font-size: 11px; margin-top: 3px;">Status: {{ err.status | upper }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="alarm-healthy-card">
+    <svg style="width: 22px; height: 22px; fill: #10b981; flex-shrink: 0;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    <div style="font-size: 13px; font-weight: 700;">
+      All Optical Fiber Links Healthy &amp; Synchronized &bull; 0 Errors / 0 Fiber Cuts Detected
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- PON PORTS RACK OVERVIEW -->
+  {% if selected_olt %}
+  <div class="section-card">
+    <div class="section-card-header">
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+        <span>PON Ports Live Link State</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size: 11px;">Click port to filter connected ONUs</span>
+    </div>
+
+    <div class="pon-ports-bar">
+      {% for p in selected_olt.ports %}
+      <div class="pon-card {% if selected_port == p.port_number %}active-port{% endif %}" onclick="filterByPort({{ p.port_number }})">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: #ffffff;">{{ p.name }}</span>
+          <span class="optical-led {{ p.status }}"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
+          <span>Connected:</span>
+          <strong style="color: #ffffff;">{{ p.total_onus }} / {{ p.max_capacity }} ONUs</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
+          <span>Port TX:</span>
+          <strong class="text-emerald">{{ p.tx_power_dbm }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
+          <span>Avg RX:</span>
+          <strong class="text-cyan">{{ p.avg_rx_dbm }} dBm</strong>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- FILTER & SEARCH BAR -->
+  <div class="filter-bar">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <button type="button" class="pill-btn {% if current_filter == 'all' and not selected_port %}active{% endif %}" onclick="applyFilter('all')">
+        <span>All ONUs ({{ kpis.total_onus }})</span>
+      </button>
+
+      <button type="button" class="pill-btn {% if current_filter == 'online' %}active{% endif %}" onclick="applyFilter('online')">
+        <span style="color:#34d399;">●</span>
+        <span>Online ({{ kpis.online_onus }})</span>
+      </button>
+
+      <button type="button" class="pill-btn {% if current_filter == 'good' %}active{% endif %}" onclick="applyFilter('good')">
+        <span>Healthy Signal ({{ kpis.good_signal_count }})</span>
+      </button>
+
+      <button type="button" class="pill-btn danger {% if current_filter == 'critical' or current_filter == 'warning' %}active{% endif %}" onclick="applyFilter('critical')">
+        <span>⚠️ Issues / Errors ({{ active_errors | length }})</span>
+      </button>
+    </div>
+
+    <div>
+      <input type="text" id="onuSearchInput" class="form-input font-mono" style="padding: 6px 12px; font-size: 12px; width: 260px;" placeholder="Search ONU name, serial, subscriber..." onkeyup="filterOnuTable()">
+    </div>
+  </div>
+
+  <!-- CONNECTED ONUS & NAMES TABLE ("just need details about connected onus and names") -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 18h-2v-2h2v2zm1-5h-4v-2h4v2zm2-5H8V8h8v2z"/></svg>
+        <span>Connected ONUs Details &amp; Names (Read From OLT)</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size: 12px;">Total: {{ onus | length }} Connected Device(s)</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="clean-table" id="onuTable">
+        <thead>
+          <tr>
+            <th>ONU Name / Label</th>
+            <th>Serial &amp; Hardware</th>
+            <th>PON Port</th>
+            <th>Optical RX Power</th>
+            <th>Distance</th>
+            <th>Link State</th>
+            <th>Uptime</th>
+            <th>Error / Diagnostic Status</th>
+          </tr>
+        </thead>
+        <tbody id="onuTableBody">
+          {% if not onus %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-dim);">
+              No ONUs match the filter criteria.
+            </td>
+          </tr>
+          {% else %}
+            {% for u in onus %}
+            <tr data-search="{{ u.name | lower }} {{ u.serial_number | lower }} {{ (u.customer_name or '') | lower }} {{ u.customer_phone or '' }}">
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: #ffffff; font-size: 13.5px;">{{ u.name }}</strong>
+                  <button type="button" class="btn-rename" onclick="openRenameModal({{ u.id }}, '{{ u.name }}')">
+                    <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    <span>Rename</span>
+                  </button>
+                </div>
+                {% if u.customer_name %}
+                  <div class="font-mono text-dim" style="font-size: 11px; margin-top: 2px;">
+                    Subscriber: <span style="color:#ffffff;">{{ u.customer_name }}</span> ({{ u.customer_phone }})
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                <div class="font-mono" style="font-weight: 700; color: #38bdf8;">{{ u.serial_number }}</div>
+                <div class="text-dim" style="font-size: 11px;">{{ u.onu_model }}</div>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 700; color: #ffffff;">PON {{ u.pon_port }}</span>
+                <span class="font-mono text-dim" style="font-size: 11px;">(ID: {{ u.onu_id }})</span>
+              </td>
+              <td>
+                <span class="badge-optical {{ u.signal_quality }}">
+                  <span>{{ "%.2f"|format(u.rx_power) }} dBm</span>
+                </span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; color: #ffffff;">{{ u.distance_km }} km</span>
+                <div class="text-dim" style="font-size: 10px;">{{ u.distance_m }}m</div>
+              </td>
+              <td>
+                {% if u.status == 'online' %}
+                  <span class="badge-status running">ONLINE</span>
+                {% elif u.status == 'los' %}
+                  <span class="badge-status disabled">FIBER LOS</span>
+                {% else %}
+                  <span class="badge-status stopped">OFFLINE</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="font-mono text-cyan" style="font-weight: 600;">{{ u.uptime }}</span>
+                <div class="text-dim font-mono" style="font-size: 10px;">{{ u.availability_pct }}% availability</div>
+              </td>
+              <td>
+                {% if u.error_severity == 'critical' or u.status == 'los' %}
+                  <span style="color: #f87171; font-weight: 700; font-size: 12px;">🚨 {{ u.last_error }}</span>
+                {% elif u.error_severity == 'warning' %}
+                  <span style="color: #fbbf24; font-weight: 700; font-size: 12px;">⚠️ {{ u.last_error }}</span>
+                {% else %}
+                  <span style="color: #34d399; font-size: 12px;">✅ {{ u.last_error }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ONU UPTIME & OUTAGE LEDGER ("onu up time leger") -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #10b981;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>ONU Uptime &amp; Outage Ledger History</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size: 12px;">Historical stability &amp; optical events</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="clean-table">
+        <thead>
+          <tr>
+            <th>Event Timestamp</th>
+            <th>ONU Name &amp; Serial</th>
+            <th>Location</th>
+            <th>Event Type</th>
+            <th>Session Duration</th>
+            <th>Optical Power</th>
+            <th>Event Details / Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not uptime_ledger %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-dim);">
+              No historical uptime events recorded yet.
+            </td>
+          </tr>
+          {% else %}
+            {% for leg in uptime_ledger %}
+            <tr>
+              <td class="font-mono text-dim" style="font-size: 11px;">{{ leg.event_time }}</td>
+              <td>
+                <div style="font-weight: 700; color: #ffffff;">{{ leg.onu_name }}</div>
+                <div class="font-mono text-dim" style="font-size: 11px;">{{ leg.serial_number }}</div>
+              </td>
+              <td>
+                <span class="font-mono text-cyan">PON {{ leg.pon_port }}</span>
+                <span class="font-mono text-dim" style="font-size: 11px;">(ID: {{ leg.onu_idx }})</span>
+              </td>
+              <td>
+                {% if leg.event_type == 'online' or leg.event_type == 'recovered' %}
+                  <span class="badge-status running">LINK UP</span>
+                {% elif leg.event_type == 'los' %}
+                  <span class="badge-status disabled">FIBER LOS</span>
+                {% elif leg.event_type == 'dying_gasp' %}
+                  <span style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; background:rgba(245,158,11,0.15); color:#fbbf24;">POWER OFF</span>
+                {% elif leg.event_type == 'warning' %}
+                  <span style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; background:rgba(245,158,11,0.15); color:#fbbf24;">HIGH LOSS</span>
+                {% else %}
+                  <span class="badge-status stopped">{{ leg.event_type | upper }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 700; color: #ffffff;">{{ leg.duration_str or '—' }}</span>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight: 600; color: {% if leg.rx_power and leg.rx_power < -27 %}#f87171{% elif leg.rx_power and leg.rx_power < -24 %}#fbbf24{% else %}#34d399{% endif %};">
+                  {{ leg.rx_power }} dBm
+                </span>
+              </td>
+              <td class="text-dim" style="font-size: 12px;">
+                {{ leg.reason }}
+              </td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- QUICK RENAME MODAL (NAME ONLY, NO SETUP/VLAN) -->
+<div id="renameOnuModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Edit ONU Name / Label</h3>
+      <button type="button" class="btn-modal-close" onclick="closeRenameModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+    <form id="renameOnuForm" onsubmit="submitRename(event)">
+      <div class="modal-body">
+        <input type="hidden" id="renameOnuId">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ONU Friendly Name</label>
+          <input type="text" class="form-input" id="renameOnuInput" required placeholder="e.g. Shajjad Khan Office ONT">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+          <button type="button" class="btn-rename" onclick="closeRenameModal()">Cancel</button>
+          <button type="submit" style="background:#0284c7; color:#fff; border:none; padding:8px 16px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">Save Name</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterByPort(p) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('port', p);
+    window.location.href = url.toString();
+  }
+
+  function applyFilter(f) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('filter', f);
+    url.searchParams.delete('port');
+    window.location.href = url.toString();
+  }
+
+  function filterOnuTable() {
+    const q = document.getElementById('onuSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#onuTableBody tr[data-search]');
+    rows.forEach(r => {
+      const text = r.getAttribute('data-search') || '';
+      r.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+  }
+
+  // Quick Rename Logic
+  function openRenameModal(id, currentName) {
+    document.getElementById('renameOnuId').value = id;
+    document.getElementById('renameOnuInput').value = currentName;
+    document.getElementById('renameOnuModal').classList.add('open');
+  }
+
+  function closeRenameModal() {
+    document.getElementById('renameOnuModal').classList.remove('open');
+  }
+
+  async function submitRename(e) {
+    e.preventDefault();
+    const id = document.getElementById('renameOnuId').value;
+    const newName = document.getElementById('renameOnuInput').value.trim();
+
+    try {
+      const res = await fetch(`/api/olt/onus/${id}/name`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeRenameModal();
+        window.location.reload();
+      } else {
+        alert('Failed to update name: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error updating name: ' + err.message);
+    }
+  }
+</script>
+{% endblock %}

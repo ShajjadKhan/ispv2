@@ -1,0 +1,780 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | MikroTik Gateway Status{% endblock %}
+{% block heading %}MikroTik Gateway Operations{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     DASHBOARD STYLES
+     ========================================================= */
+  .grid-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* HERO STATUS BANNER */
+  .hero-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 28px 32px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981 0%, #38bdf8 50%, #6366f1 100%);
+  }
+
+  .hero-card.is-offline::before {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  .hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .hero-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .router-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .router-avatar svg {
+    width: 34px;
+    height: 34px;
+    fill: #38bdf8;
+  }
+
+  .router-title-group h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .router-title-group .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-badge-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+
+  .status-badge-hero.offline {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.35);
+  }
+
+  .hero-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .detail-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detail-box .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-box .value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: var(--font-mono);
+  }
+
+  /* TELEMETRY STAT CARDS */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .metric-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .metric-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--text-muted);
+  }
+
+  .metric-val-large {
+    font-size: 28px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    line-height: 1.1;
+  }
+
+  .metric-val-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #38bdf8;
+    transition: width 0.4s ease;
+  }
+  .progress-fill.emerald { background: #10b981; }
+  .progress-fill.amber { background: #f59e0b; }
+  .progress-fill.rose { background: #ef4444; }
+
+  /* HARDWARE PORTS VISUALIZER */
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .section-card-header {
+    padding: 18px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .ports-board {
+    padding: 24px;
+    background: #090e1a;
+    border-radius: 12px;
+    margin: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .ports-rack {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 860px) {
+    .ports-rack { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .port-box {
+    background: #111a2e;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .port-box.is-active {
+    border-color: rgba(56, 189, 248, 0.35);
+    background: #13203b;
+  }
+
+  .port-box-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .port-name-label {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .port-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #334155;
+  }
+
+  .port-led.online {
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+  }
+
+  .port-role-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    width: fit-content;
+  }
+  .role-wan { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .role-lan { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .role-ap { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+  .role-server { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+  .port-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: var(--font-mono);
+  }
+
+  /* INTERFACES TABLE */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 12px 20px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .clean-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+
+  .clean-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .badge-status.running {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+  }
+  .badge-status.stopped {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+  }
+  .badge-status.disabled {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid-layout">
+
+  <!-- PENDING REQUESTS ALERT BANNER -->
+  <div id="pendingAlertBanner" style="{% if not pending_count %}display:none;{% else %}display:flex;{% endif %} background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.15) 100%); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 14px; padding: 16px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span class="pulse-dot" style="background-color: #f59e0b; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);"></span>
+      <span style="font-weight: 700; color: #fbbf24; font-size: 14px;" id="pendingAlertText">
+        {{ pending_count }} Connection Request(s) Awaiting Admin Approval
+      </span>
+    </div>
+    <a href="/approvals" class="btn-approve" style="text-decoration: none; padding: 7px 16px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+      <span>Review &amp; Approve</span>
+      <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+
+  <!-- HERO GATEWAY CARD -->
+  <div id="heroCard" class="hero-card {% if not router.connected %}is-offline{% endif %}">
+    <div class="hero-header">
+      <div class="hero-left">
+        <div class="router-avatar">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+          </svg>
+        </div>
+        <div class="router-title-group">
+          <h1 id="heroIdentity">
+            {{ router.identity }}
+            <span style="font-size:14px; font-weight:500; color:var(--text-dim);">({{ router.model }})</span>
+          </h1>
+          <div class="subtitle">
+            <span>RouterOS {{ router.version }}</span>
+            <span>&bull;</span>
+            <span>Architecture: {{ router.cpu_model }}</span>
+            <span>&bull;</span>
+            <span class="font-mono">{{ router.host }}:{{ router.port }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div id="heroStatusBadge" class="status-badge-hero {% if not router.connected %}offline{% endif %}">
+          <span class="pulse-dot"></span>
+          <span id="heroStatusText">
+            {% if router.connected %}ROUTER ONLINE &amp; HEALTHY{% else %}ROUTER OFFLINE{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="hero-details-grid">
+      <div class="detail-box">
+        <span class="label">System Uptime</span>
+        <span id="statUptime" class="value text-cyan">{{ router.uptime }}</span>
+      </div>
+      <div class="detail-box">
+        <span class="label">API Response Time</span>
+        <span id="statLatency" class="value text-emerald">{{ router.latency_ms }} ms</span>
+      </div>
+      <div class="detail-box">
+        <span class="label">Total Memory</span>
+        <span class="value">{{ router.total_memory_mb }} MB</span>
+      </div>
+      <div class="detail-box">
+        <span class="label">Last Verified</span>
+        <span id="statCheckedAt" class="value text-muted">{{ router.checked_at }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELEMETRY METRIC CARDS -->
+  <div class="metrics-row">
+    <!-- CPU CARD -->
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">CPU Utilization</span>
+        <div class="metric-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 6h4v4H4V6zm0 8h4v4H4v-4zm8-8h4v4h-4V6zm0 8h4v4h-4v-4zm8-8h4v4h-4V6zm0 8h4v4h-4v-4z"/></svg>
+        </div>
+      </div>
+      <div>
+        <div id="statCpuVal" class="metric-val-large">{{ router.cpu_load }}%</div>
+        <div class="metric-val-sub">{{ router.cpu_model }} @ Single-Core</div>
+      </div>
+      <div class="progress-track">
+        <div id="statCpuBar" class="progress-fill {% if router.cpu_load > 80 %}rose{% elif router.cpu_load > 50 %}amber{% else %}emerald{% endif %}" style="width: {{ router.cpu_load }}%;"></div>
+      </div>
+    </div>
+
+    <!-- RAM CARD -->
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Memory Utilization</span>
+        <div class="metric-icon">
+          <svg viewBox="0 0 24 24"><path d="M2 7h2v10H2V7zm5 0h2v10H7V7zm5 0h2v10h-2V7zm5 0h2v10h-2V7zm5 0h2v10h-2V7z"/></svg>
+        </div>
+      </div>
+      <div>
+        <div id="statMemVal" class="metric-val-large">{{ router.memory_percent }}%</div>
+        <div id="statMemSub" class="metric-val-sub">{{ router.used_memory_mb }} MB used of {{ router.total_memory_mb }} MB</div>
+      </div>
+      <div class="progress-track">
+        <div id="statMemBar" class="progress-fill {% if router.memory_percent > 85 %}rose{% elif router.memory_percent > 65 %}amber{% else %}emerald{% endif %}" style="width: {{ router.memory_percent }}%;"></div>
+      </div>
+    </div>
+
+    <!-- LATENCY CARD -->
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">API Latency</span>
+        <div class="metric-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        </div>
+      </div>
+      <div>
+        <div id="statLatVal" class="metric-val-large text-emerald">{{ router.latency_ms }} <span style="font-size:16px; font-weight:500;">ms</span></div>
+        <div class="metric-val-sub">Local Management Link (Direct)</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill emerald" style="width: 100%;"></div>
+      </div>
+    </div>
+
+    <!-- ACTIVE INTERFACES CARD -->
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Interfaces Online</span>
+        <div class="metric-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        </div>
+      </div>
+      <div>
+        {% set running_count = router.interfaces | selectattr('running') | list | length %}
+        <div id="statIfaceCount" class="metric-val-large text-cyan">{{ running_count }} <span style="font-size:16px; font-weight:500;">/ {{ router.interfaces | length }}</span></div>
+        <div class="metric-val-sub">Physical &amp; Bridge Ports Active</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 80%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHYSICAL PORTS VISUALIZER -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <div>
+        <div class="section-title">
+          <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+          <span>Physical Ports Front Panel (MikroTik hAP lite)</span>
+        </div>
+        <div class="section-subtitle">Real-time cable link status, designated roles, and IP subnets</div>
+      </div>
+      <span class="font-mono text-dim" style="font-size:12px;">RB941-2nD &bull; 4 FastEthernet Ports</span>
+    </div>
+
+    <div class="ports-board">
+      <div class="ports-rack">
+        <!-- PORT 1: WAN -->
+        {% set p1 = (router.interfaces | selectattr('name', 'equalto', 'ether1') | first) if router.interfaces else none %}
+        <div class="port-box {% if p1 and p1.running %}is-active{% endif %}" id="port-box-ether1">
+          <div class="port-box-top">
+            <span class="port-name-label">Port 1 (ether1)</span>
+            <span class="port-led {% if p1 and p1.running %}online{% endif %}" id="led-ether1"></span>
+          </div>
+          <div>
+            <span class="port-role-badge role-wan">WAN Uplink</span>
+          </div>
+          <div class="port-meta">
+            <span>Link: <strong id="link-ether1" class="{% if p1 and p1.running %}text-emerald{% else %}text-muted{% endif %}">{% if p1 and p1.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
+            <span>IP: {{ router.ip_map.get('ether1', '192.168.22.25/24') }}</span>
+          </div>
+        </div>
+
+        <!-- PORT 2: LAN -->
+        {% set p2 = (router.interfaces | selectattr('name', 'equalto', 'ether2') | first) if router.interfaces else none %}
+        <div class="port-box {% if p2 and p2.running %}is-active{% endif %}" id="port-box-ether2">
+          <div class="port-box-top">
+            <span class="port-name-label">Port 2 (ether2)</span>
+            <span class="port-led {% if p2 and p2.running %}online{% endif %}" id="led-ether2"></span>
+          </div>
+          <div>
+            <span class="port-role-badge role-lan">LAN (Direct)</span>
+          </div>
+          <div class="port-meta">
+            <span>Link: <strong id="link-ether2" class="{% if p2 and p2.running %}text-emerald{% else %}text-muted{% endif %}">{% if p2 and p2.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
+            <span>IP: {{ router.ip_map.get('ether2', 'Unassigned') }}</span>
+          </div>
+        </div>
+
+        <!-- PORT 3: ACCESS POINT -->
+        {% set p3 = (router.interfaces | selectattr('name', 'equalto', 'ether3') | first) if router.interfaces else none %}
+        <div class="port-box {% if p3 and p3.running %}is-active{% endif %}" id="port-box-ether3">
+          <div class="port-box-top">
+            <span class="port-name-label">Port 3 (ether3)</span>
+            <span class="port-led {% if p3 and p3.running %}online{% endif %}" id="led-ether3"></span>
+          </div>
+          <div>
+            <span class="port-role-badge role-ap">AP "test link"</span>
+          </div>
+          <div class="port-meta">
+            <span>Link: <strong id="link-ether3" class="{% if p3 and p3.running %}text-emerald{% else %}text-muted{% endif %}">{% if p3 and p3.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
+            <span>Bridge: bridge-hotspot (10.88.88.1/24)</span>
+          </div>
+        </div>
+
+        <!-- PORT 4: TSERVER -->
+        {% set p4 = (router.interfaces | selectattr('name', 'equalto', 'ether4') | first) if router.interfaces else none %}
+        <div class="port-box {% if p4 and p4.running %}is-active{% endif %}" id="port-box-ether4">
+          <div class="port-box-top">
+            <span class="port-name-label">Port 4 (ether4)</span>
+            <span class="port-led {% if p4 and p4.running %}online{% endif %}" id="led-ether4"></span>
+          </div>
+          <div>
+            <span class="port-role-badge role-server">Server Link (tserver)</span>
+          </div>
+          <div class="port-meta">
+            <span>Link: <strong id="link-ether4" class="{% if p4 and p4.running %}text-emerald{% else %}text-muted{% endif %}">{% if p4 and p4.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
+            <span>IP: {{ router.ip_map.get('ether4', '10.20.30.1/24') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALL INTERFACES TABLE -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <div class="section-title">
+        <svg style="width:18px; height:18px; fill:#34d399;" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        <span>All Configured Router Interfaces</span>
+      </div>
+      <span class="section-subtitle">Live state reported directly by RouterOS API</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="clean-table">
+        <thead>
+          <tr>
+            <th>Interface</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Assigned IP</th>
+            <th>Comment / Notes</th>
+          </tr>
+        </thead>
+        <tbody id="interfacesTableBody">
+          {% for iface in router.interfaces %}
+          <tr>
+            <td class="font-mono" style="font-weight:700; color:#ffffff;">{{ iface.name }}</td>
+            <td class="font-mono text-dim">{{ iface.type }}</td>
+            <td>
+              {% if iface.disabled %}
+                <span class="badge-status disabled">DISABLED</span>
+              {% elif iface.running %}
+                <span class="badge-status running">RUNNING (UP)</span>
+              {% else %}
+                <span class="badge-status stopped">DOWN / NO CARRIER</span>
+              {% endif %}
+            </td>
+            <td class="font-mono text-cyan">
+              {{ router.ip_map.get(iface.name, '—') }}
+            </td>
+            <td class="text-muted">
+              {% if iface.name == 'ether1' %}WAN Uplink Connection
+              {% elif iface.name == 'ether3' %}AP ("test link") on bridge-hotspot
+              {% elif iface.name == 'ether4' %}tserver Host Connection (10.20.30.40)
+              {% elif iface.name == 'bridge-hotspot' %}Hotspot Default Gateway Subnet
+              {% else %}{{ iface.comment or '—' }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Page-specific telemetry handler called every 5s by base.html
+  function handleTelemetryUpdate(d) {
+    const hero = document.getElementById('heroCard');
+    const heroBadge = document.getElementById('heroStatusBadge');
+    const heroText = document.getElementById('heroStatusText');
+
+    if (d.connected) {
+      if (hero) hero.classList.remove('is-offline');
+      if (heroBadge) heroBadge.classList.remove('offline');
+      if (heroText) heroText.textContent = 'ROUTER ONLINE & HEALTHY';
+    } else {
+      if (hero) hero.classList.add('is-offline');
+      if (heroBadge) heroBadge.classList.add('offline');
+      if (heroText) heroText.textContent = 'ROUTER OFFLINE';
+    }
+
+    // Update numbers
+    const statUptime = document.getElementById('statUptime');
+    if (statUptime) statUptime.textContent = d.uptime;
+
+    const statLatency = document.getElementById('statLatency');
+    if (statLatency) statLatency.textContent = d.latency_ms + ' ms';
+
+    const statLatVal = document.getElementById('statLatVal');
+    if (statLatVal) statLatVal.innerHTML = d.latency_ms + ' <span style="font-size:16px; font-weight:500;">ms</span>';
+
+    const statCheckedAt = document.getElementById('statCheckedAt');
+    if (statCheckedAt) statCheckedAt.textContent = d.checked_at;
+
+    // CPU
+    const statCpuVal = document.getElementById('statCpuVal');
+    const statCpuBar = document.getElementById('statCpuBar');
+    if (statCpuVal) statCpuVal.textContent = d.cpu_load + '%';
+    if (statCpuBar) statCpuBar.style.width = d.cpu_load + '%';
+
+    // Memory
+    const statMemVal = document.getElementById('statMemVal');
+    const statMemSub = document.getElementById('statMemSub');
+    const statMemBar = document.getElementById('statMemBar');
+    if (statMemVal) statMemVal.textContent = d.memory_percent + '%';
+    if (statMemSub) statMemSub.textContent = d.used_memory_mb + ' MB used of ' + d.total_memory_mb + ' MB';
+    if (statMemBar) statMemBar.style.width = d.memory_percent + '%';
+
+    // Physical ports LED update
+    if (d.interfaces && Array.isArray(d.interfaces)) {
+      const ports = ['ether1', 'ether2', 'ether3', 'ether4'];
+      let runningCount = 0;
+      ports.forEach(p => {
+        const found = d.interfaces.find(i => i.name === p);
+        const box = document.getElementById('port-box-' + p);
+        const led = document.getElementById('led-' + p);
+        const link = document.getElementById('link-' + p);
+
+        if (found && found.running) {
+          runningCount++;
+          if (box) box.classList.add('is-active');
+          if (led) led.classList.add('online');
+          if (link) {
+            link.textContent = 'CONNECTED';
+            link.className = 'text-emerald';
+          }
+        } else {
+          if (box) box.classList.remove('is-active');
+          if (led) led.classList.remove('online');
+          if (link) {
+            link.textContent = 'NO CARRIER';
+            link.className = 'text-muted';
+          }
+        }
+      });
+
+      const statIfaceCount = document.getElementById('statIfaceCount');
+      if (statIfaceCount) {
+        statIfaceCount.innerHTML = runningCount + ' <span style="font-size:16px; font-weight:500;">/ ' + d.interfaces.length + '</span>';
+      }
+    }
+
+    // Dynamic update for Pending Requests Banner
+    fetch('/api/hotspot/pending-count')
+      .then(r => r.json())
+      .then(data => {
+        const banner = document.getElementById('pendingAlertBanner');
+        const text = document.getElementById('pendingAlertText');
+        if (banner && text) {
+          if (data.count > 0) {
+            text.textContent = data.count + ' Connection Request(s) Awaiting Admin Approval';
+            banner.style.display = 'flex';
+          } else {
+            banner.style.display = 'none';
+          }
+        }
+      })
+      .catch(() => {});
+  }
+</script>
+{% endblock %}

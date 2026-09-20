@@ -1,0 +1,1172 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | WhatsApp Operations &amp; Messaging Hub{% endblock %}
+{% block heading %}WhatsApp Messaging &amp; Safety Hub{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     WHATSAPP HUB STYLES
+     ========================================================= */
+  .wa-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  /* GATEWAY & SAFETY CARD */
+  .wa-hero-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(13, 31, 26, 0.95) 100%);
+    border: 1px solid rgba(37, 211, 102, 0.25);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .wa-hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #25d366 0%, #128c7e 50%, #38bdf8 100%);
+  }
+
+  .wa-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .wa-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(37, 211, 102, 0.15);
+    border: 1px solid rgba(37, 211, 102, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #25d366;
+  }
+  .wa-avatar svg { width: 28px; height: 28px; fill: currentColor; }
+
+  /* TELEMETRY ROW */
+  .telemetry-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  @media (max-width: 900px) {
+    .telemetry-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .tele-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .tele-box .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tele-box .value {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  /* NIGHT SHIELD BANNER */
+  .night-shield-card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .night-shield-card.daytime {
+    border-color: rgba(37, 211, 102, 0.3);
+  }
+
+  /* TWO-COLUMN WORKBENCH */
+  .composer-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 0.95fr;
+    gap: 20px;
+  }
+  @media (max-width: 1050px) {
+    .composer-grid { grid-template-columns: 1fr; }
+  }
+
+  .section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .section-card-header {
+    padding: 16px 20px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .composer-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .form-control {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-control:focus { border-color: #25d366; }
+
+  /* TEMPLATE SELECTOR CHIPS */
+  .chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .chip-btn:hover {
+    background: rgba(37, 211, 102, 0.12);
+    color: #ffffff;
+    border-color: rgba(37, 211, 102, 0.4);
+  }
+  .chip-btn.active {
+    background: rgba(37, 211, 102, 0.2);
+    color: #25d366;
+    border-color: #25d366;
+  }
+
+  .tag-pill {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #38bdf8;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+  .tag-pill:hover {
+    background: rgba(56, 189, 248, 0.2);
+  }
+
+  /* WHATSAPP PHONE PREVIEW BUBBLE */
+  .wa-chat-container {
+    background: #0b141a;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+    overflow: hidden;
+  }
+
+  .wa-chat-header {
+    background: #202c33;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .wa-chat-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #005c4b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+  }
+  .wa-chat-area {
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 12px;
+    flex: 1;
+    background: radial-gradient(circle, rgba(17, 27, 33, 1) 0%, rgba(11, 20, 26, 1) 100%);
+  }
+
+  .wa-bubble-out {
+    align-self: flex-end;
+    max-width: 88%;
+    background: #005c4b;
+    color: #e9edef;
+    padding: 10px 14px 8px 14px;
+    border-radius: 8px 0px 8px 8px;
+    font-size: 13px;
+    line-height: 1.45;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .wa-bubble-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+  }
+  .wa-ticks { color: #53bdeb; font-weight: 800; }
+
+  /* FILTER BAR & TABLES */
+  .filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 12px 18px;
+  }
+
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 12px 18px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .clean-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table tr:last-child td { border-bottom: none; }
+  .clean-table tr:hover td { background: rgba(255, 255, 255, 0.015); }
+
+  /* BUTTONS */
+  .btn-wa-send {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+  }
+  .btn-wa-send:hover { opacity: 0.9; }
+
+  .btn-simulate {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: #38bdf8;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn-simulate:hover { background: rgba(56, 189, 248, 0.1); }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-container {
+    background: var(--bg-card);
+    border: 1px solid rgba(37, 211, 102, 0.3);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 16px 20px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wa-wrapper">
+
+  <!-- WHATSAPP GATEWAY & SAFETY CARD -->
+  <div class="wa-hero-card">
+    <div class="wa-hero-header">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="wa-avatar">
+          <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+        </div>
+        <div>
+          <h1 style="font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            <span>WhatsApp Operations Hub</span>
+            <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">(Automated &amp; Manual Messaging Gateway)</span>
+          </h1>
+          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+            <span>Line: <strong style="color: #ffffff;">+{{ wa_status.phone or '966594266584' }}</strong> ({{ wa_status.name }})</span>
+            <span>&bull;</span>
+            <span class="font-mono text-emerald">OpenWA Engine :2785</span>
+            <span>&bull;</span>
+            <span>Session: <code class="font-mono text-dim">{{ wa_status.session_id }}</code></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button type="button" class="btn-simulate" onclick="openSettingsModal()">
+          ⚙️ Settings &amp; Templates
+        </button>
+        <button type="button" class="btn-simulate" onclick="checkLiveStatus()" id="btnCheckStatus">
+          🔄 Refresh Status
+        </button>
+        <div class="status-pill" style="font-size: 12px; padding: 6px 14px; background: rgba(37, 211, 102, 0.15); border-color: rgba(37, 211, 102, 0.3);">
+          <span class="pulse-dot" style="background-color: #25d366; box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);"></span>
+          <span id="gatewayStatusText" style="color: #25d366;">{{ wa_status.status | upper }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TELEMETRY / STATS ROW -->
+    <div class="telemetry-row">
+      <div class="tele-box">
+        <span class="label">Total Dispatched / Logged</span>
+        <span class="value text-cyan">{{ stats.total_logs }} Messages</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">Delivered Successfully</span>
+        <span class="value text-emerald">{{ stats.sent_count }} Delivered</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">Protected by Night Shield</span>
+        <span class="value" style="color: #fbbf24;">{{ stats.blocked_count }} Blocked</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">Subscribers Due for Notice</span>
+        <span class="value text-rose">{{ stats.due_count }} Pending</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIGHT QUIET HOURS & DISPATCH PERMISSION SHIELD -->
+  <div class="night-shield-card {% if not is_night %}daytime{% endif %}">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      {% if is_night %}
+      <span style="font-size: 24px;">🌙</span>
+      <div>
+        <div style="font-size: 13.5px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 8px;">
+          <span>NIGHT QUIET HOURS SHIELD ACTIVE</span>
+          <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Customer sleep protection enabled. Automated reminder cron jobs are blocked. Manual night sends require explicit confirmation.
+        </div>
+      </div>
+      {% else %}
+      <span style="font-size: 24px;">☀️</span>
+      <div>
+        <div style="font-size: 13.5px; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 8px;">
+          <span>DAYTIME NOTIFICATION WINDOW ACTIVE</span>
+          <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Safe sending hours. Due notices and payment receipts can be dispatched courteously to customers.
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Auto-Dispatch:</span>
+        {% if wa_settings.auto_dispatch_enabled == '1' %}
+          <span class="badge-status running" style="font-size: 10px;">ENABLED</span>
+        {% else %}
+          <span class="badge-status stopped" style="font-size: 10px;">DISABLED (SAFE)</span>
+        {% endif %}
+      </div>
+      <button type="button" class="btn-simulate" style="font-size: 11px; padding: 5px 12px;" onclick="openSettingsModal()">
+        Configure Shield
+      </button>
+    </div>
+  </div>
+
+  <!-- WORKBENCH: COMPOSER (LEFT) + LIVE WHATSAPP BUBBLE (RIGHT) -->
+  <div class="composer-grid">
+
+    <!-- COMPOSER COLUMN -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          <span>Direct Message Composer</span>
+        </div>
+        <span class="font-mono text-dim" style="font-size: 11px;">Manual &amp; Targeted Notices</span>
+      </div>
+
+      <div class="composer-body">
+
+        <!-- RECIPIENT SELECTOR -->
+        <div class="form-group">
+          <label class="form-label">1. Choose Recipient</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="custPicker" class="form-control" onchange="onCustomerSelected(this.value)">
+              <option value="">-- Choose Existing Subscriber or Enter Phone --</option>
+              {% for c in customers %}
+              <option value="{{ c.id }}"
+                      data-phone="{{ c.phone }}"
+                      data-name="{{ c.name }}"
+                      data-package="{{ c.package_name }}"
+                      data-due="{{ c.due_balance or c.total_due or 0 }}"
+                      data-expiry="{{ c.expiry_date }}">
+                {{ c.name }} ({{ c.phone }}) — Plan: {{ c.package_name }} [Due: {{ c.due_balance or c.total_due or 0 }} SAR]
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- PHONE NUMBER -->
+        <div class="form-group">
+          <label class="form-label">Recipient Mobile Number</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="font-mono" style="background:#090e1a; border:1px solid var(--border-subtle); padding:10px 12px; border-radius:8px; font-size:13px; color:#38bdf8;">+966</span>
+            <input type="text" id="targetPhone" class="form-control font-mono" placeholder="05XXXXXXXX or 5XXXXXXXX" oninput="updateLivePreview()">
+          </div>
+        </div>
+
+        <!-- TEMPLATE PRESETS -->
+        <div class="form-group">
+          <label class="form-label">2. Template Presets</label>
+          <div class="chips-row">
+            <button type="button" class="chip-btn active" onclick="loadTemplate('reminder')">💳 Due Reminder</button>
+            <button type="button" class="chip-btn" onclick="loadTemplate('receipt')">🧾 Payment Receipt</button>
+            <button type="button" class="chip-btn" onclick="loadTemplate('voucher')">🎟️ WiFi Voucher PIN</button>
+            <button type="button" class="chip-btn" onclick="loadTemplate('expiry')">⚠️ Expiry Notice</button>
+            <button type="button" class="chip-btn" onclick="loadTemplate('maintenance')">🛠️ Maintenance</button>
+            <button type="button" class="chip-btn" onclick="loadTemplate('blank')">✏️ Blank</button>
+          </div>
+        </div>
+
+        <!-- QUICK VARIABLE TAGS -->
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label class="form-label">Insert Dynamic Tags</label>
+            <span class="text-dim" style="font-size: 11px;">Click tag to insert</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <span class="tag-pill" onclick="insertTag('[NAME]')">[NAME]</span>
+            <span class="tag-pill" onclick="insertTag('[PHONE]')">[PHONE]</span>
+            <span class="tag-pill" onclick="insertTag('[PACKAGE]')">[PACKAGE]</span>
+            <span class="tag-pill" onclick="insertTag('[DUE_BALANCE]')">[DUE_BALANCE]</span>
+            <span class="tag-pill" onclick="insertTag('[EXPIRY_DATE]')">[EXPIRY_DATE]</span>
+            <span class="tag-pill" onclick="insertTag('[AMOUNT]')">[AMOUNT]</span>
+            <span class="tag-pill" onclick="insertTag('[PIN]')">[PIN]</span>
+            <span class="tag-pill" onclick="insertTag('[HELPLINE]')">[HELPLINE]</span>
+            <span class="tag-pill" onclick="insertTag('[MOVIES]')">[MOVIES]</span>
+          </div>
+        </div>
+
+        <!-- MESSAGE EDITOR -->
+        <div class="form-group">
+          <label class="form-label">3. Message Text</label>
+          <textarea id="messageEditor" class="form-control font-mono" rows="8" style="resize: vertical; font-size: 12.5px; line-height: 1.5;" oninput="updateLivePreview()"></textarea>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+            <span id="charCount">0 characters</span>
+            <span>Markdown: <code>*bold*</code>, <code>_italic_</code>, <code>`code`</code></span>
+          </div>
+        </div>
+
+        <!-- NIGHT FORCE OVERRIDE & DISPATCH ACTIONS -->
+        <div style="padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 14px;">
+          {% if is_night %}
+          <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="chkForceNight" style="width: 17px; height: 17px; accent-color: #f59e0b; cursor: pointer;">
+            <label for="chkForceNight" style="font-size: 12px; font-weight: 700; color: #fbbf24; cursor: pointer;">
+              🌙 I authorize sending this message during Night Quiet Hours
+            </label>
+          </div>
+          {% endif %}
+
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <button type="button" class="btn-simulate" onclick="sendAction(true)">
+              🛡️ Safe Simulate (Test Log)
+            </button>
+            <button type="button" class="btn-wa-send" onclick="sendAction(false)">
+              <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+              <span>Send WhatsApp Now</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PREVIEW COLUMN: REALISTIC WHATSAPP PHONE BUBBLE -->
+    <div class="section-card" style="display: flex; flex-direction: column;">
+      <div class="section-card-header">
+        <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+          <span>Live Subscriber Phone Preview</span>
+        </div>
+        <span class="font-mono text-dim" style="font-size: 11px;">Real-Time Variable Rendering</span>
+      </div>
+
+      <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
+        <div class="wa-chat-container">
+          <!-- CHAT HEADER -->
+          <div class="wa-chat-header">
+            <div class="wa-chat-avatar">CN</div>
+            <div>
+              <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 5px;">
+                <span>Cyber Net</span>
+                <svg style="width: 14px; height: 14px; fill: #25d366;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              </div>
+              <div style="font-size: 11px; color: #25d366;">online &bull; Official ISP Gateway</div>
+            </div>
+          </div>
+
+          <!-- CHAT BUBBLE AREA -->
+          <div class="wa-chat-area">
+            <div class="wa-bubble-out">
+              <div id="waBubbleContent"></div>
+              <div class="wa-bubble-meta">
+                <span id="waBubbleTime">11:05 PM</span>
+                <span class="wa-ticks">✓✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 12px; color: var(--text-dim);">
+          <strong style="color: #ffffff;">💡 Live Rendering Tip:</strong>
+          Any dynamic tags like <code>[NAME]</code>, <code>[PACKAGE]</code>, and <code>[DUE_BALANCE]</code> will automatically resolve to the selected customer's actual account records before dispatch.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SUBSCRIBERS AWAITING BILL NOTICE (ACTIONABLE QUEUE) -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #fbbf24;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>Subscribers with Outstanding / Upcoming Balances (Notice Assistant)</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size: 12px;">Total: {{ due_customers | length }} Subscriber(s) Eligible for Due Notice</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="clean-table">
+        <thead>
+          <tr>
+            <th>Subscriber Name</th>
+            <th>Mobile</th>
+            <th>Location</th>
+            <th>Plan</th>
+            <th>Balance Due</th>
+            <th>Expiry Date</th>
+            <th>Billing Type</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not due_customers %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 24px; color: var(--text-dim);">
+              All active subscribers are currently settled &bull; 0 Overdue Balances
+            </td>
+          </tr>
+          {% else %}
+            {% for c in due_customers %}
+            <tr>
+              <td>
+                <strong style="color: #ffffff;">{{ c.name }}</strong>
+              </td>
+              <td class="font-mono text-cyan">{{ c.phone }}</td>
+              <td class="text-dim" style="font-size: 11px;">
+                {{ c.building or 'HQ' }}, Apt {{ c.apartment or '1' }}, Room {{ c.room or '1' }}
+              </td>
+              <td>
+                <span class="badge-tag">{{ c.package_name }}</span>
+              </td>
+              <td>
+                <strong class="font-mono" style="color: #f87171; font-size: 13.5px;">{{ "%.2f"|format(c.effective_due) }} SAR</strong>
+              </td>
+              <td class="font-mono text-dim" style="font-size: 11.5px;">{{ c.expiry_date or 'End of Month' }}</td>
+              <td>
+                {% if c.customer_type == 'postpaid' %}
+                  <span class="badge-status running" style="font-size: 10px;">POSTPAID</span>
+                {% else %}
+                  <span class="badge-status" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">PREPAID</span>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button" class="btn-simulate" style="font-size: 11px; padding: 4px 10px;" onclick="loadCustomerToComposer({{ c.id }})">
+                  ✉️ Compose Notice
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- OUTBOX & MESSAGE DELIVERY LEDGER -->
+  <div class="filter-bar">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <a href="/whatsapp?filter=all" class="chip-btn {% if current_filter == 'all' %}active{% endif %}">
+        All Logs ({{ stats.total_logs }})
+      </a>
+      <a href="/whatsapp?filter=sent" class="chip-btn {% if current_filter == 'sent' %}active{% endif %}">
+        <span style="color:#34d399;">●</span> Delivered ({{ stats.sent_count }})
+      </a>
+      <a href="/whatsapp?filter=blocked_night" class="chip-btn {% if current_filter == 'blocked_night' %}active{% endif %}">
+        <span style="color:#fbbf24;">●</span> Blocked by Shield ({{ stats.blocked_count }})
+      </a>
+      <a href="/whatsapp?filter=simulated" class="chip-btn {% if current_filter == 'simulated' %}active{% endif %}">
+        <span style="color:#38bdf8;">●</span> Simulated ({{ stats.simulated_count }})
+      </a>
+      <a href="/whatsapp?filter=failed" class="chip-btn {% if current_filter == 'failed' %}active{% endif %}">
+        <span style="color:#f87171;">●</span> Failed ({{ stats.failed_count }})
+      </a>
+    </div>
+
+    <div>
+      <input type="text" id="waLogSearch" class="form-control font-mono" style="padding: 6px 12px; font-size: 12px; width: 240px;" placeholder="Search phone, recipient..." onkeyup="filterLogRows()">
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-card-header">
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+        <span>Message Delivery &amp; Audit Ledger</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size: 12px;">Immutable record of all sent and blocked dispatches</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="clean-table" id="logsTable">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Recipient / Subscriber</th>
+            <th>Mobile</th>
+            <th>Category</th>
+            <th>Message Snippet</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="logsTableBody">
+          {% if not logs %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 28px; color: var(--text-dim);">
+              No messages match current criteria.
+            </td>
+          </tr>
+          {% else %}
+            {% for l in logs %}
+            <tr data-search="{{ l.display_name | lower }} {{ l.phone }} {{ l.message_type | lower }} {{ l.status | lower }}">
+              <td class="font-mono text-dim" style="font-size: 11px;">{{ l.created_at }}</td>
+              <td>
+                <strong style="color: #ffffff;">{{ l.display_name }}</strong>
+                <div class="text-dim font-mono" style="font-size: 10px;">By: {{ l.sent_by }}</div>
+              </td>
+              <td class="font-mono text-cyan">+{{ l.phone }}</td>
+              <td>
+                <span class="badge-tag" style="text-transform: uppercase;">{{ l.message_type }}</span>
+              </td>
+              <td>
+                <div style="max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text-muted);">
+                  {{ l.message_body }}
+                </div>
+              </td>
+              <td>
+                {% if l.status == 'sent' %}
+                  <span class="badge-status running" style="font-size: 10px;">DELIVERED ✅</span>
+                {% elif l.status == 'blocked_night' %}
+                  <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; background:rgba(245,158,11,0.15); color:#fbbf24;">BLOCKED (NIGHT) 🌙</span>
+                {% elif l.status == 'simulated' %}
+                  <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; background:rgba(56,189,248,0.15); color:#38bdf8;">SIMULATED 🛡️</span>
+                {% else %}
+                  <span class="badge-status stopped" style="font-size: 10px;">FAILED ❌</span>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button" class="btn-simulate" style="font-size: 10.5px; padding: 3px 8px;" onclick="viewFullMessage({{ l.id }}, '{{ l.phone }}', '{{ l.display_name }}', '{{ l.created_at }}', '{{ l.status }}')">
+                  View Text
+                </button>
+                <textarea id="logText_{{ l.id }}" style="display:none;">{{ l.message_body }}</textarea>
+              </td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- VIEW FULL MESSAGE MODAL -->
+<div id="viewMessageModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">📋 Outbox Message Details</h3>
+      <button type="button" onclick="closeViewMessageModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim);">
+        <div>Recipient: <strong id="modalRecipName" style="color:#ffffff;"></strong> (<span id="modalRecipPhone" class="font-mono text-cyan"></span>)</div>
+        <div id="modalMsgTime" class="font-mono"></div>
+      </div>
+      <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:8px; padding:14px; font-family:var(--font-mono); font-size:12.5px; color:#e2e8f0; white-space:pre-wrap; max-height:300px; overflow-y:auto;" id="modalMsgBody"></div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-simulate" onclick="closeViewMessageModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS & TEMPLATES MODAL -->
+<div id="settingsModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">⚙️ WhatsApp Settings &amp; Templates</h3>
+      <button type="button" onclick="closeSettingsModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+    <form onsubmit="saveSettings(event)">
+      <div class="modal-body">
+
+        <!-- AUTO DISPATCH SAFETY TOGGLE -->
+        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="color: #ffffff; font-size: 13px;">Master Automated Messaging Switch</strong>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                Controls whether background cron jobs are permitted to send notices automatically.
+              </div>
+            </div>
+            <select id="set_auto_dispatch" class="form-control" style="width: 140px;">
+              <option value="0" {% if wa_settings.auto_dispatch_enabled != '1' %}selected{% endif %}>DISABLED (Safe)</option>
+              <option value="1" {% if wa_settings.auto_dispatch_enabled == '1' %}selected{% endif %}>ENABLED</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- QUIET HOURS CONFIG -->
+        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+          <strong style="color: #ffffff; font-size: 13px;">Night Quiet Hours Shield</strong>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px;">
+            Blocks outbound dispatches during sleeping hours so subscribers are never disturbed.
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="form-label">Shield Status</label>
+              <select id="set_quiet_enabled" class="form-control">
+                <option value="1" {% if wa_settings.quiet_hours_enabled == '1' %}selected{% endif %}>Active (Protected)</option>
+                <option value="0" {% if wa_settings.quiet_hours_enabled == '0' %}selected{% endif %}>Disabled</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Night Begins</label>
+              <input type="text" id="set_quiet_start" class="form-control font-mono" value="{{ wa_settings.quiet_hours_start or '22:00' }}" placeholder="22:00">
+            </div>
+            <div>
+              <label class="form-label">Morning Ends</label>
+              <input type="text" id="set_quiet_end" class="form-control font-mono" value="{{ wa_settings.quiet_hours_end or '09:00' }}" placeholder="09:00">
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTACT & SERVERS -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Support Phone</label>
+            <input type="text" id="set_support_phone" class="form-control font-mono" value="{{ wa_settings.support_phone or '0597595059' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Free Movie Portal</label>
+            <input type="text" id="set_movie_server" class="form-control font-mono" value="{{ wa_settings.movie_server or 'http://10.12.14.16:8082' }}">
+          </div>
+        </div>
+
+        <!-- TEMPLATE: DUE REMINDER -->
+        <div class="form-group">
+          <label class="form-label">Default Due Reminder Template</label>
+          <textarea id="set_tpl_reminder" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_reminder }}</textarea>
+        </div>
+
+        <!-- TEMPLATE: PAYMENT RECEIPT -->
+        <div class="form-group">
+          <label class="form-label">Default Payment Receipt Template</label>
+          <textarea id="set_tpl_receipt" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_receipt }}</textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+          <button type="button" class="btn-simulate" onclick="closeSettingsModal()">Cancel</button>
+          <button type="submit" class="btn-wa-send">Save Configurations</button>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Global templates dictionary
+  const TEMPLATES = {
+    reminder: {{ wa_settings.template_reminder | tojson }},
+    receipt: {{ wa_settings.template_receipt | tojson }},
+    voucher: {{ wa_settings.template_voucher | tojson }},
+    expiry: {{ wa_settings.template_expiry | tojson }},
+    maintenance: {{ wa_settings.template_maintenance | tojson }},
+    blank: ""
+  };
+
+  const IS_NIGHT = {{ "true" if is_night else "false" }};
+  let currentCustData = {
+    name: "Customer",
+    phone: "",
+    package: "High-Speed Fiber",
+    due: "0.00",
+    expiry: "End of Month"
+  };
+
+  // Init
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTemplate('reminder');
+  });
+
+  function loadTemplate(tplKey) {
+    document.querySelectorAll('.chips-row .chip-btn').forEach(btn => btn.classList.remove('active'));
+    event && event.target && event.target.classList.add('active');
+
+    const raw = TEMPLATES[tplKey] || "";
+    document.getElementById('messageEditor').value = raw;
+    updateLivePreview();
+  }
+
+  function insertTag(tag) {
+    const editor = document.getElementById('messageEditor');
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const text = editor.value;
+    editor.value = text.substring(0, start) + tag + text.substring(end);
+    editor.selectionStart = editor.selectionEnd = start + tag.length;
+    editor.focus();
+    updateLivePreview();
+  }
+
+  function onCustomerSelected(custId) {
+    if (!custId) {
+      currentCustData = { name: "Customer", phone: "", package: "High-Speed Fiber", due: "0.00", expiry: "End of Month" };
+      document.getElementById('targetPhone').value = "";
+      updateLivePreview();
+      return;
+    }
+
+    const select = document.getElementById('custPicker');
+    const opt = select.options[select.selectedIndex];
+    currentCustData = {
+      id: custId,
+      name: opt.getAttribute('data-name') || "Customer",
+      phone: opt.getAttribute('data-phone') || "",
+      package: opt.getAttribute('data-package') || "High-Speed Fiber",
+      due: parseFloat(opt.getAttribute('data-due') || 0).toFixed(2),
+      expiry: opt.getAttribute('data-expiry') || "End of Month"
+    };
+
+    document.getElementById('targetPhone').value = currentCustData.phone;
+    updateLivePreview();
+  }
+
+  function loadCustomerToComposer(custId) {
+    document.getElementById('custPicker').value = custId;
+    onCustomerSelected(custId);
+    document.getElementById('messageEditor').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function updateLivePreview() {
+    const raw = document.getElementById('messageEditor').value;
+    const pInput = document.getElementById('targetPhone').value.trim();
+
+    // Character count
+    document.getElementById('charCount').textContent = `${raw.length} characters`;
+
+    // Replace tags with current customer data
+    let rendered = raw
+      .replaceAll('[NAME]', currentCustData.name || 'Valued Subscriber')
+      .replaceAll('[PHONE]', pInput || currentCustData.phone || '05XXXXXXXX')
+      .replaceAll('[PACKAGE]', currentCustData.package || 'High-Speed Fiber')
+      .replaceAll('[AMOUNT]', currentCustData.due || '100.00')
+      .replaceAll('[DUE_BALANCE]', currentCustData.due || '100.00')
+      .replaceAll('[EXPIRY_DATE]', currentCustData.expiry || 'End of Month')
+      .replaceAll('[PIN]', '992144')
+      .replaceAll('[RECEIPT_NO]', 'REC-' + new Date().toISOString().slice(0,10).replace(/-/g,''))
+      .replaceAll('[HELPLINE]', '{{ wa_settings.support_phone or "0597595059" }}')
+      .replaceAll('[MOVIES]', '{{ wa_settings.movie_server or "http://10.12.14.16:8082" }}')
+      .replaceAll('[FOOTBALL]', '{{ wa_settings.football_server or "http://10.12.14.16:8080" }}')
+      .replaceAll('[COMPANY_NAME]', 'CyberNet ISP');
+
+    // Basic markdown conversion (*bold*, _italic_, `code`)
+    let html = escapeHtml(rendered);
+    html = html.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+    html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+    html = html.replace(/`(.*?)`/g, '<code style="background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:3px;">$1</code>');
+
+    document.getElementById('waBubbleContent').innerHTML = html;
+
+    // Time
+    const now = new Date();
+    document.getElementById('waBubbleTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Send action
+  async function sendAction(simulate = false) {
+    const phone = document.getElementById('targetPhone').value.trim();
+    const raw = document.getElementById('messageEditor').value.trim();
+    const chkForce = document.getElementById('chkForceNight');
+    const forceNight = chkForce ? chkForce.checked : false;
+
+    if (!phone) {
+      alert('Please enter or select a recipient mobile number.');
+      return;
+    }
+    if (!raw) {
+      alert('Message cannot be empty.');
+      return;
+    }
+
+    if (IS_NIGHT && !forceNight && !simulate) {
+      const confirmNight = confirm(
+        "🌙 NIGHT QUIET HOURS WARNING:\n\n" +
+        "It is currently night time. Sending WhatsApp messages now may disturb the customer.\n\n" +
+        "Are you sure you want to proceed with immediate dispatch?"
+      );
+      if (!confirmNight) return;
+    }
+
+    try {
+      const payload = {
+        phone: phone,
+        message: raw,
+        message_type: 'manual',
+        customer_id: currentCustData.id || null,
+        force_night: forceNight || (!IS_NIGHT),
+        simulate: simulate
+      };
+
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (simulate) {
+          alert('🛡️ Simulation Success: Message preview logged into audit ledger. No actual network dispatch made.');
+        } else {
+          alert('✅ WhatsApp message dispatched successfully!');
+        }
+        window.location.reload();
+      } else {
+        alert('Dispatch error: ' + (data.error || 'Failed'));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+
+  // Live session check
+  async function checkLiveStatus() {
+    const btn = document.getElementById('btnCheckStatus');
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      const data = await res.json();
+      document.getElementById('gatewayStatusText').textContent = (data.status || 'unknown').toUpperCase();
+      alert(`Gateway Status: ${data.status}\nPhone: ${data.phone || 'N/A'}\nName: ${data.name || 'N/A'}`);
+    } catch (err) {
+      alert('Failed to connect to WhatsApp Gateway: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔄 Refresh Status';
+    }
+  }
+
+  // View Log Modal
+  function viewFullMessage(id, phone, name, time, status) {
+    const text = document.getElementById('logText_' + id).value;
+    document.getElementById('modalRecipName').textContent = name;
+    document.getElementById('modalRecipPhone').textContent = '+' + phone;
+    document.getElementById('modalMsgTime').textContent = time;
+    document.getElementById('modalMsgBody').textContent = text;
+    document.getElementById('viewMessageModal').classList.add('open');
+  }
+
+  function closeViewMessageModal() {
+    document.getElementById('viewMessageModal').classList.remove('open');
+  }
+
+  // Settings Modal
+  function openSettingsModal() {
+    document.getElementById('settingsModal').classList.add('open');
+  }
+  function closeSettingsModal() {
+    document.getElementById('settingsModal').classList.remove('open');
+  }
+
+  async function saveSettings(e) {
+    e.preventDefault();
+    const payload = {
+      auto_dispatch_enabled: document.getElementById('set_auto_dispatch').value,
+      quiet_hours_enabled: document.getElementById('set_quiet_enabled').value,
+      quiet_hours_start: document.getElementById('set_quiet_start').value.trim(),
+      quiet_hours_end: document.getElementById('set_quiet_end').value.trim(),
+      support_phone: document.getElementById('set_support_phone').value.trim(),
+      movie_server: document.getElementById('set_movie_server').value.trim(),
+      template_reminder: document.getElementById('set_tpl_reminder').value.trim(),
+      template_receipt: document.getElementById('set_tpl_receipt').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/whatsapp/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('WhatsApp settings and templates saved successfully!');
+        window.location.reload();
+      } else {
+        alert('Failed to save settings: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  // Client-side filter for outbox logs
+  function filterLogRows() {
+    const q = document.getElementById('waLogSearch').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#logsTableBody tr[data-search]');
+    rows.forEach(r => {
+      const text = r.getAttribute('data-search') || '';
+      r.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

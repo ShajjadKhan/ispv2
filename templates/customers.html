@@ -1,0 +1,2057 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Customer Directory{% endblock %}
+{% block heading %}Customer Directory &amp; Accounts{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dir-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* TOP STATS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stat-icon.total-icon { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+  .stat-icon.active-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .stat-icon.prepaid-icon { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+  .stat-icon.revenue-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  .stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+
+  .stat-data .num {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    line-height: 1.1;
+  }
+  .stat-data .lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* TOOLBAR */
+  .toolbar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 8px 14px;
+    flex-grow: 1;
+    max-width: 400px;
+  }
+  .search-wrapper svg { width: 16px; height: 16px; fill: var(--text-dim); flex-shrink: 0; }
+  .search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-size: 13px;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .filter-btn:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; }
+  .filter-btn.active {
+    background: var(--primary-glow);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+
+  .btn-add-customer {
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    border: none;
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    transition: transform 0.15s ease;
+  }
+  .btn-add-customer:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  /* CUSTOMERS TABLE */
+  .panel-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .table-responsive { width: 100%; overflow-x: auto; }
+  .clean-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 12px 20px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+  .clean-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+  .cust-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cust-name { font-weight: 700; color: #ffffff; }
+  .cust-meta { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+
+  .badge-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .badge-plan.prepaid { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .badge-plan.postpaid { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+  .btn-action-sm {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn-action-sm:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-toggle-suspend {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+  }
+  .btn-toggle-suspend:hover { background: rgba(239, 68, 68, 0.25); }
+
+  .btn-toggle-activate {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #34d399;
+  }
+  .btn-toggle-activate:hover { background: rgba(16, 185, 129, 0.25); }
+
+  /* =========================================================
+     PROFILE MODAL WINDOW
+     ========================================================= */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box-lg {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    animation: modal-appear 0.2s ease-out;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Manage Modal Tabs Navigation */
+  .manage-tabs-nav {
+    display: flex;
+    background: #0d1527;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 18px 0;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
+  }
+  .manage-tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    border-radius: 8px 8px 0 0;
+  }
+  .manage-tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .manage-tab-btn.active {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    border-bottom-color: #38bdf8;
+  }
+  .manage-tab-btn .tab-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+  }
+  .manage-tab-pane {
+    display: none;
+  }
+  .manage-tab-pane.active {
+    display: block;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .modal-header {
+    padding: 18px 24px;
+    background: #131d36;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .modal-header h3 { font-size: 16px; font-weight: 800; color: #ffffff; }
+
+  .modal-body-scroll {
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-subhead {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .device-item-card {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .recharge-box {
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px dashed rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn-preset {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-preset:hover {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.3);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dir-grid">
+
+  <!-- TOP SUMMARY CARDS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon total-icon">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <div class="stat-data">
+        <div class="num text-white">{{ customers | length }}</div>
+        <div class="lbl">Total Subscribers</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon active-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <div class="stat-data">
+        {% set active_count = customers | selectattr('status', 'equalto', 'active') | list | length %}
+        <div class="num text-emerald">{{ active_count }}</div>
+        <div class="lbl">Active &amp; Online</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon prepaid-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+      </div>
+      <div class="stat-data">
+        {% set prepaid_count = customers | selectattr('billing_type', 'equalto', 'prepaid') | list | length %}
+        <div class="num text-purple" style="color:#c084fc;">{{ prepaid_count }}</div>
+        <div class="lbl">Prepaid Subscribers</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon revenue-icon">
+        <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      </div>
+      <div class="stat-data">
+        {% set total_rev = customers | map(attribute='monthly_fee') | sum %}
+        <div class="num text-amber">{{ "%.0f"|format(total_rev) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
+        <div class="lbl">Monthly Value</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(52,211,153,0.15); color:#34d399;">
+        <svg viewBox="0 0 24 24" style="fill:currentColor; width:22px; height:22px;"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      </div>
+      <div class="stat-data">
+        {% set total_credit = customers | map(attribute='credit_balance') | sum %}
+        <div class="num" style="color:#34d399;">{{ "%.0f"|format(total_credit) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
+        <div class="lbl">Customer Credit Held</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR: SEARCH, FILTERS, ADD -->
+  <div class="toolbar-card">
+    <div class="search-wrapper">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" class="search-input" id="custSearchInput" placeholder="Search by name, phone, or package..." oninput="filterCustomerTable()">
+    </div>
+
+    <div class="filter-group">
+      <button type="button" class="filter-btn active" id="filterAll" onclick="setBillingFilter('all')">All</button>
+      <button type="button" class="filter-btn" id="filterPrepaid" onclick="setBillingFilter('prepaid')">Prepaid</button>
+      <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid</button>
+      <button type="button" class="filter-btn" id="filterSuspended" onclick="setBillingFilter('suspended')">Suspended</button>
+
+      <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
+        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <span>Add Customer</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CUSTOMERS DIRECTORY TABLE -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <span>Registered Customers</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size:12px;">Total: <strong class="text-white" id="visibleCount">{{ customers | length }}</strong> Accounts</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="clean-table" id="customersTable">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Type</th>
+            <th>Package</th>
+            <th>Monthly Fee</th>
+            <th>Due / Expiry Date</th>
+            <th>Devices</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if customers %}
+            {% for c in customers %}
+            <tr class="cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
+              <td>
+                <div class="cust-name-cell">
+                  <span class="cust-name">{{ c.name }}</span>
+                  <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                </div>
+              </td>
+              <td class="font-mono text-white" style="font-weight:600;">{{ c.phone }}</td>
+              <td>
+                {% if c.billing_type == 'prepaid' %}
+                  <span class="badge-plan prepaid">PREPAID</span>
+                {% else %}
+                  <span class="badge-plan postpaid">POSTPAID</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <span style="font-weight:600; color:#ffffff;">{{ c.package_name }}</span>
+                  <span class="font-mono text-cyan" style="font-size:11px; font-weight:700;">
+                    ⚡ {{ c.effective_speed }}
+                    {% if c.is_speed_custom %}
+                      <span style="font-size:9.5px; color:#fbbf24; background:rgba(251,191,36,0.15); padding:1px 5px; border-radius:4px; margin-left:3px;">Custom</span>
+                    {% endif %}
+                  </span>
+                </div>
+              </td>
+              <td class="font-mono">
+                <div style="font-weight:700; color:#38bdf8;">{{ "%.2f"|format(c.monthly_fee) }} SAR</div>
+                {% if c.credit_balance and c.credit_balance > 0 %}
+                  <div style="font-size:10.5px; font-weight:700; color:#34d399; margin-top:3px; display:inline-flex; align-items:center; gap:3px; background:rgba(52,211,153,0.12); padding:1px 6px; border-radius:4px; border:1px solid rgba(52,211,153,0.25);">
+                    💳 +{{ "%.2f"|format(c.credit_balance) }} Credit
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <span class="font-mono text-white" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
+                  {% if c.days_remaining is not none %}
+                    {% if c.days_remaining < 0 %}
+                      <span class="badge-status disabled" style="font-size:10px; width:fit-content;">EXPIRED</span>
+                    {% elif c.days_remaining <= 3 %}
+                      <span class="badge-status stopped" style="font-size:10px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">{{ c.days_remaining }}d left</span>
+                    {% else %}
+                      <span class="badge-status running" style="font-size:10px; width:fit-content;">{{ c.days_remaining }}d left</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <span class="font-mono" style="font-weight:700; color:#ffffff;">{{ c.active_devices_count }} / {{ c.max_devices or 1 }} Device{{ 's' if (c.max_devices or 1) != 1 else '' }}</span>
+                {% if c.active_devices_count >= (c.max_devices or 1) %}
+                  <span class="badge-status stopped" style="font-size:9.5px; padding:2px 6px; margin-left:4px;">Full</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if c.status == 'active' %}
+                  <span class="badge-status running">ACTIVE</span>
+                {% else %}
+                  <span class="badge-status disabled">SUSPENDED</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                <div style="display:inline-flex; gap:6px;">
+                  <button type="button" class="btn-action-sm" onclick="openEditCustomerModal({{ c.id }})" title="Edit Monthly Rate, Due Date, Speed, Plan" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25);">
+                    <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    <span>Edit</span>
+                  </button>
+
+                  <button type="button" class="btn-action-sm" onclick="openProfileModal({{ c.id }})">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <span>Manage</span>
+                  </button>
+                  
+                  {% if c.status == 'active' %}
+                    <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="toggleStatus({{ c.id }})" title="Cut off internet access on MikroTik">
+                      Suspend
+                    </button>
+                  {% else %}
+                    <button type="button" class="btn-action-sm btn-toggle-activate" onclick="toggleStatus({{ c.id }})" title="Restore internet access on MikroTik">
+                      Activate
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9">
+                <div class="empty-state">
+                  <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Customers Registered Yet</p>
+                  <p style="font-size:12px;">Approve hotspot connection requests or click "Add Customer" above to register accounts.</p>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- =========================================================
+     CUSTOMER PROFILE & DEVICE MANAGEMENT MODAL
+     ========================================================= -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-box-lg" style="max-width:700px;">
+    <!-- MODAL HEADER -->
+    <div class="modal-header">
+      <div>
+        <h3 id="profName">Customer Profile</h3>
+        <p class="font-mono text-dim" style="font-size:12px;" id="profSubhead">Loading details...</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-size:11px; padding:5px 10px;">
+          <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          <span>Edit Details</span>
+        </button>
+        <button type="button" class="btn-close-modal" onclick="closeProfileModal()">&times;</button>
+      </div>
+    </div>
+
+    <!-- TABS NAVIGATION BAR (MOBILE & DESKTOP) -->
+    <div class="manage-tabs-nav">
+      <button type="button" class="manage-tab-btn active" id="tabBtnDetails" onclick="switchManageTab('details')">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+        <span>Details &amp; Devices</span>
+        <span class="tab-badge" id="tabBadgeDev">0</span>
+      </button>
+      <button type="button" class="manage-tab-btn" id="tabBtnBilling" onclick="switchManageTab('billing')">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        <span>Billing &amp; Ledger</span>
+        <span class="tab-badge" id="tabBadgeCol">0</span>
+      </button>
+      <button type="button" class="manage-tab-btn" id="tabBtnUsage" onclick="switchManageTab('usage')">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        <span>Internet Usage History</span>
+      </button>
+    </div>
+
+    <div class="modal-body-scroll">
+      
+      <!-- ==========================================
+           TAB 1: CUSTOMER DETAILS & DEVICES
+           ========================================== -->
+      <div class="manage-tab-pane active" id="tabPaneDetails">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- DETAILS GRID -->
+          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:12px;">
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Phone Number</div>
+              <div style="font-weight:700; color:#ffffff; font-family:var(--font-mono); margin-top:2px;" id="profPhone">—</div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Billing Type</div>
+              <div style="margin-top:2px;" id="profBillingType">—</div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Speed Package</div>
+              <div style="font-weight:700; color:#ffffff; margin-top:2px;" id="profPackage">—</div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Allocated Speed</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span style="font-weight:700; color:#38bdf8; font-family:var(--font-mono); font-size:13px;" id="profSpeedLimit">—</span>
+                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Edit</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Monthly Rate</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span style="font-weight:700; color:#34d399; font-family:var(--font-mono); font-size:13px;" id="profMonthlyFee">—</span>
+                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Edit</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Payment Due Date</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span style="font-weight:700; color:#fbbf24; font-family:var(--font-mono); font-size:13px;" id="profDueDate">—</span>
+                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Edit</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Allowed Devices</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span style="font-weight:700; color:#38bdf8; font-family:var(--font-mono); font-size:13px;" id="profMaxDevices">1 Device</span>
+                <button type="button" class="btn-action-sm" onclick="editAllowedDevices()" style="font-size:10px; padding:2px 6px;">Change</button>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Current Status</div>
+              <div style="margin-top:2px;" id="profStatusBadge">—</div>
+            </div>
+          </div>
+
+          <!-- LINKED DEVICES (MACS) -->
+          <div>
+            <div class="section-subhead">
+              <span>Authorized Devices on MikroTik (<span id="profDevCount">0</span>)</span>
+              <button type="button" class="btn-action-sm" onclick="showAddDevicePrompt()" style="font-size:11px; padding:3px 8px;">
+                + Add Another Device (MAC)
+              </button>
+            </div>
+
+            <div id="profDevicesList" style="display:flex; flex-direction:column; gap:8px;">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Add Device Inline Form -->
+            <div id="addDeviceInlineForm" style="display:none; background:#090e1a; border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
+              <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Secondary Device (MAC)</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <input type="text" class="form-input font-mono" id="newDeviceMac" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; padding:8px 12px; flex:1; min-width:180px;">
+                <input type="text" class="form-input" id="newDeviceName" placeholder="Device (e.g. Laptop)" style="font-size:12px; padding:8px 12px; flex:1; min-width:140px;">
+                <button type="button" class="btn-approve" onclick="submitAddDevice()" style="padding:6px 12px; font-size:12px; white-space:nowrap;">Link &amp; Authorize</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 2: BILLING & PAYMENT LEDGER
+           ========================================== -->
+      <div class="manage-tab-pane" id="tabPaneBilling" style="display:none;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          
+          <!-- 1. DYNAMIC BILLING & ELIGIBILITY STATUS CARD -->
+          <div id="billingEligibilityContainer">
+            <!-- Rendered dynamically via JS based on customer due status -->
+          </div>
+
+          <!-- 2. CUSTOMER CREDIT WALLET (Shown if credit > 0) -->
+          <div id="creditWalletApplyBox" style="display:none; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.3); border-radius:14px; padding:14px 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+              <div>
+                <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+                  <span>Customer Credit Wallet</span>
+                </div>
+                <div style="font-size:13px; color:#ffffff; margin-top:3px;">
+                  Available Balance: <strong class="text-cyan font-mono" style="font-size:16px;" id="creditWalletAmount">0.00 SAR</strong>
+                </div>
+              </div>
+              <button type="button" class="btn-action-sm" id="btnApplyCredit" onclick="submitApplyCredit()" style="background:rgba(56,189,248,0.18); color:#38bdf8; border-color:rgba(56,189,248,0.4); font-size:11.5px; padding:7px 14px; font-weight:700;">
+                ⚡ Settle Cycle from Credit
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. COLLECT ANY AMOUNT / ADVANCE PAYMENT CARD -->
+          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div style="font-size:13px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
+                <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                <span>Record Custom / Advance Payment</span>
+              </div>
+              <span style="font-size:11px; color:var(--text-dim);">Auto-calculates cycle extensions &amp; credit</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1.3fr auto; gap:10px; align-items:end;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Amount (SAR)</label>
+                <input type="number" step="0.01" class="form-input font-mono" id="customPaymentAmount" placeholder="e.g. 50, 100, 150" style="padding:9px 12px; font-size:13.5px;" oninput="calculateCustomPayment()">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Payment Notes (Optional)</label>
+                <input type="text" class="form-input" id="customPaymentNotes" placeholder="e.g. Cash received by Admin" style="padding:9px 12px; font-size:13px;">
+              </div>
+              <div>
+                <button type="button" class="btn-approve" onclick="submitCustomPayment()" style="padding:9px 16px; font-size:12.5px; font-weight:700; white-space:nowrap; height:41px; display:inline-flex; align-items:center; gap:6px;">
+                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                  <span>Record Payment</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic Live Breakdown Banner -->
+            <div id="customPaymentPreview" style="display:none; border-radius:8px; padding:10px 12px; margin-top:10px; font-size:12px; line-height:1.4;">
+              <div id="customPaymentPreviewText"></div>
+            </div>
+          </div>
+
+          <!-- 4. PAYMENT & COLLECTION HISTORY LEDGER -->
+          <div>
+            <div class="section-subhead" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+              <span>Payment &amp; Collection Ledger (<span id="profColCount">0</span>)</span>
+              <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Real-time transaction history</span>
+            </div>
+
+            <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden;">
+              <div style="max-height:260px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+                  <thead style="background:#0d1527; color:var(--text-dim); position:sticky; top:0; z-index:2; border-bottom:1px solid rgba(255,255,255,0.08);">
+                    <tr>
+                      <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Date &amp; Time</th>
+                      <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Amount</th>
+                      <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Details &amp; Notes</th>
+                      <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase; text-align:right;">Recorded By</th>
+                    </tr>
+                  </thead>
+                  <tbody id="profCollectionsTbody">
+                    <!-- Rendered via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 3: INTERNET USAGE & SESSIONS
+           ========================================== -->
+      <div class="manage-tab-pane" id="tabPaneUsage" style="display:none;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:12px; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+              <svg style="width:15px; height:15px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+              <span>Live MikroTik Internet Session &amp; Traffic</span>
+            </div>
+            <button type="button" class="btn-action-sm" onclick="loadCustomerUsage(activeCustomerId)" style="font-size:11px; padding:4px 10px; color:#38bdf8; border-color:rgba(56,189,248,0.3);">
+              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              <span>Refresh Realtime Data</span>
+            </button>
+          </div>
+
+          <div id="usageContentBox">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MANUAL ADD CUSTOMER MODAL
+     ========================================================= -->
+<div class="modal-overlay" id="addCustomerModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>Register New Customer</h3>
+        <p>Direct onboarding without captive portal submission</p>
+      </div>
+      <button type="button" class="btn-close-modal" onclick="closeAddCustomerModal()">&times;</button>
+    </div>
+
+    <form id="addCustForm" onsubmit="submitNewCustomer(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Customer Full Name</label>
+          <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi">
+        </div>
+
+        <div class="form-group">
+          <label>Primary Phone Number</label>
+          <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
+        </div>
+
+        <div class="form-group">
+          <label>Billing Type</label>
+          <div class="billing-type-grid">
+            <div class="type-option-card prepaid-selected selected" id="addTypePre" onclick="selectNewCustType('prepaid')">
+              <div class="title">Prepaid</div>
+              <div class="desc">Advance 30-day recharge</div>
+            </div>
+            <div class="type-option-card" id="addTypePost" onclick="selectNewCustType('postpaid')">
+              <div class="title">Postpaid</div>
+              <div class="desc">Recurring monthly cycle</div>
+            </div>
+          </div>
+          <input type="hidden" id="addCustType" value="prepaid">
+        </div>
+
+        <div class="form-group">
+          <label>Speed Package</label>
+          <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
+            {% for pkg in packages %}
+            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0;">Speed that Customer Will Get (Speed Limit)</label>
+            <span style="font-size:11px; color:var(--text-dim);">Live MikroTik Queue</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" class="form-input font-mono" id="addCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('5M/5M')">5M</button>
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('10M/10M')">10M</button>
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('20M/20M')">20M</button>
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('30M/30M')">30M</button>
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('50M/50M')">50M</button>
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('100M/100M')">100M</button>
+              <button type="button" class="btn-preset" onclick="setAddCustSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+            </div>
+          </div>
+          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter upload/download speed (e.g. 15M/15M) or pick Unlimited.</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Monthly Fee (SAR)</label>
+            <input type="number" step="0.01" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()">
+          </div>
+          <div class="form-group">
+            <label>Payment Due Date (Manual)</label>
+            <input type="date" class="form-input font-mono" id="addCustDueDate" required style="color:#ffffff;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Initial / Advance Payment Collected (SAR) (Optional)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateAddCustAdvance()">
+          <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 30 SAR fee) goes to Credit Balance!</span>
+        </div>
+
+        <!-- Live Advance Preview for Add Customer -->
+        <div id="addCustAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px; margin-bottom:12px;">
+          <div style="font-size:12px; color:#e2e8f0; line-height:1.4;" id="addCustAdvanceText"></div>
+          <div style="margin-top:8px; display:flex; gap:14px; font-size:11.5px;">
+            <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
+              <input type="radio" name="add_cust_adv_mode" value="credit" checked onchange="calculateAddCustAdvance()">
+              <span>Save surplus as Account Credit</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
+              <input type="radio" name="add_cust_adv_mode" value="months" onchange="calculateAddCustAdvance()">
+              <span>Extend Multiple Months</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0;">Allowed Devices (Max Device Limit)</label>
+            <span style="font-size:11px; color:var(--text-dim);">Simultaneous logins</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="number" min="1" max="100" class="form-input font-mono" id="addCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(1)">1</button>
+              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(2)">2</button>
+              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(3)">3</button>
+              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(5)">5</button>
+              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(8)">8</button>
+              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(10)">10</button>
+            </div>
+          </div>
+          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter manually or pick a preset for allowed concurrent devices.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Initial Device MAC Address (Optional)</label>
+          <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74 (Auto-bypasses on MikroTik)">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeAddCustomerModal()">Cancel</button>
+        <button type="submit" class="btn-confirm-approve" id="btnAddCustSubmit">
+          <span>Create &amp; Authorize Customer</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MANUAL EDIT CUSTOMER (FEE, DUE DATE, SPEED, LIMITS) MODAL
+     ========================================================= -->
+<div class="modal-overlay" id="editCustomerModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="editCustModalTitle">Edit Customer &amp; Plan</h3>
+        <p>Manually adjust rate, due date, bandwidth, and device limits</p>
+      </div>
+      <button type="button" class="btn-close-modal" onclick="closeEditCustomerModal()">&times;</button>
+    </div>
+
+    <form id="editCustForm" onsubmit="submitEditCustomer(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Customer Full Name</label>
+          <input type="text" class="form-input" id="editCustName" required>
+        </div>
+
+        <div class="form-group">
+          <label>Primary Phone Number</label>
+          <input type="text" class="form-input font-mono" id="editCustPhone" required>
+        </div>
+
+        <div class="form-group">
+          <label>Billing Type</label>
+          <div class="billing-type-grid">
+            <div class="type-option-card" id="editTypePre" onclick="selectEditCustType('prepaid')">
+              <div class="title">Prepaid</div>
+              <div class="desc">Advance 30-day recharge</div>
+            </div>
+            <div class="type-option-card" id="editTypePost" onclick="selectEditCustType('postpaid')">
+              <div class="title">Postpaid</div>
+              <div class="desc">Recurring monthly cycle</div>
+            </div>
+          </div>
+          <input type="hidden" id="editCustType" value="prepaid">
+        </div>
+
+        <div class="form-group">
+          <label>Speed Package</label>
+          <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
+            {% for pkg in packages %}
+            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0;">Speed that Customer Will Get (Speed Limit)</label>
+            <span style="font-size:11px; color:var(--text-dim);">Live MikroTik Queue</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" class="form-input font-mono" id="editCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('5M/5M')">5M</button>
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('10M/10M')">10M</button>
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('20M/20M')">20M</button>
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('30M/30M')">30M</button>
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('50M/50M')">50M</button>
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('100M/100M')">100M</button>
+              <button type="button" class="btn-preset" onclick="setEditCustSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+            </div>
+          </div>
+          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter upload/download speed (e.g. 15M/15M) or pick Unlimited.</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Monthly Fee (SAR)</label>
+            <input type="number" step="0.01" class="form-input font-mono" id="editCustFee" required>
+          </div>
+          <div class="form-group">
+            <label>Payment Due Date</label>
+            <input type="date" class="form-input font-mono" id="editCustDueDate" required style="color:#ffffff;">
+          </div>
+          <div class="form-group">
+            <label>Credit Balance (SAR)</label>
+            <input type="number" step="0.01" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0;">Allowed Devices (Max Simultaneous Limit)</label>
+            <span style="font-size:11px; color:var(--text-dim);">Device Quota</span>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="number" min="1" max="100" class="form-input font-mono" id="editCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="setEditCustDevLimit(1)">1</button>
+              <button type="button" class="btn-preset" onclick="setEditCustDevLimit(2)">2</button>
+              <button type="button" class="btn-preset" onclick="setEditCustDevLimit(3)">3</button>
+              <button type="button" class="btn-preset" onclick="setEditCustDevLimit(5)">5</button>
+              <button type="button" class="btn-preset" onclick="setEditCustDevLimit(8)">8</button>
+              <button type="button" class="btn-preset" onclick="setEditCustDevLimit(10)">10</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="closeEditCustomerModal()">Cancel</button>
+        <button type="submit" class="btn-confirm-approve" id="btnEditCustSubmit">
+          <span>💾 Save &amp; Sync to MikroTik</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let activeCustomerId = null;
+  let activeFilter = 'all';
+
+  // Instant Table Filtering
+  function filterCustomerTable() {
+    const q = document.getElementById('custSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.cust-row');
+    let visible = 0;
+
+    rows.forEach(r => {
+      const type = r.getAttribute('data-type');
+      const status = r.getAttribute('data-status');
+      const searchData = r.getAttribute('data-search');
+
+      let matchesFilter = true;
+      if (activeFilter === 'prepaid') matchesFilter = (type === 'prepaid');
+      else if (activeFilter === 'postpaid') matchesFilter = (type === 'postpaid');
+      else if (activeFilter === 'suspended') matchesFilter = (status === 'suspended');
+
+      const matchesSearch = !q || searchData.includes(q);
+
+      if (matchesFilter && matchesSearch) {
+        r.style.display = '';
+        visible++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+
+    const vCount = document.getElementById('visibleCount');
+    if (vCount) vCount.textContent = visible;
+  }
+
+  function setBillingFilter(f) {
+    activeFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if (f === 'all') document.getElementById('filterAll').classList.add('active');
+    else if (f === 'prepaid') document.getElementById('filterPrepaid').classList.add('active');
+    else if (f === 'postpaid') document.getElementById('filterPostpaid').classList.add('active');
+    else if (f === 'suspended') document.getElementById('filterSuspended').classList.add('active');
+    filterCustomerTable();
+  }
+
+  // Quick Suspend / Activate Toggle
+  async function toggleStatus(custId) {
+    try {
+      const resp = await fetch(`/api/customers/${custId}/toggle-status`, { method: 'POST' });
+      const res = await resp.json();
+      if (res.success) {
+        location.reload();
+      } else {
+        alert('Toggle failed: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  let currentManageTab = 'details';
+
+  function switchManageTab(tabKey) {
+    currentManageTab = tabKey;
+    const btnMap = {
+      'details': document.getElementById('tabBtnDetails'),
+      'billing': document.getElementById('tabBtnBilling'),
+      'usage': document.getElementById('tabBtnUsage')
+    };
+    const paneMap = {
+      'details': document.getElementById('tabPaneDetails'),
+      'billing': document.getElementById('tabPaneBilling'),
+      'usage': document.getElementById('tabPaneUsage')
+    };
+
+    ['details', 'billing', 'usage'].forEach(k => {
+      if (btnMap[k]) {
+        if (k === tabKey) btnMap[k].classList.add('active');
+        else btnMap[k].classList.remove('active');
+      }
+      if (paneMap[k]) {
+        paneMap[k].style.display = (k === tabKey ? 'block' : 'none');
+      }
+    });
+
+    if (tabKey === 'usage' && activeCustomerId) {
+      loadCustomerUsage(activeCustomerId);
+    }
+  }
+
+  // Open Profile & Device Management Modal (Supports tab persistence)
+  async function openProfileModal(custId, defaultTab = null) {
+    activeCustomerId = custId;
+    document.getElementById('profileModal').classList.add('open');
+    document.getElementById('profSubhead').textContent = 'Loading account data...';
+
+    if (defaultTab) {
+      currentManageTab = defaultTab;
+    }
+    switchManageTab(currentManageTab);
+
+    try {
+      const resp = await fetch(`/api/customers/${custId}`);
+      const c = await resp.json();
+
+      document.getElementById('profName').textContent = c.name;
+      document.getElementById('profSubhead').textContent = `Account #${c.id} • Registered ${c.created_at}`;
+      if (document.getElementById('profPhone')) {
+        document.getElementById('profPhone').textContent = c.phone || '—';
+      }
+      if (document.getElementById('profPackage')) {
+        document.getElementById('profPackage').textContent = c.package_name || 'Standard';
+      }
+      const btype = (c.billing_type || 'prepaid').toLowerCase();
+      const btypeBadge = btype === 'prepaid'
+        ? '<span class="badge" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;">PREPAID</span>'
+        : '<span class="badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;">POSTPAID</span>';
+      document.getElementById('profBillingType').innerHTML = btypeBadge;
+      document.getElementById('profSpeedLimit').textContent = c.effective_speed || 'Unlimited';
+      document.getElementById('profMonthlyFee').textContent = parseFloat(c.monthly_fee).toFixed(2) + ' SAR';
+      document.getElementById('profDueDate').textContent = c.due_date || c.expiry_date || '—';
+      const mDev = c.max_devices || 1;
+      document.getElementById('profMaxDevices').textContent = mDev + ' Device' + (mDev !== 1 ? 's' : '');
+
+      const stBadge = document.getElementById('profStatusBadge');
+      if (c.status === 'active') {
+        stBadge.innerHTML = '<span class="badge-status running">ACTIVE</span>';
+      } else {
+        stBadge.innerHTML = '<span class="badge-status disabled">SUSPENDED</span>';
+      }
+
+      const fee = parseFloat(c.monthly_fee || 0.0);
+      const credit = parseFloat(c.credit_balance || 0.0);
+      const isDue = Boolean(c.is_due);
+      const isDueSoon = Boolean(c.is_due_soon);
+      const isSuspended = (c.status === 'suspended');
+      const daysRem = c.days_remaining;
+
+      // 1. Render Dynamic Billing & Eligibility Status Card
+      const eligBox = document.getElementById('billingEligibilityContainer');
+      if (eligBox) {
+        if (isDue || isDueSoon || isSuspended) {
+          // ELIGIBLE FOR COLLECTION
+          let dueTitle = '⚠️ PAYMENT DUE / ELIGIBLE FOR COLLECTION';
+          let badgeBg = 'rgba(239,68,68,0.2)';
+          let badgeColor = '#f87171';
+          let badgeBorder = 'rgba(239,68,68,0.4)';
+
+          if (isSuspended) {
+            dueTitle = '⛔ SERVICE SUSPENDED — PAYMENT REQUIRED';
+          } else if (daysRem !== null && daysRem < 0) {
+            dueTitle = `⚠️ OVERDUE BY ${Math.abs(daysRem)} DAY${Math.abs(daysRem) > 1 ? 'S' : ''}`;
+          } else if (daysRem === 0) {
+            dueTitle = '⚠️ BILL DUE TODAY';
+          } else if (isDueSoon) {
+            dueTitle = `⏰ BILL DUE IN ${daysRem} DAY${daysRem > 1 ? 'S' : ''}`;
+            badgeBg = 'rgba(234,179,8,0.2)';
+            badgeColor = '#facc15';
+            badgeBorder = 'rgba(234,179,8,0.4)';
+          }
+
+          let creditNotice = '';
+          let btnHtml = '';
+          if (credit > 0) {
+            if (credit >= fee && fee > 0) {
+              creditNotice = `<div style="font-size:12px; color:#34d399; margin-top:4px;">💡 Customer has <strong>${credit.toFixed(2)} SAR</strong> in Credit Wallet (covers full cycle).</div>`;
+              btnHtml = `
+                <button type="button" class="btn-approve" onclick="quickSettleDueFromCredit()" style="background:#059669; padding:10px 18px; font-size:13px; font-weight:800; justify-content:center; box-shadow:0 4px 15px rgba(5,150,105,0.35);">
+                  ⚡ Settle Bill from Credit (-${fee.toFixed(2)} SAR)
+                </button>
+              `;
+            } else {
+              const netCash = fee - credit;
+              creditNotice = `<div style="font-size:12px; color:#38bdf8; margin-top:4px;">💳 Wallet Credit available: <strong>${credit.toFixed(2)} SAR</strong>. Net cash required: <strong>${netCash.toFixed(2)} SAR</strong>.</div>`;
+              btnHtml = `
+                <button type="button" class="btn-approve" onclick="quickCollectDueBill(${netCash})" style="background:#ef4444; border-color:#dc2626; padding:10px 18px; font-size:13px; font-weight:800; justify-content:center; box-shadow:0 4px 15px rgba(239,68,68,0.35);">
+                  ⚡ Collect Net ${netCash.toFixed(2)} SAR (+ Apply Credit)
+                </button>
+              `;
+            }
+          } else {
+            btnHtml = `
+              <button type="button" class="btn-approve" onclick="quickCollectDueBill(${fee})" style="background:#ef4444; border-color:#dc2626; padding:10px 18px; font-size:13px; font-weight:800; justify-content:center; box-shadow:0 4px 15px rgba(239,68,68,0.35);">
+                ⚡ Collect Due Bill (${fee.toFixed(2)} SAR)
+              </button>
+            `;
+          }
+
+          eligBox.innerHTML = `
+            <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.35); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="badge" style="background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeBorder}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:6px;">
+                      ${dueTitle}
+                    </span>
+                  </div>
+                  <div style="margin-top:8px; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
+                    <div>
+                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; display:block;">Amount Due</span>
+                      <span style="font-size:24px; font-weight:800; color:#f87171; font-family:var(--font-mono);">${fee.toFixed(2)} SAR</span>
+                    </div>
+                    <div style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
+                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; display:block;">Payment Due Date</span>
+                      <span class="font-mono text-white" style="font-size:14px; font-weight:700;">${c.due_date || c.expiry_date || '—'}</span>
+                    </div>
+                    <div style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
+                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; display:block;">Assigned Plan</span>
+                      <span style="font-size:13px; color:#cbd5e1; font-weight:600;">${c.package_name || 'Standard'}</span>
+                    </div>
+                  </div>
+                  ${creditNotice}
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:6px; min-width:220px;">
+                  ${btnHtml}
+                  <div style="font-size:10.5px; color:var(--text-dim); text-align:center;">1-click renewal (+30 days) &amp; ledger entry</div>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          // NOT ELIGIBLE / ALL DUES SETTLED
+          eligBox.innerHTML = `
+            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:14px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="badge" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); font-size:11px; font-weight:800; padding:3px 10px; border-radius:6px;">
+                      ✅ ALL BILLS SETTLED / ACTIVE
+                    </span>
+                  </div>
+                  <div style="margin-top:6px; font-size:13px; color:#e2e8f0;">
+                    Current cycle is fully paid. Service is active until <strong class="font-mono text-emerald" style="font-size:14px;">${c.due_date || c.expiry_date || '—'}</strong> (${daysRem !== null ? daysRem : '—'} days remaining).
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase;">Monthly Rate</div>
+                  <div class="font-mono" style="font-weight:800; color:#34d399; font-size:17px;">${fee.toFixed(2)} SAR</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // 2. Customer Credit Wallet Box
+      const creditBox = document.getElementById('creditWalletApplyBox');
+      const creditAmountEl = document.getElementById('creditWalletAmount');
+      const btnApplyCredit = document.getElementById('btnApplyCredit');
+
+      if (creditBox && creditAmountEl) {
+        if (credit > 0) {
+          creditBox.style.display = 'block';
+          creditAmountEl.textContent = credit.toFixed(2) + ' SAR';
+          if (btnApplyCredit) {
+            const deductAmt = (fee > 0 && credit >= fee) ? fee : credit;
+            btnApplyCredit.textContent = `⚡ Settle Cycle from Credit (-${deductAmt.toFixed(2)} SAR)`;
+          }
+        } else {
+          creditBox.style.display = 'none';
+        }
+      }
+
+      // 3. Reset Custom Payment Form
+      const customAmtEl = document.getElementById('customPaymentAmount');
+      if (customAmtEl) customAmtEl.value = '';
+      const customNotesEl = document.getElementById('customPaymentNotes');
+      if (customNotesEl) customNotesEl.value = '';
+      const customPrevEl = document.getElementById('customPaymentPreview');
+      if (customPrevEl) customPrevEl.style.display = 'none';
+
+      // Update Tab Badges & Counts
+      const devCount = (c.devices || []).length;
+      const colCount = (c.collections || []).length;
+      if (document.getElementById('tabBadgeDev')) document.getElementById('tabBadgeDev').textContent = devCount;
+      if (document.getElementById('profDevCount')) document.getElementById('profDevCount').textContent = devCount;
+      if (document.getElementById('tabBadgeCol')) document.getElementById('tabBadgeCol').textContent = colCount;
+      if (document.getElementById('profColCount')) document.getElementById('profColCount').textContent = colCount;
+
+      // Render devices
+      const devList = document.getElementById('profDevicesList');
+      devList.innerHTML = '';
+      if (c.devices && c.devices.length > 0) {
+        c.devices.forEach(d => {
+          const card = document.createElement('div');
+          card.className = 'device-item-card';
+          card.innerHTML = `
+            <div>
+              <div class="font-mono text-cyan" style="font-weight:700;">${d.mac_address}</div>
+              <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">
+                ${d.device_name || 'Client Device'} • Status: <strong class="${d.status === 'approved' ? 'text-emerald' : 'text-rose'}">${d.status.toUpperCase()}</strong>
+              </div>
+            </div>
+            <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="removeDevice(${d.id})" style="font-size:11px; padding:4px 8px;">
+              Revoke MAC
+            </button>
+          `;
+          devList.appendChild(card);
+        });
+      } else {
+        devList.innerHTML = '<div style="font-size:12px; color:var(--text-dim); padding:8px 0;">No active devices linked.</div>';
+      }
+
+      // 4. Render Payment History Ledger Table
+      const tbody = document.getElementById('profCollectionsTbody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        if (c.collections && c.collections.length > 0) {
+          c.collections.forEach(col => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+            const isDeduction = col.billing_type === 'credit_deduction';
+            const amtFormatted = parseFloat(col.amount).toFixed(2);
+            tr.innerHTML = `
+              <td style="padding:10px 12px; font-family:var(--font-mono); color:var(--text-dim); font-size:11.5px; white-space:nowrap;">
+                ${col.collected_at}
+              </td>
+              <td style="padding:10px 12px; font-family:var(--font-mono); font-weight:800; font-size:13px; white-space:nowrap;">
+                <span class="${isDeduction ? 'text-cyan' : 'text-emerald'}">
+                  ${isDeduction ? '💳 -' : '+'}${amtFormatted} SAR
+                </span>
+              </td>
+              <td style="padding:10px 12px; color:#e2e8f0; font-size:12px;">
+                ${col.notes || 'Service Payment'}
+              </td>
+              <td style="padding:10px 12px; text-align:right; font-family:var(--font-mono); color:var(--text-dim); font-size:11px; white-space:nowrap;">
+                ${col.collected_by || 'Admin'}
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align:center; padding:24px 12px; color:var(--text-dim); font-size:12px;">
+                No payment or collection records recorded yet.
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      // If user is currently looking at usage tab, reload usage data
+      if (currentManageTab === 'usage') {
+        loadCustomerUsage(custId);
+      }
+
+    } catch (err) {
+      alert('Failed to load profile: ' + err.message);
+    }
+  }
+
+  function closeProfileModal() {
+    document.getElementById('profileModal').classList.remove('open');
+    document.getElementById('addDeviceInlineForm').style.display = 'none';
+  }
+
+  function showAddDevicePrompt() {
+    const f = document.getElementById('addDeviceInlineForm');
+    f.style.display = (f.style.display === 'none') ? 'block' : 'none';
+  }
+
+  async function submitAddDevice() {
+    const mac = document.getElementById('newDeviceMac').value.trim();
+    const name = document.getElementById('newDeviceName').value.trim() || 'Secondary Device';
+    if (!mac) return alert('Please enter a MAC address.');
+
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/devices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mac: mac, device_name: name })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        document.getElementById('newDeviceMac').value = '';
+        document.getElementById('addDeviceInlineForm').style.display = 'none';
+        openProfileModal(activeCustomerId, 'details');
+      } else {
+        alert('Failed to add device: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function removeDevice(devId) {
+    if (!confirm('Revoke this device and disconnect it immediately from MikroTik?')) return;
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/devices/${devId}`, { method: 'DELETE' });
+      const res = await resp.json();
+      if (res.success) {
+        openProfileModal(activeCustomerId, 'details');
+      } else {
+        alert('Failed: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // Automatic Calculation for Custom & Advance Payment Input Box
+  function calculateCustomPayment() {
+    const amtInput = document.getElementById('customPaymentAmount');
+    const previewBox = document.getElementById('customPaymentPreview');
+    const textEl = document.getElementById('customPaymentPreviewText');
+    if (!amtInput || !previewBox || !textEl) return;
+
+    const valStr = amtInput.value.trim();
+    if (valStr === '') {
+      previewBox.style.display = 'none';
+      return;
+    }
+
+    const amt = parseFloat(valStr) || 0.0;
+    const feeEl = document.getElementById('profMonthlyFee');
+    const fee = parseFloat(feeEl ? feeEl.textContent : '0') || 0.0;
+
+    if (amt === 0) {
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(234, 179, 8, 0.1)';
+      previewBox.style.borderColor = 'rgba(234, 179, 8, 0.3)';
+      textEl.innerHTML = `⚠️ <strong>Zero Payment Validity Extension:</strong> Customer is not paying now. Extending service days will automatically switch customer type to <strong style="color:#facc15;">POSTPAID</strong> (deferred service on credit).`;
+      return;
+    }
+
+    if (fee > 0 && amt >= fee) {
+      const months = Math.floor(amt / fee);
+      const rem = parseFloat((amt - (months * fee)).toFixed(2));
+      const days = months * 30;
+
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(16,185,129,0.08)';
+      previewBox.style.borderColor = 'rgba(16,185,129,0.25)';
+
+      let msg = `💡 <strong>Auto Advance Calculation:</strong> <strong>${amt.toFixed(2)} SAR</strong> covers <strong>${months} full month${months > 1 ? 's' : ''}</strong> (+${days} days).`;
+      if (rem > 0) {
+        msg += `<br>Extra surplus of <strong>+${rem.toFixed(2)} SAR</strong> will be automatically banked into Customer's Credit Wallet!`;
+      }
+      msg += `<br><span style="color:#c084fc; font-size:11.5px; margin-top:3px; display:inline-block; font-weight:700;">⚡ Account type will automatically set to PREPAID.</span>`;
+      textEl.innerHTML = msg;
+    } else if (fee > 0 && amt > 0 && amt < fee) {
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(56,189,248,0.08)';
+      previewBox.style.borderColor = 'rgba(56,189,248,0.25)';
+      textEl.innerHTML = `💳 <strong>Partial Deposit (${amt.toFixed(2)} SAR):</strong> Amount is less than 1 full cycle (${fee.toFixed(2)} SAR). It will be safely deposited into Customer's Credit Wallet.`;
+    } else {
+      previewBox.style.display = 'none';
+    }
+  }
+
+  // Load and Render Real-time MikroTik Internet Usage & Device Sessions
+  async function loadCustomerUsage(custId) {
+    const box = document.getElementById('usageContentBox');
+    if (!box) return;
+    box.innerHTML = `
+      <div style="text-align:center; padding:32px 10px; color:var(--text-dim);">
+        <div style="display:inline-block; width:26px; height:26px; border:3px solid rgba(56,189,248,0.2); border-top-color:#38bdf8; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:10px;"></div>
+        <div style="font-size:12px;">Querying MikroTik RouterOS for live device sessions &amp; traffic...</div>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch(`/api/customers/${custId}/usage`);
+      const data = await resp.json();
+      if (!data.success) {
+        box.innerHTML = `<div style="padding:16px; background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); border-radius:8px; color:#f43f5e; font-size:12px;">Failed to load usage: ${data.error || 'Unknown error'}</div>`;
+        return;
+      }
+
+      // Render summary KPI cards
+      let html = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+            <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Total Download</div>
+            <div style="font-size:15px; font-weight:800; color:#34d399; font-family:var(--font-mono); margin-top:2px;">↓ ${data.total_download}</div>
+          </div>
+          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+            <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Total Upload</div>
+            <div style="font-size:15px; font-weight:800; color:#38bdf8; font-family:var(--font-mono); margin-top:2px;">↑ ${data.total_upload}</div>
+          </div>
+          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+            <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Total Data Traffic</div>
+            <div style="font-size:15px; font-weight:800; color:#ffffff; font-family:var(--font-mono); margin-top:2px;">${data.total_traffic}</div>
+          </div>
+          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+            <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Live Session Status</div>
+            <div style="margin-top:4px;">
+              ${data.is_online 
+                ? `<span class="badge-status running" style="font-size:11px; padding:2px 8px;"><span class="pulse-dot"></span> ONLINE (${data.active_devices_count} active)</span>`
+                : `<span class="badge-status disabled" style="font-size:11px; padding:2px 8px;">OFFLINE</span>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Render per-device list
+      html += `<div style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px;">Per-Device Activity Breakdown (${data.devices.length})</div>`;
+
+      if (!data.devices || data.devices.length === 0) {
+        html += `<div style="padding:16px; background:#090e1a; border-radius:10px; text-align:center; color:var(--text-dim); font-size:12px;">No devices authorized for this customer.</div>`;
+      } else {
+        html += `<div style="display:flex; flex-direction:column; gap:10px;">`;
+        data.devices.forEach(d => {
+          const isOnline = d.is_online;
+          html += `
+            <div style="background:#090e1a; border:1px solid ${isOnline ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.06)'}; border-radius:10px; padding:12px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="font-mono text-cyan" style="font-weight:700; font-size:13px;">${d.mac_address}</span>
+                  <span style="font-size:12px; color:#ffffff; font-weight:600;">${d.host_name || d.device_name || 'Device'}</span>
+                </div>
+                <div>
+                  ${isOnline 
+                    ? '<span class="badge-status running" style="font-size:10px; padding:2px 6px;"><span class="pulse-dot"></span> CONNECTED</span>'
+                    : '<span class="badge-status disabled" style="font-size:10px; padding:2px 6px;">IDLE / OFFLINE</span>'}
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:8px; font-size:11px; background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:6px;">
+                <div>
+                  <span style="color:var(--text-dim); display:block;">Active IP:</span>
+                  <span class="font-mono text-white" style="font-weight:600;">${d.ip_address || '—'}</span>
+                </div>
+                <div>
+                  <span style="color:var(--text-dim); display:block;">Session Uptime:</span>
+                  <span class="text-white">${d.uptime || '—'}</span>
+                </div>
+                <div>
+                  <span style="color:var(--text-dim); display:block;">Last Seen:</span>
+                  <span class="text-white">${d.last_seen || '—'}</span>
+                </div>
+                <div>
+                  <span style="color:var(--text-dim); display:block;">Downloaded:</span>
+                  <span class="text-emerald font-mono" style="font-weight:700;">↓ ${d.download_formatted || '0 B'}</span>
+                </div>
+                <div>
+                  <span style="color:var(--text-dim); display:block;">Uploaded:</span>
+                  <span class="text-cyan font-mono" style="font-weight:700;">↑ ${d.upload_formatted || '0 B'}</span>
+                </div>
+                <div>
+                  <span style="color:var(--text-dim); display:block;">Total Traffic:</span>
+                  <span class="text-white font-mono" style="font-weight:700;">${d.total_formatted || '0 B'}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      html += `<div style="font-size:10.5px; color:var(--text-dim); text-align:right; margin-top:10px;">RouterOS Telemetry Updated: ${data.queried_at}</div>`;
+      box.innerHTML = html;
+    } catch (err) {
+      box.innerHTML = `<div style="padding:16px; background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); border-radius:8px; color:#f43f5e; font-size:12px;">Failed to fetch live usage: ${err.message}</div>`;
+    }
+  }
+
+  async function submitApplyCredit() {
+    if (!confirm('Apply available credit balance to settle and extend service (+30 Days) for this customer?')) return;
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/apply-credit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extend_days: 30 })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message);
+        openProfileModal(activeCustomerId, 'billing');
+      } else {
+        alert('Failed to apply credit: ' + (res.error || res.message));
+      }
+    } catch (e) {
+      alert('Error applying credit: ' + e.message);
+    }
+  }
+
+  // Quick 1-Click Collection of Due Bill (When Eligible)
+  async function quickCollectDueBill(amount) {
+    if (!confirm(`Collect ${parseFloat(amount).toFixed(2)} SAR and renew cycle (+30 days) for this customer?`)) return;
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection' })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message);
+        openProfileModal(activeCustomerId, 'billing');
+      } else {
+        alert('Failed: ' + (res.error || res.message));
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // Quick 1-Click Settle from Wallet Credit
+  async function quickSettleDueFromCredit() {
+    if (!confirm('Apply available credit balance to settle due cycle (+30 Days)?')) return;
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/apply-credit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extend_days: 30 })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message);
+        openProfileModal(activeCustomerId, 'billing');
+      } else {
+        alert('Failed to apply credit: ' + (res.error || res.message));
+      }
+    } catch (e) {
+      alert('Error applying credit: ' + e.message);
+    }
+  }
+
+  // Record Custom / Advance Payment ("input box and record, to collect any amount")
+  async function submitCustomPayment() {
+    const amtInput = document.getElementById('customPaymentAmount');
+    const notesInput = document.getElementById('customPaymentNotes');
+    if (!amtInput) return;
+    const valStr = amtInput.value.trim();
+    if (valStr === '') {
+      return alert('Please enter an amount to collect.');
+    }
+    const amt = parseFloat(valStr) || 0.0;
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment' })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message);
+        amtInput.value = '';
+        if (notesInput) notesInput.value = '';
+        const prev = document.getElementById('customPaymentPreview');
+        if (prev) prev.style.display = 'none';
+        openProfileModal(activeCustomerId, 'billing');
+      } else {
+        alert('Failed: ' + (res.error || res.message));
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // Manual Add Customer Modal Logic
+  function openAddCustomerModal() {
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + 30);
+    document.getElementById('addCustDueDate').value = futureDate.toISOString().split('T')[0];
+    const initPayEl = document.getElementById('addCustInitialPay');
+    if (initPayEl) initPayEl.value = '0.00';
+    onAddPkgChange();
+    calculateAddCustAdvance();
+    document.getElementById('addCustomerModal').classList.add('open');
+  }
+
+  function closeAddCustomerModal() {
+    document.getElementById('addCustomerModal').classList.remove('open');
+  }
+
+  function calculateAddCustAdvance() {
+    const feeInput = document.getElementById('addCustFee');
+    const payInput = document.getElementById('addCustInitialPay');
+    const previewBox = document.getElementById('addCustAdvancePreview');
+    const textEl = document.getElementById('addCustAdvanceText');
+    if (!feeInput || !payInput || !previewBox) return;
+
+    const fee = parseFloat(feeInput.value) || 0.0;
+    const paid = parseFloat(payInput.value) || 0.0;
+    const mode = (document.querySelector('input[name="add_cust_adv_mode"]:checked') || {}).value || 'credit';
+
+    if (paid === 0) {
+      selectNewCustType('postpaid');
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(234, 179, 8, 0.1)';
+      previewBox.style.borderColor = 'rgba(234, 179, 8, 0.3)';
+      textEl.innerHTML = `⚠️ <strong>Zero Initial Payment:</strong> Customer registered without paying upfront. Auto-selected as <strong style="color:#facc15;">POSTPAID</strong>.`;
+      return;
+    }
+
+    if (paid >= fee && fee > 0) {
+      selectNewCustType('prepaid');
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(16,185,129,0.08)';
+      previewBox.style.borderColor = 'rgba(16,185,129,0.25)';
+      if (paid > fee) {
+        if (mode === 'months') {
+          const months = Math.floor(paid / fee);
+          const rem = parseFloat((paid - (months * fee)).toFixed(2));
+          textEl.innerHTML = `💡 Advance Payment: Customer pays <strong>${paid.toFixed(2)} SAR</strong> upfront. <strong>${(months * fee).toFixed(2)} SAR</strong> covers <strong>${months} full months</strong>. Remaining <strong>+${rem.toFixed(2)} SAR</strong> will be saved in Customer Credit Wallet. <span style="color:#c084fc;">(Auto-set to PREPAID)</span>`;
+        } else {
+          const surplus = parseFloat((paid - fee).toFixed(2));
+          textEl.innerHTML = `💡 Advance Payment: Customer pays <strong>${paid.toFixed(2)} SAR</strong> upfront. <strong>${fee.toFixed(2)} SAR</strong> activates the 1st cycle. Extra <strong>+${surplus.toFixed(2)} SAR</strong> will be credited to Customer Wallet! <span style="color:#c084fc;">(Auto-set to PREPAID)</span>`;
+        }
+      } else {
+        textEl.innerHTML = `Payment of <strong>${paid.toFixed(2)} SAR</strong> covers the first billing cycle in full. <span style="color:#c084fc;">(Auto-set to PREPAID)</span>`;
+      }
+    } else {
+      previewBox.style.display = 'none';
+    }
+  }
+
+  function selectNewCustType(t) {
+    document.getElementById('addCustType').value = t;
+    const pre = document.getElementById('addTypePre');
+    const post = document.getElementById('addTypePost');
+    if (t === 'prepaid') {
+      pre.className = 'type-option-card prepaid-selected selected';
+      post.className = 'type-option-card';
+    } else {
+      pre.className = 'type-option-card';
+      post.className = 'type-option-card selected';
+    }
+  }
+
+  function onAddPkgChange() {
+    const sel = document.getElementById('addCustPkg');
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.getAttribute('data-price') || '75.00';
+    const rate = opt.getAttribute('data-rate') || '';
+    document.getElementById('addCustFee').value = price;
+    if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
+      document.getElementById('addCustSpeed').value = rate;
+    } else {
+      document.getElementById('addCustSpeed').value = 'Unlimited';
+    }
+    calculateAddCustAdvance();
+  }
+
+  function setAddCustSpeed(spd) {
+    document.getElementById('addCustSpeed').value = spd;
+  }
+
+  function setAddCustDevLimit(n) {
+    document.getElementById('addCustMaxDevices').value = n;
+  }
+
+  // =========================================================
+  // Manual Edit Customer (Fee, Due Date, Speed, Limits, Credit)
+  // =========================================================
+  let activeEditCustomerId = null;
+
+  async function openEditCustomerModal(custId) {
+    activeEditCustomerId = custId;
+    try {
+      const resp = await fetch(`/api/customers/${custId}`);
+      const c = await resp.json();
+
+      document.getElementById('editCustModalTitle').textContent = `Edit Account #${c.id} (${c.name})`;
+      document.getElementById('editCustName').value = c.name || '';
+      document.getElementById('editCustPhone').value = c.phone || '';
+      selectEditCustType(c.billing_type || 'prepaid');
+
+      // Set package
+      const pkgSel = document.getElementById('editCustPkg');
+      if (c.package_name) {
+        pkgSel.value = c.package_name;
+      }
+
+      // Speed limit (explicit custom speed or effective speed)
+      document.getElementById('editCustSpeed').value = c.speed_limit || c.effective_speed || 'Unlimited';
+
+      // Monthly fee
+      document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
+
+      // Due date
+      document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+
+      // Device limit
+      document.getElementById('editCustMaxDevices').value = c.max_devices || 1;
+
+      // Credit balance
+      document.getElementById('editCustCredit').value = parseFloat(c.credit_balance || 0).toFixed(2);
+
+      document.getElementById('editCustomerModal').classList.add('open');
+    } catch (err) {
+      alert('Failed to load customer details: ' + err.message);
+    }
+  }
+
+  function closeEditCustomerModal() {
+    document.getElementById('editCustomerModal').classList.remove('open');
+  }
+
+  function selectEditCustType(t) {
+    document.getElementById('editCustType').value = t;
+    const pre = document.getElementById('editTypePre');
+    const post = document.getElementById('editTypePost');
+    if (t === 'prepaid') {
+      pre.className = 'type-option-card prepaid-selected selected';
+      post.className = 'type-option-card';
+    } else {
+      pre.className = 'type-option-card';
+      post.className = 'type-option-card selected';
+    }
+  }
+
+  function setEditCustSpeed(spd) {
+    document.getElementById('editCustSpeed').value = spd;
+  }
+
+  function setEditCustDevLimit(n) {
+    document.getElementById('editCustMaxDevices').value = n;
+  }
+
+  function onEditPkgChange() {
+    const sel = document.getElementById('editCustPkg');
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.getAttribute('data-price') || '75.00';
+    const rate = opt.getAttribute('data-rate') || '';
+    document.getElementById('editCustFee').value = price;
+    if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
+      document.getElementById('editCustSpeed').value = rate;
+    } else {
+      document.getElementById('editCustSpeed').value = 'Unlimited';
+    }
+  }
+
+  async function submitEditCustomer(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnEditCustSubmit');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Saving &amp; Updating MikroTik...</span>';
+
+    const name = document.getElementById('editCustName').value.trim();
+    const phone = document.getElementById('editCustPhone').value.trim();
+    const bType = document.getElementById('editCustType').value;
+    const pkg = document.getElementById('editCustPkg').value;
+    const speed = document.getElementById('editCustSpeed').value.trim();
+    const fee = parseFloat(document.getElementById('editCustFee').value) || 0.0;
+    const dueDate = document.getElementById('editCustDueDate').value;
+    const maxDev = parseInt(document.getElementById('editCustMaxDevices').value) || 1;
+    const credit = parseFloat(document.getElementById('editCustCredit').value) || 0.0;
+
+    try {
+      const resp = await fetch(`/api/customers/${activeEditCustomerId}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          phone: phone,
+          billing_type: bType,
+          package_name: pkg,
+          speed_limit: speed,
+          monthly_fee: fee,
+          due_date: dueDate,
+          max_devices: maxDev,
+          credit_balance: credit
+        })
+      });
+
+      const res = await resp.json();
+      if (res.success) {
+        closeEditCustomerModal();
+        if (document.getElementById('profileModal').classList.contains('open')) {
+          openProfileModal(activeEditCustomerId);
+        } else {
+          location.reload();
+        }
+      } else {
+        alert('Failed to update: ' + (res.error || res.message));
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾 Save &amp; Sync to MikroTik</span>';
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>💾 Save &amp; Sync to MikroTik</span>';
+    }
+  }
+
+  async function editAllowedDevices() {
+    const currentText = document.getElementById('profMaxDevices').textContent;
+    const currentVal = parseInt(currentText) || 1;
+    const input = prompt("Enter allowed devices limit for this customer (e.g., 1, 2, 3, 5):", currentVal);
+    if (input === null) return;
+    const newLimit = parseInt(input.trim());
+    if (isNaN(newLimit) || newLimit < 1) {
+      return alert("Invalid number. Please enter a valid number of devices (1 or more).");
+    }
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/device-limit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_devices: newLimit })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message);
+        openProfileModal(activeCustomerId);
+      } else {
+        alert('Failed: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  async function submitNewCustomer(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnAddCustSubmit');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Creating on MikroTik...</span>';
+
+    const name = document.getElementById('newCustName').value.trim();
+    const phone = document.getElementById('newCustPhone').value.trim();
+    const bType = document.getElementById('addCustType').value;
+    const pkg = document.getElementById('addCustPkg').value;
+    const speed = document.getElementById('addCustSpeed').value.trim();
+    const fee = parseFloat(document.getElementById('addCustFee').value) || 0.0;
+    const dueDate = document.getElementById('addCustDueDate').value;
+    const maxDev = parseInt(document.getElementById('addCustMaxDevices').value) || 1;
+    const mac = document.getElementById('addCustMac').value.trim();
+    const initPay = parseFloat(document.getElementById('addCustInitialPay').value) || 0.0;
+    const advMode = (document.querySelector('input[name="add_cust_adv_mode"]:checked') || {}).value || 'credit';
+
+    try {
+      const resp = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          phone: phone,
+          billing_type: bType,
+          package_name: pkg,
+          speed_limit: speed,
+          monthly_fee: fee,
+          due_date: dueDate,
+          max_devices: maxDev,
+          mac_address: mac || null,
+          initial_payment: initPay,
+          advance_mode: advMode
+        })
+      });
+
+      const res = await resp.json();
+      if (res.success) {
+        closeAddCustomerModal();
+        location.reload();
+      } else {
+        alert('Failed: ' + (res.error || res.message));
+        btn.disabled = false;
+        btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
+    }
+  }
+</script>
+{% endblock %}
