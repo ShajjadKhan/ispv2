@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
 
+import mikrotik_client
 from mikrotik_client import RouterClient, format_bytes
 import database
 import whatsapp_service
@@ -213,6 +214,38 @@ class CreateOltPayload(BaseModel):
     notes: Optional[str] = None
 
 
+class CreateRouterPayload(BaseModel):
+    name: str
+    host: str
+    port: Optional[int] = 8728
+    username: Optional[str] = "admin"
+    password: Optional[str] = ""
+    vlan_id: Optional[int] = 10
+    ssid_name: Optional[str] = "CyberNet-WiFi"
+    uplink_type: Optional[str] = "Zain SIM"
+    is_active: Optional[int] = 1
+
+
+class UpdateRouterPayload(BaseModel):
+    name: str
+    host: str
+    port: Optional[int] = 8728
+    username: Optional[str] = "admin"
+    password: Optional[str] = None
+    vlan_id: Optional[int] = None
+    ssid_name: Optional[str] = None
+    uplink_type: Optional[str] = None
+    is_active: Optional[int] = None
+
+
+class TestRouterPayload(BaseModel):
+    host: str
+    port: Optional[int] = 8728
+    username: Optional[str] = "admin"
+    password: Optional[str] = ""
+
+
+
 # =========================================================
 # Web UI Routes
 # =========================================================
@@ -252,18 +285,55 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
 
 
 @app.api_route("/gateway", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def gateway_view(request: Request):
+async def gateway_view(request: Request, router_id: Optional[int] = None):
     """
-    Dedicated MikroTik Gateway Operations & Hardware Visualizer.
-    Preserved for multi-router network expansion.
+    Dedicated MikroTik Gateway Operations & Fleet Management Visualizer.
+    Supports multi-MikroTik fleet (1 by 1 expansion for VLAN 10, 20, 30).
     """
-    live_status = router_client.get_live_status()
+    all_routers = database.get_all_routers()
+    if not all_routers:
+        database.init_db()
+        all_routers = database.get_all_routers()
+
+    # Determine selected router
+    selected_router_record = None
+    if router_id:
+        for r in all_routers:
+            if r["id"] == router_id:
+                selected_router_record = r
+                break
+    if not selected_router_record and all_routers:
+        selected_router_record = all_routers[0]
+
+    # Gather live status for the selected router
+    if selected_router_record:
+        client = mikrotik_client.get_client_for_router(selected_router_record)
+        selected_live_status = client.get_live_status()
+        # Cache telemetry in DB
+        database.update_router_telemetry(
+            router_id=selected_router_record["id"],
+            identity=selected_live_status.get("identity"),
+            model=selected_live_status.get("model"),
+            ros_version=selected_live_status.get("version"),
+            cpu_usage=selected_live_status.get("cpu_usage"),
+            memory_usage=selected_live_status.get("memory_usage"),
+            uptime=selected_live_status.get("uptime"),
+            last_status="online" if selected_live_status.get("connected") else "offline"
+        )
+    else:
+        selected_live_status = router_client.get_live_status()
+
+    # Refresh fleet list with cached or live indicators
+    fleet_list = database.get_all_routers()
     pending_requests = database.get_pending_requests()
+
     return templates.TemplateResponse(
         request=request,
         name="gateway.html",
         context={
-            "router": live_status,
+            "router": selected_live_status,
+            "selected_router": selected_router_record,
+            "routers": fleet_list,
             "active_page": "gateway",
             "pending_count": len(pending_requests)
         }
@@ -1415,6 +1485,134 @@ async def api_whatsapp_logs(limit: int = 100, filter: str = "all", search: str =
     """Returns outbox dispatch ledger entries."""
     logs = database.get_whatsapp_logs(limit=limit, status_filter=filter, search=search)
     return logs
+
+
+# =========================================================
+# MikroTik Router Fleet Management Endpoints
+# =========================================================
+
+@app.get("/api/routers")
+async def api_get_routers(active_only: bool = False):
+    """Returns all registered MikroTik routers in the fleet."""
+    routers = database.get_all_routers(active_only=active_only)
+    return routers
+
+
+@app.post("/api/routers")
+async def api_create_router(payload: CreateRouterPayload):
+    """Adds a new MikroTik hardware router to the fleet one-by-one."""
+    logger.info(f"Adding new MikroTik router to fleet: {payload.name} ({payload.host}:{payload.port})")
+    try:
+        r = database.create_router(
+            name=payload.name,
+            host=payload.host,
+            port=payload.port or 8728,
+            username=payload.username or "admin",
+            password=payload.password or "",
+            vlan_id=payload.vlan_id or 10,
+            ssid_name=payload.ssid_name,
+            uplink_type=payload.uplink_type,
+            is_active=payload.is_active if payload.is_active is not None else 1
+        )
+
+        sync_result = {}
+        try:
+            test_res = mikrotik_client.test_router_connection(
+                host=payload.host,
+                username=payload.username or "admin",
+                password=payload.password or "",
+                port=payload.port or 8728
+            )
+            if test_res.get("success"):
+                database.update_router_telemetry(
+                    router_id=r["id"],
+                    identity=test_res.get("identity"),
+                    model=test_res.get("model"),
+                    ros_version=test_res.get("version"),
+                    cpu_usage=test_res.get("cpu_usage"),
+                    uptime=test_res.get("uptime"),
+                    last_status="online"
+                )
+                # Auto-sync fleet devices & packages to this new router!
+                sync_result = mikrotik_client.sync_all_to_new_router(r["id"])
+            else:
+                database.update_router_telemetry(
+                    router_id=r["id"],
+                    last_status="offline"
+                )
+        except Exception as te:
+            logger.warning(f"Could not complete initial sync to new router {payload.host}: {te}")
+
+        return {
+            "success": True,
+            "message": f"MikroTik '{payload.name}' added to fleet successfully!",
+            "router": r,
+            "sync": sync_result
+        }
+    except Exception as e:
+        logger.exception(f"Error creating router: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/routers/{router_id}")
+async def api_get_router(router_id: int):
+    """Fetches details and live status for a specific router."""
+    r = database.get_router_by_id(router_id)
+    if not r:
+        raise HTTPException(status_code=404, detail="Router not found")
+    client = mikrotik_client.get_client_for_router(r)
+    live = client.get_live_status()
+    return {"router": r, "live": live}
+
+
+@app.put("/api/routers/{router_id}")
+async def api_update_router(router_id: int, payload: UpdateRouterPayload):
+    """Updates router configuration and credentials."""
+    logger.info(f"Updating router #{router_id}: {payload.name}")
+    try:
+        updated = database.update_router(
+            router_id=router_id,
+            name=payload.name,
+            host=payload.host,
+            port=payload.port or 8728,
+            username=payload.username or "admin",
+            password=payload.password,
+            vlan_id=payload.vlan_id,
+            ssid_name=payload.ssid_name,
+            uplink_type=payload.uplink_type,
+            is_active=payload.is_active
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Router not found")
+        return {"success": True, "router": updated}
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.delete("/api/routers/{router_id}")
+async def api_delete_router(router_id: int):
+    """Deletes a router from the fleet."""
+    ok = database.delete_router(router_id)
+    return {"success": ok}
+
+
+@app.post("/api/routers/test-connection")
+async def api_test_router_connection(payload: TestRouterPayload):
+    """Tests live connection to a MikroTik IP without saving."""
+    res = mikrotik_client.test_router_connection(
+        host=payload.host,
+        username=payload.username or "admin",
+        password=payload.password or "",
+        port=payload.port or 8728
+    )
+    return res
+
+
+@app.post("/api/routers/{router_id}/sync")
+async def api_sync_fleet_router(router_id: int):
+    """Manually broadcasts and syncs all approved subscribers and packages to this router."""
+    res = mikrotik_client.sync_all_to_new_router(router_id)
+    return res
 
 
 

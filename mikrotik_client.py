@@ -753,3 +753,203 @@ class RouterClient:
                     pass
 
 
+# =========================================================
+# MULTI-ROUTER FLEET ROAMING & SYNC HELPERS
+# =========================================================
+
+def test_router_connection(
+    host: str,
+    username: str = "admin",
+    password: str = "",
+    port: int = 8728
+) -> Dict[str, Any]:
+    """
+    Tests live connectivity to a specific MikroTik router and retrieves hardware specs.
+    """
+    start_time = time.time()
+    pool = None
+    try:
+        pool = routeros_api.RouterOsApiPool(
+            host,
+            username=username,
+            password=password,
+            port=port,
+            use_ssl=False,
+            ssl_verify=False,
+            plaintext_login=True
+        )
+        api = pool.get_api()
+        latency_ms = round((time.time() - start_time) * 1000, 1)
+
+        # 1. Resource
+        res_list = api.get_resource('/system/resource').get()
+        res = res_list[0] if res_list else {}
+
+        # 2. Identity
+        ident_list = api.get_resource('/system/identity').get()
+        identity = ident_list[0].get('name', 'MikroTik') if ident_list else 'MikroTik'
+
+        # 3. RouterBoard Model
+        model = "RouterOS"
+        try:
+            rb_list = api.get_resource('/system/routerboard').get()
+            if rb_list:
+                model = rb_list[0].get('model') or rb_list[0].get('board-name') or "RouterOS"
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "latency_ms": latency_ms,
+            "identity": identity,
+            "model": model,
+            "version": res.get("version", "Unknown"),
+            "cpu_usage": int(res.get("cpu-load", 0)),
+            "uptime": res.get("uptime", "Unknown")
+        }
+    except Exception as e:
+        logger.warning(f"Connection test failed for {host}:{port}: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+    finally:
+        if pool is not None:
+            try:
+                pool.disconnect()
+            except Exception:
+                pass
+
+
+def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
+    """Instantiates a RouterClient from a router record dictionary."""
+    return RouterClient(
+        host=r_dict["host"],
+        username=r_dict["username"],
+        password=r_dict["password"],
+        port=r_dict.get("port", 8728)
+    )
+
+
+def broadcast_bind_device(
+    mac_address: str,
+    comment: str = "",
+    rate_limit: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Bypasses a device MAC across ALL active MikroTik routers in the fleet.
+    Enables instant roaming between SSID 1 (VLAN 10), SSID 2 (VLAN 20), and SSID 3 (VLAN 30).
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.bind_device(mac_address=mac_address, comment=comment, rate_limit=rate_limit)
+        results[r["name"]] = ok
+        logger.info(f"Fleet Bind: {mac_address} on {r['name']} ({r['host']}) -> {ok}")
+    return results
+
+
+def broadcast_unbind_device(
+    mac_address: str,
+    ip_address: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Revokes/unbinds a device MAC across ALL active MikroTik routers in the fleet.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.unbind_device(mac_address=mac_address, ip_address=ip_address)
+        results[r["name"]] = ok
+        logger.info(f"Fleet Unbind: {mac_address} on {r['name']} ({r['host']}) -> {ok}")
+    return results
+
+
+def broadcast_sync_package_profile(
+    profile_name: str,
+    rate_limit: Optional[str] = None,
+    shared_users: int = 1,
+    package_type: str = "hotspot"
+) -> Dict[str, Any]:
+    """
+    Synchronizes a bandwidth rate limit profile across ALL active MikroTik routers.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.sync_package_profile(
+            profile_name=profile_name,
+            rate_limit=rate_limit,
+            shared_users=shared_users,
+            package_type=package_type
+        )
+        results[r["name"]] = ok
+    return results
+
+
+def broadcast_delete_package_profile(profile_name: str) -> Dict[str, Any]:
+    """
+    Deletes a package profile across ALL active MikroTik routers.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.delete_package_profile(profile_name=profile_name)
+        results[r["name"]] = ok
+    return results
+
+
+def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
+    """
+    When a new MikroTik router is added to the fleet, provisions ALL existing
+    approved customer devices and package speed profiles to it automatically.
+    """
+    import database
+    r = database.get_router_by_id(router_id)
+    if not r:
+        return {"success": False, "error": "Router not found"}
+
+    client = get_client_for_router(r)
+
+    # 1. Sync all package profiles
+    packages = database.get_packages()
+    pkgs_synced = 0
+    for p in packages:
+        ok = client.sync_package_profile(
+            profile_name=p["mikrotik_profile"],
+            rate_limit=p["rate_limit"],
+            shared_users=p["shared_users"],
+            package_type=p["type"]
+        )
+        if ok:
+            pkgs_synced += 1
+
+    # 2. Sync all approved customer devices
+    approved_devices = database.get_approved_devices()
+    devices_synced = 0
+    for d in approved_devices:
+        mac = d.get("mac_address")
+        cust_name = d.get("customer_name") or "Subscriber"
+        pkg_rate = d.get("package_rate_limit")
+        comm = f"Sub: {cust_name} ({d.get('package_name', '')})"
+        ok = client.bind_device(mac_address=mac, comment=comm, rate_limit=pkg_rate)
+        if ok:
+            devices_synced += 1
+
+    return {
+        "success": True,
+        "router": r["name"],
+        "packages_synced": pkgs_synced,
+        "devices_synced": devices_synced
+    }
+
+
+

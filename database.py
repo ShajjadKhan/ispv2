@@ -407,6 +407,60 @@ def init_db():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, sample_logs)
 
+        # 12. MikroTik Gateway Fleet Management Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS routers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            host TEXT NOT NULL,
+            port INTEGER DEFAULT 8728,
+            username TEXT NOT NULL DEFAULT 'admin',
+            password TEXT NOT NULL DEFAULT '',
+            vlan_id INTEGER DEFAULT 10,
+            ssid_name TEXT DEFAULT 'CyberNet-Line1',
+            uplink_type TEXT DEFAULT 'Zain 5G SIM #1',
+            is_active INTEGER DEFAULT 1,
+            is_default INTEGER DEFAULT 0,
+            identity TEXT,
+            ros_version TEXT,
+            model TEXT,
+            cpu_usage INTEGER DEFAULT 0,
+            memory_usage INTEGER DEFAULT 0,
+            uptime TEXT,
+            last_status TEXT DEFAULT 'unknown',
+            last_seen TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """)
+
+        # Seed initial primary router if empty
+        cursor.execute("SELECT COUNT(*) FROM routers")
+        if cursor.fetchone()[0] == 0:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            default_host = os.getenv("MIKROTIK_HOST", "10.20.30.1")
+            default_user = os.getenv("MIKROTIK_USER", "admin")
+            default_pass = os.getenv("MIKROTIK_PASS", "admin")
+            default_port = int(os.getenv("MIKROTIK_PORT", "8728"))
+            cursor.execute("""
+                INSERT INTO routers (
+                    name, host, port, username, password, vlan_id, ssid_name, uplink_type,
+                    is_active, is_default, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+            """, (
+                "MikroTik 1 - Master Gateway (VLAN 10)",
+                default_host,
+                default_port,
+                default_user,
+                default_pass,
+                10,
+                "CyberNet-Line1",
+                "Zain 5G SIM #1 (Primary)",
+                now_str,
+                now_str
+            ))
+
         conn.commit()
 
 
@@ -2441,6 +2495,145 @@ def get_due_customers_for_whatsapp() -> List[Dict[str, Any]]:
 
 
 get_customers = get_all_customers
+
+
+# =========================================================================
+# MIKROTIK MULTI-ROUTER FLEET HELPERS
+# =========================================================================
+def get_all_routers(active_only: bool = False) -> List[Dict[str, Any]]:
+    """Retrieves all registered MikroTik routers in the fleet."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        q = "SELECT * FROM routers"
+        if active_only:
+            q += " WHERE is_active = 1"
+        q += " ORDER BY is_default DESC, id ASC"
+        cursor.execute(q)
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def get_router_by_id(router_id: int) -> Optional[Dict[str, Any]]:
+    """Fetches a specific router by primary key."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM routers WHERE id = ?", (router_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def create_router(
+    name: str,
+    host: str,
+    port: int = 8728,
+    username: str = "admin",
+    password: str = "",
+    vlan_id: Optional[int] = 10,
+    ssid_name: Optional[str] = "CyberNet-WiFi",
+    uplink_type: Optional[str] = "Zain SIM",
+    is_active: int = 1
+) -> Dict[str, Any]:
+    """Adds a new MikroTik hardware router to the fleet."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO routers (
+                name, host, port, username, password, vlan_id, ssid_name,
+                uplink_type, is_active, is_default, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+        """, (
+            name.strip(), host.strip(), port, username.strip(), password,
+            vlan_id or 10, ssid_name.strip() if ssid_name else "",
+            uplink_type.strip() if uplink_type else "",
+            1 if is_active else 0, now_str, now_str
+        ))
+        conn.commit()
+        rid = cursor.lastrowid
+        cursor.execute("SELECT * FROM routers WHERE id = ?", (rid,))
+        return dict(cursor.fetchone())
+
+
+def update_router(
+    router_id: int,
+    name: str,
+    host: str,
+    port: int = 8728,
+    username: str = "admin",
+    password: Optional[str] = None,
+    vlan_id: Optional[int] = None,
+    ssid_name: Optional[str] = None,
+    uplink_type: Optional[str] = None,
+    is_active: Optional[int] = None
+) -> Optional[Dict[str, Any]]:
+    """Updates configuration for an existing router."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM routers WHERE id = ?", (router_id,))
+        existing = cursor.fetchone()
+        if not existing:
+            return None
+        existing = dict(existing)
+
+        pwd = password if (password is not None and password != "") else existing["password"]
+        act = is_active if is_active is not None else existing["is_active"]
+        vlan = vlan_id if vlan_id is not None else existing["vlan_id"]
+        ssid = ssid_name if ssid_name is not None else existing["ssid_name"]
+        uplink = uplink_type if uplink_type is not None else existing["uplink_type"]
+
+        cursor.execute("""
+            UPDATE routers SET
+                name = ?, host = ?, port = ?, username = ?, password = ?,
+                vlan_id = ?, ssid_name = ?, uplink_type = ?, is_active = ?,
+                updated_at = ?
+            WHERE id = ?
+        """, (
+            name.strip(), host.strip(), port, username.strip(), pwd,
+            vlan, ssid, uplink, act, now_str, router_id
+        ))
+        conn.commit()
+        cursor.execute("SELECT * FROM routers WHERE id = ?", (router_id,))
+        return dict(cursor.fetchone())
+
+
+def delete_router(router_id: int) -> bool:
+    """Removes a router from the fleet."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM routers WHERE id = ?", (router_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def update_router_telemetry(
+    router_id: int,
+    identity: Optional[str] = None,
+    model: Optional[str] = None,
+    ros_version: Optional[str] = None,
+    cpu_usage: Optional[int] = None,
+    memory_usage: Optional[int] = None,
+    uptime: Optional[str] = None,
+    last_status: str = "online"
+):
+    """Caches live telemetry metrics for a router in the fleet."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE routers SET
+                identity = COALESCE(?, identity),
+                model = COALESCE(?, model),
+                ros_version = COALESCE(?, ros_version),
+                cpu_usage = COALESCE(?, cpu_usage),
+                memory_usage = COALESCE(?, memory_usage),
+                uptime = COALESCE(?, uptime),
+                last_status = ?,
+                last_seen = ?
+            WHERE id = ?
+        """, (identity, model, ros_version, cpu_usage, memory_usage, uptime, last_status, now_str, router_id))
+        conn.commit()
+
 
 
 

@@ -1,17 +1,132 @@
 {% extends "base.html" %}
 
-{% block title %}CyberNet OS | MikroTik Gateway Status{% endblock %}
-{% block heading %}MikroTik Gateway Operations{% endblock %}
+{% block title %}CyberNet OS | MikroTik Gateway Fleet Status{% endblock %}
+{% block heading %}MikroTik Multi-Gateway Fleet Operations{% endblock %}
 
 {% block extra_head %}
 <style>
   /* =========================================================
-     DASHBOARD STYLES
+     GATEWAY & FLEET STYLES
      ========================================================= */
   .grid-layout {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  /* FLEET MANAGEMENT SECTION */
+  .fleet-banner-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 22px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .fleet-banner-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #10b981 100%);
+  }
+
+  .fleet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .fleet-card {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+  }
+  .fleet-card:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    background: #0d1527;
+    transform: translateY(-2px);
+  }
+  .fleet-card.active-router {
+    border-color: #38bdf8;
+    background: #0f1c36;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+  }
+  .fleet-card.active-router::after {
+    content: 'CURRENT VIEW';
+    position: absolute;
+    top: 12px; right: 14px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .fleet-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fleet-card-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    flex-shrink: 0;
+  }
+  .fleet-card-avatar svg { width: 22px; height: 22px; fill: currentColor; }
+
+  .badge-vlan {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+  }
+  .badge-ssid {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .badge-sim {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
   /* HERO STATUS BANNER */
@@ -19,22 +134,18 @@
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
     border: 1px solid var(--border-subtle);
     border-radius: 16px;
-    padding: 28px 32px;
+    padding: 24px 28px;
     position: relative;
     overflow: hidden;
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
   }
-
   .hero-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #10b981 0%, #38bdf8 50%, #6366f1 100%);
   }
-
   .hero-card.is-offline::before {
     background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
   }
@@ -45,19 +156,17 @@
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
-
   .hero-left {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
   }
-
   .router-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
     background: rgba(56, 189, 248, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.25);
     display: flex;
@@ -65,45 +174,20 @@
     justify-content: center;
     flex-shrink: 0;
   }
-
-  .router-avatar svg {
-    width: 34px;
-    height: 34px;
-    fill: #38bdf8;
-  }
-
-  .router-title-group h1 {
-    font-size: 22px;
-    font-weight: 800;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 4px;
-  }
-
-  .router-title-group .subtitle {
-    font-size: 13px;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .router-avatar svg { width: 30px; height: 30px; fill: #38bdf8; }
 
   .status-badge-hero {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 9999px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.02em;
     background: rgba(16, 185, 129, 0.12);
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.35);
   }
-
   .status-badge-hero.offline {
     background: rgba(239, 68, 68, 0.12);
     color: #f87171;
@@ -112,18 +196,16 @@
 
   .hero-details-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    padding-top: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    padding-top: 18px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
-
   .detail-box {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
-
   .detail-box .label {
     font-size: 11px;
     font-weight: 600;
@@ -131,98 +213,12 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-
   .detail-box .value {
     font-size: 14px;
     font-weight: 700;
     color: #ffffff;
     font-family: var(--font-mono);
   }
-
-  /* TELEMETRY STAT CARDS */
-  .metrics-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 18px;
-  }
-
-  .metric-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    transition: transform 0.2s ease, border-color 0.2s ease;
-  }
-
-  .metric-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .metric-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .metric-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .metric-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .metric-icon svg {
-    width: 16px;
-    height: 16px;
-    fill: var(--text-muted);
-  }
-
-  .metric-val-large {
-    font-size: 28px;
-    font-weight: 800;
-    color: #ffffff;
-    font-family: var(--font-mono);
-    line-height: 1.1;
-  }
-
-  .metric-val-sub {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-family: var(--font-mono);
-    margin-top: 2px;
-  }
-
-  .progress-track {
-    width: 100%;
-    height: 6px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: #38bdf8;
-    transition: width 0.4s ease;
-  }
-  .progress-fill.emerald { background: #10b981; }
-  .progress-fill.amber { background: #f59e0b; }
-  .progress-fill.rose { background: #ef4444; }
 
   /* HARDWARE PORTS VISUALIZER */
   .section-card {
@@ -231,45 +227,29 @@
     border-radius: 16px;
     overflow: hidden;
   }
-
   .section-card-header {
-    padding: 18px 24px;
+    padding: 16px 20px;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
-
-  .section-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .section-subtitle {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-weight: 500;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .ports-board {
-    padding: 24px;
+    padding: 20px;
     background: #090e1a;
     border-radius: 12px;
-    margin: 20px;
+    margin: 16px;
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
-
   .ports-rack {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    gap: 14px;
   }
-
   @media (max-width: 860px) {
     .ports-rack { grid-template-columns: repeat(2, 1fr); }
   }
@@ -278,163 +258,243 @@
     background: #111a2e;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    position: relative;
-    transition: all 0.2s ease;
+    gap: 10px;
   }
-
   .port-box.is-active {
     border-color: rgba(56, 189, 248, 0.35);
     background: #13203b;
   }
 
-  .port-box-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .port-name-label {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 700;
-    color: #ffffff;
-  }
-
-  .port-led {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #334155;
-  }
-
-  .port-led.online {
-    background-color: #10b981;
-    box-shadow: 0 0 8px #10b981;
-  }
-
-  .port-role-badge {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 3px 8px;
-    border-radius: 6px;
-    width: fit-content;
-  }
-  .role-wan { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-  .role-lan { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
-  .role-ap { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
-  .role-server { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-
-  .port-meta {
-    font-size: 11px;
-    color: var(--text-dim);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-family: var(--font-mono);
-  }
-
-  /* INTERFACES TABLE */
-  .table-responsive {
-    width: 100%;
-    overflow-x: auto;
-  }
-
+  /* TABLES */
   .clean-table {
     width: 100%;
     border-collapse: collapse;
-    text-align: left;
     font-size: 13px;
+    text-align: left;
   }
-
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 600;
-    padding: 12px 20px;
+    padding: 12px 18px;
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--border-subtle);
   }
-
   .clean-table td {
-    padding: 14px 20px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--border-subtle);
-    color: var(--text-main);
   }
+  .clean-table tr:last-child td { border-bottom: none; }
 
-  .clean-table tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .badge-status {
+  /* BUTTONS */
+  .btn-action-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 3px 8px;
-    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .btn-action-pill:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    color: #38bdf8;
+  }
+  .btn-primary-add {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  }
+  .btn-primary-add:hover { opacity: 0.9; }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-container {
+    background: var(--bg-card);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+  .modal-header {
+    padding: 16px 20px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
     font-size: 11px;
     font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-
-  .badge-status.running {
-    background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
+  .form-control {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
   }
-  .badge-status.stopped {
-    background: rgba(148, 163, 184, 0.12);
-    color: #94a3b8;
-  }
-  .badge-status.disabled {
-    background: rgba(239, 68, 68, 0.12);
-    color: #f87171;
-  }
+  .form-control:focus { border-color: #38bdf8; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="grid-layout">
 
-  <!-- PENDING REQUESTS ALERT BANNER -->
-  <div id="pendingAlertBanner" style="{% if not pending_count %}display:none;{% else %}display:flex;{% endif %} background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.15) 100%); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 14px; padding: 16px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <span class="pulse-dot" style="background-color: #f59e0b; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);"></span>
-      <span style="font-weight: 700; color: #fbbf24; font-size: 14px;" id="pendingAlertText">
-        {{ pending_count }} Connection Request(s) Awaiting Admin Approval
-      </span>
+  <!-- FLEET OPERATIONS BANNER & ADD BUTTON -->
+  <div class="fleet-banner-card">
+    <div>
+      <h1 style="font-size: 19px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+        <span>MikroTik Multi-Gateway Fleet</span>
+        <span class="badge-vlan">VLAN 10, 20, 30 Roaming Engine</span>
+      </h1>
+      <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+        Total: <strong style="color:#ffffff;">{{ routers | length }} Gateway Router(s) Configured</strong> &bull; Devices authorized on any router automatically roam with zero login interruption.
+      </div>
     </div>
-    <a href="/approvals" class="btn-approve" style="text-decoration: none; padding: 7px 16px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
-      <span>Review &amp; Approve</span>
-      <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" class="btn-action-pill" onclick="window.location.reload()">
+        🔄 Refresh Fleet
+      </button>
+      <button type="button" class="btn-primary-add" onclick="openAddRouterModal()">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <span>Add MikroTik Router</span>
+      </button>
+    </div>
   </div>
 
-  <!-- HERO GATEWAY CARD -->
+  <!-- FLEET HARDWARE RACK CARDS (MULTI-ROUTER 1 BY 1) -->
+  <div class="fleet-grid">
+    {% for r in routers %}
+    <div class="fleet-card {% if selected_router and selected_router.id == r.id %}active-router{% endif %}" onclick="selectRouter({{ r.id }})">
+      <div class="fleet-card-header">
+        <div class="fleet-card-avatar">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+        </div>
+        <div>
+          <div style="font-size: 14px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            <span>{{ r.name }}</span>
+          </div>
+          <div class="font-mono text-cyan" style="font-size: 12px;">{{ r.host }}:{{ r.port }}</div>
+        </div>
+      </div>
+
+      <!-- BADGES: VLAN, SSID, SIM -->
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="badge-vlan">VLAN {{ r.vlan_id or 10 }}</span>
+        {% if r.ssid_name %}<span class="badge-ssid">SSID: {{ r.ssid_name }}</span>{% endif %}
+        {% if r.uplink_type %}<span class="badge-sim">{{ r.uplink_type }}</span>{% endif %}
+      </div>
+
+      <!-- MINI TELEMETRY ROW -->
+      <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-family: var(--font-mono); padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+        <div>
+          <span class="text-dim">Status:</span>
+          {% if r.last_status == 'online' %}
+            <span style="color:#34d399; font-weight:700;">ONLINE ●</span>
+          {% else %}
+            <span style="color:#f87171; font-weight:700;">OFFLINE ○</span>
+          {% endif %}
+        </div>
+        <div>
+          <span class="text-dim">CPU:</span>
+          <span style="color:#ffffff;">{{ r.cpu_usage }}%</span>
+        </div>
+        <div>
+          <span class="text-dim">Uptime:</span>
+          <span style="color:#38bdf8;">{{ r.uptime or 'N/A' }}</span>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;" onclick="event.stopPropagation()">
+        <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 4px 9px;" onclick="syncFleetRouter({{ r.id }}, '{{ r.name }}')" title="Provision all approved subscribers to this router">
+          ⚡ Sync Roaming
+        </button>
+        <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 4px 9px;" onclick="openEditRouterModal({{ r.id }})">
+          ✏️ Edit
+        </button>
+        {% if not r.is_default %}
+        <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 4px 9px; color:#f87171;" onclick="deleteRouter({{ r.id }}, '{{ r.name }}')">
+          🗑️
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- SELECTED ROUTER DETAILED TELEMETRY BANNER -->
+  {% if selected_router %}
   <div id="heroCard" class="hero-card {% if not router.connected %}is-offline{% endif %}">
     <div class="hero-header">
       <div class="hero-left">
         <div class="router-avatar">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-          </svg>
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
         </div>
         <div class="router-title-group">
-          <h1 id="heroIdentity">
-            {{ router.identity }}
-            <span style="font-size:14px; font-weight:500; color:var(--text-dim);">({{ router.model }})</span>
+          <h1 id="heroIdentity" style="font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+            <span>{{ selected_router.name }}</span>
+            <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">({{ router.model }})</span>
           </h1>
-          <div class="subtitle">
+          <div class="subtitle" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+            <span>Identity: <strong style="color:#ffffff;">{{ router.identity }}</strong></span>
+            <span>&bull;</span>
             <span>RouterOS {{ router.version }}</span>
             <span>&bull;</span>
-            <span>Architecture: {{ router.cpu_model }}</span>
+            <span class="font-mono text-cyan">{{ selected_router.host }}:{{ selected_router.port }}</span>
             <span>&bull;</span>
-            <span class="font-mono">{{ router.host }}:{{ router.port }}</span>
+            <span class="badge-vlan">VLAN {{ selected_router.vlan_id }}</span>
           </div>
         </div>
       </div>
@@ -443,7 +503,7 @@
         <div id="heroStatusBadge" class="status-badge-hero {% if not router.connected %}offline{% endif %}">
           <span class="pulse-dot"></span>
           <span id="heroStatusText">
-            {% if router.connected %}ROUTER ONLINE &amp; HEALTHY{% else %}ROUTER OFFLINE{% endif %}
+            {% if router.connected %}GATEWAY ONLINE &amp; ACTIVE{% else %}GATEWAY OFFLINE{% endif %}
           </span>
         </div>
       </div>
@@ -460,321 +520,399 @@
         <span id="statLatency" class="value text-emerald">{{ router.latency_ms }} ms</span>
       </div>
       <div class="detail-box">
-        <span class="label">Total Memory</span>
-        <span class="value">{{ router.total_memory_mb }} MB</span>
+        <span class="label">CPU Utilization</span>
+        <span class="value text-cyan">{{ router.cpu_load }}%</span>
       </div>
       <div class="detail-box">
-        <span class="label">Last Verified</span>
-        <span id="statCheckedAt" class="value text-muted">{{ router.checked_at }}</span>
+        <span class="label">Memory (RAM)</span>
+        <span class="value">{{ router.memory_percent }}% ({{ router.used_memory_mb }}/{{ router.total_memory_mb }} MB)</span>
       </div>
     </div>
   </div>
+  {% endif %}
 
-  <!-- TELEMETRY METRIC CARDS -->
-  <div class="metrics-row">
-    <!-- CPU CARD -->
-    <div class="metric-card">
-      <div class="metric-top">
-        <span class="metric-label">CPU Utilization</span>
-        <div class="metric-icon">
-          <svg viewBox="0 0 24 24"><path d="M4 6h4v4H4V6zm0 8h4v4H4v-4zm8-8h4v4h-4V6zm0 8h4v4h-4v-4zm8-8h4v4h-4V6zm0 8h4v4h-4v-4z"/></svg>
-        </div>
-      </div>
-      <div>
-        <div id="statCpuVal" class="metric-val-large">{{ router.cpu_load }}%</div>
-        <div class="metric-val-sub">{{ router.cpu_model }} @ Single-Core</div>
-      </div>
-      <div class="progress-track">
-        <div id="statCpuBar" class="progress-fill {% if router.cpu_load > 80 %}rose{% elif router.cpu_load > 50 %}amber{% else %}emerald{% endif %}" style="width: {{ router.cpu_load }}%;"></div>
-      </div>
-    </div>
-
-    <!-- RAM CARD -->
-    <div class="metric-card">
-      <div class="metric-top">
-        <span class="metric-label">Memory Utilization</span>
-        <div class="metric-icon">
-          <svg viewBox="0 0 24 24"><path d="M2 7h2v10H2V7zm5 0h2v10H7V7zm5 0h2v10h-2V7zm5 0h2v10h-2V7zm5 0h2v10h-2V7z"/></svg>
-        </div>
-      </div>
-      <div>
-        <div id="statMemVal" class="metric-val-large">{{ router.memory_percent }}%</div>
-        <div id="statMemSub" class="metric-val-sub">{{ router.used_memory_mb }} MB used of {{ router.total_memory_mb }} MB</div>
-      </div>
-      <div class="progress-track">
-        <div id="statMemBar" class="progress-fill {% if router.memory_percent > 85 %}rose{% elif router.memory_percent > 65 %}amber{% else %}emerald{% endif %}" style="width: {{ router.memory_percent }}%;"></div>
-      </div>
-    </div>
-
-    <!-- LATENCY CARD -->
-    <div class="metric-card">
-      <div class="metric-top">
-        <span class="metric-label">API Latency</span>
-        <div class="metric-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-        </div>
-      </div>
-      <div>
-        <div id="statLatVal" class="metric-val-large text-emerald">{{ router.latency_ms }} <span style="font-size:16px; font-weight:500;">ms</span></div>
-        <div class="metric-val-sub">Local Management Link (Direct)</div>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill emerald" style="width: 100%;"></div>
-      </div>
-    </div>
-
-    <!-- ACTIVE INTERFACES CARD -->
-    <div class="metric-card">
-      <div class="metric-top">
-        <span class="metric-label">Interfaces Online</span>
-        <div class="metric-icon">
-          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        </div>
-      </div>
-      <div>
-        {% set running_count = router.interfaces | selectattr('running') | list | length %}
-        <div id="statIfaceCount" class="metric-val-large text-cyan">{{ running_count }} <span style="font-size:16px; font-weight:500;">/ {{ router.interfaces | length }}</span></div>
-        <div class="metric-val-sub">Physical &amp; Bridge Ports Active</div>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" style="width: 80%;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PHYSICAL PORTS VISUALIZER -->
+  <!-- HARDWARE PORTS VISUALIZER (FOR SELECTED ROUTER) -->
   <div class="section-card">
     <div class="section-card-header">
-      <div>
-        <div class="section-title">
-          <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-          <span>Physical Ports Front Panel (MikroTik hAP lite)</span>
-        </div>
-        <div class="section-subtitle">Real-time cable link status, designated roles, and IP subnets</div>
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+        <span>Physical RJ45 Ports &amp; Uplinks ({{ selected_router.name if selected_router else 'Primary' }})</span>
       </div>
-      <span class="font-mono text-dim" style="font-size:12px;">RB941-2nD &bull; 4 FastEthernet Ports</span>
+      <span class="font-mono text-dim" style="font-size: 11px;">Hardware Interface Link State</span>
     </div>
 
     <div class="ports-board">
       <div class="ports-rack">
-        <!-- PORT 1: WAN -->
-        {% set p1 = (router.interfaces | selectattr('name', 'equalto', 'ether1') | first) if router.interfaces else none %}
-        <div class="port-box {% if p1 and p1.running %}is-active{% endif %}" id="port-box-ether1">
-          <div class="port-box-top">
-            <span class="port-name-label">Port 1 (ether1)</span>
-            <span class="port-led {% if p1 and p1.running %}online{% endif %}" id="led-ether1"></span>
+        {% for iface in router.interfaces[:4] %}
+        <div class="port-box {% if iface.running %}is-active{% endif %}" id="port-box-{{ iface.name }}">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="font-mono" style="font-size: 13px; font-weight: 800; color: #ffffff;">{{ iface.name }}</span>
+            <span class="optical-led {% if iface.running %}up{% endif %}"></span>
           </div>
-          <div>
-            <span class="port-role-badge role-wan">WAN Uplink</span>
+          <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
+            Role: <span style="color:#ffffff;">{{ iface.comment or iface.type }}</span>
           </div>
-          <div class="port-meta">
-            <span>Link: <strong id="link-ether1" class="{% if p1 and p1.running %}text-emerald{% else %}text-muted{% endif %}">{% if p1 and p1.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
-            <span>IP: {{ router.ip_map.get('ether1', '192.168.22.25/24') }}</span>
+          <div style="font-size: 11px; font-family: var(--font-mono);">
+            Link: {% if iface.running %}<strong class="text-emerald">CONNECTED</strong>{% else %}<span class="text-dim">NO CARRIER</span>{% endif %}
           </div>
         </div>
-
-        <!-- PORT 2: LAN -->
-        {% set p2 = (router.interfaces | selectattr('name', 'equalto', 'ether2') | first) if router.interfaces else none %}
-        <div class="port-box {% if p2 and p2.running %}is-active{% endif %}" id="port-box-ether2">
-          <div class="port-box-top">
-            <span class="port-name-label">Port 2 (ether2)</span>
-            <span class="port-led {% if p2 and p2.running %}online{% endif %}" id="led-ether2"></span>
-          </div>
-          <div>
-            <span class="port-role-badge role-lan">LAN (Direct)</span>
-          </div>
-          <div class="port-meta">
-            <span>Link: <strong id="link-ether2" class="{% if p2 and p2.running %}text-emerald{% else %}text-muted{% endif %}">{% if p2 and p2.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
-            <span>IP: {{ router.ip_map.get('ether2', 'Unassigned') }}</span>
-          </div>
-        </div>
-
-        <!-- PORT 3: ACCESS POINT -->
-        {% set p3 = (router.interfaces | selectattr('name', 'equalto', 'ether3') | first) if router.interfaces else none %}
-        <div class="port-box {% if p3 and p3.running %}is-active{% endif %}" id="port-box-ether3">
-          <div class="port-box-top">
-            <span class="port-name-label">Port 3 (ether3)</span>
-            <span class="port-led {% if p3 and p3.running %}online{% endif %}" id="led-ether3"></span>
-          </div>
-          <div>
-            <span class="port-role-badge role-ap">AP "test link"</span>
-          </div>
-          <div class="port-meta">
-            <span>Link: <strong id="link-ether3" class="{% if p3 and p3.running %}text-emerald{% else %}text-muted{% endif %}">{% if p3 and p3.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
-            <span>Bridge: bridge-hotspot (10.88.88.1/24)</span>
-          </div>
-        </div>
-
-        <!-- PORT 4: TSERVER -->
-        {% set p4 = (router.interfaces | selectattr('name', 'equalto', 'ether4') | first) if router.interfaces else none %}
-        <div class="port-box {% if p4 and p4.running %}is-active{% endif %}" id="port-box-ether4">
-          <div class="port-box-top">
-            <span class="port-name-label">Port 4 (ether4)</span>
-            <span class="port-led {% if p4 and p4.running %}online{% endif %}" id="led-ether4"></span>
-          </div>
-          <div>
-            <span class="port-role-badge role-server">Server Link (tserver)</span>
-          </div>
-          <div class="port-meta">
-            <span>Link: <strong id="link-ether4" class="{% if p4 and p4.running %}text-emerald{% else %}text-muted{% endif %}">{% if p4 and p4.running %}CONNECTED{% else %}NO CARRIER{% endif %}</strong></span>
-            <span>IP: {{ router.ip_map.get('ether4', '10.20.30.1/24') }}</span>
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </div>
   </div>
 
-  <!-- ALL INTERFACES TABLE -->
+  <!-- ACTIVE HOTSPOT HOSTS & ROAMING STATUS -->
   <div class="section-card">
     <div class="section-card-header">
-      <div class="section-title">
-        <svg style="width:18px; height:18px; fill:#34d399;" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-        <span>All Configured Router Interfaces</span>
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 16px; height: 16px; fill: #10b981;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 18h-2v-2h2v2zm1-5h-4v-2h4v2zm2-5H8V8h8v2z"/></svg>
+        <span>Connected Devices &amp; Bypassed Roaming Leases ({{ selected_router.name if selected_router else 'Primary' }})</span>
       </div>
-      <span class="section-subtitle">Live state reported directly by RouterOS API</span>
+      <span class="font-mono text-dim" style="font-size: 11px;">Active on this Gateway</span>
     </div>
 
-    <div class="table-responsive">
+    <div style="overflow-x: auto;">
       <table class="clean-table">
         <thead>
           <tr>
-            <th>Interface</th>
-            <th>Type</th>
-            <th>Status</th>
+            <th>MAC Address</th>
             <th>Assigned IP</th>
-            <th>Comment / Notes</th>
+            <th>Bridge / Interface</th>
+            <th>Type</th>
+            <th>Speed Limit</th>
+            <th>Comment / Subscriber</th>
           </tr>
         </thead>
-        <tbody id="interfacesTableBody">
-          {% for iface in router.interfaces %}
+        <tbody>
+          {% if not router.hosts %}
           <tr>
-            <td class="font-mono" style="font-weight:700; color:#ffffff;">{{ iface.name }}</td>
-            <td class="font-mono text-dim">{{ iface.type }}</td>
-            <td>
-              {% if iface.disabled %}
-                <span class="badge-status disabled">DISABLED</span>
-              {% elif iface.running %}
-                <span class="badge-status running">RUNNING (UP)</span>
-              {% else %}
-                <span class="badge-status stopped">DOWN / NO CARRIER</span>
-              {% endif %}
-            </td>
-            <td class="font-mono text-cyan">
-              {{ router.ip_map.get(iface.name, '—') }}
-            </td>
-            <td class="text-muted">
-              {% if iface.name == 'ether1' %}WAN Uplink Connection
-              {% elif iface.name == 'ether3' %}AP ("test link") on bridge-hotspot
-              {% elif iface.name == 'ether4' %}tserver Host Connection (10.20.30.40)
-              {% elif iface.name == 'bridge-hotspot' %}Hotspot Default Gateway Subnet
-              {% else %}{{ iface.comment or '—' }}
-              {% endif %}
+            <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-dim);">
+              No active host sessions connected to this gateway currently.
             </td>
           </tr>
-          {% endfor %}
+          {% else %}
+            {% for h in router.hosts %}
+            <tr>
+              <td class="font-mono" style="font-weight: 700; color: #38bdf8;">{{ h.mac }}</td>
+              <td class="font-mono text-emerald">{{ h.address }}</td>
+              <td class="font-mono text-dim" style="font-size: 11.5px;">{{ h.interface or 'bridge-lan' }}</td>
+              <td>
+                {% if h.bypassed %}
+                  <span class="badge-status running" style="font-size: 10px;">BYPASS (ROAMING ACTIVE)</span>
+                {% else %}
+                  <span class="badge-status" style="font-size: 10px; background:rgba(245,158,11,0.15); color:#fbbf24;">UNAUTHENTICATED</span>
+                {% endif %}
+              </td>
+              <td class="font-mono text-cyan">{{ h.rate_limit or 'Unlimited' }}</td>
+              <td class="text-dim" style="font-size: 12px;">{{ h.comment or 'Subscriber Device' }}</td>
+            </tr>
+            {% endfor %}
+          {% endif %}
         </tbody>
       </table>
     </div>
   </div>
 
 </div>
+
+<!-- ADD MIKROTIK ROUTER MODAL -->
+<div id="addRouterModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">➕ Add MikroTik Router to Fleet</h3>
+      <button type="button" onclick="closeAddRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+    <form onsubmit="submitAddRouter(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Router Friendly Name</label>
+          <input type="text" id="add_name" class="form-control" required placeholder="e.g. MikroTik 2 - RB760iGS (Zain 2 - VLAN 20)">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">IP Address / Host</label>
+            <input type="text" id="add_host" class="form-control font-mono" required placeholder="e.g. 10.20.20.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Port</label>
+            <input type="number" id="add_port" class="form-control font-mono" value="8728" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">API Username</label>
+            <input type="text" id="add_user" class="form-control font-mono" value="admin" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Password</label>
+            <input type="password" id="add_pass" class="form-control font-mono" placeholder="Password">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Assigned VLAN ID</label>
+            <input type="number" id="add_vlan" class="form-control font-mono" value="20" required placeholder="e.g. 20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Broadcasted SSID</label>
+            <input type="text" id="add_ssid" class="form-control font-mono" value="CyberNet-Line2" placeholder="e.g. CyberNet-Line2">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Uplink Source / Notes</label>
+          <input type="text" id="add_uplink" class="form-control" placeholder="e.g. Zain 5G SIM #2 (High Speed Backup)">
+        </div>
+
+        <!-- TEST CONNECTION FEEDBACK -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px;">
+          <button type="button" class="btn-action-pill" id="btnTestConn" onclick="testRouterConnection()">
+            🔌 Test Connection
+          </button>
+          <div id="testConnResult" style="font-size: 12px; font-weight: 700;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+          <button type="button" class="btn-action-pill" onclick="closeAddRouterModal()">Cancel</button>
+          <button type="submit" class="btn-primary-add">Add Router &amp; Provision Roaming</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT MIKROTIK ROUTER MODAL -->
+<div id="editRouterModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Edit MikroTik Router Settings</h3>
+      <button type="button" onclick="closeEditRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+    <form onsubmit="submitEditRouter(event)">
+      <div class="modal-body">
+        <input type="hidden" id="edit_id">
+        <div class="form-group">
+          <label class="form-label">Router Friendly Name</label>
+          <input type="text" id="edit_name" class="form-control" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">IP Address / Host</label>
+            <input type="text" id="edit_host" class="form-control font-mono" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Port</label>
+            <input type="number" id="edit_port" class="form-control font-mono" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">API Username</label>
+            <input type="text" id="edit_user" class="form-control font-mono" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Password (leave blank to keep)</label>
+            <input type="password" id="edit_pass" class="form-control font-mono" placeholder="••••••••">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Assigned VLAN ID</label>
+            <input type="number" id="edit_vlan" class="form-control font-mono" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Broadcasted SSID</label>
+            <input type="text" id="edit_ssid" class="form-control font-mono">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Uplink Source / Notes</label>
+          <input type="text" id="edit_uplink" class="form-control">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+          <button type="button" class="btn-action-pill" onclick="closeEditRouterModal()">Cancel</button>
+          <button type="submit" class="btn-primary-add">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-  // Page-specific telemetry handler called every 5s by base.html
-  function handleTelemetryUpdate(d) {
-    const hero = document.getElementById('heroCard');
-    const heroBadge = document.getElementById('heroStatusBadge');
-    const heroText = document.getElementById('heroStatusText');
+  function selectRouter(routerId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('router_id', routerId);
+    window.location.href = url.toString();
+  }
 
-    if (d.connected) {
-      if (hero) hero.classList.remove('is-offline');
-      if (heroBadge) heroBadge.classList.remove('offline');
-      if (heroText) heroText.textContent = 'ROUTER ONLINE & HEALTHY';
-    } else {
-      if (hero) hero.classList.add('is-offline');
-      if (heroBadge) heroBadge.classList.add('offline');
-      if (heroText) heroText.textContent = 'ROUTER OFFLINE';
-    }
+  function openAddRouterModal() {
+    document.getElementById('testConnResult').textContent = '';
+    document.getElementById('addRouterModal').classList.add('open');
+  }
 
-    // Update numbers
-    const statUptime = document.getElementById('statUptime');
-    if (statUptime) statUptime.textContent = d.uptime;
+  function closeAddRouterModal() {
+    document.getElementById('addRouterModal').classList.remove('open');
+  }
 
-    const statLatency = document.getElementById('statLatency');
-    if (statLatency) statLatency.textContent = d.latency_ms + ' ms';
-
-    const statLatVal = document.getElementById('statLatVal');
-    if (statLatVal) statLatVal.innerHTML = d.latency_ms + ' <span style="font-size:16px; font-weight:500;">ms</span>';
-
-    const statCheckedAt = document.getElementById('statCheckedAt');
-    if (statCheckedAt) statCheckedAt.textContent = d.checked_at;
-
-    // CPU
-    const statCpuVal = document.getElementById('statCpuVal');
-    const statCpuBar = document.getElementById('statCpuBar');
-    if (statCpuVal) statCpuVal.textContent = d.cpu_load + '%';
-    if (statCpuBar) statCpuBar.style.width = d.cpu_load + '%';
-
-    // Memory
-    const statMemVal = document.getElementById('statMemVal');
-    const statMemSub = document.getElementById('statMemSub');
-    const statMemBar = document.getElementById('statMemBar');
-    if (statMemVal) statMemVal.textContent = d.memory_percent + '%';
-    if (statMemSub) statMemSub.textContent = d.used_memory_mb + ' MB used of ' + d.total_memory_mb + ' MB';
-    if (statMemBar) statMemBar.style.width = d.memory_percent + '%';
-
-    // Physical ports LED update
-    if (d.interfaces && Array.isArray(d.interfaces)) {
-      const ports = ['ether1', 'ether2', 'ether3', 'ether4'];
-      let runningCount = 0;
-      ports.forEach(p => {
-        const found = d.interfaces.find(i => i.name === p);
-        const box = document.getElementById('port-box-' + p);
-        const led = document.getElementById('led-' + p);
-        const link = document.getElementById('link-' + p);
-
-        if (found && found.running) {
-          runningCount++;
-          if (box) box.classList.add('is-active');
-          if (led) led.classList.add('online');
-          if (link) {
-            link.textContent = 'CONNECTED';
-            link.className = 'text-emerald';
-          }
-        } else {
-          if (box) box.classList.remove('is-active');
-          if (led) led.classList.remove('online');
-          if (link) {
-            link.textContent = 'NO CARRIER';
-            link.className = 'text-muted';
-          }
-        }
-      });
-
-      const statIfaceCount = document.getElementById('statIfaceCount');
-      if (statIfaceCount) {
-        statIfaceCount.innerHTML = runningCount + ' <span style="font-size:16px; font-weight:500;">/ ' + d.interfaces.length + '</span>';
-      }
-    }
-
-    // Dynamic update for Pending Requests Banner
-    fetch('/api/hotspot/pending-count')
+  function openEditRouterModal(id) {
+    fetch(`/api/routers/${id}`)
       .then(r => r.json())
       .then(data => {
-        const banner = document.getElementById('pendingAlertBanner');
-        const text = document.getElementById('pendingAlertText');
-        if (banner && text) {
-          if (data.count > 0) {
-            text.textContent = data.count + ' Connection Request(s) Awaiting Admin Approval';
-            banner.style.display = 'flex';
-          } else {
-            banner.style.display = 'none';
-          }
-        }
+        const r = data.router;
+        document.getElementById('edit_id').value = r.id;
+        document.getElementById('edit_name').value = r.name;
+        document.getElementById('edit_host').value = r.host;
+        document.getElementById('edit_port').value = r.port;
+        document.getElementById('edit_user').value = r.username;
+        document.getElementById('edit_pass').value = '';
+        document.getElementById('edit_vlan').value = r.vlan_id || 10;
+        document.getElementById('edit_ssid').value = r.ssid_name || '';
+        document.getElementById('edit_uplink').value = r.uplink_type || '';
+        document.getElementById('editRouterModal').classList.add('open');
       })
-      .catch(() => {});
+      .catch(err => alert('Error loading router: ' + err.message));
+  }
+
+  function closeEditRouterModal() {
+    document.getElementById('editRouterModal').classList.remove('open');
+  }
+
+  async function testRouterConnection() {
+    const host = document.getElementById('add_host').value.trim();
+    const port = parseInt(document.getElementById('add_port').value.trim()) || 8728;
+    const user = document.getElementById('add_user').value.trim();
+    const pass = document.getElementById('add_pass').value;
+    const resDiv = document.getElementById('testConnResult');
+
+    if (!host) {
+      alert('Please enter an IP address to test.');
+      return;
+    }
+
+    resDiv.innerHTML = '<span style="color:#38bdf8;">Testing connection...</span>';
+    try {
+      const res = await fetch('/api/routers/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: host, port: port, username: user, password: pass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        resDiv.innerHTML = `<span style="color:#34d399;">✅ Connected! ${data.model} (${data.version}) &bull; ${data.latency_ms}ms</span>`;
+      } else {
+        resDiv.innerHTML = `<span style="color:#f87171;">❌ ${data.error || 'Connection Failed'}</span>`;
+      }
+    } catch (e) {
+      resDiv.innerHTML = `<span style="color:#f87171;">❌ Network Error: ${e.message}</span>`;
+    }
+  }
+
+  async function submitAddRouter(e) {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById('add_name').value.trim(),
+      host: document.getElementById('add_host').value.trim(),
+      port: parseInt(document.getElementById('add_port').value.trim()) || 8728,
+      username: document.getElementById('add_user').value.trim(),
+      password: document.getElementById('add_pass').value,
+      vlan_id: parseInt(document.getElementById('add_vlan').value.trim()) || 10,
+      ssid_name: document.getElementById('add_ssid').value.trim(),
+      uplink_type: document.getElementById('add_uplink').value.trim(),
+      is_active: 1
+    };
+
+    try {
+      const res = await fetch('/api/routers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Router '${payload.name}' added successfully!\nSubscribers and packages have been provisioned for roaming.`);
+        closeAddRouterModal();
+        window.location.reload();
+      } else {
+        alert('Failed to add router: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function submitEditRouter(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit_id').value;
+    const payload = {
+      name: document.getElementById('edit_name').value.trim(),
+      host: document.getElementById('edit_host').value.trim(),
+      port: parseInt(document.getElementById('edit_port').value.trim()) || 8728,
+      username: document.getElementById('edit_user').value.trim(),
+      password: document.getElementById('edit_pass').value || null,
+      vlan_id: parseInt(document.getElementById('edit_vlan').value.trim()) || 10,
+      ssid_name: document.getElementById('edit_ssid').value.trim(),
+      uplink_type: document.getElementById('edit_uplink').value.trim(),
+      is_active: 1
+    };
+
+    try {
+      const res = await fetch(`/api/routers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Router settings updated successfully!');
+        closeEditRouterModal();
+        window.location.reload();
+      } else {
+        alert('Failed to update: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function deleteRouter(id, name) {
+    if (!confirm(`Are you sure you want to remove '${name}' from the fleet?`)) return;
+    try {
+      const res = await fetch(`/api/routers/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        alert('Router removed from fleet.');
+        window.location.href = '/gateway';
+      } else {
+        alert('Failed to delete router.');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function syncFleetRouter(id, name) {
+    if (!confirm(`Broadcast and provision all active subscribers and rate limits to '${name}'?`)) return;
+    try {
+      const res = await fetch(`/api/routers/${id}/sync`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Roaming Sync Complete for ${name}!\n• Packages Synced: ${data.packages_synced}\n• Devices Bypassed: ${data.devices_synced}`);
+      } else {
+        alert('Sync error: ' + (data.error || 'Failed'));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
   }
 </script>
 {% endblock %}
