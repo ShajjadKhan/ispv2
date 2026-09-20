@@ -745,6 +745,29 @@ async def customers_view(request: Request):
     )
 
 
+@app.api_route("/customers/{customer_id}/edit", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def customer_edit_view(request: Request, customer_id: int):
+    """
+    Dedicated Customer Edit & MikroTik Provisioning Page.
+    """
+    live_status = router_client.get_live_status()
+    cust = database.get_customer_profile(customer_id)
+    if not cust:
+        return RedirectResponse(url="/customers", status_code=303)
+    packages = database.get_packages()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="customer_edit.html",
+        context={
+            "router": live_status,
+            "active_page": "customers",
+            "c": cust,
+            "packages": packages
+        }
+    )
+
+
 @app.api_route("/packages", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def packages_view(request: Request):
     """

@@ -1,0 +1,1106 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Edit Customer #{{ c.id }} - {{ c.name }}{% endblock %}
+{% block heading %}Edit Customer Account{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     CUSTOMER EDIT PAGE ARCHITECTURE
+     ========================================================= */
+  .edit-page-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* TOP BREADCRUMB & BANNER */
+  .edit-header-banner {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .banner-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .cust-avatar-large {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+  }
+
+  .banner-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .banner-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .banner-cust-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+  }
+
+  .banner-sub {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-nav-back {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .btn-nav-back:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* MAIN 2-COLUMN GRID */
+  .edit-content-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* SIDEBAR SNAPSHOT CARD */
+  .edit-sidebar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+    position: sticky;
+    top: 84px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .sidebar-section-header {
+    padding: 14px 18px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-metrics-list {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .metric-item .m-label { color: var(--text-dim); font-weight: 600; }
+  .metric-item .m-value { color: #ffffff; font-weight: 700; text-align: right; }
+
+  .sidebar-actions-box {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* FORM SECTIONS (CARDS) */
+  .edit-form-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .form-section-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .form-section-head {
+    padding: 14px 20px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .form-section-head .sec-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .form-section-head .sec-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .form-section-head .sec-desc {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .form-section-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* MODERN BILLING TYPE SELECTOR */
+  .billing-card-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .b-picker-card {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    user-select: none;
+  }
+  .b-picker-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .b-picker-card.selected.prepaid {
+    border-color: #a855f7;
+    background: rgba(168, 85, 247, 0.08);
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+  }
+  .b-picker-card.selected.postpaid {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+  }
+  .b-picker-card .card-radio-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .b-picker-card.selected .card-radio-circle {
+    border-color: currentColor;
+  }
+  .b-picker-card.selected.prepaid .card-radio-circle { color: #a855f7; }
+  .b-picker-card.selected.postpaid .card-radio-circle { color: #38bdf8; }
+  .b-picker-card.selected .card-radio-circle::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .b-picker-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .b-picker-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .b-picker-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* BANDWIDTH PRESET PILLS */
+  .speed-preset-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  .speed-pill-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .speed-pill-btn:hover {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    transform: translateY(-1px);
+  }
+  .speed-pill-btn.active {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  }
+  .speed-pill-btn.unlimited {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.25);
+  }
+  .speed-pill-btn.unlimited:hover, .speed-pill-btn.unlimited.active {
+    background: rgba(251, 191, 36, 0.18);
+    border-color: #fbbf24;
+    color: #fbbf24;
+  }
+
+  /* LIVE SIMPLE QUEUE BANNER */
+  .queue-preview-box {
+    background: #090e1a;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .queue-preview-box .q-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .queue-preview-box .q-code {
+    font-family: var(--font-mono);
+    color: #38bdf8;
+    font-weight: 700;
+  }
+
+  /* STEPPER CONTROL */
+  .stepper-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: fit-content;
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    overflow: hidden;
+  }
+  .stepper-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    width: 36px;
+    height: 38px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stepper-btn:hover { background: rgba(255, 255, 255, 0.08); }
+  .stepper-input {
+    width: 60px;
+    height: 38px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    outline: none;
+  }
+
+  /* DEVICE MACS LIST */
+  .device-list-deck {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .device-card-row {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .device-card-row .dev-mac {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 13px;
+  }
+
+  /* STICKY BOTTOM SAVE ACTION BAR */
+  .edit-sticky-footer {
+    position: sticky;
+    bottom: 20px;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .btn-save-master {
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    border: none;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 800;
+    padding: 10px 24px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.35);
+    transition: all 0.15s ease;
+  }
+  .btn-save-master:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+  .btn-save-master:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* MEDIA QUERIES FOR MOBILE */
+  @media (max-width: 900px) {
+    .edit-content-grid {
+      grid-template-columns: 1fr;
+    }
+    .edit-sidebar-card {
+      position: static;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .edit-header-banner {
+      padding: 16px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .banner-actions {
+      justify-content: stretch;
+    }
+    .banner-actions a, .banner-actions button {
+      flex: 1;
+      justify-content: center;
+    }
+    .billing-card-picker {
+      grid-template-columns: 1fr;
+    }
+    .edit-sticky-footer {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      padding: 12px;
+      bottom: 10px;
+    }
+    .edit-sticky-footer .btn-save-master {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-page-container">
+
+  <!-- TOP BANNER & BREADCRUMB -->
+  <div class="edit-header-banner">
+    <div class="banner-left">
+      <div class="cust-avatar-large">
+        {{ c.name[:1]|upper }}
+      </div>
+      <div class="banner-details">
+        <div class="banner-title-row">
+          <h2 class="banner-cust-name">{{ c.name }}</h2>
+          {% if c.status == 'active' %}
+            <span class="badge-status running">ACTIVE</span>
+          {% else %}
+            <span class="badge-status disabled">SUSPENDED</span>
+          {% endif %}
+          {% if c.billing_type == 'prepaid' %}
+            <span class="badge-plan prepaid">PREPAID</span>
+          {% else %}
+            <span class="badge-plan postpaid">POSTPAID</span>
+          {% endif %}
+        </div>
+        <div class="banner-sub font-mono">
+          <span>ID #{{ c.id }}</span>
+          <span>&bull;</span>
+          <span>{{ c.phone }}</span>
+          <span>&bull;</span>
+          <span>Joined {{ c.created_at[:10] }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-actions">
+      <a href="/customers" class="btn-nav-back">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <span>Back to Directory</span>
+      </a>
+      <button type="button" class="btn-save-master" onclick="document.getElementById('editCustomerForm').requestSubmit()">
+        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <span>Save &amp; Sync MikroTik</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN 2-COLUMN GRID -->
+  <div class="edit-content-grid">
+
+    <!-- LEFT COLUMN: ACCOUNT SNAPSHOT -->
+    <div class="edit-sidebar-card">
+      <div class="sidebar-section-header">
+        <svg style="width:14px; height:14px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span>Live Account Snapshot</span>
+      </div>
+
+      <div class="sidebar-metrics-list">
+        <div class="metric-item">
+          <span class="m-label">Account Status</span>
+          <span class="m-value">
+            {% if c.status == 'active' %}
+              <span style="color:#34d399;">● Online / Active</span>
+            {% else %}
+              <span style="color:#f87171;">● Suspended</span>
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Allocated Speed</span>
+          <span class="m-value font-mono text-cyan" id="sideEffectiveSpeed">⚡ {{ c.effective_speed }}</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Monthly Rate</span>
+          <span class="m-value font-mono text-white" id="sideMonthlyFee">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Due / Expiry Date</span>
+          <span class="m-value font-mono" id="sideDueDate">{{ c.due_date or c.expiry_date or '—' }}</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Days Remaining</span>
+          <span class="m-value">
+            {% if c.days_remaining is not none %}
+              {% if c.days_remaining < 0 %}
+                <span class="badge-status disabled" style="font-size:10px;">EXPIRED</span>
+              {% elif c.days_remaining <= 3 %}
+                <span class="badge-status stopped" style="font-size:10px; color:#fbbf24; background:rgba(245,158,11,0.15);">{{ c.days_remaining }}d left</span>
+              {% else %}
+                <span class="badge-status running" style="font-size:10px;">{{ c.days_remaining }}d left</span>
+              {% endif %}
+            {% else %}
+              <span class="text-dim">—</span>
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Credit Wallet Balance</span>
+          <span class="m-value font-mono" style="color:#34d399;" id="sideCreditBalance">{{ "%.2f"|format(c.credit_balance or 0.0) }} SAR</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Authorized Devices</span>
+          <span class="m-value font-mono text-white" id="sideDeviceCount">{{ c.devices|length }} / {{ c.max_devices or 1 }} Active</span>
+        </div>
+      </div>
+
+      <div class="sidebar-actions-box">
+        {% if c.status == 'active' %}
+          <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="toggleStatus({{ c.id }})" style="justify-content:center; padding:9px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+            <span>Suspend Internet Access</span>
+          </button>
+        {% else %}
+          <button type="button" class="btn-action-sm btn-toggle-activate" onclick="toggleStatus({{ c.id }})" style="justify-content:center; padding:9px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            <span>Activate Internet Access</span>
+          </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: MASTER EDIT FORM -->
+    <form id="editCustomerForm" class="edit-form-flow" onsubmit="handleFormSubmit(event)">
+
+      <!-- SECTION 1: SUBSCRIBER IDENTITY -->
+      <div class="form-section-card">
+        <div class="form-section-head">
+          <div class="sec-icon">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title">Subscriber Identity &amp; Contact</div>
+          </div>
+          <span class="sec-desc">Basic profile details</span>
+        </div>
+
+        <div class="form-section-body">
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Customer Full Name <span style="color:#ef4444;">*</span></label>
+              <input type="text" class="form-input" id="custName" name="name" value="{{ c.name }}" required placeholder="e.g. Tariq Al-Otaibi">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Primary Phone Number <span style="color:#ef4444;">*</span></label>
+              <input type="text" class="form-input font-mono" id="custPhone" name="phone" value="{{ c.phone }}" required placeholder="e.g. 0591234567">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Account Status</label>
+            <select class="form-select" id="custStatus" name="status">
+              <option value="active" {% if c.status == 'active' %}selected{% endif %}>Active (Internet Access Allowed)</option>
+              <option value="suspended" {% if c.status == 'suspended' %}selected{% endif %}>Suspended (Blocked on MikroTik Queues &amp; Hotspot)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: PLAN & BANDWIDTH (MIKROTIK QUEUE) -->
+      <div class="form-section-card">
+        <div class="form-section-head">
+          <div class="sec-icon">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title">Internet Plan &amp; MikroTik Bandwidth Policy</div>
+          </div>
+          <span class="sec-desc">Controls live MikroTik queues</span>
+        </div>
+
+        <div class="form-section-body">
+          <!-- BILLING TYPE SELECTOR CARDS -->
+          <div class="form-group">
+            <label>Billing Model / Renewal Cycle</label>
+            <div class="billing-card-picker">
+              <div class="b-picker-card prepaid {% if c.billing_type == 'prepaid' %}selected{% endif %}" id="cardPickPrepaid" onclick="selectBillingType('prepaid')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title">Prepaid Plan</div>
+                  <div class="b-picker-sub">Advance recharge valid for 30 days</div>
+                </div>
+              </div>
+
+              <div class="b-picker-card postpaid {% if c.billing_type != 'prepaid' %}selected{% endif %}" id="cardPickPostpaid" onclick="selectBillingType('postpaid')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title">Postpaid Plan</div>
+                  <div class="b-picker-sub">Fixed calendar day monthly recurring bill</div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="custBillingType" name="billing_type" value="{{ c.billing_type or 'prepaid' }}">
+          </div>
+
+          <!-- PACKAGE SELECTION -->
+          <div class="form-group">
+            <label>Assigned Speed Package</label>
+            <select class="form-select" id="custPackage" name="package_name" onchange="onPackageSelectChange()">
+              {% for pkg in packages %}
+                <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" {% if pkg.name == c.package_name %}selected{% endif %}>
+                  {{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.rate_limit }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- CUSTOM SPEED LIMIT WITH PRESETS -->
+          <div class="form-group" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label style="margin-bottom:0;">Effective Bandwidth Limit (Upload / Download)</label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:600;">Live MikroTik Simple Queue</span>
+            </div>
+
+            <input type="text" class="form-input font-mono" id="custSpeed" name="speed_limit" value="{{ c.speed_limit or c.effective_speed or 'Unlimited' }}" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;" oninput="updateQueuePreview()">
+
+            <div class="speed-preset-grid">
+              <span style="font-size:11px; color:var(--text-dim); margin-right:4px;">Quick Presets:</span>
+              <button type="button" class="speed-pill-btn" onclick="setBandwidthSpeed('5M/5M')">5M</button>
+              <button type="button" class="speed-pill-btn" onclick="setBandwidthSpeed('10M/10M')">10M</button>
+              <button type="button" class="speed-pill-btn" onclick="setBandwidthSpeed('20M/20M')">20M</button>
+              <button type="button" class="speed-pill-btn" onclick="setBandwidthSpeed('30M/30M')">30M</button>
+              <button type="button" class="speed-pill-btn" onclick="setBandwidthSpeed('50M/50M')">50M</button>
+              <button type="button" class="speed-pill-btn" onclick="setBandwidthSpeed('100M/100M')">100M</button>
+              <button type="button" class="speed-pill-btn unlimited" onclick="setBandwidthSpeed('Unlimited')">⚡ Unlimited</button>
+            </div>
+
+            <!-- LIVE SIMPLE QUEUE PREVIEW -->
+            <div class="queue-preview-box" style="margin-top:12px;">
+              <div class="q-info">
+                <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">MikroTik Queue Provisioning Target:</span>
+                <span class="q-code" id="previewQueueStr">/queue simple add name="CyberNet: {{ c.phone }} - {{ c.name }}" max-limit={{ c.effective_speed }}</span>
+              </div>
+              <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px;">AUTO-SYNC</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECTION 3: BILLING CYCLE & CREDIT WALLET -->
+      <div class="form-section-card">
+        <div class="form-section-head">
+          <div class="sec-icon">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title">Billing Rates, Cycle &amp; Credit Balance</div>
+          </div>
+          <span class="sec-desc">Pricing &amp; expiry controls</span>
+        </div>
+
+        <div class="form-section-body">
+          <div class="modal-grid-3">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Monthly Rate (SAR) <span style="color:#ef4444;">*</span></label>
+              <input type="number" step="0.01" class="form-input font-mono" id="custFee" name="monthly_fee" value="{{ '%.2f'|format(c.monthly_fee) }}" required style="color:#38bdf8; font-weight:700;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Payment Due Date / Expiry <span style="color:#ef4444;">*</span></label>
+              <input type="date" class="form-input font-mono" id="custDueDate" name="due_date" value="{{ c.due_date or c.expiry_date or '' }}" required style="color:#ffffff;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Customer Credit Wallet (SAR)</label>
+              <input type="number" step="0.01" class="form-input font-mono" id="custCredit" name="credit_balance" value="{{ '%.2f'|format(c.credit_balance or 0.0) }}" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <!-- QUICK DUE DATE EXTENDERS -->
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; color:var(--text-dim);">Quick Extend Due Date:</span>
+            <button type="button" class="btn-preset" onclick="shiftDueDate(30)">+30 Days</button>
+            <button type="button" class="btn-preset" onclick="shiftDueDate(60)">+60 Days</button>
+            <button type="button" class="btn-preset" onclick="shiftDueDate(90)">+90 Days</button>
+            <button type="button" class="btn-preset" onclick="setEndOfMonth()">End of Current Month</button>
+          </div>
+          <p style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">
+            💡 <strong>Credit Wallet Note:</strong> When recording customer collections, any surplus cash paid over the monthly fee automatically deposits into Credit Balance.
+          </p>
+        </div>
+      </div>
+
+      <!-- SECTION 4: DEVICE QUOTA & LINKED MACS -->
+      <div class="form-section-card">
+        <div class="form-section-head">
+          <div class="sec-icon">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z M10 4h4v2h-4z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title">Device Quotas &amp; Bound Hardware MACs</div>
+          </div>
+          <span class="sec-desc">Concurrent login policy</span>
+        </div>
+
+        <div class="form-section-body">
+          <div class="form-group">
+            <label>Max Allowed Simultaneous Devices</label>
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div class="stepper-control">
+                <button type="button" class="stepper-btn" onclick="stepMaxDevices(-1)">&minus;</button>
+                <input type="number" min="1" max="100" class="stepper-input" id="custMaxDevices" name="max_devices" value="{{ c.max_devices or 1 }}" readonly>
+                <button type="button" class="stepper-btn" onclick="stepMaxDevices(1)">&plus;</button>
+              </div>
+
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setMaxDevices(1)">1 Device (Solo)</button>
+                <button type="button" class="btn-preset" onclick="setMaxDevices(2)">2 Devices</button>
+                <button type="button" class="btn-preset" onclick="setMaxDevices(3)">3 Devices</button>
+                <button type="button" class="btn-preset" onclick="setMaxDevices(5)">5 Devices</button>
+                <button type="button" class="btn-preset" onclick="setMaxDevices(8)">8 Devices (Family)</button>
+                <button type="button" class="btn-preset" onclick="setMaxDevices(10)">10 Devices (Office)</button>
+              </div>
+            </div>
+            <p style="font-size:11px; color:var(--text-dim); margin-top:6px;">
+              Enforced dynamically on MikroTik IP Binding and active Hotspot queues.
+            </p>
+          </div>
+
+          <!-- LINKED MAC ADDRESSES -->
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Authorized MAC Addresses on MikroTik ({{ c.devices|length }})</label>
+            
+            <div class="device-list-deck" id="deviceListDeck">
+              {% if c.devices %}
+                {% for dev in c.devices %}
+                <div class="device-card-row" id="devRow-{{ dev.id }}">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(56,189,248,0.1); color:#38bdf8; display:flex; align-items:center; justify-content:center;">
+                      <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z"/></svg>
+                    </div>
+                    <div>
+                      <div class="dev-mac">{{ dev.mac_address }}</div>
+                      <div style="font-size:11px; color:var(--text-dim);">
+                        {{ dev.device_name or 'Client Device' }} &bull; Bound {{ dev.created_at[:10] }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="badge-status running" style="font-size:10px;">AUTHORIZED</span>
+                    <button type="button" class="btn-action-sm" onclick="unlinkDevice({{ dev.id }})" style="color:#f87171; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.25); font-size:11px;">
+                      Unlink
+                    </button>
+                  </div>
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="empty-state" style="padding:16px; text-align:center; background:#090e1a; border:1px dashed rgba(255,255,255,0.08); border-radius:10px;">
+                  <span style="font-size:12px; color:var(--text-dim);">No devices currently authorized for this subscriber.</span>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- INLINE ADD SECONDARY DEVICE FORM -->
+            <div style="margin-top:10px; background:#090e1a; border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px;">
+              <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">+ Bind New Hardware MAC Address</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <input type="text" class="form-input font-mono" id="quickMacInput" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; flex:1; min-width:180px;">
+                <input type="text" class="form-input" id="quickDevName" placeholder="Device Label (e.g. iPhone)" style="font-size:12px; flex:1; min-width:140px;">
+                <button type="button" class="btn-approve" onclick="submitQuickDevice({{ c.id }})" style="padding:7px 14px; font-size:12px; white-space:nowrap;">
+                  Authorize on MikroTik
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STICKY ACTION FOOTER -->
+      <div class="edit-sticky-footer">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="pulse-dot"></span>
+          <span style="font-size:12px; color:var(--text-muted);">
+            Changes synchronize to MikroTik live queues instantly.
+          </span>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <a href="/customers" class="btn-nav-back" style="padding:10px 16px;">Discard &amp; Back</a>
+          <button type="submit" class="btn-save-master" id="btnSubmitEdit">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+            <span>Save &amp; Sync MikroTik</span>
+          </button>
+        </div>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const customerId = {{ c.id }};
+
+  function selectBillingType(t) {
+    document.getElementById('custBillingType').value = t;
+    const pre = document.getElementById('cardPickPrepaid');
+    const post = document.getElementById('cardPickPostpaid');
+    if (t === 'prepaid') {
+      pre.classList.add('selected');
+      post.classList.remove('selected');
+    } else {
+      post.classList.add('selected');
+      pre.classList.remove('selected');
+    }
+  }
+
+  function onPackageSelectChange() {
+    const sel = document.getElementById('custPackage');
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.getAttribute('data-price') || '75.00';
+    const rate = opt.getAttribute('data-rate') || '';
+    
+    document.getElementById('custFee').value = parseFloat(price).toFixed(2);
+    if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
+      setBandwidthSpeed(rate);
+    } else {
+      setBandwidthSpeed('Unlimited');
+    }
+  }
+
+  function setBandwidthSpeed(spd) {
+    document.getElementById('custSpeed').value = spd;
+    document.querySelectorAll('.speed-pill-btn').forEach(btn => {
+      if (btn.textContent.trim().toUpperCase() === spd.trim().toUpperCase() || 
+         (spd.toLowerCase() === 'unlimited' && btn.classList.contains('unlimited'))) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    updateQueuePreview();
+  }
+
+  function updateQueuePreview() {
+    const spd = document.getElementById('custSpeed').value.trim() || 'Unlimited';
+    const name = document.getElementById('custName').value.trim() || 'Customer';
+    const phone = document.getElementById('custPhone').value.trim() || '05XXXXXXXX';
+    const qStr = `/queue simple add name="CyberNet: ${phone} - ${name}" max-limit=${spd}`;
+    const pEl = document.getElementById('previewQueueStr');
+    if (pEl) pEl.textContent = qStr;
+  }
+
+  function stepMaxDevices(delta) {
+    const el = document.getElementById('custMaxDevices');
+    let val = parseInt(el.value) || 1;
+    val = Math.max(1, Math.min(100, val + delta));
+    el.value = val;
+  }
+
+  function setMaxDevices(n) {
+    document.getElementById('custMaxDevices').value = n;
+  }
+
+  function shiftDueDate(days) {
+    const el = document.getElementById('custDueDate');
+    let current = el.value ? new Date(el.value) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    el.value = current.toISOString().split('T')[0];
+  }
+
+  function setEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    document.getElementById('custDueDate').value = endOfMonth.toISOString().split('T')[0];
+  }
+
+  async function handleFormSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitEdit');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Saving &amp; Syncing to MikroTik...</span>';
+
+    const payload = {
+      name: document.getElementById('custName').value.trim(),
+      phone: document.getElementById('custPhone').value.trim(),
+      status: document.getElementById('custStatus').value,
+      billing_type: document.getElementById('custBillingType').value,
+      package_name: document.getElementById('custPackage').value,
+      speed_limit: document.getElementById('custSpeed').value.trim(),
+      monthly_fee: parseFloat(document.getElementById('custFee').value) || 0.0,
+      due_date: document.getElementById('custDueDate').value,
+      credit_balance: parseFloat(document.getElementById('custCredit').value) || 0.0,
+      max_devices: parseInt(document.getElementById('custMaxDevices').value) || 1
+    };
+
+    try {
+      const resp = await fetch(`/api/customers/${customerId}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const res = await resp.json();
+      if (res.success) {
+        // Update sidebar snapshots
+        document.getElementById('sideEffectiveSpeed').textContent = '⚡ ' + (res.customer.effective_speed || 'Unlimited');
+        document.getElementById('sideMonthlyFee').textContent = parseFloat(res.customer.monthly_fee).toFixed(2) + ' SAR';
+        document.getElementById('sideDueDate').textContent = res.customer.due_date || '—';
+        document.getElementById('sideCreditBalance').textContent = parseFloat(res.customer.credit_balance || 0).toFixed(2) + ' SAR';
+
+        btn.style.background = '#059669';
+        btn.innerHTML = '<span>✓ Saved &amp; Synced! Redirecting...</span>';
+        setTimeout(() => {
+          window.location.href = '/customers';
+        }, 800);
+      } else {
+        alert('Update failed: ' + (res.message || res.error));
+        btn.disabled = false;
+        btn.innerHTML = '<span>Save &amp; Sync MikroTik</span>';
+      }
+    } catch (err) {
+      alert('Error updating customer: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>Save &amp; Sync MikroTik</span>';
+    }
+  }
+
+  // Quick Unlink Device
+  async function unlinkDevice(devId) {
+    if (!confirm('Unlink this MAC from subscriber and revoke MikroTik authorization?')) return;
+    try {
+      const resp = await fetch(`/api/customers/${customerId}/devices/${devId}`, { method: 'DELETE' });
+      const res = await resp.json();
+      if (res.success) {
+        const row = document.getElementById(`devRow-${devId}`);
+        if (row) row.remove();
+      } else {
+        alert('Failed: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // Quick Add Device
+  async function submitQuickDevice(custId) {
+    const mac = document.getElementById('quickMacInput').value.trim();
+    const dName = document.getElementById('quickDevName').value.trim() || 'Client Device';
+    if (!mac) {
+      alert('Please enter a valid MAC address');
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/api/customers/${custId}/devices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mac: mac, device_name: dName })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        location.reload();
+      } else {
+        alert('Failed: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // Quick Suspend / Activate Toggle
+  async function toggleStatus(custId) {
+    try {
+      const resp = await fetch(`/api/customers/${custId}/toggle-status`, { method: 'POST' });
+      const res = await resp.json();
+      if (res.success) {
+        location.reload();
+      } else {
+        alert('Failed: ' + res.message);
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  // Live input change listener for queue preview
+  document.getElementById('custName').addEventListener('input', updateQueuePreview);
+  document.getElementById('custPhone').addEventListener('input', updateQueuePreview);
+</script>
+{% endblock %}
