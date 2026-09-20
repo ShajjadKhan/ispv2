@@ -474,6 +474,36 @@
     cursor: not-allowed;
   }
 
+  /* DANGER ZONE PERMANENT DELETION */
+  .danger-zone-card {
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.04) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+  }
+  .danger-zone-card:hover {
+    border-color: rgba(239, 68, 68, 0.6) !important;
+  }
+  .btn-delete-perm {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border: 1px solid rgba(239, 68, 68, 0.6);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    white-space: nowrap;
+  }
+  .btn-delete-perm:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+    transform: translateY(-1px);
+  }
+
   /* MEDIA QUERIES FOR MOBILE */
   @media (max-width: 900px) {
     .edit-content-grid {
@@ -888,6 +918,37 @@
         </div>
       </div>
 
+      <!-- SECTION 5: DANGER ZONE - PERMANENT DELETION -->
+      <div class="form-section-card danger-zone-card">
+        <div class="form-section-head">
+          <div class="sec-icon" style="background:rgba(239,68,68,0.15); color:#f87171;">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title" style="color:#f87171;">Danger Zone: Permanent Customer Deletion</div>
+          </div>
+          <span class="sec-desc" style="color:#fca5a5;">Irreversible action</span>
+        </div>
+
+        <div class="form-section-body">
+          <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <div style="max-width:560px;">
+              <div style="font-size:14px; font-weight:700; color:#ffffff; margin-bottom:4px;">
+                Permanently Delete This Customer &amp; Revoke All Devices
+              </div>
+              <p style="font-size:12px; color:var(--text-dim); line-height:1.5; margin:0;">
+                Permanently removes <strong>{{ c.name }}</strong> ({{ c.phone }}) from the system, purges billing records, and revokes <strong>{{ c.devices|length }}</strong> device(s) from MikroTik hotspot, IP bindings, and simple queues immediately.
+              </p>
+            </div>
+
+            <button type="button" class="btn-delete-perm" onclick="openDeleteCustomerModal()">
+              <svg style="width:15px; height:15px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              <span>Delete Customer Permanently</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- STICKY ACTION FOOTER -->
       <div class="edit-sticky-footer">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -908,6 +969,52 @@
 
     </form>
 
+  </div>
+</div>
+
+<!-- PERMANENT DELETE CONFIRMATION MODAL -->
+<div id="deleteCustomerModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0f172a; border:1px solid rgba(239,68,68,0.5); border-radius:16px; max-width:480px; width:100%; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(239,68,68,0.2);">
+    <div style="display:flex; align-items:flex-start; gap:14px; margin-bottom:16px;">
+      <div style="width:44px; height:44px; border-radius:12px; background:rgba(239,68,68,0.15); color:#f87171; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg style="width:24px; height:24px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      </div>
+      <div>
+        <h3 style="font-size:18px; font-weight:800; color:#ffffff; margin:0 0 4px 0;">Delete Customer Permanently?</h3>
+        <p style="font-size:12.5px; color:var(--text-dim); margin:0;">
+          Are you sure you want to delete <strong style="color:#ffffff;">{{ c.name }}</strong>? This action is permanent and cannot be undone.
+        </p>
+      </div>
+    </div>
+
+    <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--text-muted); margin-bottom:18px; line-height:1.6;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span>Phone Number:</span>
+        <strong class="text-white font-mono">{{ c.phone }}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span>Authorized Devices:</span>
+        <strong class="text-cyan font-mono">{{ c.devices|length }} MAC Address(es)</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span>MikroTik Sync:</span>
+        <strong style="color:#f87171;">Unbind IP, drop active sessions &amp; delete queues</strong>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:6px;">
+        To confirm permanent deletion, type <strong style="color:#f87171;">DELETE</strong>:
+      </label>
+      <input type="text" class="form-input font-mono" id="confirmDeleteInput" placeholder="Type DELETE" style="border-color:rgba(239,68,68,0.4); text-transform:uppercase;" oninput="onConfirmDeleteInput(this.value)">
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" class="btn-cancel" onclick="closeDeleteCustomerModal()" style="padding:9px 16px; font-size:13px;">Cancel</button>
+      <button type="button" id="btnConfirmDeleteFinal" class="btn-delete-perm" onclick="executeDeleteCustomer()" disabled style="opacity:0.5; cursor:not-allowed; padding:9px 18px; font-size:13px;">
+        <span>Confirm Delete</span>
+      </button>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -1102,5 +1209,62 @@
   // Live input change listener for queue preview
   document.getElementById('custName').addEventListener('input', updateQueuePreview);
   document.getElementById('custPhone').addEventListener('input', updateQueuePreview);
+
+  // Permanent Delete Customer Modal and Execution
+  function openDeleteCustomerModal() {
+    const m = document.getElementById('deleteCustomerModal');
+    m.style.display = 'flex';
+    const inp = document.getElementById('confirmDeleteInput');
+    inp.value = '';
+    const btn = document.getElementById('btnConfirmDeleteFinal');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+    btn.innerHTML = '<span>Confirm Delete</span>';
+    setTimeout(() => inp.focus(), 100);
+  }
+
+  function closeDeleteCustomerModal() {
+    document.getElementById('deleteCustomerModal').style.display = 'none';
+  }
+
+  function onConfirmDeleteInput(val) {
+    const btn = document.getElementById('btnConfirmDeleteFinal');
+    if ((val || '').trim().toUpperCase() === 'DELETE') {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+    } else {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+    }
+  }
+
+  async function executeDeleteCustomer() {
+    const btn = document.getElementById('btnConfirmDeleteFinal');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Deleting &amp; Unbinding MikroTik...</span>';
+
+    try {
+      const resp = await fetch(`/api/customers/${customerId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message || 'Subscriber permanently deleted.');
+        window.location.href = '/customers';
+      } else {
+        alert('Permanent delete failed: ' + (res.message || res.error));
+        btn.disabled = false;
+        btn.innerHTML = '<span>Confirm Delete</span>';
+      }
+    } catch (err) {
+      alert('Error during deletion: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>Confirm Delete</span>';
+    }
+  }
 </script>
 {% endblock %}

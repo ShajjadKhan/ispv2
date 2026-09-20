@@ -1232,6 +1232,49 @@ def remove_customer_device(device_id: int) -> Optional[str]:
         return mac
 
 
+def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str, str]:
+    """
+    Permanently deletes a customer and all associated devices, payment collections,
+    and disassociates ONUs, connection requests, and WhatsApp logs.
+    Returns (success, list_of_mac_addresses, customer_name, customer_phone).
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, phone FROM customers WHERE id = ?", (customer_id,))
+        cust = cursor.fetchone()
+        if not cust:
+            return False, [], "", ""
+
+        cust_name = cust["name"]
+        cust_phone = cust["phone"]
+
+        # 1. Fetch all MAC addresses of devices registered to this customer
+        cursor.execute("SELECT mac_address FROM customer_devices WHERE customer_id = ?", (customer_id,))
+        mac_rows = cursor.fetchall()
+        macs = [r["mac_address"].upper() for r in mac_rows if r["mac_address"]]
+
+        # 2. Delete all bound devices
+        cursor.execute("DELETE FROM customer_devices WHERE customer_id = ?", (customer_id,))
+
+        # 3. Delete collections / ledger records for this customer
+        cursor.execute("DELETE FROM collections WHERE customer_id = ?", (customer_id,))
+
+        # 4. Disassociate connection requests
+        cursor.execute("UPDATE connection_requests SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
+
+        # 5. Disassociate assigned ONUs
+        cursor.execute("UPDATE onus SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
+
+        # 6. Disassociate WhatsApp logs
+        cursor.execute("UPDATE whatsapp_logs SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
+
+        # 7. Delete customer record
+        cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
+
+        conn.commit()
+        return True, macs, cust_name, cust_phone
+
+
 def record_customer_payment(
     customer_id: int,
     amount: float,

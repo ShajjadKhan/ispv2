@@ -1208,6 +1208,43 @@ async def remove_device(customer_id: int, device_id: int):
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
+@app.delete("/api/customers/{customer_id}")
+@app.post("/api/customers/{customer_id}/delete")
+async def delete_customer_endpoint(customer_id: int):
+    """
+    Permanently deletes a customer, wipes their devices and collections,
+    and removes all associated bindings, queues, and active sessions from MikroTik.
+    """
+    logger.warning(f"Initiating permanent deletion for customer #{customer_id}")
+    try:
+        success, macs, name, phone = database.delete_customer_permanently(customer_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        # Clean up MikroTik bindings, hosts, queues, and active connections
+        unbound_count = 0
+        for mac in macs:
+            try:
+                router_client.unbind_device(mac)
+                unbound_count += 1
+            except Exception as mt_err:
+                logger.error(f"Error unbinding device {mac} during customer #{customer_id} deletion: {mt_err}")
+
+        logger.info(f"Customer #{customer_id} ({name} - {phone}) permanently deleted. Unbound {unbound_count}/{len(macs)} devices from MikroTik.")
+
+        return {
+            "success": True,
+            "message": f"Subscriber '{name}' ({phone}) permanently deleted. {unbound_count} device(s) revoked from MikroTik.",
+            "customer_id": customer_id,
+            "unbound_macs": macs
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to permanently delete customer #{customer_id}: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
 @app.post("/api/customers/{customer_id}/record-payment")
 async def record_payment(customer_id: int, payload: RecordPaymentPayload):
     """Records a payment, extends expiry date, handles advance credit, and re-activates service on MikroTik."""
