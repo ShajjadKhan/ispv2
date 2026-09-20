@@ -260,6 +260,220 @@
     gap: 12px;
   }
 
+  /* LIVE SUBSCRIBER SEARCH & SUGGESTION SYSTEM */
+  .pos-search-group {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .pos-input-inner {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .pos-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    z-index: 2;
+  }
+  .pos-search-input {
+    width: 100%;
+    padding-left: 36px !important;
+    padding-right: 32px !important;
+    height: 42px;
+    font-size: 13px !important;
+    background: #090e1a !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 9px !important;
+    color: #ffffff !important;
+    transition: all 0.15s ease;
+  }
+  .pos-search-input:focus {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+    outline: none;
+  }
+  .pos-clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.1s ease;
+    z-index: 2;
+  }
+  .pos-clear-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+    color: #ffffff;
+  }
+
+  .pos-suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #0b1326;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.15);
+    max-height: 310px;
+    overflow-y: auto;
+    z-index: 1500;
+    padding: 6px;
+    display: none;
+  }
+  .pos-suggestions-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+  .pos-suggestions-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .pos-suggestions-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 4px;
+  }
+  .pos-sug-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 10px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pos-sug-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .pos-sug-item:last-child {
+    border-bottom: none;
+  }
+  .pos-sug-item:hover,
+  .pos-sug-item.active {
+    background: rgba(56, 189, 248, 0.16);
+  }
+  .pos-sug-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+  .pos-sug-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12.5px;
+    flex-shrink: 0;
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+  }
+  .pos-sug-avatar.overdue {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+  .pos-sug-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pos-sug-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pos-sug-name mark {
+    background: rgba(245, 158, 11, 0.35);
+    color: #fef08a;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+  .pos-sug-meta {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pos-sug-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .pos-sug-fee {
+    font-size: 13px;
+    font-weight: 800;
+    color: #34d399;
+    font-family: monospace;
+  }
+  .pos-sug-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .pos-sug-badge.overdue {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .pos-sug-badge.duetoday {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .pos-sug-badge.active {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .pos-sug-empty {
+    padding: 18px 12px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12.5px;
+  }
+
   /* SECTION PANELS */
   .panel-card {
     background: var(--bg-card);
@@ -561,16 +775,42 @@
 
     <form id="expressPosForm" onsubmit="handleExpressCollection(event)">
       <div class="pos-inputs-grid">
-        <div class="form-group" style="margin-bottom:0;">
-          <label>Select Subscriber</label>
-          <select class="form-select font-mono" id="posCustomerSelect" onchange="onPosCustomerChange()" required>
-            <option value="">-- Choose Customer to Collect From --</option>
-            {% for c in customers_dropdown %}
-              <option value="{{ c.id }}" data-name="{{ c.name }}" data-phone="{{ c.phone }}" data-fee="{{ c.monthly_fee }}" data-credit="{{ c.credit_balance }}" data-due="{{ c.due_date }}" data-pkg="{{ c.package_name }}">
-                {{ c.name }} ({{ c.phone }}) &bull; {{ "%.2f"|format(c.monthly_fee) }} SAR {% if c.days_remaining is not none and c.days_remaining <= 0 %}[OVERDUE]{% endif %}
-              </option>
-            {% endfor %}
-          </select>
+        <div class="form-group pos-search-group" style="margin-bottom:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0;">Find &amp; Select Subscriber</label>
+            <span id="posSelectionStatus" style="font-size:11px; font-weight:700; color:#10b981; display:none;">✓ Selected</span>
+          </div>
+
+          <div class="pos-input-inner">
+            <div class="pos-search-icon">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            </div>
+
+            <input 
+              type="text" 
+              class="pos-search-input font-mono" 
+              id="posCustomerSearchInput" 
+              placeholder="Search subscriber name, phone or ID..." 
+              autocomplete="off"
+              oninput="onPosSearchInput(this.value)"
+              onfocus="onPosSearchFocus()"
+              onkeydown="onPosSearchKeyDown(event)"
+            >
+
+            <button 
+              type="button" 
+              id="posClearBtn" 
+              class="pos-clear-btn"
+              onclick="clearPosCustomerSelection()" 
+              title="Clear selection"
+            >✕</button>
+          </div>
+
+          <!-- Hidden Customer ID for POS Collection -->
+          <input type="hidden" id="posSelectedCustomerId" value="">
+
+          <!-- Live Suggestions Dropdown Popup -->
+          <div id="posSuggestionsDropdown" class="pos-suggestions-dropdown"></div>
         </div>
 
         <div class="form-group" style="margin-bottom:0;">
@@ -801,54 +1041,271 @@
 
 {% block extra_scripts %}
 <script>
-  function onPosCustomerChange() {
-    const sel = document.getElementById('posCustomerSelect');
-    const opt = sel.options[sel.selectedIndex];
-    const ov = document.getElementById('posCustomerOverview');
+  const allSubscribers = {{ customers_dropdown | tojson }};
+  let currentFilteredSubscribers = [];
+  let activeSuggestionIndex = -1;
 
-    if (!sel.value) {
-      ov.style.display = 'none';
-      document.getElementById('posAmountInput').value = '';
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function highlightMatch(text, query) {
+    if (!query || !text) return escapeHtml(text);
+    const escapedText = escapeHtml(text);
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    return escapedText.replace(regex, '<mark>$1</mark>');
+  }
+
+  function getSubscriberStatusBadge(c) {
+    const rem = c.days_remaining;
+    if (c.status === 'suspended') {
+      return '<span class="pos-sug-badge overdue">Suspended</span>';
+    }
+    if (rem !== null && rem !== undefined) {
+      if (rem < 0) {
+        return `<span class="pos-sug-badge overdue">${Math.abs(rem)}d Overdue</span>`;
+      }
+      if (rem === 0) {
+        return '<span class="pos-sug-badge duetoday">Due Today</span>';
+      }
+      if (rem <= 3) {
+        return `<span class="pos-sug-badge duetoday">${rem}d Left</span>`;
+      }
+    }
+    return '<span class="pos-sug-badge active">Active</span>';
+  }
+
+  function renderSuggestions(list, query = '') {
+    const dropdown = document.getElementById('posSuggestionsDropdown');
+    currentFilteredSubscribers = list || [];
+    activeSuggestionIndex = -1;
+
+    if (!list || list.length === 0) {
+      dropdown.innerHTML = `
+        <div class="pos-sug-empty">
+          No matching subscribers found for "<strong>${escapeHtml(query)}</strong>".
+        </div>`;
+      dropdown.style.display = 'block';
       return;
     }
 
-    const name = opt.getAttribute('data-name');
-    const phone = opt.getAttribute('data-phone');
-    const fee = parseFloat(opt.getAttribute('data-fee') || 0);
-    const credit = parseFloat(opt.getAttribute('data-credit') || 0);
-    const due = opt.getAttribute('data-due') || '—';
-    const pkg = opt.getAttribute('data-pkg') || 'Standard';
+    const headerText = query 
+      ? `<span>Matching Subscribers (${list.length})</span><span>Select or Press Enter</span>`
+      : `<span>Quick Priority Suggestions</span><span>${list.length} Accounts</span>`;
 
-    document.getElementById('posCustName').textContent = `${name} (${phone})`;
-    document.getElementById('posCustPlanBadge').textContent = pkg;
-    document.getElementById('posCustDueDate').textContent = due;
-    document.getElementById('posCustMonthlyFee').textContent = fee.toFixed(2) + ' SAR';
-    document.getElementById('posCustCredit').textContent = credit.toFixed(2) + ' SAR';
+    const headerHtml = `<div class="pos-sug-header">${headerText}</div>`;
 
-    // Pre-fill required amount (fee minus available credit)
+    const itemsHtml = list.slice(0, 15).map((c, idx) => {
+      const isOverdue = (c.status === 'suspended' || (c.days_remaining !== null && c.days_remaining <= 0));
+      const avatarClass = isOverdue ? 'pos-sug-avatar overdue' : 'pos-sug-avatar';
+      const initial = (c.name ? c.name.charAt(0).toUpperCase() : 'U');
+      const highlightedName = highlightMatch(c.name, query);
+      const highlightedPhone = highlightMatch(c.phone, query);
+      const badgeHtml = getSubscriberStatusBadge(c);
+      const feeFormatted = parseFloat(c.monthly_fee || 0).toFixed(2);
+      const creditVal = parseFloat(c.credit_balance || 0);
+      const creditNote = creditVal > 0 
+        ? `<span style="color:#c084fc; font-weight:700;">💳 ${creditVal.toFixed(2)} SAR Credit</span>`
+        : '';
+
+      return `
+        <div class="pos-sug-item" data-index="${idx}" onclick="selectCustomerById(${c.id})">
+          <div class="pos-sug-left">
+            <div class="${avatarClass}">${initial}</div>
+            <div class="pos-sug-details">
+              <div class="pos-sug-name">${highlightedName}</div>
+              <div class="pos-sug-meta">
+                <span class="font-mono text-cyan">${highlightedPhone}</span>
+                <span>&bull;</span>
+                <span>${escapeHtml(c.package_name || 'Standard')}</span>
+                ${creditNote ? '<span>&bull;</span>' + creditNote : ''}
+              </div>
+            </div>
+          </div>
+          <div class="pos-sug-right">
+            <div class="pos-sug-fee">${feeFormatted} SAR</div>
+            <div>${badgeHtml}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    dropdown.innerHTML = headerHtml + itemsHtml;
+    dropdown.style.display = 'block';
+  }
+
+  function filterSubscribers(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) {
+      // Prioritize overdue/due subscribers first
+      const sorted = [...allSubscribers].sort((a, b) => {
+        const remA = a.days_remaining !== null && a.days_remaining !== undefined ? a.days_remaining : 999;
+        const remB = b.days_remaining !== null && b.days_remaining !== undefined ? b.days_remaining : 999;
+        return remA - remB;
+      });
+      return sorted.slice(0, 10);
+    }
+
+    const cleanQ = q.replace(/[^a-z0-9]/g, '');
+
+    return allSubscribers.filter(c => {
+      const name = (c.name || '').toLowerCase();
+      const phone = (c.phone || '').toLowerCase();
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const idStr = String(c.id);
+
+      return name.includes(q) || phone.includes(q) || cleanPhone.includes(cleanQ) || idStr === q;
+    });
+  }
+
+  function onPosSearchInput(val) {
+    const clearBtn = document.getElementById('posClearBtn');
+    clearBtn.style.display = val.length > 0 ? 'inline-flex' : 'none';
+
+    // Invalidate previously selected customer if user is typing
+    const selectedId = document.getElementById('posSelectedCustomerId').value;
+    if (selectedId) {
+      document.getElementById('posSelectedCustomerId').value = '';
+      document.getElementById('posSelectionStatus').style.display = 'none';
+      document.getElementById('posCustomerOverview').style.display = 'none';
+    }
+
+    const matches = filterSubscribers(val);
+    renderSuggestions(matches, val);
+  }
+
+  function onPosSearchFocus() {
+    const input = document.getElementById('posCustomerSearchInput');
+    const selectedId = document.getElementById('posSelectedCustomerId').value;
+    const matches = filterSubscribers(selectedId ? '' : input.value);
+    renderSuggestions(matches, selectedId ? '' : input.value);
+  }
+
+  function onPosSearchKeyDown(e) {
+    const dropdown = document.getElementById('posSuggestionsDropdown');
+    if (dropdown.style.display === 'none') {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        onPosSearchFocus();
+        return;
+      }
+    }
+
+    const items = dropdown.querySelectorAll('.pos-sug-item');
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+      updateActiveSuggestion(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+      updateActiveSuggestion(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && currentFilteredSubscribers[activeSuggestionIndex]) {
+        selectCustomerById(currentFilteredSubscribers[activeSuggestionIndex].id);
+      } else if (currentFilteredSubscribers.length > 0) {
+        selectCustomerById(currentFilteredSubscribers[0].id);
+      }
+    } else if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
+  }
+
+  function updateActiveSuggestion(items) {
+    items.forEach((it, idx) => {
+      if (idx === activeSuggestionIndex) {
+        it.classList.add('active');
+        it.scrollIntoView({ block: 'nearest' });
+      } else {
+        it.classList.remove('active');
+      }
+    });
+  }
+
+  function selectCustomerById(custId, overrideAmount) {
+    const cust = allSubscribers.find(c => c.id === custId);
+    if (!cust) return;
+
+    // 1. Set input values
+    document.getElementById('posSelectedCustomerId').value = cust.id;
+    document.getElementById('posCustomerSearchInput').value = `${cust.name} (${cust.phone})`;
+    document.getElementById('posClearBtn').style.display = 'inline-flex';
+    document.getElementById('posSelectionStatus').style.display = 'inline-block';
+    document.getElementById('posSuggestionsDropdown').style.display = 'none';
+
+    // 2. Set Overview banner
+    document.getElementById('posCustName').textContent = `${cust.name} (${cust.phone})`;
+    document.getElementById('posCustPlanBadge').textContent = cust.package_name || 'Standard';
+    document.getElementById('posCustDueDate').textContent = cust.due_date || '—';
+    document.getElementById('posCustMonthlyFee').textContent = parseFloat(cust.monthly_fee || 0).toFixed(2) + ' SAR';
+    document.getElementById('posCustCredit').textContent = parseFloat(cust.credit_balance || 0).toFixed(2) + ' SAR';
+    document.getElementById('posCustomerOverview').style.display = 'flex';
+
+    // 3. Pre-fill Amount
+    const fee = parseFloat(cust.monthly_fee || 0);
+    const credit = parseFloat(cust.credit_balance || 0);
     const netDue = Math.max(0, fee - credit);
-    document.getElementById('posAmountInput').value = (netDue > 0 ? netDue : fee).toFixed(2);
-    ov.style.display = 'flex';
+
+    if (overrideAmount !== undefined && overrideAmount !== null) {
+      document.getElementById('posAmountInput').value = parseFloat(overrideAmount).toFixed(2);
+    } else {
+      document.getElementById('posAmountInput').value = (netDue > 0 ? netDue : fee).toFixed(2);
+    }
+
+    // Focus amount input so the operator can immediately hit Collect & Extend
+    const amtInput = document.getElementById('posAmountInput');
+    amtInput.focus();
+    amtInput.select();
+  }
+
+  function clearPosCustomerSelection() {
+    document.getElementById('posSelectedCustomerId').value = '';
+    const input = document.getElementById('posCustomerSearchInput');
+    input.value = '';
+    document.getElementById('posClearBtn').style.display = 'none';
+    document.getElementById('posSelectionStatus').style.display = 'none';
+    document.getElementById('posCustomerOverview').style.display = 'none';
+    document.getElementById('posAmountInput').value = '';
+    input.focus();
+    const matches = filterSubscribers('');
+    renderSuggestions(matches, '');
   }
 
   function selectForPos(custId, netDue) {
-    const sel = document.getElementById('posCustomerSelect');
-    sel.value = custId;
-    onPosCustomerChange();
-    if (netDue !== undefined) {
-      document.getElementById('posAmountInput').value = parseFloat(netDue).toFixed(2);
+    selectCustomerById(custId, netDue);
+    const posCard = document.querySelector('.express-pos-card');
+    if (posCard) {
+      window.scrollTo({ top: posCard.offsetTop - 80, behavior: 'smooth' });
     }
-    window.scrollTo({ top: document.querySelector('.express-pos-card').offsetTop - 80, behavior: 'smooth' });
   }
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function(e) {
+    const group = document.querySelector('.pos-search-group');
+    if (group && !group.contains(e.target)) {
+      const dropdown = document.getElementById('posSuggestionsDropdown');
+      if (dropdown) dropdown.style.display = 'none';
+    }
+  });
 
   async function handleExpressCollection(e) {
     e.preventDefault();
-    const custId = document.getElementById('posCustomerSelect').value;
+    const custId = document.getElementById('posSelectedCustomerId').value;
     const amt = parseFloat(document.getElementById('posAmountInput').value) || 0;
     const notes = document.getElementById('posNotesInput').value.trim() || 'Cash Payment';
 
     if (!custId) {
-      alert('Please select a subscriber to record payment.');
+      alert('Please search and select a subscriber from the suggestions list.');
+      document.getElementById('posCustomerSearchInput').focus();
       return;
     }
 
