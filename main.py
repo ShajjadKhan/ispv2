@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
 
@@ -20,6 +20,7 @@ import mikrotik_client
 from mikrotik_client import RouterClient, format_bytes
 import database
 import whatsapp_service
+import auth_service
 
 # Logging setup
 logging.basicConfig(
@@ -51,8 +52,9 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-# Initialize database schema and packages
+# Initialize database schema and auth engine
 database.init_db()
+auth_service.init_auth_schema()
 
 # Global router client instance
 router_client = RouterClient(
@@ -243,6 +245,315 @@ class TestRouterPayload(BaseModel):
     port: Optional[int] = 8728
     username: Optional[str] = "admin"
     password: Optional[str] = ""
+
+
+class LoginPayload(BaseModel):
+    username: str
+    password: str
+    remember_me: Optional[bool] = False
+
+
+class ChangePasswordPayload(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+
+# =========================================================
+# Security & Authentication Engine
+# =========================================================
+
+def get_client_ip(request: Request) -> str:
+    """Extracts client IP behind reverse proxy or direct LAN."""
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
+    if request.client and request.client.host:
+        return request.client.host
+    return "127.0.0.1"
+
+
+PUBLIC_EXACT_PATHS = {
+    "/login",
+    "/logout",
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/favicon.ico"
+}
+
+PUBLIC_PREFIXES = (
+    "/static/",
+    "/api/hotspot/submit",
+    "/api/hotspot/check-status"
+)
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+
+    # Allow public endpoints and customer captive portal registration
+    if path in PUBLIC_EXACT_PATHS or any(path.startswith(pfx) for pfx in PUBLIC_PREFIXES):
+        session_id = request.cookies.get(auth_service.COOKIE_NAME)
+        if session_id:
+            request.state.user = auth_service.validate_session(session_id)
+        else:
+            request.state.user = None
+        return await call_next(request)
+
+    # Check session cookie or Authorization header
+    session_id = request.cookies.get(auth_service.COOKIE_NAME)
+    if not session_id:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            session_id = auth_header.split(" ", 1)[1].strip()
+
+    user_session = auth_service.validate_session(session_id) if session_id else None
+
+    if not user_session:
+        # If calling an API route, return 401 Unauthorized
+        if path.startswith("/api/"):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "Unauthorized", "message": "Authentication required. Please sign in."}
+            )
+        # For browser UI pages, redirect to /login with next target
+        next_target = path
+        if request.url.query:
+            next_target += f"?{request.url.query}"
+        return RedirectResponse(url=f"/login?next={next_target}", status_code=303)
+
+    request.state.user = user_session
+    return await call_next(request)
+
+
+# =========================================================
+# Authentication Web & API Routes
+# =========================================================
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(
+    request: Request,
+    next: Optional[str] = "/",
+    error: Optional[str] = None,
+    msg: Optional[str] = None
+):
+    """Renders the executive secured login portal."""
+    if getattr(request.state, "user", None):
+        return RedirectResponse(url=next or "/", status_code=303)
+
+    csrf_token = auth_service.generate_login_csrf_token()
+    success_msg = None
+    if msg == "logged_out":
+        success_msg = "You have been securely signed out."
+    elif msg == "pw_changed":
+        success_msg = "Password changed successfully. Please sign in with your new password."
+
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={
+            "request": request,
+            "csrf_token": csrf_token,
+            "next_url": next or "/",
+            "error_msg": error,
+            "success_msg": success_msg,
+            "username": ""
+        }
+    )
+
+
+@app.post("/login")
+async def login_post(request: Request):
+    """Processes operator credentials with Scrypt verification and lockout defense."""
+    form = await request.form()
+    username = str(form.get("username", "")).strip()
+    password = str(form.get("password", ""))
+    csrf_token = str(form.get("csrf_token", ""))
+    remember_me = bool(form.get("remember_me"))
+    next_url = str(form.get("next", "/")).strip() or "/"
+
+    client_ip = get_client_ip(request)
+    user_agent = request.headers.get("user-agent", "")
+
+    # Verify form CSRF token
+    if not auth_service.validate_login_csrf_token(csrf_token):
+        new_csrf = auth_service.generate_login_csrf_token()
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "request": request,
+                "csrf_token": new_csrf,
+                "next_url": next_url,
+                "error_msg": "Security token expired. Please re-enter credentials.",
+                "success_msg": None,
+                "username": username
+            },
+            status_code=400
+        )
+
+    success, user, message = auth_service.authenticate_user(
+        username=username,
+        password=password,
+        client_ip=client_ip,
+        user_agent=user_agent
+    )
+
+    if not success:
+        new_csrf = auth_service.generate_login_csrf_token()
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "request": request,
+                "csrf_token": new_csrf,
+                "next_url": next_url,
+                "error_msg": message,
+                "success_msg": None,
+                "username": username
+            },
+            status_code=401
+        )
+
+    # Issue cryptographic session
+    session_id, _ = auth_service.create_session(
+        user_id=user["id"],
+        client_ip=client_ip,
+        user_agent=user_agent,
+        remember_me=remember_me
+    )
+
+    # Prevent open redirect
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = "/"
+
+    response = RedirectResponse(url=next_url, status_code=303)
+    max_age = 30 * 86400 if remember_me else 24 * 3600
+    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+
+    response.set_cookie(
+        key=auth_service.COOKIE_NAME,
+        value=session_id,
+        max_age=max_age,
+        httponly=True,
+        samesite="lax",
+        secure=is_https,
+        path="/"
+    )
+    return response
+
+
+@app.api_route("/logout", methods=["GET", "POST"])
+async def logout_view(request: Request):
+    """Terminates active session and clears auth cookies."""
+    session_id = request.cookies.get(auth_service.COOKIE_NAME)
+    if session_id:
+        auth_service.revoke_session(session_id)
+    response = RedirectResponse(url="/login?msg=logged_out", status_code=303)
+    response.delete_cookie(key=auth_service.COOKIE_NAME, path="/")
+    return response
+
+
+@app.post("/api/auth/login")
+async def api_login(payload: LoginPayload, request: Request):
+    """JSON login API for programmatic clients."""
+    client_ip = get_client_ip(request)
+    user_agent = request.headers.get("user-agent", "")
+    success, user, message = auth_service.authenticate_user(
+        username=payload.username,
+        password=payload.password,
+        client_ip=client_ip,
+        user_agent=user_agent
+    )
+    if not success:
+        return JSONResponse(status_code=401, content={"success": False, "error": message})
+
+    session_id, csrf_token = auth_service.create_session(
+        user_id=user["id"],
+        client_ip=client_ip,
+        user_agent=user_agent,
+        remember_me=bool(payload.remember_me)
+    )
+    response = JSONResponse(content={
+        "success": True,
+        "token": session_id,
+        "csrf_token": csrf_token,
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "full_name": user["full_name"],
+            "role": user["role"],
+            "is_default_password": bool(user.get("is_default_password", 0))
+        }
+    })
+    max_age = 30 * 86400 if payload.remember_me else 24 * 3600
+    is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    response.set_cookie(
+        key=auth_service.COOKIE_NAME,
+        value=session_id,
+        max_age=max_age,
+        httponly=True,
+        samesite="lax",
+        secure=is_https,
+        path="/"
+    )
+    return response
+
+
+@app.post("/api/auth/logout")
+async def api_logout(request: Request):
+    """Terminates session via API."""
+    session_id = request.cookies.get(auth_service.COOKIE_NAME)
+    if session_id:
+        auth_service.revoke_session(session_id)
+    response = JSONResponse(content={"success": True, "message": "Session revoked."})
+    response.delete_cookie(key=auth_service.COOKIE_NAME, path="/")
+    return response
+
+
+@app.get("/api/auth/me")
+async def api_me(request: Request):
+    """Returns currently authenticated operator profile."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+    return {"success": True, "user": user}
+
+
+@app.post("/api/auth/change-password")
+async def api_change_password(payload: ChangePasswordPayload, request: Request):
+    """Changes password for the currently logged-in operator."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    if payload.new_password != payload.confirm_password:
+        return JSONResponse(status_code=400, content={"success": False, "error": "New passwords do not match."})
+
+    client_ip = get_client_ip(request)
+    ok, msg = auth_service.change_password(
+        user_id=user["user_id"],
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+        client_ip=client_ip
+    )
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
+
+
+@app.get("/api/auth/audit")
+async def api_auth_audit(request: Request):
+    """Returns security audit ledger (superadmin only)."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") != "superadmin":
+        return JSONResponse(status_code=403, content={"error": "Forbidden"})
+    logs = auth_service.get_recent_auth_logs(limit=30)
+    return {"success": True, "logs": logs}
 
 
 
