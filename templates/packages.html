@@ -26,6 +26,18 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+  .stat-card.active-pkg-filter {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
   }
 
   .stat-icon {
@@ -492,7 +504,7 @@
 
   <!-- TOP STATS -->
   <div class="stats-row">
-    <div class="stat-card">
+    <div class="stat-card" id="cardPkgAll" onclick="setFilter('all')" title="Filter to show All Packages">
       <div class="stat-icon total-icon">
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
       </div>
@@ -502,7 +514,7 @@
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardPkgActive" onclick="setFilter('active')" title="Filter to show Active Only Profiles">
       <div class="stat-icon active-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
       </div>
@@ -513,7 +525,7 @@
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardPkgHotspot" onclick="setFilter('hotspot')" title="Filter to show Hotspot Packages">
       <div class="stat-icon hotspot-icon">
         <svg viewBox="0 0 24 24"><path d="M12 3C7.03 3 2.62 5.08.13 8.44c-.21.28-.19.67.06.92l2.36 2.36c.26.26.69.27.96.02C5.55 9.87 8.6 8.75 12 8.75s6.45 1.12 8.49 2.99c.27.25.7.24.96-.02l2.36-2.36c.25-.25.27-.64.06-.92C21.38 5.08 16.97 3 12 3zm0 6c-3.31 0-6.27 1.39-8.36 3.63-.26.28-.24.71.04.97l2.36 2.24c.27.25.69.23.94-.03C8.42 14.48 10.11 13.75 12 13.75s3.58.73 5.02 2.06c.25.26.67.28.94.03l2.36-2.24c.28-.26.3-.69.04-.97C18.27 10.39 15.31 9 12 9z"/></svg>
       </div>
@@ -524,7 +536,7 @@
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardPkgPppoe" onclick="setFilter('pppoe')" title="Filter to show PPPoE Packages">
       <div class="stat-icon pppoe-icon">
         <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
       </div>
@@ -944,10 +956,21 @@
   function setFilter(f) {
     currentFilter = f;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    if (f === 'all') document.getElementById('fAll').classList.add('active');
-    else if (f === 'hotspot') document.getElementById('fHotspot').classList.add('active');
-    else if (f === 'pppoe') document.getElementById('fPppoe').classList.add('active');
-    else if (f === 'active') document.getElementById('fActive').classList.add('active');
+    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-pkg-filter'));
+
+    if (f === 'all') {
+      document.getElementById('fAll')?.classList.add('active');
+      document.getElementById('cardPkgAll')?.classList.add('active-pkg-filter');
+    } else if (f === 'hotspot') {
+      document.getElementById('fHotspot')?.classList.add('active');
+      document.getElementById('cardPkgHotspot')?.classList.add('active-pkg-filter');
+    } else if (f === 'pppoe') {
+      document.getElementById('fPppoe')?.classList.add('active');
+      document.getElementById('cardPkgPppoe')?.classList.add('active-pkg-filter');
+    } else if (f === 'active') {
+      document.getElementById('fActive')?.classList.add('active');
+      document.getElementById('cardPkgActive')?.classList.add('active-pkg-filter');
+    }
     filterPackagesTable();
   }
 

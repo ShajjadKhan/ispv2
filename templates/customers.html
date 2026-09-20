@@ -22,10 +22,39 @@
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: 14px;
-    padding: 18px 20px;
+    padding: 16px 18px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  .stat-card.active-card-filter {
+    border-color: #38bdf8 !important;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.25) !important;
+  }
+  .stat-filter-hint {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .stat-card:hover .stat-filter-hint,
+  .stat-card.active-card-filter .stat-filter-hint {
+    color: #38bdf8;
   }
 
   .stat-icon {
@@ -647,19 +676,20 @@
 {% block content %}
 <div class="dir-grid">
 
-  <!-- TOP SUMMARY CARDS -->
+  <!-- TOP SUMMARY CARDS (CLICKABLE FILTERS) -->
   <div class="stats-row">
-    <div class="stat-card">
+    <div class="stat-card" id="cardFilterAll" onclick="selectStatCardFilter('all')" title="Click to view all subscribers">
       <div class="stat-icon total-icon">
         <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       </div>
       <div class="stat-data">
         <div class="num text-white">{{ customers | length }}</div>
         <div class="lbl">Total Subscribers</div>
+        <div class="stat-filter-hint"><span>🔍 All Subscribers</span></div>
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardFilterActive" onclick="selectStatCardFilter('active')" title="Click to filter Active & Online subscribers">
       <div class="stat-icon active-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
       </div>
@@ -667,10 +697,11 @@
         {% set active_count = customers | selectattr('status', 'equalto', 'active') | list | length %}
         <div class="num text-emerald">{{ active_count }}</div>
         <div class="lbl">Active &amp; Online</div>
+        <div class="stat-filter-hint"><span>🔍 Filter Active</span></div>
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardFilterPrepaid" onclick="selectStatCardFilter('prepaid')" title="Click to filter Prepaid subscribers">
       <div class="stat-icon prepaid-icon">
         <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
       </div>
@@ -678,10 +709,11 @@
         {% set prepaid_count = customers | selectattr('billing_type', 'equalto', 'prepaid') | list | length %}
         <div class="num text-purple" style="color:#c084fc;">{{ prepaid_count }}</div>
         <div class="lbl">Prepaid Subscribers</div>
+        <div class="stat-filter-hint"><span>🔍 Filter Prepaid</span></div>
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardFilterRevenue" onclick="selectStatCardFilter('revenue')" title="Click to filter Active paying revenue">
       <div class="stat-icon revenue-icon">
         <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
       </div>
@@ -689,10 +721,11 @@
         {% set total_rev = customers | map(attribute='monthly_fee') | sum %}
         <div class="num text-amber">{{ "%.0f"|format(total_rev) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
         <div class="lbl">Monthly Value</div>
+        <div class="stat-filter-hint"><span>🔍 Filter Value</span></div>
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardFilterCredit" onclick="selectStatCardFilter('credit')" title="Click to filter Customers holding wallet credit">
       <div class="stat-icon" style="background:rgba(52,211,153,0.15); color:#34d399;">
         <svg viewBox="0 0 24 24" style="fill:currentColor; width:22px; height:22px;"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
       </div>
@@ -700,12 +733,13 @@
         {% set total_credit = customers | map(attribute='credit_balance') | sum %}
         <div class="num" style="color:#34d399;">{{ "%.0f"|format(total_credit) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
         <div class="lbl">Customer Credit Held</div>
+        <div class="stat-filter-hint"><span>🔍 Filter Credit Held</span></div>
       </div>
     </div>
   </div>
 
   <!-- TOOLBAR: SEARCH, FILTERS, ADD -->
-  <div class="toolbar-card">
+  <div class="toolbar-card" id="customersToolbar">
     <div class="search-wrapper">
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       <input type="text" class="search-input" id="custSearchInput" placeholder="Search by name, phone, or package..." oninput="filterCustomerTable()">
@@ -713,8 +747,10 @@
 
     <div class="filter-group">
       <button type="button" class="filter-btn active" id="filterAll" onclick="setBillingFilter('all')">All</button>
+      <button type="button" class="filter-btn" id="filterActive" onclick="setBillingFilter('active')">Active</button>
       <button type="button" class="filter-btn" id="filterPrepaid" onclick="setBillingFilter('prepaid')">Prepaid</button>
       <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid</button>
+      <button type="button" class="filter-btn" id="filterCredit" onclick="setBillingFilter('credit')">Credit Held</button>
       <button type="button" class="filter-btn" id="filterSuspended" onclick="setBillingFilter('suspended')">Suspended</button>
 
       <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
@@ -753,7 +789,7 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
+              <tr class="cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
                 <td>
                   <div class="cust-name-cell">
                     <span class="cust-name">{{ c.name }}</span>
@@ -863,7 +899,7 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
+        <div class="cust-mobile-card cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
@@ -1503,12 +1539,17 @@
     function checkItem(el) {
       const type = el.getAttribute('data-type');
       const status = el.getAttribute('data-status');
+      const credit = parseFloat(el.getAttribute('data-credit') || 0);
+      const fee = parseFloat(el.getAttribute('data-fee') || 0);
       const searchData = el.getAttribute('data-search') || '';
 
       let matchesFilter = true;
       if (activeFilter === 'prepaid') matchesFilter = (type === 'prepaid');
       else if (activeFilter === 'postpaid') matchesFilter = (type === 'postpaid');
       else if (activeFilter === 'suspended') matchesFilter = (status === 'suspended');
+      else if (activeFilter === 'active') matchesFilter = (status === 'active');
+      else if (activeFilter === 'credit') matchesFilter = (credit > 0);
+      else if (activeFilter === 'revenue') matchesFilter = (status === 'active' && fee > 0);
 
       const matchesSearch = !q || searchData.includes(q);
       const isVisible = matchesFilter && matchesSearch;
@@ -1537,12 +1578,45 @@
   function setBillingFilter(f) {
     activeFilter = f;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    if (f === 'all') document.getElementById('filterAll').classList.add('active');
-    else if (f === 'prepaid') document.getElementById('filterPrepaid').classList.add('active');
-    else if (f === 'postpaid') document.getElementById('filterPostpaid').classList.add('active');
-    else if (f === 'suspended') document.getElementById('filterSuspended').classList.add('active');
+    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-card-filter'));
+
+    if (f === 'all') {
+      const b = document.getElementById('filterAll'); if (b) b.classList.add('active');
+      const sc = document.getElementById('cardFilterAll'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'active') {
+      const b = document.getElementById('filterActive'); if (b) b.classList.add('active');
+      const sc = document.getElementById('cardFilterActive'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'prepaid') {
+      const b = document.getElementById('filterPrepaid'); if (b) b.classList.add('active');
+      const sc = document.getElementById('cardFilterPrepaid'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'postpaid') {
+      const b = document.getElementById('filterPostpaid'); if (b) b.classList.add('active');
+    } else if (f === 'credit') {
+      const b = document.getElementById('filterCredit'); if (b) b.classList.add('active');
+      const sc = document.getElementById('cardFilterCredit'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'revenue') {
+      const sc = document.getElementById('cardFilterRevenue'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'suspended') {
+      const b = document.getElementById('filterSuspended'); if (b) b.classList.add('active');
+    }
     filterCustomerTable();
   }
+
+  function selectStatCardFilter(f) {
+    setBillingFilter(f);
+    const tb = document.getElementById('customersToolbar');
+    if (tb) {
+      window.scrollTo({ top: tb.offsetTop - 80, behavior: 'smooth' });
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get('filter');
+    if (f) {
+      setBillingFilter(f);
+    }
+  });
 
   // Quick Suspend / Activate Toggle
   async function toggleStatus(custId) {

@@ -105,14 +105,37 @@
     flex-direction: column;
     justify-content: space-between;
     gap: 14px;
-    transition: transform 0.2s, border-color 0.2s;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
   }
 
   .kpi-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-3px);
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 16px rgba(56, 189, 248, 0.18);
+  }
+
+  .kpi-card:active {
+    transform: translateY(-1px);
+  }
+
+  .kpi-filter-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .kpi-card:hover .kpi-filter-hint {
+    color: #38bdf8;
+    transform: translateX(2px);
   }
 
   .kpi-card-top {
@@ -598,7 +621,7 @@
   <!-- 6-CARD PRIMARY KPI DECK -->
   <div class="kpi-deck-grid">
     <!-- Card 1: Network & Connected Devices -->
-    <div class="kpi-card theme-cyan">
+    <div class="kpi-card theme-cyan" onclick="handleKpiCardClick('live_devices')" title="Click to view Active & Online Subscribers">
       <div class="kpi-card-top">
         <span class="kpi-label">Live Active Devices</span>
         <div class="kpi-icon-pill">
@@ -612,10 +635,13 @@
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.connectivity_rate }}%;"></div>
       </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 View Active Online →</span>
+      </div>
     </div>
 
     <!-- Card 2: Active Subscribers & Capacity -->
-    <div class="kpi-card theme-purple">
+    <div class="kpi-card theme-purple" onclick="handleKpiCardClick('subscribers')" title="Click to view All Subscribers Directory">
       <div class="kpi-card-top">
         <span class="kpi-label">Subscribers &amp; Capacity</span>
         <div class="kpi-icon-pill">
@@ -629,10 +655,13 @@
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.capacity_percent }}%;"></div>
       </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 View All Subscribers →</span>
+      </div>
     </div>
 
     <!-- Card 3: Collected Revenue (SAR) -->
-    <div class="kpi-card theme-emerald">
+    <div class="kpi-card theme-emerald" onclick="handleKpiCardClick('collected')" title="Click to view Monthly Collections Audit Ledger">
       <div class="kpi-card-top">
         <span class="kpi-label">Collected This Month</span>
         <div class="kpi-icon-pill">
@@ -646,10 +675,13 @@
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: 100%;"></div>
       </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 View Audit Ledger →</span>
+      </div>
     </div>
 
     <!-- Card 4: Outstanding Due (SAR) -->
-    <div class="kpi-card theme-amber">
+    <div class="kpi-card theme-amber" onclick="handleKpiCardClick('due')" title="Click to filter Priority Queue to Overdue Accounts">
       <div class="kpi-card-top">
         <span class="kpi-label">Outstanding Due</span>
         <div class="kpi-icon-pill">
@@ -663,10 +695,13 @@
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {% if metrics.outstanding_sar > 0 %}100{% else %}0{% endif %}%;"></div>
       </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 Filter Overdue Accounts ↓</span>
+      </div>
     </div>
 
     <!-- Card 5: Collection Rate Efficiency -->
-    <div class="kpi-card {% if metrics.collection_rate >= 80 %}theme-emerald{% elif metrics.collection_rate >= 50 %}theme-amber{% else %}theme-rose{% endif %}">
+    <div class="kpi-card {% if metrics.collection_rate >= 80 %}theme-emerald{% elif metrics.collection_rate >= 50 %}theme-amber{% else %}theme-rose{% endif %}" onclick="handleKpiCardClick('rate')" title="Click to view Collections Balance Sheet Hub">
       <div class="kpi-card-top">
         <span class="kpi-label">Collection Rate</span>
         <div class="kpi-icon-pill">
@@ -680,10 +715,13 @@
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.collection_rate }}%;"></div>
       </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 Open Balance Sheet Hub →</span>
+      </div>
     </div>
 
     <!-- Card 6: Expiring Accounts / Action Needed -->
-    <div class="kpi-card theme-rose">
+    <div class="kpi-card theme-rose" onclick="handleKpiCardClick('expiring')" title="Click to view Priority Expiration Queue">
       <div class="kpi-card-top">
         <span class="kpi-label">Will Suspend / Expiring</span>
         <div class="kpi-icon-pill">
@@ -696,6 +734,9 @@
       </div>
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.total > 0 %}100{% else %}0{% endif %}%;"></div>
+      </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 View Priority Queue ↓</span>
       </div>
     </div>
   </div>
@@ -772,7 +813,7 @@
   </div>
 
   <!-- PRIORITY ACTION QUEUE (EXPIRING & DUE TABLE) -->
-  <div class="section-card">
+  <div class="section-card" id="priorityQueueSection">
     <div class="section-card-header">
       <div>
         <div style="font-size:15px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
@@ -1109,6 +1150,35 @@
   function switchMonth(m) {
     if (!m) return;
     window.location.href = '/?month=' + encodeURIComponent(m);
+  }
+
+  // Drill-down KPI Card Clicks
+  function handleKpiCardClick(type) {
+    if (type === 'live_devices') {
+      window.location.href = '/customers?filter=active';
+    } else if (type === 'subscribers') {
+      window.location.href = '/customers?filter=all';
+    } else if (type === 'collected') {
+      window.location.href = '/collections?period=month#ledgerPanel';
+    } else if (type === 'due') {
+      filterQueueByTier('overdue');
+      const queueEl = document.getElementById('priorityQueueSection');
+      if (queueEl) {
+        queueEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        queueEl.style.boxShadow = '0 0 0 2px #f59e0b, 0 10px 30px rgba(245, 158, 11, 0.25)';
+        setTimeout(() => { queueEl.style.boxShadow = ''; }, 2000);
+      }
+    } else if (type === 'rate') {
+      window.location.href = '/collections?period=month';
+    } else if (type === 'expiring') {
+      filterQueueByTier('all');
+      const queueEl = document.getElementById('priorityQueueSection');
+      if (queueEl) {
+        queueEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        queueEl.style.boxShadow = '0 0 0 2px #f87171, 0 10px 30px rgba(239, 68, 68, 0.25)';
+        setTimeout(() => { queueEl.style.boxShadow = ''; }, 2000);
+      }
+    }
   }
 
   // Tier Filter Pills

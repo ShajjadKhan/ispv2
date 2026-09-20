@@ -125,11 +125,34 @@
     position: relative;
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    user-select: none;
   }
   .bs-card:hover {
-    border-color: rgba(56, 189, 248, 0.35);
+    border-color: rgba(56, 189, 248, 0.55);
     transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  }
+  .bs-card.active-bs-filter {
+    border-color: #38bdf8 !important;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    box-shadow: 0 0 22px rgba(56, 189, 248, 0.25) !important;
+  }
+  .bs-filter-hint {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .bs-card:hover .bs-filter-hint,
+  .bs-card.active-bs-filter .bs-filter-hint {
+    color: #38bdf8;
   }
 
   .bs-card-top {
@@ -681,7 +704,7 @@
   <div class="balance-sheet-deck">
     
     <!-- 1. TODAY'S COLLECTIONS -->
-    <div class="bs-card">
+    <div class="bs-card {% if period == 'today' %}active-bs-filter{% endif %}" onclick="filterByBsCard('today')" title="Click to view today's collected receipts">
       <div class="bs-card-top">
         <div class="bs-icon-wrap today">
           <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
@@ -694,16 +717,17 @@
       </div>
       <div class="bs-data-sub">
         <span>Recorded directly today</span>
+        <div class="bs-filter-hint"><span>🔍 Filter Today's Receipts</span></div>
       </div>
     </div>
 
     <!-- 2. MONTH-TO-DATE COLLECTIONS -->
-    <div class="bs-card">
+    <div class="bs-card {% if period == 'month' %}active-bs-filter{% endif %}" onclick="filterByBsCard('month')" title="Click to view current month collections">
       <div class="bs-card-top">
         <div class="bs-icon-wrap month">
           <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         </div>
-        <span class="bs-badge-tag" style="background:rgba(16,185,129,0.15); color:#34d399;">{{ bs.collection_efficiency }}% Target</span>
+        <span class="bs-badge-tag" style="background:rgba(168,85,247,0.15); color:#34d399;">{{ bs.collection_efficiency }}% Target</span>
       </div>
       <div>
         <div class="bs-data-num" style="color:#34d399;">{{ "%.2f"|format(bs.month_collected) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
@@ -711,11 +735,12 @@
       </div>
       <div class="bs-data-sub">
         <span>{{ bs.month_tx_count }} receipts &bull; {{ bs.total_subscribers }} Subscribers</span>
+        <div class="bs-filter-hint"><span>🔍 Filter Month Receipts</span></div>
       </div>
     </div>
 
     <!-- 3. OUTSTANDING RECEIVABLES (DUE BILLS) -->
-    <div class="bs-card">
+    <div class="bs-card" onclick="filterByBsCard('due')" title="Click to jump to Due Customers Worklist">
       <div class="bs-card-top">
         <div class="bs-icon-wrap due">
           <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
@@ -728,11 +753,12 @@
       </div>
       <div class="bs-data-sub">
         <span>Overdue or expiring within 3 days</span>
+        <div class="bs-filter-hint" style="color:#f87171;"><span>🔍 View Due Worklist</span></div>
       </div>
     </div>
 
     <!-- 4. CUSTOMER CREDIT WALLETS HELD (LIABILITY) -->
-    <div class="bs-card">
+    <div class="bs-card" onclick="filterByBsCard('credit')" title="Click to view Customer Credit Wallets Breakdown">
       <div class="bs-card-top">
         <div class="bs-icon-wrap credit">
           <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
@@ -745,6 +771,7 @@
       </div>
       <div class="bs-data-sub">
         <span>Customer wallet advance deposits</span>
+        <div class="bs-filter-hint" style="color:#c084fc;"><span>🔍 View Wallets Breakdown</span></div>
       </div>
     </div>
 
@@ -834,7 +861,7 @@
   </div>
 
   <!-- DUE SUBSCRIBERS COLLECTION QUEUE (ACTIONABLE WORKLIST) -->
-  <div class="panel-card">
+  <div class="panel-card" id="dueQueuePanel">
     <div class="panel-header">
       <div class="panel-title">
         <svg style="width:18px; height:18px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
@@ -915,7 +942,7 @@
   </div>
 
   <!-- COLLECTIONS AUDIT LEDGER (TRANSACTION HISTORY) -->
-  <div class="panel-card">
+  <div class="panel-card" id="ledgerPanel">
     <div class="panel-header">
       <div class="panel-title">
         <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
@@ -1034,6 +1061,39 @@
     <div class="no-print" style="display:flex; gap:10px; margin-top:10px;">
       <button type="button" class="btn-cancel" onclick="closeReceiptModal()" style="flex:1;">Close</button>
       <button type="button" class="btn-approve" onclick="window.print()" style="flex:1.5; justify-content:center;">🖨️ Print Slip</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER CREDIT WALLETS BREAKDOWN MODAL -->
+<div id="creditWalletsModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0f172a; border:1px solid rgba(168,85,247,0.45); border-radius:16px; max-width:680px; width:100%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(168,85,247,0.2); overflow:hidden;">
+    
+    <div style="padding:18px 22px; background:rgba(168,85,247,0.08); border-bottom:1px solid rgba(168,85,247,0.25); display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:38px; height:38px; border-radius:10px; background:rgba(168,85,247,0.2); color:#c084fc; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        </div>
+        <div>
+          <h3 style="font-size:16px; font-weight:800; color:#ffffff; margin:0;">Customer Credit Wallets Breakdown</h3>
+          <p style="font-size:11.5px; color:var(--text-dim); margin:0;">
+            Total Credit Held: <strong style="color:#c084fc;">{{ "%.2f"|format(bs.total_credit_held) }} SAR</strong> across <strong class="text-white">{{ bs.credit_holders_count }}</strong> Wallets
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn-close-modal" onclick="closeCreditWalletsModal()" style="color:#94a3b8; font-size:22px; background:transparent; border:none; cursor:pointer;">&times;</button>
+    </div>
+
+    <div style="padding:12px 20px; border-bottom:1px solid rgba(255,255,255,0.06); background:#090e1a;">
+      <input type="text" class="form-input font-mono" id="creditWalletSearchInput" placeholder="Filter credit holders by name or phone..." oninput="filterCreditWalletsList(this.value)" style="font-size:12.5px; height:38px; width:100%;">
+    </div>
+
+    <div style="padding:16px 20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;" id="creditWalletsListContainer">
+      <!-- Dynamically filled with credit holding subscribers via JS -->
+    </div>
+
+    <div style="padding:12px 20px; background:#090e1a; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:flex-end;">
+      <button type="button" class="btn-cancel" onclick="closeCreditWalletsModal()">Close</button>
     </div>
   </div>
 </div>
@@ -1404,6 +1464,102 @@
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  // Interactive Balance Sheet Card Filter & Drill-down Handlers
+  function filterByBsCard(type) {
+    if (type === 'today') {
+      window.location.href = '/collections?period=today#ledgerPanel';
+    } else if (type === 'month') {
+      window.location.href = '/collections?period=month#ledgerPanel';
+    } else if (type === 'due') {
+      const panel = document.getElementById('dueQueuePanel');
+      if (panel) {
+        window.scrollTo({ top: panel.offsetTop - 80, behavior: 'smooth' });
+        panel.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease';
+        panel.style.borderColor = '#f87171';
+        panel.style.boxShadow = '0 0 25px rgba(239, 68, 68, 0.4)';
+        setTimeout(() => {
+          panel.style.borderColor = '';
+          panel.style.boxShadow = '';
+        }, 1500);
+      }
+    } else if (type === 'credit') {
+      openCreditWalletsModal();
+    }
+  }
+
+  function openCreditWalletsModal() {
+    const modal = document.getElementById('creditWalletsModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const inp = document.getElementById('creditWalletSearchInput');
+    if (inp) {
+      inp.value = '';
+      setTimeout(() => inp.focus(), 100);
+    }
+    renderCreditWalletsList('');
+  }
+
+  function closeCreditWalletsModal() {
+    const modal = document.getElementById('creditWalletsModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function renderCreditWalletsList(filterQuery = '') {
+    const container = document.getElementById('creditWalletsListContainer');
+    if (!container) return;
+    const q = (filterQuery || '').toLowerCase().trim();
+    
+    // Filter subscribers holding advance wallet credit
+    const holders = allSubscribers.filter(c => {
+      const hasCredit = parseFloat(c.credit_balance || 0) > 0;
+      if (!hasCredit) return false;
+      if (!q) return true;
+      return (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q);
+    });
+
+    if (holders.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:32px; color:var(--text-dim); font-size:13px;">
+          ${q ? 'No credit holding subscribers match your search.' : 'No customer wallets currently hold advance credit.'}
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = holders.map(c => `
+      <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; border-radius:8px; background:rgba(168,85,247,0.18); color:#c084fc; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">
+            ${(c.name ? c.name.charAt(0).toUpperCase() : 'U')}
+          </div>
+          <div>
+            <div style="font-weight:700; color:#ffffff; font-size:13.5px;">${escapeHtml(c.name)}</div>
+            <div style="font-size:11.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+              <span class="font-mono text-cyan">${escapeHtml(c.phone)}</span>
+              <span>&bull;</span>
+              <span>${escapeHtml(c.package_name || 'Standard')}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="text-align:right;">
+            <div class="font-mono" style="font-size:14.5px; font-weight:800; color:#c084fc;">
+              ${parseFloat(c.credit_balance).toFixed(2)} SAR
+            </div>
+            <div style="font-size:10.5px; color:var(--text-dim);">Available Credit</div>
+          </div>
+          <button type="button" class="btn-action-sm" onclick="closeCreditWalletsModal(); selectCustomerById(${c.id});" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); padding:6px 12px; font-weight:700;">
+            Select in POS
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterCreditWalletsList(val) {
+    renderCreditWalletsList(val);
   }
 </script>
 {% endblock %}

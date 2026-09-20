@@ -26,6 +26,18 @@
     display: flex;
     align-items: center;
     gap: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+  .stat-card.active-app-filter {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
   }
 
   .stat-icon {
@@ -439,7 +451,7 @@
 
   <!-- TOP STATS -->
   <div class="stats-row">
-    <div class="stat-card">
+    <div class="stat-card" id="cardPending" onclick="filterApprovals('pending')" title="View Pending Connection Requests">
       <div class="stat-icon pending-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
       </div>
@@ -449,7 +461,7 @@
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardApprovedAll" onclick="filterApprovals('all')" title="View All Authorized Devices">
       <div class="stat-icon approved-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
       </div>
@@ -459,7 +471,7 @@
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardApprovedPrepaid" onclick="filterApprovals('prepaid')" title="Filter Authorized Devices to Prepaid">
       <div class="stat-icon prepaid-icon">
         <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
       </div>
@@ -470,7 +482,7 @@
       </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" id="cardApprovedPostpaid" onclick="filterApprovals('postpaid')" title="Filter Authorized Devices to Postpaid">
       <div class="stat-icon postpaid-icon">
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
       </div>
@@ -568,7 +580,7 @@
   </div>
 
   <!-- APPROVED DEVICES PANEL -->
-  <div class="panel-card">
+  <div class="panel-card" id="approvedDevicesSection">
     <div class="panel-header">
       <div class="panel-title">
         <svg style="width:18px; height:18px; fill:#34d399;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
@@ -595,7 +607,7 @@
         <tbody>
           {% if approved_devices %}
             {% for dev in approved_devices %}
-            <tr>
+            <tr class="approved-dev-row" data-billing="{{ dev.billing_type }}">
               <td style="font-weight:700; color:#ffffff;">{{ dev.customer_name }}</td>
               <td class="font-mono text-dim">{{ dev.phone }}</td>
               <td class="font-mono text-cyan">{{ dev.mac_address }}</td>
@@ -1107,5 +1119,40 @@
       }
     } catch (e) {}
   }, 4000);
+
+  // Interactive Stat Cards Filtering
+  function filterApprovals(mode) {
+    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active-app-filter'));
+    if (mode === 'pending') {
+      document.getElementById('cardPending')?.classList.add('active-app-filter');
+      const el = document.getElementById('pendingSection');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.boxShadow = '0 0 0 2px #fbbf24, 0 8px 24px rgba(245, 158, 11, 0.2)';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+      }
+    } else {
+      if (mode === 'all') document.getElementById('cardApprovedAll')?.classList.add('active-app-filter');
+      else if (mode === 'prepaid') document.getElementById('cardApprovedPrepaid')?.classList.add('active-app-filter');
+      else if (mode === 'postpaid') document.getElementById('cardApprovedPostpaid')?.classList.add('active-app-filter');
+
+      const rows = document.querySelectorAll('.approved-dev-row');
+      rows.forEach(r => {
+        const b = r.getAttribute('data-billing');
+        if (mode === 'all' || b === mode) {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
+        }
+      });
+
+      const el = document.getElementById('approvedDevicesSection');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.boxShadow = '0 0 0 2px #38bdf8, 0 8px 24px rgba(56, 189, 248, 0.2)';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+      }
+    }
+  }
 </script>
 {% endblock %}
