@@ -2635,5 +2635,167 @@ def update_router_telemetry(
         conn.commit()
 
 
+def get_collections_hub_data(
+    period: str = "month",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    search_query: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Retrieves comprehensive balance sheet metrics, due customer queues,
+    and filtered collection transactions for the Collections & Ledger Hub.
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    today_str = now.strftime("%Y-%m-%d")
+    current_month = now.strftime("%Y-%m")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # 1. Today's collections
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0.0) as total, COUNT(*) as tx_count
+            FROM collections
+            WHERE date(collected_at) = date('now', 'localtime') AND amount > 0
+        """)
+        today_row = cursor.fetchone()
+        today_collected = round(float(today_row["total"] or 0.0), 2)
+        today_tx_count = int(today_row["tx_count"] or 0)
+
+        # 2. Month-to-Date collections
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0.0) as total, COUNT(*) as tx_count
+            FROM collections
+            WHERE strftime('%Y-%m', collected_at) = ? AND amount > 0
+        """, (current_month,))
+        month_row = cursor.fetchone()
+        month_collected = round(float(month_row["total"] or 0.0), 2)
+        month_tx_count = int(month_row["tx_count"] or 0)
+
+        # 3. Customer Credit Liabilities (Total credit held across all customer wallets)
+        cursor.execute("""
+            SELECT COALESCE(SUM(credit_balance), 0.0) as total_credit,
+                   COUNT(CASE WHEN credit_balance > 0 THEN 1 END) as credit_holders_count
+            FROM customers
+        """)
+        credit_row = cursor.fetchone()
+        total_credit_held = round(float(credit_row["total_credit"] or 0.0), 2)
+        credit_holders_count = int(credit_row["credit_holders_count"] or 0)
+
+        # 4. Due Customers & Accounts Receivable
+        all_customers = get_all_customers()
+        due_customers_queue = []
+        for c in all_customers:
+            days_rem = c.get("days_remaining")
+            status = c.get("status", "active")
+            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended")
+            if is_due:
+                fee = float(c.get("monthly_fee") or 0.0)
+                wallet_credit = float(c.get("credit_balance") or 0.0)
+                net_needed = max(0.0, round(fee - wallet_credit, 2))
+                c_copy = dict(c)
+                c_copy["net_due_amount"] = net_needed
+                c_copy["can_settle_from_credit"] = (wallet_credit >= fee and fee > 0)
+                due_customers_queue.append(c_copy)
+
+        def due_sort_key(item):
+            # Suspended first (0), expired (1), due today (2), due soon (3)
+            if item.get("status") == "suspended":
+                return (0, item.get("days_remaining") or 0)
+            d = item.get("days_remaining")
+            if d is not None and d < 0:
+                return (1, d)
+            if d == 0:
+                return (2, 0)
+            return (3, d or 999)
+
+        due_customers_queue.sort(key=due_sort_key)
+        outstanding_receivable = round(sum(item["net_due_amount"] for item in due_customers_queue), 2)
+        due_count = len(due_customers_queue)
+
+        projected_monthly_revenue = round(sum(float(c.get("monthly_fee") or 0.0) for c in all_customers if c.get("status") == "active"), 2)
+        total_cycle_revenue = round(month_collected + outstanding_receivable, 2)
+        collection_efficiency = round((month_collected / total_cycle_revenue * 100), 1) if total_cycle_revenue > 0 else 100.0
+
+        # 5. Filtered Ledger Records
+        where_clauses = ["1=1"]
+        params = []
+
+        if period == "today":
+            where_clauses.append("date(col.collected_at) = date('now', 'localtime')")
+        elif period == "yesterday":
+            where_clauses.append("date(col.collected_at) = date('now', 'localtime', '-1 day')")
+        elif period == "week":
+            where_clauses.append("date(col.collected_at) >= date('now', 'localtime', 'weekday 0', '-7 days')")
+        elif period == "month":
+            where_clauses.append("strftime('%Y-%m', col.collected_at) = ?")
+            params.append(current_month)
+        elif period == "custom" and start_date and end_date:
+            where_clauses.append("date(col.collected_at) >= date(?) AND date(col.collected_at) <= date(?)")
+            params.extend([start_date.strip()[:10], end_date.strip()[:10]])
+        # "all" has no date constraint
+
+        if search_query and search_query.strip():
+            sq = f"%{search_query.strip().lower()}%"
+            where_clauses.append("(lower(c.name) LIKE ? OR c.phone LIKE ? OR lower(col.notes) LIKE ? OR lower(col.collected_by) LIKE ?)")
+            params.extend([sq, sq, sq, sq])
+
+        where_sql = " AND ".join(where_clauses)
+
+        cursor.execute(f"""
+            SELECT col.*, c.name as customer_name, c.phone as customer_phone, c.package_name, c.monthly_fee as current_monthly_fee
+            FROM collections col
+            LEFT JOIN customers c ON col.customer_id = c.id
+            WHERE {where_sql}
+            ORDER BY col.id DESC
+            LIMIT 300
+        """, tuple(params))
+        ledger_records = [dict(r) for r in cursor.fetchall()]
+
+        filtered_total = round(sum(float(r.get("amount") or 0.0) for r in ledger_records if float(r.get("amount") or 0.0) > 0), 2)
+        filtered_tx_count = len(ledger_records)
+
+        # Minimal customer list for the Express Collect search selector
+        all_customers_minimal = [
+            {
+                "id": c["id"],
+                "name": c["name"],
+                "phone": c["phone"],
+                "package_name": c.get("package_name") or "Standard",
+                "monthly_fee": float(c.get("monthly_fee") or 0.0),
+                "credit_balance": float(c.get("credit_balance") or 0.0),
+                "due_date": c.get("due_date") or c.get("expiry_date") or "",
+                "days_remaining": c.get("days_remaining"),
+                "status": c.get("status", "active")
+            }
+            for c in all_customers
+        ]
+
+        return {
+            "balance_sheet": {
+                "today_collected": today_collected,
+                "today_tx_count": today_tx_count,
+                "month_collected": month_collected,
+                "month_tx_count": month_tx_count,
+                "outstanding_receivable": outstanding_receivable,
+                "due_customers_count": due_count,
+                "total_credit_held": total_credit_held,
+                "credit_holders_count": credit_holders_count,
+                "projected_monthly_revenue": projected_monthly_revenue,
+                "collection_efficiency": collection_efficiency,
+                "total_subscribers": len(all_customers),
+                "current_month_label": now.strftime("%B %Y")
+            },
+            "due_queue": due_customers_queue,
+            "ledger": ledger_records,
+            "filtered_total": filtered_total,
+            "filtered_tx_count": filtered_tx_count,
+            "period": period,
+            "customers_dropdown": all_customers_minimal
+        }
+
+
+
 
 

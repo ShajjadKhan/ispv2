@@ -1,0 +1,952 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Collections &amp; Balance Sheet{% endblock %}
+{% block heading %}Collections &amp; Balance Sheet{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     COLLECTIONS & BALANCE SHEET ARCHITECTURE
+     ========================================================= */
+  .col-page-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 1360px;
+    margin: 0 auto;
+  }
+
+  /* TOP ACTION BAR */
+  .col-top-bar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .col-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .col-title-group h2 {
+    font-size: 19px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .col-title-group p {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .period-pill-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  .period-pill {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .period-pill:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .period-pill.active {
+    background: var(--primary-glow);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+
+  .btn-export-csv {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-export-csv:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  /* BALANCE SHEET 4-CARD KPI DECK */
+  .balance-sheet-deck {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .bs-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .bs-card:hover {
+    border-color: rgba(56, 189, 248, 0.35);
+    transform: translateY(-2px);
+  }
+
+  .bs-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .bs-icon-wrap {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .bs-icon-wrap.today { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+  .bs-icon-wrap.month { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .bs-icon-wrap.due { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .bs-icon-wrap.credit { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+  .bs-badge-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+  }
+
+  .bs-data-num {
+    font-size: 26px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #ffffff;
+    line-height: 1.1;
+  }
+  .bs-data-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .bs-data-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* EXPRESS CASH COLLECTOR POS BAR */
+  .express-pos-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(9, 14, 26, 0.95) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.1);
+  }
+
+  .pos-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .pos-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pos-inputs-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.2fr auto;
+    gap: 14px;
+    align-items: end;
+  }
+
+  .btn-pos-collect {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: none;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 10px 22px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    height: 42px;
+  }
+  .btn-pos-collect:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+  .btn-pos-collect:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* CUSTOMER LIVE OVERVIEW CHIP */
+  .cust-pos-overview {
+    display: none;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* SECTION PANELS */
+  .panel-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 22px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .panel-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .queue-card-row {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    transition: all 0.15s ease;
+  }
+  .queue-card-row:hover {
+    border-color: rgba(56, 189, 248, 0.3);
+  }
+
+  .queue-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+  }
+  .queue-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* PRINTABLE THERMAL RECEIPT MODAL */
+  .receipt-slip-box {
+    background: #ffffff;
+    color: #111827;
+    width: 100%;
+    max-width: 360px;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+  }
+  .receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed #d1d5db;
+    padding-bottom: 12px;
+  }
+  .receipt-header h3 {
+    font-size: 18px;
+    font-weight: 900;
+    color: #000;
+    margin: 0;
+  }
+  .receipt-header p {
+    font-size: 11px;
+    color: #6b7280;
+    margin: 2px 0 0 0;
+  }
+  .receipt-body-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .receipt-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .receipt-line .r-lbl { color: #6b7280; }
+  .receipt-line .r-val { font-weight: 700; color: #111827; }
+
+  .receipt-total-banner {
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    margin: 6px 0;
+  }
+  .receipt-total-banner .amount {
+    font-size: 24px;
+    font-weight: 900;
+    color: #0284c7;
+  }
+
+  /* MEDIA QUERIES */
+  @media (max-width: 900px) {
+    .pos-inputs-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .col-top-bar {
+      padding: 16px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .period-pill-group {
+      width: 100%;
+    }
+    .pos-inputs-grid {
+      grid-template-columns: 1fr;
+    }
+    .btn-pos-collect {
+      width: 100%;
+      justify-content: center;
+    }
+    .balance-sheet-deck {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    body * { visibility: hidden; }
+    #printableReceiptModal, #printableReceiptModal * { visibility: visible; }
+    #printableReceiptModal {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      background: #ffffff !important;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+    .receipt-slip-box {
+      box-shadow: none !important;
+      border: 1px solid #000;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    .no-print { display: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="col-page-grid">
+
+  <!-- TOP ACTION & PERIOD FILTER BAR -->
+  <div class="col-top-bar">
+    <div class="col-title-group">
+      <h2>
+        <svg style="width:22px; height:22px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        <span>Collections &amp; Financial Ledger</span>
+      </h2>
+      <p>Real-time cash flow desk, accounts receivable worklist, and audit ledger</p>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div class="period-pill-group">
+        <a href="/collections?period=today" class="period-pill {% if period == 'today' %}active{% endif %}">Today</a>
+        <a href="/collections?period=yesterday" class="period-pill {% if period == 'yesterday' %}active{% endif %}">Yesterday</a>
+        <a href="/collections?period=week" class="period-pill {% if period == 'week' %}active{% endif %}">This Week</a>
+        <a href="/collections?period=month" class="period-pill {% if period == 'month' %}active{% endif %}">This Month</a>
+        <a href="/collections?period=all" class="period-pill {% if period == 'all' %}active{% endif %}">All Time</a>
+      </div>
+
+      <button type="button" class="btn-export-csv" onclick="exportLedgerToCSV()">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        <span>Export CSV</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- BALANCE SHEET 4-CARD KPI DECK -->
+  <div class="balance-sheet-deck">
+    
+    <!-- 1. TODAY'S COLLECTIONS -->
+    <div class="bs-card">
+      <div class="bs-card-top">
+        <div class="bs-icon-wrap today">
+          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        </div>
+        <span class="bs-badge-tag" style="background:rgba(56,189,248,0.15); color:#38bdf8;">{{ bs.today_tx_count }} TX</span>
+      </div>
+      <div>
+        <div class="bs-data-num text-cyan">{{ "%.2f"|format(bs.today_collected) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-data-lbl">Today's Total Intake</div>
+      </div>
+      <div class="bs-data-sub">
+        <span>Recorded directly today</span>
+      </div>
+    </div>
+
+    <!-- 2. MONTH-TO-DATE COLLECTIONS -->
+    <div class="bs-card">
+      <div class="bs-card-top">
+        <div class="bs-icon-wrap month">
+          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        </div>
+        <span class="bs-badge-tag" style="background:rgba(16,185,129,0.15); color:#34d399;">{{ bs.collection_efficiency }}% Target</span>
+      </div>
+      <div>
+        <div class="bs-data-num" style="color:#34d399;">{{ "%.2f"|format(bs.month_collected) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-data-lbl">{{ bs.current_month_label }} Intake</div>
+      </div>
+      <div class="bs-data-sub">
+        <span>{{ bs.month_tx_count }} receipts &bull; {{ bs.total_subscribers }} Subscribers</span>
+      </div>
+    </div>
+
+    <!-- 3. OUTSTANDING RECEIVABLES (DUE BILLS) -->
+    <div class="bs-card">
+      <div class="bs-card-top">
+        <div class="bs-icon-wrap due">
+          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        </div>
+        <span class="bs-badge-tag" style="background:rgba(239,68,68,0.15); color:#f87171;">{{ bs.due_customers_count }} ACCOUNTS</span>
+      </div>
+      <div>
+        <div class="bs-data-num" style="color:#f87171;">{{ "%.2f"|format(bs.outstanding_receivable) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-data-lbl">Accounts Receivable (Due)</div>
+      </div>
+      <div class="bs-data-sub">
+        <span>Overdue or expiring within 3 days</span>
+      </div>
+    </div>
+
+    <!-- 4. CUSTOMER CREDIT WALLETS HELD (LIABILITY) -->
+    <div class="bs-card">
+      <div class="bs-card-top">
+        <div class="bs-icon-wrap credit">
+          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        </div>
+        <span class="bs-badge-tag" style="background:rgba(168,85,247,0.15); color:#c084fc;">{{ bs.credit_holders_count }} WALLETS</span>
+      </div>
+      <div>
+        <div class="bs-data-num" style="color:#c084fc;">{{ "%.2f"|format(bs.total_credit_held) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-data-lbl">Advance Credit Held</div>
+      </div>
+      <div class="bs-data-sub">
+        <span>Customer wallet advance deposits</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- EXPRESS POS CASH COLLECTOR DESK -->
+  <div class="express-pos-card">
+    <div class="pos-header-row">
+      <div class="pos-title">
+        <svg style="width:18px; height:18px; fill:#34d399;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+        <span>⚡ Express POS Cash Desk (Quick Collection Entry)</span>
+      </div>
+      <span style="font-size:11.5px; color:var(--text-dim);">Immediately extends validity on MikroTik queues</span>
+    </div>
+
+    <!-- LIVE CUSTOMER OVERVIEW BANNER (Appears when customer selected) -->
+    <div class="cust-pos-overview" id="posCustomerOverview">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="font-mono" style="font-weight:700; color:#ffffff;" id="posCustName">Select customer...</span>
+        <span class="badge" id="posCustPlanBadge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10.5px;">Standard</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div>Due Date: <strong class="text-white font-mono" id="posCustDueDate">—</strong></div>
+        <div>Monthly Fee: <strong class="text-cyan font-mono" id="posCustMonthlyFee">0.00 SAR</strong></div>
+        <div>Credit Wallet: <strong class="text-green font-mono" id="posCustCredit">0.00 SAR</strong></div>
+      </div>
+    </div>
+
+    <form id="expressPosForm" onsubmit="handleExpressCollection(event)">
+      <div class="pos-inputs-grid">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Select Subscriber</label>
+          <select class="form-select font-mono" id="posCustomerSelect" onchange="onPosCustomerChange()" required>
+            <option value="">-- Choose Customer to Collect From --</option>
+            {% for c in customers_dropdown %}
+              <option value="{{ c.id }}" data-name="{{ c.name }}" data-phone="{{ c.phone }}" data-fee="{{ c.monthly_fee }}" data-credit="{{ c.credit_balance }}" data-due="{{ c.due_date }}" data-pkg="{{ c.package_name }}">
+                {{ c.name }} ({{ c.phone }}) &bull; {{ "%.2f"|format(c.monthly_fee) }} SAR {% if c.days_remaining is not none and c.days_remaining <= 0 %}[OVERDUE]{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Amount Collected (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="posAmountInput" placeholder="0.00" required style="font-size:15px; font-weight:700; color:#34d399;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Payment Method &amp; Notes</label>
+          <input type="text" class="form-input" id="posNotesInput" placeholder="Cash, STC Pay, Transfer..." value="Cash Payment">
+        </div>
+
+        <div>
+          <button type="submit" class="btn-pos-collect" id="btnPosSubmit">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            <span>Collect &amp; Extend</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- DUE SUBSCRIBERS COLLECTION QUEUE (ACTIONABLE WORKLIST) -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg style="width:18px; height:18px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <span>Due Customers Worklist (Action Required)</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size:12px;">
+        <strong class="text-white">{{ due_queue|length }}</strong> Subscribers Awaiting Payment
+      </span>
+    </div>
+
+    <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+      {% if due_queue %}
+        {% for c in due_queue %}
+        <div class="queue-card-row">
+          <div class="queue-user-info">
+            <div class="queue-avatar">{{ c.name[:1]|upper }}</div>
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <a href="/customers/{{ c.id }}/edit" style="font-size:14.5px; font-weight:700; color:#ffffff; text-decoration:none;">{{ c.name }}</a>
+              <span class="font-mono text-dim" style="font-size:11.5px;">{{ c.phone }} &bull; {{ c.package_name }} ({{ c.effective_speed }})</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Due Date</span>
+              <span class="font-mono text-white" style="font-size:12.5px; font-weight:600;">{{ c.due_date or c.expiry_date or '—' }}</span>
+              {% if c.days_remaining is not none %}
+                {% if c.days_remaining < 0 %}
+                  <span class="badge-status disabled" style="font-size:9.5px; width:fit-content;">EXPIRED {{ c.days_remaining|abs }}d AGO</span>
+                {% elif c.days_remaining == 0 %}
+                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">DUE TODAY</span>
+                {% else %}
+                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">{{ c.days_remaining }}d LEFT</span>
+                {% endif %}
+              {% endif %}
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Monthly Rate</span>
+              <span class="font-mono text-cyan" style="font-size:13.5px; font-weight:700;">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
+              {% if c.credit_balance and c.credit_balance > 0 %}
+                <span class="font-mono" style="font-size:10.5px; color:#34d399;">+{{ "%.2f"|format(c.credit_balance) }} in Wallet</span>
+              {% endif %}
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Net Cash Needed</span>
+              <span class="font-mono text-white" style="font-size:14px; font-weight:800; color:{% if c.net_due_amount == 0 %}#34d399{% else %}#f87171{% endif %};">
+                {{ "%.2f"|format(c.net_due_amount) }} SAR
+              </span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            {% if c.can_settle_from_credit %}
+              <button type="button" class="btn-action-sm" onclick="quickSettleCredit({{ c.id }}, {{ c.monthly_fee }})" style="background:rgba(52,211,153,0.15); color:#34d399; border-color:rgba(52,211,153,0.3); font-weight:700;">
+                💳 Settle from Credit
+              </button>
+            {% else %}
+              <button type="button" class="btn-action-sm" onclick="selectForPos({{ c.id }}, {{ c.net_due_amount }})" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                ⚡ Collect Cash
+              </button>
+            {% endif %}
+
+            <a href="/whatsapp?phone={{ c.phone }}&name={{ c.name|urlencode }}&due={{ c.net_due_amount }}" class="btn-action-sm" style="color:#25d366; background:rgba(37,211,102,0.1); border-color:rgba(37,211,102,0.25); text-decoration:none;" title="Send WhatsApp Reminder">
+              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:24px; text-align:center;">
+          <p style="color:#34d399; font-weight:700; font-size:15px; margin-bottom:4px;">✓ All Collections Up to Date!</p>
+          <p style="font-size:12px; color:var(--text-dim);">No subscribers currently have pending or overdue bills.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- COLLECTIONS AUDIT LEDGER (TRANSACTION HISTORY) -->
+  <div class="panel-card">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>Collections Ledger &amp; Transaction Audit Log</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="font-mono text-white" style="font-size:13px; font-weight:700;">
+          Total: <span class="text-cyan font-mono" id="ledgerTotalSar">{{ "%.2f"|format(filtered_total) }} SAR</span> ({{ filtered_tx_count }} Receipts)
+        </span>
+      </div>
+    </div>
+
+    <!-- SEARCH FILTER INPUT -->
+    <div style="padding:12px 20px; background:#090e1a; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:10px;">
+      <svg style="width:16px; height:16px; fill:var(--text-dim);" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" class="search-input" id="ledgerSearchInput" placeholder="Filter ledger by subscriber name, phone, or notes..." oninput="filterLedgerTable()" style="background:transparent; border:none; outline:none; color:#ffffff; font-size:13px; width:100%;">
+    </div>
+
+    <div class="table-responsive">
+      <table class="clean-table" id="collectionsTable">
+        <thead>
+          <tr>
+            <th>Receipt #</th>
+            <th>Date &amp; Time</th>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Amount (SAR)</th>
+            <th>Transaction Notes / Cycle Extended</th>
+            <th>Collector</th>
+            <th style="text-align:right;">Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if ledger %}
+            {% for tx in ledger %}
+            <tr class="ledger-row" data-search="{{ (tx.customer_name or '')|lower }} {{ tx.customer_phone or '' }} {{ (tx.notes or '')|lower }}">
+              <td class="font-mono text-cyan" style="font-weight:700;">#COL-{{ tx.id }}</td>
+              <td class="font-mono text-dim" style="font-size:12px;">{{ tx.collected_at }}</td>
+              <td>
+                <a href="/customers/{{ tx.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;">
+                  {{ tx.customer_name or 'Account #' ~ tx.customer_id }}
+                </a>
+              </td>
+              <td class="font-mono text-white">{{ tx.customer_phone or '—' }}</td>
+              <td class="font-mono" style="font-weight:800; color:{% if tx.amount > 0 %}#34d399{% else %}#94a3b8{% endif %}; font-size:13.5px;">
+                {{ "%.2f"|format(tx.amount) }} SAR
+              </td>
+              <td style="font-size:12px; color:var(--text-muted);">{{ tx.notes or 'Payment entry' }}</td>
+              <td class="font-mono text-dim" style="font-size:11.5px;">{{ tx.collected_by or 'Admin' }}</td>
+              <td style="text-align:right;">
+                <button type="button" class="btn-action-sm" onclick="printReceiptSlip({{ tx.id }}, '{{ tx.customer_name|escape }}', '{{ tx.customer_phone }}', '{{ tx.amount }}', '{{ tx.collected_at }}', '{{ tx.notes|escape }}', '{{ tx.collected_by }}')" title="Print or view receipt">
+                  <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                  <span>Receipt</span>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8">
+                <div class="empty-state" style="padding:28px; text-align:center;">
+                  <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Transactions Found</p>
+                  <p style="font-size:12px; color:var(--text-dim);">There are no recorded collections for the selected time period.</p>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- PRINTABLE RECEIPT MODAL -->
+<div class="modal-overlay" id="printableReceiptModal">
+  <div class="receipt-slip-box">
+    <div class="receipt-header">
+      <h3>CyberNet OS</h3>
+      <p>ISP &amp; Hotspot Internet Services</p>
+      <p class="font-mono" style="font-size:10px; color:#9ca3af; margin-top:4px;">Official Payment Voucher</p>
+    </div>
+
+    <div class="receipt-body-rows">
+      <div class="receipt-line">
+        <span class="r-lbl">Receipt Number:</span>
+        <span class="r-val font-mono" id="recId">#COL-000</span>
+      </div>
+      <div class="receipt-line">
+        <span class="r-lbl">Date &amp; Time:</span>
+        <span class="r-val font-mono" id="recTime">—</span>
+      </div>
+      <div class="receipt-line">
+        <span class="r-lbl">Subscriber:</span>
+        <span class="r-val" id="recCustName">—</span>
+      </div>
+      <div class="receipt-line">
+        <span class="r-lbl">Phone Number:</span>
+        <span class="r-val font-mono" id="recPhone">—</span>
+      </div>
+      <div class="receipt-line">
+        <span class="r-lbl">Collector Staff:</span>
+        <span class="r-val" id="recCollector">Admin</span>
+      </div>
+    </div>
+
+    <div class="receipt-total-banner">
+      <div style="font-size:10.5px; font-weight:700; color:#6b7280; text-transform:uppercase;">Amount Paid</div>
+      <div class="amount font-mono" id="recAmount">0.00 SAR</div>
+    </div>
+
+    <div style="font-size:11px; color:#4b5563; line-height:1.4; border-top:1px dashed #e5e7eb; padding-top:8px;">
+      <div id="recNotes">Service renewal recorded.</div>
+    </div>
+
+    <div class="no-print" style="display:flex; gap:10px; margin-top:10px;">
+      <button type="button" class="btn-cancel" onclick="closeReceiptModal()" style="flex:1;">Close</button>
+      <button type="button" class="btn-approve" onclick="window.print()" style="flex:1.5; justify-content:center;">🖨️ Print Slip</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function onPosCustomerChange() {
+    const sel = document.getElementById('posCustomerSelect');
+    const opt = sel.options[sel.selectedIndex];
+    const ov = document.getElementById('posCustomerOverview');
+
+    if (!sel.value) {
+      ov.style.display = 'none';
+      document.getElementById('posAmountInput').value = '';
+      return;
+    }
+
+    const name = opt.getAttribute('data-name');
+    const phone = opt.getAttribute('data-phone');
+    const fee = parseFloat(opt.getAttribute('data-fee') || 0);
+    const credit = parseFloat(opt.getAttribute('data-credit') || 0);
+    const due = opt.getAttribute('data-due') || '—';
+    const pkg = opt.getAttribute('data-pkg') || 'Standard';
+
+    document.getElementById('posCustName').textContent = `${name} (${phone})`;
+    document.getElementById('posCustPlanBadge').textContent = pkg;
+    document.getElementById('posCustDueDate').textContent = due;
+    document.getElementById('posCustMonthlyFee').textContent = fee.toFixed(2) + ' SAR';
+    document.getElementById('posCustCredit').textContent = credit.toFixed(2) + ' SAR';
+
+    // Pre-fill required amount (fee minus available credit)
+    const netDue = Math.max(0, fee - credit);
+    document.getElementById('posAmountInput').value = (netDue > 0 ? netDue : fee).toFixed(2);
+    ov.style.display = 'flex';
+  }
+
+  function selectForPos(custId, netDue) {
+    const sel = document.getElementById('posCustomerSelect');
+    sel.value = custId;
+    onPosCustomerChange();
+    if (netDue !== undefined) {
+      document.getElementById('posAmountInput').value = parseFloat(netDue).toFixed(2);
+    }
+    window.scrollTo({ top: document.querySelector('.express-pos-card').offsetTop - 80, behavior: 'smooth' });
+  }
+
+  async function handleExpressCollection(e) {
+    e.preventDefault();
+    const custId = document.getElementById('posCustomerSelect').value;
+    const amt = parseFloat(document.getElementById('posAmountInput').value) || 0;
+    const notes = document.getElementById('posNotesInput').value.trim() || 'Cash Payment';
+
+    if (!custId) {
+      alert('Please select a subscriber to record payment.');
+      return;
+    }
+
+    const btn = document.getElementById('btnPosSubmit');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Processing &amp; Syncing MikroTik...</span>';
+
+    try {
+      const resp = await fetch(`/api/customers/${custId}/record-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amt, notes: notes })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message || 'Payment successfully recorded!');
+        location.reload();
+      } else {
+        alert('Collection failed: ' + (res.message || res.error));
+        btn.disabled = false;
+        btn.innerHTML = '<span>Collect &amp; Extend</span>';
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>Collect &amp; Extend</span>';
+    }
+  }
+
+  async function quickSettleCredit(custId, fee) {
+    if (!confirm(`Settle bill of ${parseFloat(fee).toFixed(2)} SAR from customer's available wallet credit?`)) return;
+    try {
+      const resp = await fetch(`/api/customers/${custId}/apply-credit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: fee, extend_days: 30 })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        alert(res.message || 'Successfully settled from credit balance!');
+        location.reload();
+      } else {
+        alert('Settlement failed: ' + (res.message || res.error));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  // Filter Ledger Table
+  function filterLedgerTable() {
+    const q = document.getElementById('ledgerSearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.ledger-row');
+    rows.forEach(r => {
+      const searchData = r.getAttribute('data-search') || '';
+      r.style.display = (!q || searchData.includes(q)) ? '' : 'none';
+    });
+  }
+
+  // Print Receipt Slip Modal
+  function printReceiptSlip(colId, custName, phone, amount, time, notes, collector) {
+    document.getElementById('recId').textContent = '#COL-' + colId;
+    document.getElementById('recTime').textContent = time;
+    document.getElementById('recCustName').textContent = custName;
+    document.getElementById('recPhone').textContent = phone || '—';
+    document.getElementById('recAmount').textContent = parseFloat(amount).toFixed(2) + ' SAR';
+    document.getElementById('recNotes').textContent = notes || 'Service renewal payment';
+    document.getElementById('recCollector').textContent = collector || 'Admin';
+    document.getElementById('printableReceiptModal').classList.add('open');
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('printableReceiptModal').classList.remove('open');
+  }
+
+  // CSV Export
+  function exportLedgerToCSV() {
+    const rows = document.querySelectorAll('#collectionsTable tr');
+    if (!rows.length) return;
+
+    let csv = [];
+    rows.forEach(r => {
+      let cols = [];
+      r.querySelectorAll('th, td').forEach(c => {
+        let text = c.innerText.replace(/"/g, '""').trim();
+        cols.push(`"${text}"`);
+      });
+      csv.push(cols.join(','));
+    });
+
+    const csvBlob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(csvBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `collections_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+{% endblock %}

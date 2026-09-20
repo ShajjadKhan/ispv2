@@ -768,6 +768,46 @@ async def customer_edit_view(request: Request, customer_id: int):
     )
 
 
+@app.api_route("/collections", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/billing", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def collections_view(
+    request: Request,
+    period: Optional[str] = "month",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    q: Optional[str] = None
+):
+    """
+    Step 4: Collections, Balance Sheet & Financial Ledger Hub.
+    """
+    live_status = router_client.get_live_status()
+    data = database.get_collections_hub_data(
+        period=period or "month",
+        start_date=start_date,
+        end_date=end_date,
+        search_query=q
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="collections.html",
+        context={
+            "router": live_status,
+            "active_page": "collections",
+            "bs": data["balance_sheet"],
+            "due_queue": data["due_queue"],
+            "ledger": data["ledger"],
+            "filtered_total": data["filtered_total"],
+            "filtered_tx_count": data["filtered_tx_count"],
+            "period": period or "month",
+            "start_date": start_date or "",
+            "end_date": end_date or "",
+            "search_q": q or "",
+            "customers_dropdown": data["customers_dropdown"]
+        }
+    )
+
+
 @app.api_route("/packages", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def packages_view(request: Request):
     """
