@@ -1813,6 +1813,8 @@ def get_dashboard_metrics(
 
         cursor.execute("SELECT * FROM customer_devices WHERE status = 'approved'")
         all_devices = [dict(r) for r in cursor.fetchall()]
+        for dev in all_devices:
+            dev["is_random_mac"] = is_randomized_mac(dev.get("mac_address", ""))
 
         # Map devices by customer_id
         cust_devices_map: Dict[int, List[Dict[str, Any]]] = {}
@@ -1862,6 +1864,8 @@ def get_dashboard_metrics(
             cid = c["id"]
             c["devices"] = cust_devices_map.get(cid, [])
             c["devices_count"] = len(c["devices"])
+            c["primary_mac"] = c["devices"][0]["mac_address"] if c["devices"] else None
+            c["primary_mac_is_random"] = is_randomized_mac(c["primary_mac"]) if c["primary_mac"] else False
             c["is_online"] = (cid in online_customer_ids)
             c["credit_balance"] = round(float(c.get("credit_balance") or 0.0), 2)
             c["monthly_fee"] = round(float(c.get("monthly_fee") or 0.0), 2)
@@ -2051,6 +2055,7 @@ def get_dashboard_metrics(
             "collection_rate": collection_rate,
             "expiring_tiers": tier_counts,
             "priority_queue": priority_queue,
+            "all_customers": all_custs,
             "staff_performance": staff_performance,
             "recent_collections": recent_collections
         }

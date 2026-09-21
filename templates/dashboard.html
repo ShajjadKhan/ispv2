@@ -567,6 +567,274 @@
   }
   .form-input:focus { border-color: #38bdf8; }
 
+  /* THEME ORANGE FOR JOIN REQUESTS */
+  .theme-orange .kpi-icon-pill { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+  .theme-orange .kpi-progress-fill { background: #f97316; }
+
+  /* PENDING ALERT HERO BANNER */
+  .pending-alert-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(239, 68, 68, 0.12) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+    animation: alert-pulse 3s infinite;
+  }
+  @keyframes alert-pulse {
+    0%, 100% { border-color: rgba(245, 158, 11, 0.45); }
+    50% { border-color: rgba(245, 158, 11, 0.85); box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
+  }
+
+  .tag-mac-ok {
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 2px 7px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .tag-mac-warn {
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    padding: 2px 7px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .tag-device-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .tag-device-type.new {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .tag-device-type.secondary {
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+  }
+
+  .badge-count {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9999px;
+  }
+  .badge-count.orange {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+  }
+  .badge-count.green {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+  }
+  .badge-count.purple {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+  }
+
+  .btn-approve {
+    background: #10b981;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .btn-approve:hover {
+    background: #059669;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  }
+  .btn-reject {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-reject:hover {
+    background: rgba(239, 68, 68, 0.25);
+  }
+  .btn-view-profile {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .btn-view-profile:hover {
+    background: rgba(56, 189, 248, 0.22);
+    color: #ffffff;
+  }
+
+  /* SUBSCRIBER TABS */
+  .sub-tabs-deck {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 14px 20px;
+    background: rgba(15, 23, 42, 0.6);
+  }
+  .sub-tab-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .sub-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  .sub-tab-btn.active {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  }
+
+  /* BILLING TYPE SELECTOR CARDS FOR APPROVAL MODAL */
+  .billing-type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .type-option-card {
+    background: #0b1120;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .type-option-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .type-option-card.selected {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+  }
+  .type-option-card.selected.prepaid-selected {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .type-option-card .title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .type-option-card.selected.prepaid-selected .title { color: #34d399; }
+  .type-option-card .desc {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .btn-preset {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-preset:hover {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+  }
+  .conditional-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .form-select {
+    width: 100%;
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    outline: none;
+  }
+  .form-select:focus {
+    border-color: #38bdf8;
+  }
+  .device-summary-pill {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .device-summary-pill .lbl { color: var(--text-dim); font-size: 10.5px; text-transform: uppercase; }
+  .device-summary-pill .val { color: #ffffff; font-family: var(--font-mono); font-weight: 700; margin-top: 2px; }
+
   /* PRINT VIEW STYLES */
   @media print {
     body * { visibility: hidden; }
@@ -618,8 +886,53 @@
     </div>
   </div>
 
-  <!-- 6-CARD PRIMARY KPI DECK -->
+  <!-- URGENT JOIN REQUESTS ALERT BANNER -->
+  {% if pending_requests and pending_requests|length > 0 %}
+  <div class="pending-alert-banner" id="pendingAlertBanner">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div style="width:40px; height:40px; border-radius:12px; background:rgba(245,158,11,0.25); border:1px solid rgba(245,158,11,0.5); display:flex; align-items:center; justify-content:center; color:#fbbf24; flex-shrink:0;">
+        <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:8px;">
+          <span>{{ pending_requests|length }} New Wi-Fi Join Request{% if pending_requests|length > 1 %}s{% endif %} Waiting For Approval!</span>
+          <span class="badge-tier overdue" style="font-size:10px; padding:2px 7px;">ACTION REQUIRED</span>
+        </div>
+        <div style="font-size:12.5px; color:#cbd5e1; margin-top:2px;">
+          New client phones are waiting on the captive portal. Verify their physical Device MAC and activate internet access now.
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button type="button" class="btn-approve" onclick="handleKpiCardClick('requests')" style="padding:9px 18px; font-size:13px; box-shadow:0 4px 15px rgba(16,185,129,0.35);">
+        <span>⚡ Review &amp; Approve Now ↓</span>
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 7-CARD PRIMARY KPI DECK -->
   <div class="kpi-deck-grid">
+    <!-- Card 0: Wi-Fi Join Requests -->
+    <div class="kpi-card theme-orange" onclick="handleKpiCardClick('requests')" title="Click to view Pending Wi-Fi Connection Requests">
+      <div class="kpi-card-top">
+        <span class="kpi-label">Wi-Fi Join Requests</span>
+        <div class="kpi-icon-pill">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        </div>
+      </div>
+      <div class="kpi-val-group">
+        <div class="kpi-main-number font-mono" id="kpiPendingCount" style="color: {% if pending_count > 0 %}#fb923c{% else %}#94a3b8{% endif %};">{{ pending_count }} <span style="font-size:14px; font-weight:600; color:var(--text-dim);">Waiting</span></div>
+        <div class="kpi-sub-text" id="kpiPendingSub">{% if pending_count > 0 %}⚡ Awaiting Internet Activation{% else %}All requests resolved{% endif %}</div>
+      </div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: {% if pending_count > 0 %}100{% else %}0{% endif %}%; background: #f97316;"></div>
+      </div>
+      <div class="kpi-filter-hint">
+        <span>🔍 Review Join Requests ↓</span>
+      </div>
+    </div>
+
     <!-- Card 1: Network & Connected Devices -->
     <div class="kpi-card theme-cyan" onclick="handleKpiCardClick('live_devices')" title="Click to view Active & Online Subscribers">
       <div class="kpi-card-top">
@@ -782,94 +1095,290 @@
     </div>
   </div>
 
-  <!-- WILL SUSPEND TIER FILTER BAR -->
-  <div class="tier-filter-deck">
-    <span class="tier-deck-title">Priority Expiration Filter:</span>
-
-    <button type="button" class="tier-pill-btn active" data-filter="all" onclick="filterQueueByTier('all')">
-      <span>All Priority Accounts</span>
-      <span class="tier-count-badge">{{ metrics.expiring_tiers.total }}</span>
-    </button>
-
-    <button type="button" class="tier-pill-btn danger-pill" data-filter="overdue" onclick="filterQueueByTier('overdue')">
-      <span>🚨 Overdue / Today</span>
-      <span class="tier-count-badge">{{ metrics.expiring_tiers.today_overdue }}</span>
-    </button>
-
-    <button type="button" class="tier-pill-btn warning-pill" data-filter="in_3d" onclick="filterQueueByTier('in_3d')">
-      <span>⚠️ Within 3 Days</span>
-      <span class="tier-count-badge">{{ metrics.expiring_tiers.in_3d }}</span>
-    </button>
-
-    <button type="button" class="tier-pill-btn" data-filter="in_7d" onclick="filterQueueByTier('in_7d')">
-      <span>📅 Within 7 Days</span>
-      <span class="tier-count-badge">{{ metrics.expiring_tiers.in_7d }}</span>
-    </button>
-
-    <button type="button" class="tier-pill-btn" data-filter="in_15d" onclick="filterQueueByTier('in_15d')">
-      <span>⏳ Within 15 Days</span>
-      <span class="tier-count-badge">{{ metrics.expiring_tiers.in_15d }}</span>
-    </button>
-  </div>
-
-  <!-- PRIORITY ACTION QUEUE (EXPIRING & DUE TABLE) -->
-  <div class="section-card" id="priorityQueueSection">
-    <div class="section-card-header">
-      <div>
-        <div style="font-size:15px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
-          <svg style="width:18px; height:18px; fill:#fbbf24;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-          <span>Priority Action Queue (Expiring &amp; Due Accounts)</span>
+  <!-- =========================================================
+       NEW WI-FI JOIN REQUESTS SECTION (PENDING CLIENTS)
+       ========================================================= -->
+  <div class="section-card" id="pendingRequestsSection" style="border: 1px solid {% if pending_count > 0 %}rgba(245, 158, 11, 0.45){% else %}var(--border-subtle){% endif %};">
+    <div class="section-card-header" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; color: #fbbf24;">
+          <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
         </div>
-        <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
-          Direct 1-click collection, auto-split advance handling, and subscriber management
+        <div>
+          <div style="font-size: 16px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+            <span>New Wi-Fi Join Requests</span>
+            <span class="badge-count orange" id="badgePendingCount">{{ pending_requests|length }} Pending</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">
+            Hotspot client signups awaiting verification &amp; MikroTik internet activation. Real Device MAC strictly enforced.
+          </div>
         </div>
       </div>
 
-      <div>
-        <input type="text" id="queueSearchInput" class="search-input-box" placeholder="Search by name, phone, or package..." onkeyup="filterQueueSearch()">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button type="button" class="btn-report-modal" onclick="refreshPendingRequests()" title="Poll router for new requests">
+          <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          <span>Refresh</span>
+        </button>
+        <a href="/approvals" class="btn-table-manage" style="padding: 7px 12px; font-size: 12px;">
+          <span>Approvals Hub →</span>
+        </a>
       </div>
     </div>
 
+    <!-- Table of Pending Requests -->
     <div style="overflow-x: auto;">
-      <table class="clean-table" id="priorityQueueTable">
+      <table class="clean-table" id="pendingTable">
         <thead>
           <tr>
-            <th>Subscriber</th>
+            <th>Phone Number</th>
+            <th>Device MAC Address</th>
+            <th>IP Address</th>
             <th>Type</th>
-            <th>Package &amp; Fee</th>
-            <th>Due / Expiry Date</th>
-            <th>Credit Balance</th>
-            <th>Status / Urgent Tier</th>
-            <th style="text-align: right;">Action</th>
+            <th>Device Info</th>
+            <th>Requested Time</th>
+            <th style="text-align: right;">Actions</th>
           </tr>
         </thead>
-        <tbody id="queueTableBody">
-          {% if not metrics.priority_queue %}
+        <tbody id="pendingTableBody">
+          {% if pending_requests %}
+            {% for req in pending_requests %}
+            <tr id="req-row-{{ req.id }}" {% if req.is_random_mac %}style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"{% endif %}>
+              <td class="font-mono text-white" style="font-weight:700;">{{ req.phone }}</td>
+              <td class="font-mono">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="text-cyan" style="font-weight:700;">{{ req.mac_address }}</span>
+                  {% if req.is_random_mac %}
+                    <span class="tag-mac-warn" title="Randomized MAC address detected. Real Device MAC required.">
+                      ⚠ RANDOM MAC
+                    </span>
+                  {% else %}
+                    <span class="tag-mac-ok" title="Verified Physical Device MAC">
+                      ✓ DEVICE MAC
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="font-mono text-dim">{{ req.ip_address or '—' }}</td>
+              <td>
+                {% if req.is_secondary %}
+                  <div style="display:flex; flex-direction:column; gap:3px;">
+                    <span class="tag-device-type secondary" title="Existing customer: {{ req.existing_customer_name }}">
+                      Secondary Device
+                    </span>
+                    <span class="font-mono" style="font-size:11px; color:{% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}#f87171{% else %}#34d399{% endif %}; font-weight:700;">
+                      {% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}
+                        ⚠ Limit ({{ req.current_device_count }}/{{ req.customer_max_devices }})
+                      {% else %}
+                        Device {{ (req.current_device_count or 0) + 1 }} of {{ req.customer_max_devices or 1 }}
+                      {% endif %}
+                    </span>
+                  </div>
+                {% else %}
+                  <span class="tag-device-type new">New Customer</span>
+                {% endif %}
+              </td>
+              <td class="text-dim" style="font-size:12px; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                {{ req.device_model or 'Mobile Client' }}
+              </td>
+              <td class="font-mono text-dim" style="font-size:12px;">{{ req.created_at }}</td>
+              <td style="text-align:right;">
+                <div style="display:inline-flex; gap:8px;">
+                  {% if req.is_random_mac %}
+                    <button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
+                      <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                      <span>Random MAC</span>
+                    </button>
+                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})" title="Reject Random MAC request">
+                      Reject
+                    </button>
+                  {% else %}
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', {{ 1 if req.is_secondary else 0 }}, {{ req.customer_max_devices or 1 }})">
+                      <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                      <span>Approve</span>
+                    </button>
+                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                      Reject
+                    </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr id="emptyPendingRow">
+              <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-dim);">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                  <svg style="width: 32px; height: 32px; fill: #64748b;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                  <div style="font-weight: 700; color: #cbd5e1; font-size: 14px;">No Pending Join Requests</div>
+                  <div style="font-size: 12px; color: var(--text-dim); max-width: 480px;">When a subscriber attempts to log in on the captive portal, their request and verified physical Device MAC will appear here immediately for 1-click activation.</div>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SUBSCRIBERS & CUSTOMER DETAILS OPERATIONS HUB
+       ========================================================= -->
+  <div class="section-card" id="subscribersSection">
+    <div class="section-card-header">
+      <div>
+        <div style="font-size:16px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:10px;">
+          <svg style="width:19px; height:19px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Subscribers &amp; Customer Details Hub</span>
+          <span class="badge-count green" id="badgeSubTotal">{{ metrics.total_subscribers }} Accounts</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
+          Complete subscriber accounts directory, connected devices, MAC addresses, billing cycles &amp; quick actions
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="subscribersSearchInput" class="search-input-box" placeholder="Search by name, phone, MAC, package..." onkeyup="filterSubscribersSearch()" style="min-width:260px;">
+        <a href="/customers" class="btn-table-manage" style="padding: 8px 14px; font-size: 12px;">
+          <span>Open Full Directory →</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="sub-tabs-deck">
+      <button type="button" class="sub-tab-btn active" id="tabBtnAll" onclick="filterSubscribersTab('all')">
+        <span>All Subscribers</span>
+        <span class="badge-count green">{{ metrics.total_subscribers }}</span>
+      </button>
+
+      <button type="button" class="sub-tab-btn" id="tabBtnPriority" onclick="filterSubscribersTab('priority')">
+        <span>🚨 Expiring &amp; Due Queue</span>
+        <span class="badge-count orange">{{ metrics.expiring_tiers.total }}</span>
+      </button>
+
+      <button type="button" class="sub-tab-btn" id="tabBtnOnline" onclick="filterSubscribersTab('online')">
+        <span>⚡ Live Online Now</span>
+        <span class="badge-count green">{{ metrics.active_subscribers_online }}</span>
+      </button>
+
+      <button type="button" class="sub-tab-btn" id="tabBtnSuspended" onclick="filterSubscribersTab('suspended')">
+        <span>⛔ Suspended</span>
+        <span class="badge-count orange" style="background:rgba(239,68,68,0.2); color:#f87171; border-color:rgba(239,68,68,0.4);">{{ metrics.suspended_count }}</span>
+      </button>
+    </div>
+
+    <!-- Sub-tier Filter Bar (Shown when Expiring & Due Queue is Active) -->
+    <div class="tier-filter-deck" id="prioritySubTierDeck" style="display: none; border-bottom: 1px solid var(--border-subtle); border-radius: 0;">
+      <span class="tier-deck-title">Expiration Tier:</span>
+
+      <button type="button" class="tier-pill-btn active" data-subfilter="all" onclick="filterQueueByTier('all')">
+        <span>All Priority Accounts</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.total }}</span>
+      </button>
+
+      <button type="button" class="tier-pill-btn danger-pill" data-subfilter="overdue" onclick="filterQueueByTier('overdue')">
+        <span>🚨 Overdue / Today</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.today_overdue }}</span>
+      </button>
+
+      <button type="button" class="tier-pill-btn warning-pill" data-subfilter="in_3d" onclick="filterQueueByTier('in_3d')">
+        <span>⚠️ Within 3 Days</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.in_3d }}</span>
+      </button>
+
+      <button type="button" class="tier-pill-btn" data-subfilter="in_7d" onclick="filterQueueByTier('in_7d')">
+        <span>📅 Within 7 Days</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.in_7d }}</span>
+      </button>
+
+      <button type="button" class="tier-pill-btn" data-subfilter="in_15d" onclick="filterQueueByTier('in_15d')">
+        <span>⏳ Within 15 Days</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.in_15d }}</span>
+      </button>
+    </div>
+
+    <!-- Subscribers Table -->
+    <div style="overflow-x: auto;">
+      <table class="clean-table" id="subscribersTable">
+        <thead>
           <tr>
-            <td colspan="7" style="text-align: center; padding: 36px; color: var(--text-dim);">
-              <svg style="width: 36px; height: 36px; fill: #10b981; margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              <div style="font-size: 14px; font-weight: 700; color: #ffffff;">All Accounts In Good Standing</div>
-              <div style="font-size: 12px; margin-top: 4px;">No subscribers are currently overdue or expiring within the next 15 days.</div>
+            <th>Subscriber Details</th>
+            <th>Bound Device &amp; MAC</th>
+            <th>Type</th>
+            <th>Package &amp; Speed</th>
+            <th>Due / Expiry Date</th>
+            <th>Credit Wallet</th>
+            <th>Account Status</th>
+            <th style="text-align: right;">Quick Actions</th>
+          </tr>
+        </thead>
+        <tbody id="subscribersTableBody">
+          {% set cust_list = metrics.all_customers if metrics.all_customers else metrics.priority_queue %}
+          {% if not cust_list %}
+          <tr id="emptyCustRow">
+            <td colspan="8" style="text-align: center; padding: 36px; color: var(--text-dim);">
+              <svg style="width: 36px; height: 36px; fill: #64748b; margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <div style="font-size: 14px; font-weight: 700; color: #ffffff;">No Customers Registered Yet</div>
+              <div style="font-size: 12px; margin-top: 4px;">Subscribers will appear here once approved from Wi-Fi Join Requests.</div>
             </td>
           </tr>
           {% else %}
-            {% for c in metrics.priority_queue %}
-            <tr data-tier="{{ c.tier }}" data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }}">
+            {% for c in cust_list %}
+            <tr class="cust-row"
+                id="cust-row-{{ c.id }}"
+                data-id="{{ c.id }}"
+                data-tier="{{ c.tier }}"
+                data-status="{{ c.status }}"
+                data-online="{{ 'true' if c.is_online else 'false' }}"
+                data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }} {{ c.primary_mac | lower if c.primary_mac else '' }} {{ c.billing_type | lower }} {{ c.status | lower }}">
               <td>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik{% else %}Offline{% endif %}"></span>
+                  <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik Router{% else %}Offline{% endif %}"></span>
                   <div>
-                    <div style="font-weight: 700; color: #ffffff;">{{ c.name }}</div>
+                    <div style="font-weight: 700; color: #ffffff; display:flex; align-items:center; gap:6px;">
+                      <span>{{ c.name }}</span>
+                      {% if c.reseller_shop_name %}
+                        <span style="font-size:10px; background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); padding:1px 5px; border-radius:4px;" title="Reseller: {{ c.reseller_shop_name }}">{{ c.reseller_shop_name }}</span>
+                      {% endif %}
+                    </div>
                     <div class="font-mono text-dim" style="font-size: 11px;">{{ c.phone }}</div>
                   </div>
                 </div>
+              </td>
+              <td>
+                {% if c.primary_mac %}
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                      <span class="font-mono text-cyan" style="font-size: 12px; font-weight:700;">{{ c.primary_mac }}</span>
+                      {% if c.primary_mac_is_random %}
+                        <span class="tag-mac-warn" title="Random MAC detected">⚠ RANDOM</span>
+                      {% else %}
+                        <span class="tag-mac-ok" title="Verified Physical Device MAC">✓ DEVICE MAC</span>
+                      {% endif %}
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+                      <span>{{ c.devices_count }} device{% if c.devices_count > 1 %}s{% endif %}</span>
+                      {% if c.devices_count > 1 %}
+                        <span style="color: #38bdf8; font-weight: 600;">(+{{ c.devices_count - 1 }} more)</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% else %}
+                  <span class="text-dim" style="font-size: 12px;">No MAC bound</span>
+                {% endif %}
               </td>
               <td>
                 <span class="badge-mode mode-{{ c.billing_type }}">{{ c.billing_type }}</span>
               </td>
               <td>
                 <div style="font-weight: 600; color: #ffffff;">{{ c.package_name }}</div>
-                <div class="font-mono text-cyan" style="font-size: 12px;">{{ "%.2f"|format(c.monthly_fee) }} SAR/mo</div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                  <span class="font-mono text-cyan" style="font-size: 12px; font-weight:700;">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
+                  {% if c.speed_limit %}
+                    <span class="font-mono text-dim" style="font-size: 10px; background:rgba(255,255,255,0.06); padding:1px 4px; border-radius:3px;">{{ c.speed_limit }}</span>
+                  {% endif %}
+                </div>
               </td>
               <td>
                 <div class="font-mono" style="font-weight: 600; color: #ffffff;">{{ c.due_date or c.expiry_date or '—' }}</div>
@@ -894,12 +1403,16 @@
                 {% endif %}
               </td>
               <td style="text-align: right;">
-                <div style="display: inline-flex; align-items: center; gap: 6px;">
-                  <button type="button" class="btn-quick-collect" onclick="openQuickCollectModal({{ c.id }}, '{{ c.name }}', '{{ c.phone }}', {{ c.monthly_fee }}, {{ c.credit_balance }})">
-                    <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+                <div style="display: inline-flex; align-items: center; gap: 5px;">
+                  <button type="button" class="btn-quick-collect" onclick="openQuickCollectModal({{ c.id }}, '{{ c.name }}', '{{ c.phone }}', {{ c.monthly_fee }}, {{ c.credit_balance }})" title="Quick Collect Bill">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                     <span>Collect</span>
                   </button>
-                  <a href="/customers?manage={{ c.id }}" class="btn-table-manage">
+                  <button type="button" class="btn-view-profile" onclick="openCustomerDetailsModal({{ c.id }})" title="View Customer Full Details">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <span>Details</span>
+                  </button>
+                  <a href="/customers?manage={{ c.id }}" class="btn-table-manage" title="Edit Customer Account">
                     <span>Manage</span>
                   </a>
                 </div>
@@ -1137,6 +1650,170 @@
         </div>
       </div>
 
+<!-- APPROVAL MODAL -->
+<div id="approvalModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 540px;">
+    <div class="modal-header">
+      <div>
+        <h3 style="display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <span>Approve &amp; Activate Wi-Fi Subscriber</span>
+        </h3>
+        <p style="font-size:12px; color:var(--text-dim); margin-top:2px;">Configures MikroTik IP-binding &amp; queue speed limit</p>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeApprovalModal()">&times;</button>
+    </div>
+
+    <form id="approvalForm" onsubmit="submitApproval(event)">
+      <div class="modal-body">
+        <input type="hidden" id="modalReqId" name="req_id">
+        <input type="hidden" id="modalMac" name="mac_address">
+        <input type="hidden" id="modalIp" name="ip_address">
+        <input type="hidden" id="selectedBillingType" name="billing_type" value="prepaid">
+
+        <!-- Hardware & Phone Summary -->
+        <div class="device-summary-pill">
+          <div>
+            <div class="lbl">Phone Number</div>
+            <div class="val text-cyan" id="dispPhone">—</div>
+          </div>
+          <div>
+            <div class="lbl">Device MAC</div>
+            <div class="val text-emerald" id="dispMac">—</div>
+          </div>
+        </div>
+
+        <!-- Customer Full Name -->
+        <div class="form-group">
+          <label>Subscriber Full Name</label>
+          <input type="text" class="form-input" id="custName" name="name" required placeholder="e.g. John Doe">
+        </div>
+
+        <!-- Package Selection -->
+        <div class="form-group">
+          <label>Internet Service Package</label>
+          <select class="form-select" id="pkgSelect" name="package_name" onchange="onPackageChanged()">
+            {% for pkg in packages %}
+            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-shared="{{ pkg.shared_users }}" data-rate="{{ pkg.rate_limit or '' }}">
+              {{ pkg.name }} — {{ "%.2f"|format(pkg.default_price) }} SAR/mo (Speed: {{ pkg.rate_limit or 'Unlimited' }}, Max: {{ pkg.shared_users or 1 }} dev)
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Speed & Device Limits -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Speed Limit</label>
+            <input type="text" class="form-input font-mono" id="approvalCustSpeed" name="speed_limit" value="Unlimited">
+            <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="setApprovalSpeed('5M/5M')">5M</button>
+              <button type="button" class="btn-preset" onclick="setApprovalSpeed('10M/10M')">10M</button>
+              <button type="button" class="btn-preset" onclick="setApprovalSpeed('20M/20M')">20M</button>
+              <button type="button" class="btn-preset" onclick="setApprovalSpeed('Unlimited')">Max</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Max Allowed Devices</label>
+            <input type="number" min="1" max="10" class="form-input font-mono" id="inputMaxDevices" name="max_devices" value="1">
+            <div style="display:flex; gap:4px; margin-top:4px;">
+              <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Dev</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Dev</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Dev</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing Type Selector -->
+        <div class="form-group">
+          <label>Billing Model</label>
+          <div class="billing-type-grid">
+            <div class="type-option-card prepaid-selected selected" id="cardPrepaid" onclick="selectBillingType('prepaid')">
+              <div class="title">⚡ PREPAID</div>
+              <div class="desc">Pay upfront today. Service active for 30 days.</div>
+            </div>
+            <div class="type-option-card" id="cardPostpaid" onclick="selectBillingType('postpaid')">
+              <div class="title">📅 POSTPAID</div>
+              <div class="desc">Billed at cycle end. Manual or deferred payment.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prepaid Fields -->
+        <div id="prepaidFieldsBox" class="conditional-box">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Amount Collected (SAR)</label>
+              <input type="number" step="0.01" class="form-input font-mono" id="inputCollectedToday" name="collected_today" value="75.00" required>
+            </div>
+            <div class="form-group">
+              <label>Monthly Fee (SAR)</label>
+              <input type="number" step="0.01" class="form-input font-mono" id="inputPrepaidMonthly" name="prepaid_monthly_fee" value="75.00" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Validity Due Date</label>
+            <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date">
+          </div>
+        </div>
+
+        <!-- Postpaid Fields -->
+        <div id="postpaidFieldsBox" class="conditional-box" style="display:none;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Monthly Fee (SAR)</label>
+              <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidMonthly" name="postpaid_monthly_fee" value="75.00">
+            </div>
+            <div class="form-group">
+              <label>Advance Payment (SAR)</label>
+              <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidCollected" name="postpaid_collected" value="0.00" oninput="calculatePostpaidAdvance()">
+            </div>
+          </div>
+          <div id="postpaidAdvancePreview" style="display:none; background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.3); border-radius:8px; padding:10px; font-size:12px;">
+            <span id="postpaidCreditBadge" class="badge-count purple" style="margin-bottom:4px; display:inline-block;">Advance</span>
+            <div id="postpaidAdvanceText" style="color:#e2e8f0; margin-top:2px;"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Due Date</label>
+              <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date">
+            </div>
+            <div class="form-group">
+              <label>Due Day of Month</label>
+              <input type="number" min="1" max="31" class="form-input font-mono" id="inputDueDay" name="due_day" value="10">
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn-table-manage" onclick="closeApprovalModal()">Cancel</button>
+          <button type="submit" class="btn-approve" id="btnSubmitApprove" style="padding:10px 20px; font-size:13px;">
+            <span>Approve &amp; Activate Internet</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CUSTOMER DETAILS / PROFILE MODAL -->
+<div id="customerDetailsModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 680px;">
+    <div class="modal-header">
+      <div>
+        <h3 id="cdModalTitle" style="display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Subscriber Full Details</span>
+        </h3>
+        <p id="cdModalSub" style="font-size:12px; color:var(--text-dim); margin-top:2px;">Detailed account view &amp; connected hardware</p>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeCustomerDetailsModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="cdModalBody">
+      <!-- Dynamically filled by openCustomerDetailsModal -->
+      <div style="text-align:center; padding:30px; color:var(--text-dim);">
+        <div>Loading subscriber profile...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1152,72 +1829,130 @@
     window.location.href = '/?month=' + encodeURIComponent(m);
   }
 
+  let activeSubTab = 'all';
+  let activePrioritySubFilter = 'all';
+
   // Drill-down KPI Card Clicks
   function handleKpiCardClick(type) {
-    if (type === 'live_devices') {
-      window.location.href = '/customers?filter=active';
+    if (type === 'requests') {
+      const el = document.getElementById('pendingRequestsSection');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.boxShadow = '0 0 0 2px #f59e0b, 0 10px 30px rgba(245, 158, 11, 0.25)';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
+      }
+    } else if (type === 'live_devices') {
+      filterSubscribersTab('online');
+      const el = document.getElementById('subscribersSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (type === 'subscribers') {
-      window.location.href = '/customers?filter=all';
+      filterSubscribersTab('all');
+      const el = document.getElementById('subscribersSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (type === 'collected') {
       window.location.href = '/collections?period=month#ledgerPanel';
     } else if (type === 'due') {
+      filterSubscribersTab('priority');
       filterQueueByTier('overdue');
-      const queueEl = document.getElementById('priorityQueueSection');
-      if (queueEl) {
-        queueEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        queueEl.style.boxShadow = '0 0 0 2px #f59e0b, 0 10px 30px rgba(245, 158, 11, 0.25)';
-        setTimeout(() => { queueEl.style.boxShadow = ''; }, 2000);
+      const el = document.getElementById('subscribersSection');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.boxShadow = '0 0 0 2px #f59e0b, 0 10px 30px rgba(245, 158, 11, 0.25)';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
       }
     } else if (type === 'rate') {
       window.location.href = '/collections?period=month';
     } else if (type === 'expiring') {
+      filterSubscribersTab('priority');
       filterQueueByTier('all');
-      const queueEl = document.getElementById('priorityQueueSection');
-      if (queueEl) {
-        queueEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        queueEl.style.boxShadow = '0 0 0 2px #f87171, 0 10px 30px rgba(239, 68, 68, 0.25)';
-        setTimeout(() => { queueEl.style.boxShadow = ''; }, 2000);
+      const el = document.getElementById('subscribersSection');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.boxShadow = '0 0 0 2px #f87171, 0 10px 30px rgba(239, 68, 68, 0.25)';
+        setTimeout(() => { el.style.boxShadow = ''; }, 2000);
       }
     }
   }
 
-  // Tier Filter Pills
-  function filterQueueByTier(tier) {
-    const pills = document.querySelectorAll('.tier-pill-btn');
-    pills.forEach(p => p.classList.remove('active'));
+  // Subscribers Tab Switching
+  function filterSubscribersTab(tab) {
+    activeSubTab = tab;
 
-    const targetPill = document.querySelector(`.tier-pill-btn[data-filter="${tier}"]`);
-    if (targetPill) targetPill.classList.add('active');
+    document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (btn) btn.classList.add('active');
 
-    const rows = document.querySelectorAll('#queueTableBody tr[data-tier]');
-    rows.forEach(r => {
-      const rowTier = r.getAttribute('data-tier');
-      if (tier === 'all') {
-        r.style.display = '';
-      } else if (tier === 'overdue') {
-        if (rowTier === 'overdue' || rowTier === 'today' || rowTier === 'suspended') {
-          r.style.display = '';
-        } else {
-          r.style.display = 'none';
-        }
-      } else {
-        r.style.display = (rowTier === tier) ? '' : 'none';
-      }
-    });
+    const subTierDeck = document.getElementById('prioritySubTierDeck');
+    if (tab === 'priority') {
+      if (subTierDeck) subTierDeck.style.display = 'flex';
+    } else {
+      if (subTierDeck) subTierDeck.style.display = 'none';
+    }
+
+    applySubscribersFilter();
   }
 
-  // Search Filter in Priority Table
-  function filterQueueSearch() {
-    const q = document.getElementById('queueSearchInput').value.toLowerCase().trim();
-    const rows = document.querySelectorAll('#queueTableBody tr[data-search]');
+  // Sub-tier Filter for Priority Queue
+  function filterQueueByTier(tier) {
+    activePrioritySubFilter = tier;
+    document.querySelectorAll('.tier-pill-btn').forEach(p => p.classList.remove('active'));
+    const target = document.querySelector(`.tier-pill-btn[data-subfilter="${tier}"]`);
+    if (target) target.classList.add('active');
+
+    applySubscribersFilter();
+  }
+
+  // Combined Filtering: Tab + Priority Tier + Search
+  function applySubscribersFilter() {
+    const q = (document.getElementById('subscribersSearchInput').value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#subscribersTableBody tr.cust-row');
+    let visibleCount = 0;
+
     rows.forEach(r => {
-      const text = r.getAttribute('data-search') || '';
-      if (!q || text.includes(q)) {
+      const tier = r.getAttribute('data-tier') || '';
+      const status = r.getAttribute('data-status') || '';
+      const isOnline = r.getAttribute('data-online') === 'true';
+      const searchText = r.getAttribute('data-search') || '';
+
+      // 1. Tab check
+      let matchesTab = false;
+      if (activeSubTab === 'all') {
+        matchesTab = true;
+      } else if (activeSubTab === 'priority') {
+        if (['overdue', 'today', 'in_3d', 'in_7d', 'in_15d'].includes(tier) || status === 'suspended') {
+          if (activePrioritySubFilter === 'all') {
+            matchesTab = true;
+          } else if (activePrioritySubFilter === 'overdue') {
+            matchesTab = (tier === 'overdue' || tier === 'today' || status === 'suspended');
+          } else {
+            matchesTab = (tier === activePrioritySubFilter);
+          }
+        }
+      } else if (activeSubTab === 'online') {
+        matchesTab = isOnline;
+      } else if (activeSubTab === 'suspended') {
+        matchesTab = (status === 'suspended');
+      }
+
+      // 2. Search check
+      const matchesSearch = (!q || searchText.includes(q));
+
+      if (matchesTab && matchesSearch) {
         r.style.display = '';
+        visibleCount++;
       } else {
         r.style.display = 'none';
       }
     });
+
+    const emptyRow = document.getElementById('emptyCustRow');
+    if (emptyRow) {
+      emptyRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+    }
+  }
+
+  function filterSubscribersSearch() {
+    applySubscribersFilter();
   }
 
   // Quick Collect Modal Logic
@@ -1358,15 +2093,494 @@
 
   // Hook into live telemetry poller from base.html to update live connectivity numbers without full reload
   function handleTelemetryUpdate(d) {
-    // If telemetry status updates, poll /api/dashboard/metrics
     fetch('/api/dashboard/metrics')
       .then(r => r.json())
       .then(res => {
         if (res && res.metrics) {
-          // Optional subtle live updates can be bound here
+          // Optional telemetry updates
         }
       })
       .catch(() => {});
+  }
+
+  // =========================================================
+  // APPROVAL & JOIN REQUEST LOGIC
+  // =========================================================
+  let currentBillingType = 'prepaid';
+
+  function selectBillingType(type) {
+    currentBillingType = type;
+    document.getElementById('selectedBillingType').value = type;
+
+    const cardPre = document.getElementById('cardPrepaid');
+    const cardPost = document.getElementById('cardPostpaid');
+    const boxPre = document.getElementById('prepaidFieldsBox');
+    const boxPost = document.getElementById('postpaidFieldsBox');
+
+    if (type === 'prepaid') {
+      cardPre.className = 'type-option-card prepaid-selected selected';
+      cardPost.className = 'type-option-card';
+      boxPre.style.display = 'flex';
+      boxPost.style.display = 'none';
+      document.getElementById('inputCollectedToday').required = true;
+    } else {
+      cardPre.className = 'type-option-card';
+      cardPost.className = 'type-option-card selected';
+      boxPre.style.display = 'none';
+      boxPost.style.display = 'flex';
+      document.getElementById('inputCollectedToday').required = false;
+    }
+  }
+
+  function setDevLimit(n) {
+    const el = document.getElementById('inputMaxDevices');
+    el.value = n;
+    el.dataset.manuallySet = "true";
+  }
+
+  function setApprovalSpeed(spd) {
+    document.getElementById('approvalCustSpeed').value = spd;
+  }
+
+  function onPackageChanged() {
+    const sel = document.getElementById('pkgSelect');
+    if (!sel || !sel.options || sel.selectedIndex < 0) return;
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.getAttribute('data-price') || '75.00';
+    const shared = opt.getAttribute('data-shared') || '1';
+    const rate = opt.getAttribute('data-rate') || '';
+
+    const colToday = document.getElementById('inputCollectedToday');
+    if (colToday) colToday.value = price;
+    const prepMonthly = document.getElementById('inputPrepaidMonthly');
+    if (prepMonthly) prepMonthly.value = price;
+    const postMonthly = document.getElementById('inputPostpaidMonthly');
+    if (postMonthly) postMonthly.value = price;
+
+    const spdInput = document.getElementById('approvalCustSpeed');
+    if (spdInput) {
+      spdInput.value = (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') ? rate : 'Unlimited';
+    }
+
+    const devInput = document.getElementById('inputMaxDevices');
+    if (devInput && !devInput.dataset.manuallySet) {
+      devInput.value = shared;
+    }
+  }
+
+  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev) {
+    document.getElementById('modalReqId').value = reqId;
+    document.getElementById('modalMac').value = mac;
+    document.getElementById('modalIp').value = ip;
+    document.getElementById('dispPhone').textContent = phone;
+    document.getElementById('dispMac').textContent = mac;
+
+    const nameField = document.getElementById('custName');
+    nameField.value = custName ? custName : ('Customer ' + phone);
+
+    const devInput = document.getElementById('inputMaxDevices');
+    devInput.dataset.manuallySet = "";
+    if (existingMaxDev && parseInt(existingMaxDev) > 0) {
+      devInput.value = existingMaxDev;
+      devInput.dataset.manuallySet = "true";
+    } else {
+      devInput.value = 1;
+    }
+
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + 30);
+    const dateStr = futureDate.toISOString().split('T')[0];
+
+    const prepDateEl = document.getElementById('inputPrepaidDueDate');
+    if (prepDateEl) prepDateEl.value = dateStr;
+    const postDateEl = document.getElementById('inputPostpaidDueDate');
+    if (postDateEl) postDateEl.value = dateStr;
+    const dueDayEl = document.getElementById('inputDueDay');
+    if (dueDayEl) dueDayEl.value = futureDate.getDate();
+    const postColEl = document.getElementById('inputPostpaidCollected');
+    if (postColEl) postColEl.value = '0.00';
+
+    selectBillingType('prepaid');
+    onPackageChanged();
+    calculatePostpaidAdvance();
+
+    document.getElementById('approvalModal').classList.add('open');
+  }
+
+  function closeApprovalModal() {
+    document.getElementById('approvalModal').classList.remove('open');
+  }
+
+  function calculatePostpaidAdvance() {
+    const feeInput = document.getElementById('inputPostpaidMonthly');
+    const colInput = document.getElementById('inputPostpaidCollected');
+    const previewBox = document.getElementById('postpaidAdvancePreview');
+    const badgeEl = document.getElementById('postpaidCreditBadge');
+    const textEl = document.getElementById('postpaidAdvanceText');
+
+    if (!feeInput || !colInput || !previewBox) return;
+
+    const fee = parseFloat(feeInput.value) || 0.0;
+    const collected = parseFloat(colInput.value) || 0.0;
+
+    if (collected > fee && fee > 0) {
+      previewBox.style.display = 'block';
+      const surplus = parseFloat((collected - fee).toFixed(2));
+      badgeEl.textContent = `+${surplus.toFixed(2)} SAR Credit`;
+      textEl.innerHTML = `Customer pays <strong>${collected.toFixed(2)} SAR</strong> upfront. <strong>${fee.toFixed(2)} SAR</strong> activates the first month. The remaining <strong>+${surplus.toFixed(2)} SAR</strong> is credited to balance.<br><span style="color:#c084fc; font-size:11px;">⚡ Advance registered: Auto-switches to <strong>PREPAID</strong>.</span>`;
+    } else if (collected > 0 && collected === fee) {
+      previewBox.style.display = 'block';
+      badgeEl.textContent = '1 Month Covered';
+      textEl.innerHTML = `Full payment of <strong>${collected.toFixed(2)} SAR</strong> received. Account activated as <strong>PREPAID</strong>.`;
+    } else {
+      previewBox.style.display = 'none';
+    }
+  }
+
+  async function submitApproval(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitApprove');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Activating on MikroTik...</span>';
+
+    const reqId = document.getElementById('modalReqId').value;
+    const name = document.getElementById('custName').value.trim();
+    const billingType = document.getElementById('selectedBillingType').value;
+    const pkgSelect = document.getElementById('pkgSelect');
+    const pkgName = pkgSelect.options[pkgSelect.selectedIndex].value;
+    const speedLimit = document.getElementById('approvalCustSpeed').value.trim();
+    const maxDevices = parseInt(document.getElementById('inputMaxDevices').value) || 1;
+
+    let monthlyFee = 0.0;
+    let collectedToday = 0.0;
+    let dueDay = 1;
+    let dueDate = null;
+
+    if (billingType === 'prepaid') {
+      collectedToday = parseFloat(document.getElementById('inputCollectedToday').value) || 0.0;
+      monthlyFee = parseFloat(document.getElementById('inputPrepaidMonthly').value) || collectedToday;
+      dueDate = document.getElementById('inputPrepaidDueDate').value;
+    } else {
+      monthlyFee = parseFloat(document.getElementById('inputPostpaidMonthly').value) || 0.0;
+      collectedToday = parseFloat(document.getElementById('inputPostpaidCollected').value) || 0.0;
+      dueDay = parseInt(document.getElementById('inputDueDay').value) || 1;
+      dueDate = document.getElementById('inputPostpaidDueDate').value;
+    }
+
+    try {
+      const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          billing_type: billingType,
+          package_name: pkgName,
+          speed_limit: speedLimit,
+          monthly_fee: monthlyFee,
+          collected_today: collectedToday,
+          due_day: dueDay,
+          due_date: dueDate,
+          max_devices: maxDevices,
+          advance_mode: 'credit'
+        })
+      });
+
+      const res = await resp.json();
+      if (res.success) {
+        closeApprovalModal();
+        window.location.reload();
+      } else {
+        alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+        btn.disabled = false;
+        btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
+      }
+    } catch (err) {
+      alert('Error approving request: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
+    }
+  }
+
+  async function rejectRequest(reqId) {
+    if (!confirm('Reject and delete this connection request?')) return;
+    try {
+      const resp = await fetch(`/api/hotspot/requests/${reqId}/reject`, { method: 'POST' });
+      const res = await resp.json();
+      if (res.success) {
+        const row = document.getElementById('req-row-' + reqId);
+        if (row) row.remove();
+        refreshPendingRequests();
+      } else {
+        alert('Could not reject request: ' + (res.error || 'Server error'));
+      }
+    } catch (err) {
+      alert('Rejection error: ' + err.message);
+    }
+  }
+
+  // Refresh Pending Requests
+  async function refreshPendingRequests() {
+    try {
+      const resp = await fetch('/api/hotspot/requests/pending');
+      const data = await resp.json();
+      if (!data || !data.requests) return;
+
+      const requests = data.requests;
+      const count = data.count !== undefined ? data.count : requests.length;
+
+      // Update KPI
+      const kpiCount = document.getElementById('kpiPendingCount');
+      if (kpiCount) {
+        kpiCount.innerHTML = `${count} <span style="font-size:14px; font-weight:600; color:var(--text-dim);">Waiting</span>`;
+        kpiCount.style.color = count > 0 ? '#fb923c' : '#94a3b8';
+      }
+      const kpiSub = document.getElementById('kpiPendingSub');
+      if (kpiSub) {
+        kpiSub.textContent = count > 0 ? '⚡ Awaiting Internet Activation' : 'All requests resolved';
+      }
+
+      // Update badge
+      const badge = document.getElementById('badgePendingCount');
+      if (badge) badge.textContent = count + ' Pending';
+
+      // Update alert banner
+      const banner = document.getElementById('pendingAlertBanner');
+      if (banner) {
+        banner.style.display = count > 0 ? 'flex' : 'none';
+      }
+
+      // Re-render table body
+      const tbody = document.getElementById('pendingTableBody');
+      if (!tbody) return;
+
+      if (requests.length === 0) {
+        tbody.innerHTML = `
+          <tr id="emptyPendingRow">
+            <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-dim);">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <svg style="width: 32px; height: 32px; fill: #64748b;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                <div style="font-weight: 700; color: #cbd5e1; font-size: 14px;">No Pending Join Requests</div>
+                <div style="font-size: 12px; color: var(--text-dim); max-width: 480px;">When a subscriber attempts to log in on the captive portal, their request and verified physical Device MAC will appear here immediately for 1-click activation.</div>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = requests.map(req => {
+          const isRandom = !!req.is_random_mac;
+          const macBadge = isRandom
+            ? `<span class="tag-mac-warn" title="Randomized MAC address detected. Real Device MAC required.">⚠ RANDOM MAC</span>`
+            : `<span class="tag-mac-ok" title="Verified Physical Device MAC">✓ DEVICE MAC</span>`;
+
+          const typeCol = req.is_secondary
+            ? `<div style="display:flex; flex-direction:column; gap:3px;">
+                 <span class="tag-device-type secondary" title="Existing customer: ${req.existing_customer_name || ''}">Secondary Device</span>
+                 <span class="font-mono" style="font-size:11px; color:${(req.current_device_count || 0) >= (req.customer_max_devices || 1) ? '#f87171' : '#34d399'}; font-weight:700;">
+                   ${(req.current_device_count || 0) >= (req.customer_max_devices || 1) ? `⚠ Limit (${req.current_device_count}/${req.customer_max_devices})` : `Device ${(req.current_device_count || 0) + 1} of ${req.customer_max_devices || 1}`}
+                 </span>
+               </div>`
+            : `<span class="tag-device-type new">New Customer</span>`;
+
+          const actionBtns = isRandom
+            ? `<button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
+                 <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                 <span>Random MAC</span>
+               </button>
+               <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})" title="Reject Random MAC request">Reject</button>`
+            : `<button type="button" class="btn-approve" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', '${req.existing_customer_name || ''}', ${req.is_secondary ? 1 : 0}, ${req.customer_max_devices || 1})">
+                 <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                 <span>Approve</span>
+               </button>
+               <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`;
+
+          return `
+            <tr id="req-row-${req.id}" ${isRandom ? 'style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"' : ''}>
+              <td class="font-mono text-white" style="font-weight:700;">${req.phone}</td>
+              <td class="font-mono">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="text-cyan" style="font-weight:700;">${req.mac_address}</span>
+                  ${macBadge}
+                </div>
+              </td>
+              <td class="font-mono text-dim">${req.ip_address || '—'}</td>
+              <td>${typeCol}</td>
+              <td class="text-dim" style="font-size:12px; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${req.device_model || 'Mobile Client'}</td>
+              <td class="font-mono text-dim" style="font-size:12px;">${req.created_at || '—'}</td>
+              <td style="text-align:right;">
+                <div style="display:inline-flex; gap:8px;">${actionBtns}</div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    } catch (err) {
+      console.warn('Could not refresh pending requests:', err);
+    }
+  }
+
+  // Poll pending requests every 6 seconds
+  setInterval(refreshPendingRequests, 6000);
+
+  // =========================================================
+  // CUSTOMER DETAILS MODAL
+  // =========================================================
+  async function openCustomerDetailsModal(customerId) {
+    const modal = document.getElementById('customerDetailsModal');
+    const body = document.getElementById('cdModalBody');
+    const title = document.getElementById('cdModalTitle');
+    const sub = document.getElementById('cdModalSub');
+
+    modal.classList.add('open');
+    body.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-dim);"><div class="pulse-dot" style="display:inline-block; margin-bottom:12px; background:#38bdf8;"></div><div>Loading subscriber full profile...</div></div>';
+
+    try {
+      const resp = await fetch(`/api/customers/${customerId}`);
+      if (!resp.ok) throw new Error('Subscriber not found');
+      const c = await resp.json();
+
+      title.innerHTML = `<span style="color:#ffffff;">${c.name}</span> <span class="badge-mode mode-${c.billing_type}">${c.billing_type}</span>`;
+      sub.innerHTML = `Phone: <strong class="font-mono text-cyan">${c.phone}</strong> &bull; Status: <span class="badge-tier ${c.status === 'active' ? 'active' : 'suspended'}">${c.status.toUpperCase()}</span>`;
+
+      const devicesHtml = (c.devices && c.devices.length > 0)
+        ? c.devices.map(d => `
+            <tr>
+              <td class="font-mono text-cyan" style="font-weight:700;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span>${d.mac_address}</span>
+                  ${d.is_random_mac ? '<span class="tag-mac-warn">⚠ RANDOM</span>' : '<span class="tag-mac-ok">✓ DEVICE MAC</span>'}
+                </div>
+              </td>
+              <td>${d.device_name || 'Standard Device'}</td>
+              <td class="font-mono text-dim">${d.ip_address || '—'}</td>
+              <td><span class="badge-tier active">APPROVED</span></td>
+              <td class="font-mono text-dim" style="font-size:11px;">${d.bound_at || '—'}</td>
+            </tr>
+          `).join('')
+        : '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-dim);">No devices currently bound.</td></tr>';
+
+      const ledgerHtml = (c.collections && c.collections.length > 0)
+        ? c.collections.slice(0, 5).map(col => `
+            <tr>
+              <td class="font-mono text-dim" style="font-size:11px;">${col.collected_at}</td>
+              <td class="font-mono text-emerald" style="font-weight:800;">+${parseFloat(col.amount).toFixed(2)} SAR</td>
+              <td class="text-dim" style="font-size:12px;">${col.collected_by || 'Admin'}</td>
+              <td class="text-dim" style="font-size:11px;">${col.notes || '—'}</td>
+            </tr>
+          `).join('')
+        : '<tr><td colspan="4" style="text-align:center; padding:14px; color:var(--text-dim);">No payment history recorded yet.</td></tr>';
+
+      body.innerHTML = `
+        <!-- Top 4 Summary Cards -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px;">
+          <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Package & Fee</div>
+            <div style="font-size:15px; font-weight:800; color:#fff; margin-top:2px;">${c.package_name || 'Custom'}</div>
+            <div class="font-mono text-cyan" style="font-size:13px; font-weight:700;">${parseFloat(c.monthly_fee || 0).toFixed(2)} SAR/mo</div>
+          </div>
+          <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Due / Expiry</div>
+            <div class="font-mono" style="font-size:14px; font-weight:800; color:#fff; margin-top:2px;">${c.due_date || c.expiry_date || '—'}</div>
+            <div style="font-size:11px; color:${c.days_remaining !== null && c.days_remaining < 0 ? '#f87171' : '#34d399'}; font-weight:600;">
+              ${c.days_remaining !== null ? (c.days_remaining < 0 ? `Overdue (-${Math.abs(c.days_remaining)}d)` : `${c.days_remaining} days remaining`) : 'Active cycle'}
+            </div>
+          </div>
+          <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Speed Limit</div>
+            <div class="font-mono text-cyan" style="font-size:14px; font-weight:800; color:#38bdf8; margin-top:2px;">${c.effective_speed || 'Unlimited'}</div>
+            <div style="font-size:11px; color:var(--text-dim);">Max Devices: ${c.max_devices || 1}</div>
+          </div>
+          <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Wallet Credit</div>
+            <div class="font-mono text-emerald" style="font-size:16px; font-weight:800; margin-top:2px;">${parseFloat(c.credit_balance || 0).toFixed(2)} SAR</div>
+            <div style="font-size:11px; color:var(--text-dim);">Advance balance</div>
+          </div>
+        </div>
+
+        <!-- Bound Hardware -->
+        <div>
+          <div style="font-size:13px; font-weight:700; color:#ffffff; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">
+            <span>Authorized Hardware (${c.devices ? c.devices.length : 0} / ${c.max_devices || 1} devices)</span>
+            <span class="font-mono text-dim" style="font-size:11px;">MikroTik Hotspot Bypassed</span>
+          </div>
+          <div style="max-height:160px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:10px;">
+            <table class="clean-table" style="font-size:12px;">
+              <thead>
+                <tr>
+                  <th>MAC Address</th>
+                  <th>Device</th>
+                  <th>IP Address</th>
+                  <th>Status</th>
+                  <th>Bound At</th>
+                </tr>
+              </thead>
+              <tbody>${devicesHtml}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Payments -->
+        <div>
+          <div style="font-size:13px; font-weight:700; color:#ffffff; margin-bottom:8px;">Recent Collections Ledger</div>
+          <div style="max-height:140px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:10px;">
+            <table class="clean-table" style="font-size:12px;">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Collector</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>${ledgerHtml}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal Action Footer -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; padding-top:12px; border-top:1px solid var(--border-subtle); flex-wrap:wrap;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-quick-collect" onclick="closeCustomerDetailsModal(); openQuickCollectModal(${c.id}, '${c.name}', '${c.phone}', ${c.monthly_fee || 0}, ${c.credit_balance || 0});">
+              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+              <span>Quick Collect</span>
+            </button>
+            <button type="button" class="${c.status === 'active' ? 'btn-reject' : 'btn-approve'}" onclick="toggleCustomerStatusFromModal(${c.id}, '${c.status}');">
+              <span>${c.status === 'active' ? 'Suspend Account' : 'Activate Account'}</span>
+            </button>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <a href="/customers?manage=${c.id}" class="btn-table-manage">
+              <span>Full Account View →</span>
+            </a>
+            <button type="button" class="btn-table-manage" onclick="closeCustomerDetailsModal()">Close</button>
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      body.innerHTML = `<div style="text-align:center; padding:30px; color:#f87171;">Failed to load details: ${err.message}</div>`;
+    }
+  }
+
+  function closeCustomerDetailsModal() {
+    document.getElementById('customerDetailsModal').classList.remove('open');
+  }
+
+  async function toggleCustomerStatusFromModal(customerId, currentStatus) {
+    const action = currentStatus === 'active' ? 'suspend' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this subscriber?`)) return;
+
+    try {
+      const resp = await fetch(`/api/customers/${customerId}/toggle-status`, { method: 'POST' });
+      const res = await resp.json();
+      if (res.success) {
+        closeCustomerDetailsModal();
+        window.location.reload();
+      } else {
+        alert('Could not update status: ' + (res.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error updating status: ' + err.message);
+    }
   }
 </script>
 {% endblock %}

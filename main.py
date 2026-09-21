@@ -639,6 +639,7 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
             "router": live_status,
             "active_page": "dashboard",
             "metrics": metrics,
+            "pending_requests": pending_requests,
             "pending_count": len(pending_requests),
             "packages": packages
         }
@@ -1379,6 +1380,15 @@ async def get_pending_count():
     """
     pending = database.get_pending_requests()
     return {"count": len(pending)}
+
+
+@app.get("/api/hotspot/requests/pending")
+async def get_pending_requests_api():
+    """
+    Returns list of all pending connection requests for live dashboard polling.
+    """
+    pending = database.get_pending_requests()
+    return {"success": True, "count": len(pending), "requests": pending}
 
 
 # =========================================================
