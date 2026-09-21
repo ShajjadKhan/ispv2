@@ -443,41 +443,45 @@
       <input type="hidden" id="ipInput" value="{{ ip or '' }}">
       <input type="hidden" id="linkLoginOnly" value="{{ link_login_only or '' }}">
 
-      <!-- 1. RANDOM MAC LOCKOUT BANNER (Shown when Random MAC is detected; phone number input is strictly removed) -->
+      <!-- 1. RANDOM MAC IN-PORTAL NOTIFICATION & INSTRUCTIONS -->
       <div id="randomMacBanner" class="blocked-banner" style="display: {% if is_random_mac %}flex{% else %}none{% endif %};">
         <div class="lockout-pill">
           <div class="dot"></div>
-          <span>Random MAC Prohibited &bull; Registration Locked</span>
+          <span>⚠️ Please Change Your MAC Type</span>
         </div>
 
         <div class="blocked-header">
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-          <span>Device MAC Required</span>
+          <span>Please Change Your MAC Type to Device MAC</span>
         </div>
 
-        <div class="lockout-alert-box">
-          <strong>Registration Prohibited:</strong> You cannot submit a phone number or join this network with a Randomized or Private MAC address.
-        </div>
-
-        <div class="blocked-desc">
-          Your device is currently using a <strong>Randomized / Private MAC address</strong>.
-          Our signal strictly requires your phone's real <strong>Device MAC</strong> to authenticate your connection, assign your speed package, and prevent automatic disconnects.
+        <div class="lockout-alert-box" id="lockoutAlertBox">
+          <div style="font-weight: 800; font-size: 13.5px; color: #ffffff; margin-bottom: 4px;">
+            ⚠️ Connection Prohibited: Randomized MAC Detected
+          </div>
+          <div id="lockoutAlertMsg">
+            You cannot connect or submit credentials while your device is using a <strong>Randomized or Private MAC address</strong>. Please change your MAC type to <strong>"Device MAC"</strong> (or turn OFF "Private Wi-Fi Address") using the instructions below.
+          </div>
         </div>
 
         <div class="mac-badge-display">
           <span style="color:#f87171; font-weight:700;">DETECTED:</span>
           <span id="blockedMacAddress" style="color:#ffffff; font-weight:800;">{{ mac or '--:--:--:--:--:--' }}</span>
-          <span style="color:#f87171; font-size:11px; font-weight:800; background:rgba(239,68,68,0.2); padding:2px 6px; border-radius:4px;">[RANDOM]</span>
+          <span style="color:#f87171; font-size:11px; font-weight:800; background:rgba(239,68,68,0.25); padding:3px 8px; border-radius:5px;">PLEASE CHANGE</span>
+        </div>
+
+        <div style="font-size: 13px; font-weight: 800; color: #f8fafc; margin-top: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>📖 How to Change Your MAC Type:</span>
         </div>
 
         <!-- How to fix accordion -->
         <div class="guide-box">
           <div class="guide-tabs">
-            <button type="button" class="guide-tab-btn active" onclick="switchGuide('ios')">iPhone / iPad</button>
-            <button type="button" class="guide-tab-btn" onclick="switchGuide('android')">Android</button>
-            <button type="button" class="guide-tab-btn" onclick="switchGuide('windows')">Windows</button>
+            <button type="button" id="tabBtn-ios" class="guide-tab-btn" onclick="switchGuide('ios')">📱 iPhone / iPad</button>
+            <button type="button" id="tabBtn-android" class="guide-tab-btn" onclick="switchGuide('android')">🤖 Android</button>
+            <button type="button" id="tabBtn-windows" class="guide-tab-btn" onclick="switchGuide('windows')">💻 Windows</button>
           </div>
-          <div id="guide-ios" class="guide-content active">
+          <div id="guide-ios" class="guide-content">
             <ol>
               <li>Open <strong>Settings</strong> &rarr; tap <strong>Wi-Fi</strong>.</li>
               <li>Tap the blue <strong>ⓘ (Info)</strong> icon next to this Wi-Fi network.</li>
@@ -561,14 +565,42 @@
       return (firstByte & 0x02) !== 0;
     }
 
+    function detectUserOS() {
+      const ua = navigator.userAgent || "";
+      if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+      if (/Android/i.test(ua)) return 'android';
+      if (/Windows/i.test(ua)) return 'windows';
+      return 'android';
+    }
+
     function switchGuide(os) {
       document.querySelectorAll('.guide-tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.guide-content').forEach(c => c.classList.remove('active'));
-      if (event && event.target) {
-        event.target.classList.add('active');
-      }
+      const btn = document.getElementById('tabBtn-' + os);
+      if (btn) btn.classList.add('active');
       const el = document.getElementById('guide-' + os);
       if (el) el.classList.add('active');
+    }
+
+    function showMacTypeNotification(mac, customMsg) {
+      const banner = document.getElementById('randomMacBanner');
+      const formEl = document.getElementById('hotspotForm');
+      const verifiedBanner = document.getElementById('verifiedMacBanner');
+
+      if (formEl) formEl.style.display = 'none';
+      if (verifiedBanner) verifiedBanner.style.display = 'none';
+
+      if (banner) {
+        banner.style.display = 'flex';
+        const macEl = document.getElementById('blockedMacAddress');
+        if (macEl && mac) macEl.innerText = mac.toUpperCase();
+        if (customMsg) {
+          const msgEl = document.getElementById('lockoutAlertMsg');
+          if (msgEl) msgEl.innerHTML = customMsg;
+        }
+        switchGuide(detectUserOS());
+        banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
     let detectedMac = "";
@@ -577,6 +609,9 @@
 
     // Initialize MAC inspection on page load
     window.addEventListener('DOMContentLoaded', () => {
+      // Auto-detect OS guide tab
+      switchGuide(detectUserOS());
+
       // 1. Check URL parameters (?mac=XX:XX:XX:XX:XX:XX&ip=10.20.30.X)
       const urlParams = new URLSearchParams(window.location.search);
       const macEl = document.getElementById('macInput');
@@ -603,16 +638,7 @@
       }
 
       if (isRandomMac(mac)) {
-        // STRICT LOCKOUT: Completely remove form from DOM so user has zero ability to enter or submit phone!
-        if (formEl) {
-          formEl.remove();
-        }
-        if (randomBanner) {
-          randomBanner.style.display = 'flex';
-          const blockedMacEl = document.getElementById('blockedMacAddress');
-          if (blockedMacEl) blockedMacEl.innerText = mac.toUpperCase();
-        }
-        if (verifiedBanner) verifiedBanner.style.display = 'none';
+        showMacTypeNotification(mac);
       } else {
         if (randomBanner) randomBanner.style.display = 'none';
         if (verifiedBanner) {
@@ -620,6 +646,7 @@
           const verifiedMacEl = document.getElementById('verifiedMacText');
           if (verifiedMacEl) verifiedMacEl.innerText = mac.toUpperCase() + " (Physical Hardware Address)";
         }
+        if (formEl) formEl.style.display = 'block';
       }
     }
 
@@ -634,15 +661,11 @@
       const btn = document.getElementById('btnSubmit');
 
       if (isRandomMac(mac)) {
-        const formEl = document.getElementById('hotspotForm');
-        if (formEl) formEl.remove();
-        evaluateMacPolicy(mac);
-        alert('Randomized MAC detected! Phone number submission is strictly prohibited. Please switch to Device MAC in your phone settings.');
+        showMacTypeNotification(mac, "You attempted to submit your credentials with a Randomized MAC address. <strong>Please change your MAC type to Device MAC</strong> in your device settings to connect. Follow the instructions below.");
         return;
       }
 
       if (!phone) {
-        alert('Please enter your mobile phone number.');
         return;
       }
 
@@ -666,10 +689,7 @@
         const res = await resp.json();
 
         if (res.status === 'random_mac_blocked' || res.is_random_mac) {
-          const formEl = document.getElementById('hotspotForm');
-          if (formEl) formEl.remove();
-          evaluateMacPolicy(mac);
-          alert(res.message || 'Randomized MAC addresses are prohibited. Please switch to Device MAC.');
+          showMacTypeNotification(mac, res.message || "Please change your MAC type to 'Device MAC' to connect to our high-speed Wi-Fi.");
           return;
         }
 
@@ -705,7 +725,8 @@
 
         if (res.status === 'random_mac_blocked') {
           if (pollInterval) clearInterval(pollInterval);
-          location.reload();
+          document.getElementById('statusSection').style.display = 'none';
+          showMacTypeNotification(mac, res.message || "Please change your MAC type to 'Device MAC' to connect.");
           return;
         }
 

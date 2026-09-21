@@ -1190,7 +1190,7 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
                 "is_random_mac": True,
                 "mac": mac_clean,
                 "message": (
-                    f"Randomized MAC address detected ({mac_clean})! "
+                    f"Please change your MAC type! Randomized MAC address detected ({mac_clean}). "
                     "CyberNet Wi-Fi strictly requires your physical Device MAC to connect. "
                     "Please go to your phone's Wi-Fi Settings -> tap this Wi-Fi network -> "
                     "switch MAC Address to 'Use Device MAC' (or turn OFF 'Private Wi-Fi Address'), then reconnect."
@@ -1282,7 +1282,7 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
                 "can_connect": False,
                 "is_random_mac": True,
                 "mac": mac_clean,
-                "message": "Connection blocked: Randomized MAC detected. Please change Wi-Fi settings to 'Device MAC' to connect."
+                "message": "Connection blocked: Randomized MAC detected. Please change your MAC type to 'Device MAC' to connect."
             },
             headers={"Access-Control-Allow-Origin": "*"}
         )
