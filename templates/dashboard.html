@@ -1649,6 +1649,9 @@
           </table>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
 <!-- APPROVAL MODAL -->
 <div id="approvalModal" class="modal-overlay">
@@ -2117,18 +2120,26 @@
     const boxPre = document.getElementById('prepaidFieldsBox');
     const boxPost = document.getElementById('postpaidFieldsBox');
 
+    const colToday = document.getElementById('inputCollectedToday');
+    const prepMonthly = document.getElementById('inputPrepaidMonthly');
+    const prepDate = document.getElementById('inputPrepaidDueDate');
+
     if (type === 'prepaid') {
       cardPre.className = 'type-option-card prepaid-selected selected';
       cardPost.className = 'type-option-card';
       boxPre.style.display = 'flex';
       boxPost.style.display = 'none';
-      document.getElementById('inputCollectedToday').required = true;
+      if (colToday) colToday.required = true;
+      if (prepMonthly) prepMonthly.required = true;
+      if (prepDate) prepDate.required = false;
     } else {
       cardPre.className = 'type-option-card';
       cardPost.className = 'type-option-card selected';
       boxPre.style.display = 'none';
       boxPost.style.display = 'flex';
-      document.getElementById('inputCollectedToday').required = false;
+      if (colToday) colToday.required = false;
+      if (prepMonthly) prepMonthly.required = false;
+      if (prepDate) prepDate.required = false;
     }
   }
 
@@ -2169,22 +2180,29 @@
   }
 
   function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev) {
-    document.getElementById('modalReqId').value = reqId;
-    document.getElementById('modalMac').value = mac;
-    document.getElementById('modalIp').value = ip;
-    document.getElementById('dispPhone').textContent = phone;
-    document.getElementById('dispMac').textContent = mac;
+    const modalReqId = document.getElementById('modalReqId');
+    if (modalReqId) modalReqId.value = reqId;
+    const modalMac = document.getElementById('modalMac');
+    if (modalMac) modalMac.value = mac;
+    const modalIp = document.getElementById('modalIp');
+    if (modalIp) modalIp.value = ip;
+    const dispPhone = document.getElementById('dispPhone');
+    if (dispPhone) dispPhone.textContent = phone;
+    const dispMac = document.getElementById('dispMac');
+    if (dispMac) dispMac.textContent = mac;
 
     const nameField = document.getElementById('custName');
-    nameField.value = custName ? custName : ('Customer ' + phone);
+    if (nameField) nameField.value = custName ? custName : ('Customer ' + phone);
 
     const devInput = document.getElementById('inputMaxDevices');
-    devInput.dataset.manuallySet = "";
-    if (existingMaxDev && parseInt(existingMaxDev) > 0) {
-      devInput.value = existingMaxDev;
-      devInput.dataset.manuallySet = "true";
-    } else {
-      devInput.value = 1;
+    if (devInput) {
+      devInput.dataset.manuallySet = "";
+      if (existingMaxDev && parseInt(existingMaxDev) > 0) {
+        devInput.value = existingMaxDev;
+        devInput.dataset.manuallySet = "true";
+      } else {
+        devInput.value = 1;
+      }
     }
 
     const today = new Date();
@@ -2205,11 +2223,13 @@
     onPackageChanged();
     calculatePostpaidAdvance();
 
-    document.getElementById('approvalModal').classList.add('open');
+    const modal = document.getElementById('approvalModal');
+    if (modal) modal.classList.add('open');
   }
 
   function closeApprovalModal() {
-    document.getElementById('approvalModal').classList.remove('open');
+    const modal = document.getElementById('approvalModal');
+    if (modal) modal.classList.remove('open');
   }
 
   function calculatePostpaidAdvance() {
@@ -2227,30 +2247,32 @@
     if (collected > fee && fee > 0) {
       previewBox.style.display = 'block';
       const surplus = parseFloat((collected - fee).toFixed(2));
-      badgeEl.textContent = `+${surplus.toFixed(2)} SAR Credit`;
-      textEl.innerHTML = `Customer pays <strong>${collected.toFixed(2)} SAR</strong> upfront. <strong>${fee.toFixed(2)} SAR</strong> activates the first month. The remaining <strong>+${surplus.toFixed(2)} SAR</strong> is credited to balance.<br><span style="color:#c084fc; font-size:11px;">⚡ Advance registered: Auto-switches to <strong>PREPAID</strong>.</span>`;
+      if (badgeEl) badgeEl.textContent = `+${surplus.toFixed(2)} SAR Credit`;
+      if (textEl) textEl.innerHTML = `Customer pays <strong>${collected.toFixed(2)} SAR</strong> upfront. <strong>${fee.toFixed(2)} SAR</strong> activates the first month. The remaining <strong>+${surplus.toFixed(2)} SAR</strong> is credited to balance.<br><span style="color:#c084fc; font-size:11px;">⚡ Advance registered: Auto-switches to <strong>PREPAID</strong>.</span>`;
     } else if (collected > 0 && collected === fee) {
       previewBox.style.display = 'block';
-      badgeEl.textContent = '1 Month Covered';
-      textEl.innerHTML = `Full payment of <strong>${collected.toFixed(2)} SAR</strong> received. Account activated as <strong>PREPAID</strong>.`;
+      if (badgeEl) badgeEl.textContent = '1 Month Covered';
+      if (textEl) textEl.innerHTML = `Full payment of <strong>${collected.toFixed(2)} SAR</strong> received. Account activated as <strong>PREPAID</strong>.`;
     } else {
       previewBox.style.display = 'none';
     }
   }
 
   async function submitApproval(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const btn = document.getElementById('btnSubmitApprove');
-    btn.disabled = true;
-    btn.innerHTML = '<span>Activating on MikroTik...</span>';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Activating on MikroTik...</span>';
+    }
 
-    const reqId = document.getElementById('modalReqId').value;
-    const name = document.getElementById('custName').value.trim();
-    const billingType = document.getElementById('selectedBillingType').value;
+    const reqId = document.getElementById('modalReqId')?.value;
+    const name = document.getElementById('custName')?.value?.trim() || ('Customer ' + (document.getElementById('dispPhone')?.textContent || ''));
+    const billingType = document.getElementById('selectedBillingType')?.value || 'prepaid';
     const pkgSelect = document.getElementById('pkgSelect');
-    const pkgName = pkgSelect.options[pkgSelect.selectedIndex].value;
-    const speedLimit = document.getElementById('approvalCustSpeed').value.trim();
-    const maxDevices = parseInt(document.getElementById('inputMaxDevices').value) || 1;
+    const pkgName = (pkgSelect && pkgSelect.options && pkgSelect.selectedIndex >= 0) ? pkgSelect.options[pkgSelect.selectedIndex].value : 'Standard (20 Mbps)';
+    const speedLimit = document.getElementById('approvalCustSpeed')?.value?.trim() || 'Unlimited';
+    const maxDevices = parseInt(document.getElementById('inputMaxDevices')?.value) || 1;
 
     let monthlyFee = 0.0;
     let collectedToday = 0.0;
@@ -2258,14 +2280,14 @@
     let dueDate = null;
 
     if (billingType === 'prepaid') {
-      collectedToday = parseFloat(document.getElementById('inputCollectedToday').value) || 0.0;
-      monthlyFee = parseFloat(document.getElementById('inputPrepaidMonthly').value) || collectedToday;
-      dueDate = document.getElementById('inputPrepaidDueDate').value;
+      collectedToday = parseFloat(document.getElementById('inputCollectedToday')?.value) || 0.0;
+      monthlyFee = parseFloat(document.getElementById('inputPrepaidMonthly')?.value) || collectedToday;
+      dueDate = document.getElementById('inputPrepaidDueDate')?.value || null;
     } else {
-      monthlyFee = parseFloat(document.getElementById('inputPostpaidMonthly').value) || 0.0;
-      collectedToday = parseFloat(document.getElementById('inputPostpaidCollected').value) || 0.0;
-      dueDay = parseInt(document.getElementById('inputDueDay').value) || 1;
-      dueDate = document.getElementById('inputPostpaidDueDate').value;
+      monthlyFee = parseFloat(document.getElementById('inputPostpaidMonthly')?.value) || 0.0;
+      collectedToday = parseFloat(document.getElementById('inputPostpaidCollected')?.value) || 0.0;
+      dueDay = parseInt(document.getElementById('inputDueDay')?.value) || 1;
+      dueDate = document.getElementById('inputPostpaidDueDate')?.value || null;
     }
 
     try {
@@ -2292,13 +2314,17 @@
         window.location.reload();
       } else {
         alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
-        btn.disabled = false;
-        btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
+        }
       }
     } catch (err) {
       alert('Error approving request: ' + err.message);
-      btn.disabled = false;
-      btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
+      }
     }
   }
 
