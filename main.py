@@ -930,7 +930,7 @@ async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] =
     if not user:
         return RedirectResponse(url="/login?next=/reseller", status_code=303)
 
-    target_reseller_id = user["id"]
+    target_reseller_id = user.get("id") or user.get("user_id")
     # If Admin/Superadmin is previewing another reseller's portal:
     if user.get("role") in ("admin", "superadmin") and as_reseller_id:
         target_reseller_id = as_reseller_id
@@ -1065,7 +1065,7 @@ async def api_reseller_recharge(payload: ResellerRechargePayload, request: Reque
     if not user:
         return JSONResponse(status_code=401, content={"success": False, "error": "Authentication required."})
 
-    target_reseller_id = user["id"]
+    target_reseller_id = user.get("id") or user.get("user_id")
 
     success, msg, data = database.reseller_recharge_customer(
         reseller_id=target_reseller_id,
@@ -1102,7 +1102,7 @@ async def api_reseller_create_customer(payload: CreateCustomerPayload, request: 
     if not user:
         return JSONResponse(status_code=401, content={"success": False, "error": "Authentication required."})
 
-    target_reseller_id = user["id"]
+    target_reseller_id = user.get("id") or user.get("user_id")
     try:
         cust = database.create_customer(
             phone=payload.phone,

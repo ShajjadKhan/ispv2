@@ -440,6 +440,7 @@ def validate_session(session_id: str) -> Optional[Dict[str, Any]]:
             return None
 
         record = dict(row)
+        record["id"] = record.get("user_id")
 
         if not record.get("user_active", 1) or not record.get("session_active", 1):
             return None
