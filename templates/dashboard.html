@@ -487,6 +487,79 @@
     gap: 20px;
   }
 
+  /* QUICK PRESET CHIPS & PAYMENT METHODS */
+  .qc-presets-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .qc-preset-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .qc-preset-btn:hover {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+  .qc-preset-btn.preset-exact {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  .qc-methods-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .qc-method-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .qc-method-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  .qc-method-chip.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+
+  .staff-avatar-mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
   /* MODAL OVERLAY */
   .modal-overlay {
     position: fixed;
@@ -982,11 +1055,14 @@
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number text-emerald">{{ "%.2f"|format(metrics.collected_month_sar) }} <span style="font-size:15px; font-weight:500;">SAR</span></div>
-        <div class="kpi-sub-text">{{ metrics.collections_count }} payments recorded</div>
+        <div class="kpi-main-number text-emerald" style="display:flex; align-items:baseline; gap:5px;">
+          <span>{{ "%.2f"|format(metrics.collected_month_sar) }}</span>
+          <span style="font-size:12px; font-weight:800; color:var(--text-dim); background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">SAR</span>
+        </div>
+        <div class="kpi-sub-text">{{ metrics.collections_count }} payments recorded this month</div>
       </div>
       <div class="kpi-progress-bar">
-        <div class="kpi-progress-fill" style="width: 100%;"></div>
+        <div class="kpi-progress-fill" style="width: 100%; background: linear-gradient(90deg, #059669, #10b981);"></div>
       </div>
       <div class="kpi-filter-hint">
         <span>🔍 View Audit Ledger →</span>
@@ -1002,11 +1078,14 @@
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number text-amber">{{ "%.2f"|format(metrics.outstanding_sar) }} <span style="font-size:15px; font-weight:500;">SAR</span></div>
+        <div class="kpi-main-number text-amber" style="display:flex; align-items:baseline; gap:5px;">
+          <span>{{ "%.2f"|format(metrics.outstanding_sar) }}</span>
+          <span style="font-size:12px; font-weight:800; color:var(--text-dim); background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px;">SAR</span>
+        </div>
         <div class="kpi-sub-text">{{ metrics.due_customers_count }} accounts pending collection</div>
       </div>
       <div class="kpi-progress-bar">
-        <div class="kpi-progress-fill" style="width: {% if metrics.outstanding_sar > 0 %}100{% else %}0{% endif %}%;"></div>
+        <div class="kpi-progress-fill" style="width: {% if metrics.outstanding_sar > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #d97706, #f59e0b);"></div>
       </div>
       <div class="kpi-filter-hint">
         <span>🔍 Filter Overdue Accounts ↓</span>
@@ -1022,7 +1101,7 @@
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number">{{ metrics.collection_rate }}%</div>
+        <div class="kpi-main-number font-mono">{{ metrics.collection_rate }}%</div>
         <div class="kpi-sub-text">Target: {{ "%.2f"|format(metrics.target_revenue_sar) }} SAR</div>
       </div>
       <div class="kpi-progress-bar">
@@ -1046,7 +1125,7 @@
         <div class="kpi-sub-text">{{ metrics.expiring_tiers.today_overdue }} Overdue/Today &bull; {{ metrics.expiring_tiers.in_3d }} in 3d</div>
       </div>
       <div class="kpi-progress-bar">
-        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.total > 0 %}100{% else %}0{% endif %}%;"></div>
+        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.total > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
       </div>
       <div class="kpi-filter-hint">
         <span>🔍 View Priority Queue ↓</span>
@@ -1076,21 +1155,21 @@
     </div>
 
     <!-- Revenue Target Realization Meter -->
-    <div class="meter-card">
+    <div class="meter-card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(13, 27, 42, 0.98) 100%); border-color: rgba(16, 185, 129, 0.25);">
       <div class="meter-title-row">
         <div class="meter-title">
-          <svg style="width:16px; height:16px; fill:#10b981;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
           <span>Monthly Revenue Collection Realization</span>
         </div>
-        <span class="font-mono text-emerald" style="font-size:13px; font-weight:700;">{{ metrics.collection_rate }}%</span>
+        <span class="font-mono text-emerald" style="font-size:14px; font-weight:800; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">{{ metrics.collection_rate }}% Realized</span>
       </div>
-      <div class="meter-bar-track">
-        <div class="meter-bar-fill" style="width: {{ metrics.collection_rate }}%; background: linear-gradient(90deg, #059669 0%, #10b981 100%);"></div>
+      <div class="meter-bar-track" style="height:10px; background:rgba(255,255,255,0.06);">
+        <div class="meter-bar-fill" style="width: {{ metrics.collection_rate }}%; background: linear-gradient(90deg, #059669 0%, #10b981 50%, #34d399 100%); box-shadow:0 0 12px rgba(16,185,129,0.4);"></div>
       </div>
-      <div class="meter-stats-row">
-        <span>Collected: <strong class="text-emerald">{{ "%.2f"|format(metrics.collected_month_sar) }} SAR</strong></span>
-        <span>Target: <strong>{{ "%.2f"|format(metrics.target_revenue_sar) }} SAR</strong></span>
-        <span>Due: <strong class="text-amber">{{ "%.2f"|format(metrics.outstanding_sar) }} SAR</strong></span>
+      <div class="meter-stats-row" style="flex-wrap:wrap; gap:8px;">
+        <span>Collected: <strong class="text-emerald" style="font-size:13px;">{{ "%.2f"|format(metrics.collected_month_sar) }} SAR</strong></span>
+        <span>Target: <strong class="text-white">{{ "%.2f"|format(metrics.target_revenue_sar) }} SAR</strong></span>
+        <span>Outstanding Due: <strong class="text-amber">{{ "%.2f"|format(metrics.outstanding_sar) }} SAR</strong></span>
       </div>
     </div>
   </div>
@@ -1430,10 +1509,13 @@
     <!-- Staff Performance Breakdown Table -->
     <div class="section-card">
       <div class="section-card-header">
-        <div style="font-size:14px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
-          <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <div style="font-size:14.5px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
           <span>Staff &amp; Collector Performance ({{ metrics.month_label }})</span>
         </div>
+        <a href="/collections" class="btn-table-manage" style="font-size:11.5px; padding:4px 10px;">
+          <span>Collections Hub →</span>
+        </a>
       </div>
       <div style="overflow-x: auto;">
         <table class="clean-table">
@@ -1449,22 +1531,29 @@
           <tbody>
             {% if not metrics.staff_performance %}
             <tr>
-              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 24px;">
+              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 28px;">
                 No payments collected yet in this cycle.
               </td>
             </tr>
             {% else %}
               {% for s in metrics.staff_performance %}
               <tr>
-                <td style="font-weight: 700; color: #ffffff;">{{ s.collector_name }}</td>
-                <td class="font-mono text-cyan">{{ s.tx_count }} tx</td>
-                <td class="font-mono text-emerald" style="font-weight: 700;">{{ "%.2f"|format(s.total_amount) }} SAR</td>
-                <td class="font-mono text-dim">{{ "%.2f"|format(s.avg_amount) }} SAR</td>
+                <td>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="staff-avatar-mini">{{ s.collector_name[:1]|upper }}</div>
+                    <span style="font-weight: 700; color: #ffffff;">{{ s.collector_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="font-mono text-cyan" style="font-weight:700; background:rgba(56,189,248,0.12); padding:2px 7px; border-radius:5px;">{{ s.tx_count }} tx</span>
+                </td>
+                <td class="font-mono text-emerald" style="font-weight: 800; font-size:13.5px;">+{{ "%.2f"|format(s.total_amount) }} SAR</td>
+                <td class="font-mono text-dim" style="font-size:12px;">{{ "%.2f"|format(s.avg_amount) }} SAR</td>
                 <td>
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="font-mono" style="font-size: 11px; width: 36px;">{{ s.share_percent }}%</span>
-                    <div style="flex-grow: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; min-width: 40px;">
-                      <div style="height: 100%; width: {{ s.share_percent }}%; background: #38bdf8; border-radius: 999px;"></div>
+                    <span class="font-mono" style="font-size: 11px; width: 36px; font-weight:700;">{{ s.share_percent }}%</span>
+                    <div style="flex-grow: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; min-width: 40px;">
+                      <div style="height: 100%; width: {{ s.share_percent }}%; background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%); border-radius: 999px;"></div>
                     </div>
                   </div>
                 </td>
@@ -1479,40 +1568,53 @@
     <!-- Recent Collections Activity Feed -->
     <div class="section-card">
       <div class="section-card-header">
-        <div style="font-size:14px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
-          <svg style="width:16px; height:16px; fill:#10b981;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <div style="font-size:14.5px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
           <span>Recent Payment Ledger Feed</span>
         </div>
+        <a href="/collections#ledgerPanel" class="btn-table-manage" style="font-size:11.5px; padding:4px 10px;">
+          <span>Full Ledger →</span>
+        </a>
       </div>
       <div style="overflow-x: auto;">
         <table class="clean-table">
           <thead>
             <tr>
               <th>Date / Time</th>
-              <th>Customer</th>
+              <th>Subscriber</th>
               <th>Amount</th>
               <th>Collector</th>
+              <th style="text-align:right;">Slip</th>
             </tr>
           </thead>
           <tbody>
             {% if not metrics.recent_collections %}
             <tr>
-              <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 24px;">
+              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 28px;">
                 No payment history available.
               </td>
             </tr>
             {% else %}
               {% for col in metrics.recent_collections %}
               <tr>
-                <td class="font-mono text-dim" style="font-size: 11px;">{{ col.collected_at }}</td>
+                <td class="font-mono text-dim" style="font-size: 11.5px;">{{ col.collected_at }}</td>
                 <td>
                   <div style="font-weight: 700; color: #ffffff;">{{ col.customer_name or ('Customer #' ~ col.customer_id) }}</div>
-                  <div class="font-mono text-dim" style="font-size: 11px;">{{ col.customer_phone }}</div>
+                  <div class="font-mono text-cyan" style="font-size: 11px;">{{ col.customer_phone }}</div>
                 </td>
                 <td>
-                  <span class="font-mono text-emerald" style="font-weight: 800;">+{{ "%.2f"|format(col.amount) }} SAR</span>
+                  <span class="font-mono text-emerald" style="font-weight: 800; font-size:13.5px;">+{{ "%.2f"|format(col.amount) }} SAR</span>
                 </td>
-                <td class="text-dim font-mono" style="font-size: 12px;">{{ col.collected_by }}</td>
+                <td>
+                  <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:10.5px; padding:2px 7px;">
+                    {{ col.collected_by or 'Admin' }}
+                  </span>
+                </td>
+                <td style="text-align:right;">
+                  <button type="button" class="btn-table-manage" onclick="printDashboardReceipt('{{ (col.customer_name or ('Customer #' ~ col.customer_id))|escape }}', '{{ col.customer_phone }}', '{{ col.amount }}', '{{ col.collected_at }}', '{{ col.collected_by }}')" style="padding:3px 8px; font-size:11px;" title="Preview & Print Voucher">
+                    <span>Receipt</span>
+                  </button>
+                </td>
               </tr>
               {% endfor %}
             {% endif %}
@@ -1526,49 +1628,98 @@
 
 <!-- QUICK COLLECT MODAL -->
 <div id="quickCollectModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width:560px;">
     <div class="modal-header">
-      <h3>⚡ Quick Collect Due Bill</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:18px;">⚡</span>
+        <h3 style="margin:0;">Quick Collect Due Bill</h3>
+      </div>
       <button type="button" class="btn-modal-close" onclick="closeQuickCollectModal()">&times;</button>
     </div>
     <form id="quickCollectForm" onsubmit="submitQuickCollect(event)">
-      <div class="modal-body">
+      <div class="modal-body" style="gap:16px;">
         <input type="hidden" id="qcCustomerId" name="customer_id">
 
-        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+        <!-- Customer Card -->
+        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
           <div>
             <div style="font-size: 15px; font-weight: 800; color: #ffffff;" id="qcCustomerName">—</div>
-            <div class="font-mono text-dim" style="font-size: 12px;" id="qcCustomerPhone">—</div>
+            <div class="font-mono text-cyan" style="font-size: 12px; margin-top:2px;" id="qcCustomerPhone">—</div>
           </div>
           <div style="text-align: right;">
-            <div class="font-mono text-cyan" style="font-size: 16px; font-weight: 800;" id="qcMonthlyFee">— SAR/mo</div>
-            <div class="font-mono text-emerald" style="font-size: 11px;" id="qcCreditBal">Credit: 0.00 SAR</div>
+            <div class="font-mono text-emerald" style="font-size: 16px; font-weight: 800;" id="qcMonthlyFee">— SAR/mo</div>
+            <div class="font-mono" style="font-size: 11.5px; color:#c084fc; font-weight:700;" id="qcCreditBal">Credit: 0.00 SAR</div>
           </div>
         </div>
 
+        <!-- Amount Received with Presets -->
         <div class="form-group">
-          <label>Payment Amount Received (SAR)</label>
-          <input type="number" step="0.01" class="form-input font-mono" id="qcAmount" name="amount" required oninput="previewAdvanceCalculation()">
+          <label style="font-size:11.5px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Amount Received (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="qcAmount" name="amount" required oninput="previewAdvanceCalculation()" style="height:44px; font-size:16px; font-weight:800; color:#34d399;">
+          
+          <div class="qc-presets-row">
+            <button type="button" class="qc-preset-btn preset-exact" onclick="setQcAmount('exact')">Exact Due</button>
+            <button type="button" class="qc-preset-btn" onclick="setQcAmount(50)">50</button>
+            <button type="button" class="qc-preset-btn" onclick="setQcAmount(75)">75</button>
+            <button type="button" class="qc-preset-btn" onclick="setQcAmount(100)">100</button>
+            <button type="button" class="qc-preset-btn" onclick="setQcAmount(150)">150</button>
+          </div>
         </div>
 
+        <!-- Payment Method with Quick Chips -->
         <div class="form-group">
-          <label>Collection Notes / Ledger Receipt</label>
-          <input type="text" class="form-input" id="qcNotes" name="notes" value="Direct Cycle Bill Collection">
+          <label style="font-size:11.5px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Method &amp; Notes</label>
+          <input type="text" class="form-input" id="qcNotes" name="notes" value="Cash Payment" style="height:40px; font-size:13px;">
+          
+          <div class="qc-methods-row">
+            <button type="button" class="qc-method-chip active" onclick="setQcPayMethod(this, 'Cash Payment')">💵 Cash</button>
+            <button type="button" class="qc-method-chip" onclick="setQcPayMethod(this, 'STC Pay Transfer')">📱 STC Pay</button>
+            <button type="button" class="qc-method-chip" onclick="setQcPayMethod(this, 'Bank Transfer')">🏦 Bank</button>
+            <button type="button" class="qc-method-chip" onclick="setQcPayMethod(this, 'Card POS')">💳 Card</button>
+          </div>
         </div>
 
         <!-- Real-time Advance Calculation Callout -->
-        <div id="qcAdvanceNotice" style="display:none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; font-size: 12px; color: #34d399;">
+        <div id="qcAdvanceNotice" style="display:none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px; font-size: 12px; color: #34d399; line-height:1.4;">
           <!-- Dynamically populated -->
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
           <button type="button" class="btn-table-manage" onclick="closeQuickCollectModal()">Cancel</button>
-          <button type="submit" class="btn-quick-collect" id="qcSubmitBtn" style="padding: 10px 20px; font-size: 13px;">
+          <button type="submit" class="btn-quick-collect" id="qcSubmitBtn" style="padding: 10px 22px; font-size: 13.5px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
             <span>Record Payment &amp; Activate</span>
           </button>
         </div>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- DASHBOARD RECEIPT MODAL -->
+<div class="modal-overlay" id="dashboardReceiptModal">
+  <div class="modal-container" style="max-width:380px; background:#ffffff; color:#111827; padding:24px; border-radius:14px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;">
+    <div style="text-align:center; border-bottom:2px dashed #9ca3af; padding-bottom:12px;">
+      <h3 style="font-size:18px; font-weight:900; color:#000000; margin:0;">CyberNet OS Network</h3>
+      <p style="font-size:11px; color:#4b5563; margin:3px 0 0 0;">Official Payment Voucher</p>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:9px; font-size:12px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between;"><span style="color:#6b7280;">Date &amp; Time:</span><span id="dashRecTime" style="font-weight:700; font-family:monospace;">—</span></div>
+      <div style="display:flex; justify-content:space-between;"><span style="color:#6b7280;">Subscriber:</span><span id="dashRecCustName" style="font-weight:700;">—</span></div>
+      <div style="display:flex; justify-content:space-between;"><span style="color:#6b7280;">Phone:</span><span id="dashRecPhone" style="font-weight:700; font-family:monospace;">—</span></div>
+      <div style="display:flex; justify-content:space-between;"><span style="color:#6b7280;">Details:</span><span id="dashRecNotes" style="font-weight:700;">Renewal</span></div>
+      <div style="display:flex; justify-content:space-between;"><span style="color:#6b7280;">Collector:</span><span id="dashRecCollector" style="font-weight:700;">Admin</span></div>
+    </div>
+
+    <div style="background:#f3f4f6; border-radius:8px; padding:12px; text-align:center; margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:800; color:#6b7280; text-transform:uppercase;">Amount Paid</div>
+      <div id="dashRecAmount" style="font-size:24px; font-weight:900; color:#0284c7; font-family:monospace;">0.00 SAR</div>
+    </div>
+
+    <div class="no-print" style="display:flex; gap:10px;">
+      <button type="button" class="btn-table-manage" onclick="closeDashboardReceiptModal()" style="flex:1; justify-content:center; height:36px; color:#374151; border-color:#d1d5db;">Close</button>
+      <button type="button" class="btn-pos-collect" onclick="window.print()" style="flex:1.5; justify-content:center; height:36px; font-size:12px;">🖨️ Print Slip</button>
+    </div>
   </div>
 </div>
 
@@ -1976,6 +2127,43 @@
   function closeQuickCollectModal() {
     document.getElementById('quickCollectModal').classList.remove('open');
     currentActiveCustomer = null;
+  }
+
+  function setQcAmount(val) {
+    const amtInput = document.getElementById('qcAmount');
+    if (!amtInput) return;
+    if (val === 'exact') {
+      if (currentActiveCustomer) {
+        const fee = parseFloat(currentActiveCustomer.fee || 0);
+        const credit = parseFloat(currentActiveCustomer.credit || 0);
+        const netDue = Math.max(0, fee - credit);
+        amtInput.value = (netDue > 0 ? netDue : fee).toFixed(2);
+      }
+    } else {
+      amtInput.value = parseFloat(val).toFixed(2);
+    }
+    previewAdvanceCalculation();
+  }
+
+  function setQcPayMethod(btn, method) {
+    document.querySelectorAll('.qc-method-chip').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const notesInput = document.getElementById('qcNotes');
+    if (notesInput) notesInput.value = method;
+  }
+
+  function printDashboardReceipt(custName, phone, amount, time, collector) {
+    document.getElementById('dashRecTime').textContent = time || '—';
+    document.getElementById('dashRecCustName').textContent = custName || '—';
+    document.getElementById('dashRecPhone').textContent = phone || '—';
+    document.getElementById('dashRecAmount').textContent = parseFloat(amount || 0).toFixed(2) + ' SAR';
+    document.getElementById('dashRecNotes').textContent = 'Direct Cycle Renewal';
+    document.getElementById('dashRecCollector').textContent = collector || 'Admin';
+    document.getElementById('dashboardReceiptModal').classList.add('open');
+  }
+
+  function closeDashboardReceiptModal() {
+    document.getElementById('dashboardReceiptModal').classList.remove('open');
   }
 
   function previewAdvanceCalculation() {

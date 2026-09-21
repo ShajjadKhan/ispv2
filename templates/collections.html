@@ -1,158 +1,215 @@
 {% extends "base.html" %}
 
 {% block title %}CyberNet OS | Collections &amp; Balance Sheet{% endblock %}
-{% block heading %}Collections &amp; Balance Sheet{% endblock %}
+{% block heading %}Collections &amp; Financial Command Desk{% endblock %}
 
 {% block extra_head %}
 <style>
   /* =========================================================
-     COLLECTIONS & BALANCE SHEET ARCHITECTURE
+     COLLECTIONS & BALANCE SHEET MODERN FINTECH ARCHITECTURE
      ========================================================= */
   .col-page-grid {
     display: flex;
     flex-direction: column;
     gap: 24px;
     width: 100%;
-    max-width: 1360px;
+    max-width: 1400px;
     margin: 0 auto;
+    padding-bottom: 40px;
   }
 
-  /* TOP ACTION BAR */
+  /* 1. EXECUTIVE TOP BAR */
   .col-top-bar {
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    padding: 18px 24px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 31, 58, 0.95) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 18px;
+    padding: 20px 26px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 20px rgba(56, 189, 248, 0.08);
   }
 
   .col-title-group {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 14px;
+  }
+  .col-title-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(2, 132, 199, 0.3) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+  }
+  .col-title-icon svg {
+    width: 24px;
+    height: 24px;
   }
   .col-title-group h2 {
-    font-size: 19px;
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: -0.01em;
     display: flex;
     align-items: center;
     gap: 10px;
+    margin: 0;
   }
   .col-title-group p {
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--text-dim);
+    margin-top: 3px;
   }
 
+  .live-sync-chip {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+  }
+  .live-sync-chip .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #34d399;
+    box-shadow: 0 0 8px #34d399;
+    animation: live-pulse 2s infinite;
+  }
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  /* PERIOD FILTER PILLS */
+  .period-controls-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
   .period-pill-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     background: #090e1a;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 4px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
+    border-radius: 12px;
+    padding: 5px;
   }
-
   .period-pill {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: var(--text-dim);
     font-size: 12px;
     font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 7px;
+    padding: 7px 14px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s ease;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
   }
   .period-pill:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.05);
   }
   .period-pill.active {
-    background: var(--primary-glow);
+    background: rgba(56, 189, 248, 0.18);
     color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
   }
 
   .btn-export-csv {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-main);
     font-size: 12px;
     font-weight: 700;
-    padding: 8px 14px;
-    border-radius: 9px;
+    padding: 9px 15px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.15s ease;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
   }
   .btn-export-csv:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.3);
   }
 
-  /* BALANCE SHEET 4-CARD KPI DECK */
+  /* 2. 4-CARD BALANCE SHEET DECK */
   .balance-sheet-deck {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
   }
 
   .bs-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    padding: 18px 20px;
+    border-radius: 18px;
+    padding: 22px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 16px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    transition: all 0.15s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s ease;
     cursor: pointer;
     user-select: none;
   }
-  .bs-card:hover {
-    border-color: rgba(56, 189, 248, 0.55);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  .bs-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: background 0.2s;
   }
+  .bs-card.theme-today::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+  .bs-card.theme-month::before { background: linear-gradient(90deg, #059669, #10b981); }
+  .bs-card.theme-due::before { background: linear-gradient(90deg, #dc2626, #f87171); }
+  .bs-card.theme-credit::before { background: linear-gradient(90deg, #7c3aed, #c084fc); }
+
+  .bs-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  }
+  .bs-card.theme-today:hover { border-color: rgba(56, 189, 248, 0.5); }
+  .bs-card.theme-month:hover { border-color: rgba(16, 185, 129, 0.5); }
+  .bs-card.theme-due:hover { border-color: rgba(239, 68, 68, 0.5); }
+  .bs-card.theme-credit:hover { border-color: rgba(168, 85, 247, 0.5); }
+
   .bs-card.active-bs-filter {
     border-color: #38bdf8 !important;
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
-    box-shadow: 0 0 22px rgba(56, 189, 248, 0.25) !important;
-  }
-  .bs-filter-hint {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-  .bs-card:hover .bs-filter-hint,
-  .bs-card.active-bs-filter .bs-filter-hint {
-    color: #38bdf8;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.25) !important;
   }
 
   .bs-card-top {
@@ -162,60 +219,103 @@
   }
 
   .bs-icon-wrap {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .bs-icon-wrap.today { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
-  .bs-icon-wrap.month { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-  .bs-icon-wrap.due { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-  .bs-icon-wrap.credit { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+  .bs-icon-wrap svg { width: 22px; height: 22px; }
+  .bs-icon-wrap.today { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .bs-icon-wrap.month { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .bs-icon-wrap.due { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+  .bs-icon-wrap.credit { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
 
   .bs-badge-tag {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    padding: 2px 8px;
+    padding: 3px 9px;
     border-radius: 6px;
     font-family: var(--font-mono);
   }
 
+  .bs-amount-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
   .bs-data-num {
-    font-size: 26px;
+    font-size: 30px;
     font-weight: 800;
     font-family: var(--font-mono);
     color: #ffffff;
     line-height: 1.1;
   }
+  .bs-currency-badge {
+    font-size: 13px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-dim);
+  }
+
   .bs-data-lbl {
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 700;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
   }
   .bs-data-sub {
     font-size: 12px;
     color: var(--text-muted);
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+  .bs-filter-hint {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .bs-card:hover .bs-filter-hint {
+    color: #38bdf8;
+    transform: translateX(2px);
   }
 
-  /* EXPRESS CASH COLLECTOR POS BAR */
+  /* 3. SLEEK EXPRESS POS CASH COLLECTOR TERMINAL */
   .express-pos-card {
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(9, 14, 26, 0.95) 100%);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(9, 15, 30, 0.98) 100%);
     border: 1px solid rgba(56, 189, 248, 0.35);
-    border-radius: 16px;
-    padding: 20px 24px;
+    border-radius: 20px;
+    padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.1);
+    gap: 18px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.12);
+    position: relative;
+  }
+  .express-pos-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.6), transparent);
   }
 
   .pos-header-row {
@@ -224,66 +324,70 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   }
   .pos-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 800;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
-
-  .pos-inputs-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1.2fr auto;
-    gap: 14px;
-    align-items: end;
-  }
-
-  .btn-pos-collect {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-    border: none;
-    color: #ffffff;
-    font-size: 13px;
+  .pos-terminal-tag {
+    font-size: 11px;
     font-weight: 800;
-    padding: 10px 22px;
-    border-radius: 9px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    height: 42px;
-  }
-  .btn-pos-collect:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
-  .btn-pos-collect:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    font-family: var(--font-mono);
   }
 
-  /* CUSTOMER LIVE OVERVIEW CHIP */
+  /* CUSTOMER LIVE OVERVIEW SPOTLIGHT */
   .cust-pos-overview {
     display: none;
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 12px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 12.5px;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
+    animation: fadeIn 0.2s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  /* LIVE SUBSCRIBER SEARCH & SUGGESTION SYSTEM */
+  .pos-cust-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+  }
+
+  /* POS INPUTS GRID */
+  .pos-inputs-grid {
+    display: grid;
+    grid-template-columns: 2.2fr 1.2fr 1.4fr auto;
+    gap: 16px;
+    align-items: end;
+  }
+
   .pos-search-group {
     position: relative;
     display: flex;
@@ -297,7 +401,7 @@
   }
   .pos-search-icon {
     position: absolute;
-    left: 12px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
     color: #64748b;
@@ -308,15 +412,15 @@
   }
   .pos-search-input {
     width: 100%;
-    padding-left: 36px !important;
-    padding-right: 32px !important;
-    height: 42px;
-    font-size: 13px !important;
+    padding-left: 40px !important;
+    padding-right: 36px !important;
+    height: 46px;
+    font-size: 13.5px !important;
     background: #090e1a !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 9px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 11px !important;
     color: #ffffff !important;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
   }
   .pos-search-input:focus {
     border-color: #38bdf8 !important;
@@ -325,22 +429,22 @@
   }
   .pos-clear-btn {
     position: absolute;
-    right: 8px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     background: rgba(255, 255, 255, 0.08);
     border: none;
     color: #94a3b8;
     cursor: pointer;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     display: none;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    transition: all 0.1s ease;
+    transition: all 0.15s ease;
     z-index: 2;
   }
   .pos-clear-btn:hover {
@@ -348,55 +452,44 @@
     color: #ffffff;
   }
 
+  /* LIVE SUGGESTIONS DROPDOWN */
   .pos-suggestions-dropdown {
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     background: #0b1326;
     border: 1px solid rgba(56, 189, 248, 0.4);
-    border-radius: 12px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.15);
-    max-height: 310px;
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.15);
+    max-height: 340px;
     overflow-y: auto;
     z-index: 1500;
     padding: 6px;
     display: none;
-  }
-  .pos-suggestions-dropdown::-webkit-scrollbar {
-    width: 6px;
-  }
-  .pos-suggestions-dropdown::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .pos-suggestions-dropdown::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.18);
-    border-radius: 4px;
   }
   .pos-sug-header {
     font-size: 11px;
     font-weight: 700;
     color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 6px 10px 4px;
+    letter-spacing: 0.06em;
+    padding: 8px 12px 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   }
   .pos-sug-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 9px 12px;
-    border-radius: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
     cursor: pointer;
     transition: background 0.12s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  }
-  .pos-sug-item:last-child {
-    border-bottom: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   }
   .pos-sug-item:hover,
   .pos-sug-item.active {
@@ -405,19 +498,19 @@
   .pos-sug-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
     flex: 1;
   }
   .pos-sug-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 12.5px;
+    font-size: 13px;
     flex-shrink: 0;
     background: rgba(56, 189, 248, 0.18);
     color: #38bdf8;
@@ -425,12 +518,6 @@
   .pos-sug-avatar.overdue {
     background: rgba(239, 68, 68, 0.2);
     color: #f87171;
-  }
-  .pos-sug-details {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
   }
   .pos-sug-name {
     font-size: 13.5px;
@@ -452,26 +539,18 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
-  }
-  .pos-sug-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 3px;
-    flex-shrink: 0;
   }
   .pos-sug-fee {
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 800;
     color: #34d399;
-    font-family: monospace;
+    font-family: var(--font-mono);
   }
   .pos-sug-badge {
     font-size: 10px;
     font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 7px;
+    border-radius: 5px;
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
@@ -490,67 +569,197 @@
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.3);
   }
-  .pos-sug-empty {
-    padding: 18px 12px;
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 12.5px;
+
+  /* AMOUNT PRESET BUTTONS */
+  .amount-presets-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .btn-amt-preset {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .btn-amt-preset:hover {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+  .btn-amt-preset.preset-exact {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
   }
 
-  /* SECTION PANELS */
+  /* PAYMENT METHOD CHIPS */
+  .pay-method-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .pay-method-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .pay-method-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  .pay-method-chip.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
+
+  /* POS SUBMIT BUTTON */
+  .btn-pos-collect {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 800;
+    padding: 12px 24px;
+    border-radius: 11px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    height: 46px;
+  }
+  .btn-pos-collect:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5);
+  }
+  .btn-pos-collect:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* 4. DUE CUSTOMERS WORKLIST */
   .panel-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
+    border-radius: 18px;
     overflow: hidden;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
   }
 
   .panel-header {
-    padding: 16px 22px;
+    padding: 18px 24px;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 14px;
   }
 
   .panel-title {
-    font-size: 14.5px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 800;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+  }
+
+  /* WORKLIST FILTER TABS */
+  .worklist-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    background: #090e1a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+  }
+  .worklist-pills {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .worklist-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-dim);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .worklist-pill:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .worklist-pill.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.35);
   }
 
   .queue-card-row {
     background: #090e1a;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 14px 16px;
+    border-radius: 14px;
+    padding: 16px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 16px;
     transition: all 0.15s ease;
   }
   .queue-card-row:hover {
-    border-color: rgba(56, 189, 248, 0.3);
+    border-color: rgba(56, 189, 248, 0.35);
+    background: #0c1322;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  .queue-card-row.is-overdue {
+    border-left: 3px solid #f87171;
+  }
+  .queue-card-row.is-today {
+    border-left: 3px solid #fbbf24;
   }
 
   .queue-user-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-width: 220px;
+    gap: 14px;
+    min-width: 240px;
   }
   .queue-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
     color: #ffffff;
     font-weight: 800;
@@ -559,80 +768,139 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+  }
+  .queue-avatar.overdue {
+    background: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
   }
 
-  /* PRINTABLE THERMAL RECEIPT MODAL */
+  /* 5. AUDIT LEDGER TABLE */
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 700;
+    padding: 13px 18px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+  .clean-table tr:hover td {
+    background: rgba(56, 189, 248, 0.03);
+  }
+
+  /* 6. PRINTABLE THERMAL RECEIPT SLIP */
   .receipt-slip-box {
     background: #ffffff;
     color: #111827;
     width: 100%;
-    max-width: 360px;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    max-width: 380px;
+    padding: 26px 24px;
+    border-radius: 14px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
     display: flex;
     flex-direction: column;
     gap: 14px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    position: relative;
   }
   .receipt-header {
     text-align: center;
-    border-bottom: 2px dashed #d1d5db;
-    padding-bottom: 12px;
+    border-bottom: 2px dashed #9ca3af;
+    padding-bottom: 14px;
   }
   .receipt-header h3 {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 900;
-    color: #000;
+    color: #000000;
     margin: 0;
+    letter-spacing: -0.02em;
   }
   .receipt-header p {
     font-size: 11px;
-    color: #6b7280;
-    margin: 2px 0 0 0;
+    color: #4b5563;
+    margin: 3px 0 0 0;
   }
   .receipt-body-rows {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    font-size: 12px;
+    gap: 9px;
+    font-size: 12.5px;
   }
   .receipt-line {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .receipt-line .r-lbl { color: #6b7280; }
-  .receipt-line .r-val { font-weight: 700; color: #111827; }
+  .receipt-line .r-lbl { color: #6b7280; font-size: 11.5px; }
+  .receipt-line .r-val { font-weight: 700; color: #111827; font-family: monospace; }
 
   .receipt-total-banner {
     background: #f3f4f6;
-    border-radius: 8px;
-    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
     text-align: center;
     margin: 6px 0;
   }
   .receipt-total-banner .amount {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 900;
     color: #0284c7;
+    font-family: monospace;
   }
 
+  /* BARCODE STYLING */
+  .receipt-barcode {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    height: 36px;
+    margin: 6px 0 2px;
+  }
+  .barcode-bar {
+    background: #111827;
+    height: 100%;
+    width: 2px;
+  }
+  .barcode-bar.w2 { width: 3px; }
+  .barcode-bar.w3 { width: 5px; }
+  .barcode-bar.space { background: transparent; width: 3px; }
+
   /* MEDIA QUERIES */
-  @media (max-width: 900px) {
+  @media (max-width: 960px) {
     .pos-inputs-grid {
       grid-template-columns: 1fr 1fr;
     }
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 640px) {
     .col-top-bar {
       padding: 16px;
       flex-direction: column;
       align-items: stretch;
     }
+    .period-controls-wrap {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+    }
     .period-pill-group {
       width: 100%;
+      overflow-x: auto;
     }
     .pos-inputs-grid {
       grid-template-columns: 1fr;
@@ -662,9 +930,10 @@
     }
     .receipt-slip-box {
       box-shadow: none !important;
-      border: 1px solid #000;
+      border: 1px solid #000000;
       width: 100% !important;
-      max-width: 100% !important;
+      max-width: 360px !important;
+      margin: 0 auto;
     }
     .no-print { display: none !important; }
   }
@@ -674,150 +943,201 @@
 {% block content %}
 <div class="col-page-grid">
 
-  <!-- TOP ACTION & PERIOD FILTER BAR -->
+  <!-- 1. EXECUTIVE TOP ACTION & PERIOD FILTER BAR -->
   <div class="col-top-bar">
     <div class="col-title-group">
-      <h2>
-        <svg style="width:22px; height:22px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-        <span>Collections &amp; Financial Ledger</span>
-      </h2>
-      <p>Real-time cash flow desk, accounts receivable worklist, and audit ledger</p>
+      <div class="col-title-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      </div>
+      <div>
+        <h2>
+          <span>Collections &amp; Financial Ledger</span>
+          <span class="live-sync-chip"><span class="pulse-dot"></span> LIVE ROS SYNC</span>
+        </h2>
+        <p>Real-time cash flow desk, accounts receivable worklist, and audit ledger</p>
+      </div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div class="period-controls-wrap">
       <div class="period-pill-group">
-        <a href="/collections?period=today" class="period-pill {% if period == 'today' %}active{% endif %}">Today</a>
-        <a href="/collections?period=yesterday" class="period-pill {% if period == 'yesterday' %}active{% endif %}">Yesterday</a>
-        <a href="/collections?period=week" class="period-pill {% if period == 'week' %}active{% endif %}">This Week</a>
-        <a href="/collections?period=month" class="period-pill {% if period == 'month' %}active{% endif %}">This Month</a>
-        <a href="/collections?period=all" class="period-pill {% if period == 'all' %}active{% endif %}">All Time</a>
+        <a href="/collections?period=today" class="period-pill {% if period == 'today' %}active{% endif %}">
+          <span>Today</span>
+        </a>
+        <a href="/collections?period=yesterday" class="period-pill {% if period == 'yesterday' %}active{% endif %}">
+          <span>Yesterday</span>
+        </a>
+        <a href="/collections?period=week" class="period-pill {% if period == 'week' %}active{% endif %}">
+          <span>This Week</span>
+        </a>
+        <a href="/collections?period=month" class="period-pill {% if period == 'month' %}active{% endif %}">
+          <span>This Month</span>
+        </a>
+        <a href="/collections?period=all" class="period-pill {% if period == 'all' %}active{% endif %}">
+          <span>All Time</span>
+        </a>
       </div>
 
-      <button type="button" class="btn-export-csv" onclick="exportLedgerToCSV()">
+      <button type="button" class="btn-export-csv" onclick="exportLedgerToCSV()" title="Download collection history in CSV format">
         <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
         <span>Export CSV</span>
       </button>
     </div>
   </div>
 
-  <!-- BALANCE SHEET 4-CARD KPI DECK -->
+  <!-- 2. 4-CARD FINANCIAL HEALTH DECK (BALANCE SHEET) -->
   <div class="balance-sheet-deck">
     
-    <!-- 1. TODAY'S COLLECTIONS -->
-    <div class="bs-card {% if period == 'today' %}active-bs-filter{% endif %}" onclick="filterByBsCard('today')" title="Click to view today's collected receipts">
+    <!-- CARD 1: TODAY'S TOTAL INTAKE -->
+    <div class="bs-card theme-today {% if period == 'today' %}active-bs-filter{% endif %}" onclick="filterByBsCard('today')" title="Click to view today's collected receipts">
       <div class="bs-card-top">
         <div class="bs-icon-wrap today">
-          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
         </div>
-        <span class="bs-badge-tag" style="background:rgba(56,189,248,0.15); color:#38bdf8;">{{ bs.today_tx_count }} TX</span>
+        <span class="bs-badge-tag" style="background:rgba(56,189,248,0.15); color:#38bdf8;">{{ bs.today_tx_count }} Receipts</span>
       </div>
       <div>
-        <div class="bs-data-num text-cyan">{{ "%.2f"|format(bs.today_collected) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-amount-row">
+          <span class="bs-data-num text-cyan">{{ "%.2f"|format(bs.today_collected) }}</span>
+          <span class="bs-currency-badge">SAR</span>
+        </div>
         <div class="bs-data-lbl">Today's Total Intake</div>
       </div>
       <div class="bs-data-sub">
         <span>Recorded directly today</span>
-        <div class="bs-filter-hint"><span>🔍 Filter Today's Receipts</span></div>
+        <div class="bs-filter-hint"><span>🔍 Filter Today's Receipts ↓</span></div>
       </div>
     </div>
 
-    <!-- 2. MONTH-TO-DATE COLLECTIONS -->
-    <div class="bs-card {% if period == 'month' %}active-bs-filter{% endif %}" onclick="filterByBsCard('month')" title="Click to view current month collections">
+    <!-- CARD 2: MONTH-TO-DATE COLLECTIONS -->
+    <div class="bs-card theme-month {% if period == 'month' %}active-bs-filter{% endif %}" onclick="filterByBsCard('month')" title="Click to view current month collections">
       <div class="bs-card-top">
         <div class="bs-icon-wrap month">
-          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         </div>
-        <span class="bs-badge-tag" style="background:rgba(168,85,247,0.15); color:#34d399;">{{ bs.collection_efficiency }}% Target</span>
+        <span class="bs-badge-tag" style="background:rgba(16,185,129,0.15); color:#34d399;">{{ bs.collection_efficiency }}% Target</span>
       </div>
       <div>
-        <div class="bs-data-num" style="color:#34d399;">{{ "%.2f"|format(bs.month_collected) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-amount-row">
+          <span class="bs-data-num text-emerald">{{ "%.2f"|format(bs.month_collected) }}</span>
+          <span class="bs-currency-badge">SAR</span>
+        </div>
         <div class="bs-data-lbl">{{ bs.current_month_label }} Intake</div>
       </div>
       <div class="bs-data-sub">
         <span>{{ bs.month_tx_count }} receipts &bull; {{ bs.total_subscribers }} Subscribers</span>
-        <div class="bs-filter-hint"><span>🔍 Filter Month Receipts</span></div>
+        <div class="bs-filter-hint"><span>🔍 Filter Month Receipts ↓</span></div>
       </div>
     </div>
 
-    <!-- 3. OUTSTANDING RECEIVABLES (DUE BILLS) -->
-    <div class="bs-card" onclick="filterByBsCard('due')" title="Click to jump to Due Customers Worklist">
+    <!-- CARD 3: ACCOUNTS RECEIVABLE (DUE & OVERDUE) -->
+    <div class="bs-card theme-due" onclick="filterByBsCard('due')" title="Click to jump to Due Customers Worklist">
       <div class="bs-card-top">
         <div class="bs-icon-wrap due">
-          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
         </div>
-        <span class="bs-badge-tag" style="background:rgba(239,68,68,0.15); color:#f87171;">{{ bs.due_customers_count }} ACCOUNTS</span>
+        <span class="bs-badge-tag" style="background:rgba(239,68,68,0.15); color:#f87171;">{{ bs.due_customers_count }} Accounts</span>
       </div>
       <div>
-        <div class="bs-data-num" style="color:#f87171;">{{ "%.2f"|format(bs.outstanding_receivable) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-amount-row">
+          <span class="bs-data-num text-rose">{{ "%.2f"|format(bs.outstanding_receivable) }}</span>
+          <span class="bs-currency-badge">SAR</span>
+        </div>
         <div class="bs-data-lbl">Accounts Receivable (Due)</div>
       </div>
       <div class="bs-data-sub">
         <span>Overdue or expiring within 3 days</span>
-        <div class="bs-filter-hint" style="color:#f87171;"><span>🔍 View Due Worklist</span></div>
+        <div class="bs-filter-hint" style="color:#f87171;"><span>⚡ View Due Worklist ↓</span></div>
       </div>
     </div>
 
-    <!-- 4. CUSTOMER CREDIT WALLETS HELD (LIABILITY) -->
-    <div class="bs-card" onclick="filterByBsCard('credit')" title="Click to view Customer Credit Wallets Breakdown">
+    <!-- CARD 4: CUSTOMER ADVANCE CREDIT HELD (LIABILITY) -->
+    <div class="bs-card theme-credit" onclick="filterByBsCard('credit')" title="Click to view Customer Credit Wallets Breakdown">
       <div class="bs-card-top">
         <div class="bs-icon-wrap credit">
-          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
         </div>
-        <span class="bs-badge-tag" style="background:rgba(168,85,247,0.15); color:#c084fc;">{{ bs.credit_holders_count }} WALLETS</span>
+        <span class="bs-badge-tag" style="background:rgba(168,85,247,0.15); color:#c084fc;">{{ bs.credit_holders_count }} Wallets</span>
       </div>
       <div>
-        <div class="bs-data-num" style="color:#c084fc;">{{ "%.2f"|format(bs.total_credit_held) }} <span style="font-size:14px; font-weight:700;">SAR</span></div>
+        <div class="bs-amount-row">
+          <span class="bs-data-num text-purple" style="color:#c084fc;">{{ "%.2f"|format(bs.total_credit_held) }}</span>
+          <span class="bs-currency-badge">SAR</span>
+        </div>
         <div class="bs-data-lbl">Advance Credit Held</div>
       </div>
       <div class="bs-data-sub">
         <span>Customer wallet advance deposits</span>
-        <div class="bs-filter-hint" style="color:#c084fc;"><span>🔍 View Wallets Breakdown</span></div>
+        <div class="bs-filter-hint" style="color:#c084fc;"><span>💳 View Wallets Breakdown →</span></div>
       </div>
     </div>
 
   </div>
 
-  <!-- EXPRESS POS CASH COLLECTOR DESK -->
+  <!-- 3. SLEEK EXPRESS POS CASH COLLECTOR DESK -->
   <div class="express-pos-card">
     <div class="pos-header-row">
       <div class="pos-title">
-        <svg style="width:18px; height:18px; fill:#34d399;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+        <svg style="width:20px; height:20px; fill:#34d399;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
         <span>⚡ Express POS Cash Desk (Quick Collection Entry)</span>
       </div>
-      <span style="font-size:11.5px; color:var(--text-dim);">Immediately extends validity on MikroTik queues</span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="pos-terminal-tag">READY FOR TRANSACTION</span>
+        <span style="font-size:11.5px; color:var(--text-dim); display:none; @media(min-width:768px){display:inline;}">Auto-extends validity on MikroTik router</span>
+      </div>
     </div>
 
     <!-- LIVE CUSTOMER OVERVIEW BANNER (Appears when customer selected) -->
     <div class="cust-pos-overview" id="posCustomerOverview">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="font-mono" style="font-weight:700; color:#ffffff;" id="posCustName">Select customer...</span>
-        <span class="badge" id="posCustPlanBadge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10.5px;">Standard</span>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="pos-cust-avatar" id="posCustAvatar">U</div>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="font-mono" style="font-weight:800; color:#ffffff; font-size:14px;" id="posCustName">Select customer...</span>
+            <span class="badge" id="posCustPlanBadge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10.5px; font-weight:700;">Standard</span>
+          </div>
+          <div class="font-mono text-dim" style="font-size:11.5px;" id="posCustPhone">—</div>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; gap:16px;">
-        <div>Due Date: <strong class="text-white font-mono" id="posCustDueDate">—</strong></div>
-        <div>Monthly Fee: <strong class="text-cyan font-mono" id="posCustMonthlyFee">0.00 SAR</strong></div>
-        <div>Credit Wallet: <strong class="text-green font-mono" id="posCustCredit">0.00 SAR</strong></div>
+
+      <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Due / Expiry</div>
+          <strong class="text-white font-mono" id="posCustDueDate" style="font-size:12.5px;">—</strong>
+        </div>
+        <div>
+          <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Monthly Fee</div>
+          <strong class="text-cyan font-mono" id="posCustMonthlyFee" style="font-size:12.5px;">0.00 SAR</strong>
+        </div>
+        <div>
+          <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Wallet Credit</div>
+          <strong class="text-green font-mono" id="posCustCredit" style="font-size:12.5px; color:#34d399;">0.00 SAR</strong>
+        </div>
+        <div>
+          <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Net Cash Due</div>
+          <strong class="font-mono" id="posCustNetDue" style="font-size:14px; font-weight:800; color:#f87171;">0.00 SAR</strong>
+        </div>
       </div>
     </div>
 
     <form id="expressPosForm" onsubmit="handleExpressCollection(event)">
       <div class="pos-inputs-grid">
+        <!-- 1. Search Subscriber -->
         <div class="form-group pos-search-group" style="margin-bottom:0;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label style="margin-bottom:0;">Find &amp; Select Subscriber</label>
+            <label style="margin-bottom:0; font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim);">Find Subscriber</label>
             <span id="posSelectionStatus" style="font-size:11px; font-weight:700; color:#10b981; display:none;">✓ Selected</span>
           </div>
 
           <div class="pos-input-inner">
             <div class="pos-search-icon">
-              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <svg style="width:17px; height:17px; fill:currentColor;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             </div>
 
             <input 
               type="text" 
               class="pos-search-input font-mono" 
               id="posCustomerSearchInput" 
-              placeholder="Search subscriber name, phone or ID..." 
+              placeholder="Search by name, phone or ID..." 
               autocomplete="off"
               oninput="onPosSearchInput(this.value)"
               onfocus="onPosSearchFocus()"
@@ -840,19 +1160,37 @@
           <div id="posSuggestionsDropdown" class="pos-suggestions-dropdown"></div>
         </div>
 
+        <!-- 2. Amount Collected (SAR) with Quick Preset Chips -->
         <div class="form-group" style="margin-bottom:0;">
-          <label>Amount Collected (SAR)</label>
-          <input type="number" step="0.01" class="form-input font-mono" id="posAmountInput" placeholder="0.00" required style="font-size:15px; font-weight:700; color:#34d399;">
+          <label style="font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim); margin-bottom:6px;">Amount (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="posAmountInput" placeholder="0.00" required style="height:46px; font-size:16px; font-weight:800; color:#34d399; background:#090e1a; border-radius:11px; border:1px solid rgba(255,255,255,0.12); padding:0 14px;">
+          
+          <div class="amount-presets-row" id="amountPresetsRow">
+            <button type="button" class="btn-amt-preset preset-exact" onclick="setPosAmount('exact')">Exact Due</button>
+            <button type="button" class="btn-amt-preset" onclick="setPosAmount(50)">50</button>
+            <button type="button" class="btn-amt-preset" onclick="setPosAmount(75)">75</button>
+            <button type="button" class="btn-amt-preset" onclick="setPosAmount(100)">100</button>
+            <button type="button" class="btn-amt-preset" onclick="setPosAmount(150)">150</button>
+          </div>
         </div>
 
+        <!-- 3. Payment Method & Notes with Quick Chips -->
         <div class="form-group" style="margin-bottom:0;">
-          <label>Payment Method &amp; Notes</label>
-          <input type="text" class="form-input" id="posNotesInput" placeholder="Cash, STC Pay, Transfer..." value="Cash Payment">
+          <label style="font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim); margin-bottom:6px;">Method &amp; Notes</label>
+          <input type="text" class="form-input" id="posNotesInput" placeholder="Cash, STC Pay, Transfer..." value="Cash Payment" style="height:46px; font-size:13px; background:#090e1a; border-radius:11px; border:1px solid rgba(255,255,255,0.12); padding:0 14px; color:#ffffff;">
+          
+          <div class="pay-method-chips">
+            <button type="button" class="pay-method-chip active" onclick="setPayMethod(this, 'Cash Payment')">💵 Cash</button>
+            <button type="button" class="pay-method-chip" onclick="setPayMethod(this, 'STC Pay Transfer')">📱 STC Pay</button>
+            <button type="button" class="pay-method-chip" onclick="setPayMethod(this, 'Bank Transfer')">🏦 Bank</button>
+            <button type="button" class="pay-method-chip" onclick="setPayMethod(this, 'Card POS')">💳 Card</button>
+          </div>
         </div>
 
+        <!-- 4. Submit CTA -->
         <div>
           <button type="submit" class="btn-pos-collect" id="btnPosSubmit">
-            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
             <span>Collect &amp; Extend</span>
           </button>
         </div>
@@ -860,105 +1198,142 @@
     </form>
   </div>
 
-  <!-- DUE SUBSCRIBERS COLLECTION QUEUE (ACTIONABLE WORKLIST) -->
+  <!-- 4. DUE SUBSCRIBERS COLLECTION QUEUE (ACTIONABLE WORKLIST) -->
   <div class="panel-card" id="dueQueuePanel">
     <div class="panel-header">
       <div class="panel-title">
-        <svg style="width:18px; height:18px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <svg style="width:20px; height:20px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
         <span>Due Customers Worklist (Action Required)</span>
       </div>
-      <span class="font-mono text-dim" style="font-size:12px;">
-        <strong class="text-white">{{ due_queue|length }}</strong> Subscribers Awaiting Payment
-      </span>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="font-mono text-dim" style="font-size:12.5px;">
+          <strong class="text-white">{{ due_queue|length }}</strong> Subscribers Awaiting Payment
+        </span>
+      </div>
     </div>
 
-    <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+    <!-- WORKLIST FILTER PILLS & INSTANT SEARCH -->
+    <div class="worklist-filter-bar">
+      <div class="worklist-pills">
+        <button type="button" class="worklist-pill active" onclick="filterDueList('all', this)">All Due ({{ due_queue|length }})</button>
+        <button type="button" class="worklist-pill" onclick="filterDueList('overdue', this)">🚨 Overdue</button>
+        <button type="button" class="worklist-pill" onclick="filterDueList('today', this)">⏳ Due Today</button>
+        <button type="button" class="worklist-pill" onclick="filterDueList('credit', this)">💳 Wallet Settlable</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; min-width:240px;">
+        <input type="text" class="form-input font-mono" id="dueSearchInput" placeholder="Filter due by name or phone..." oninput="filterDueBySearch(this.value)" style="height:34px; font-size:12px; background:#0b1120; border-radius:8px; width:100%;">
+      </div>
+    </div>
+
+    <div style="padding:18px; display:flex; flex-direction:column; gap:12px;" id="dueQueueListContainer">
       {% if due_queue %}
         {% for c in due_queue %}
-        <div class="queue-card-row">
+        {% set is_overdue = (c.days_remaining is not none and c.days_remaining < 0) %}
+        {% set is_today = (c.days_remaining is not none and c.days_remaining == 0) %}
+        <div class="queue-card-row {% if is_overdue %}is-overdue{% elif is_today %}is-today{% endif %}" 
+             data-due-type="{% if is_overdue %}overdue{% elif is_today %}today{% else %}upcoming{% endif %}"
+             data-can-settle="{{ 'true' if c.can_settle_from_credit else 'false' }}"
+             data-search="{{ c.name|lower }} {{ c.phone }}">
+          
           <div class="queue-user-info">
-            <div class="queue-avatar">{{ c.name[:1]|upper }}</div>
-            <div style="display:flex; flex-direction:column; gap:2px;">
-              <a href="/customers/{{ c.id }}/edit" style="font-size:14.5px; font-weight:700; color:#ffffff; text-decoration:none;">{{ c.name }}</a>
-              <span class="font-mono text-dim" style="font-size:11.5px;">{{ c.phone }} &bull; {{ c.package_name }} ({{ c.effective_speed }})</span>
+            <div class="queue-avatar {% if is_overdue %}overdue{% endif %}">{{ c.name[:1]|upper }}</div>
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <a href="/customers/{{ c.id }}/edit" style="font-size:15px; font-weight:800; color:#ffffff; text-decoration:none;" class="hover-underline">{{ c.name }}</a>
+              <span class="font-mono text-dim" style="font-size:12px;">
+                <span class="text-cyan">{{ c.phone }}</span> &bull; {{ c.package_name }} ({{ c.effective_speed }})
+              </span>
             </div>
           </div>
 
-          <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
-            <div style="display:flex; flex-direction:column; gap:2px;">
+          <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
+            <!-- Due Date & Status -->
+            <div style="display:flex; flex-direction:column; gap:3px; min-width:110px;">
               <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Due Date</span>
-              <span class="font-mono text-white" style="font-size:12.5px; font-weight:600;">{{ c.due_date or c.expiry_date or '—' }}</span>
+              <span class="font-mono text-white" style="font-size:13px; font-weight:700;">{{ c.due_date or c.expiry_date or '—' }}</span>
               {% if c.days_remaining is not none %}
                 {% if c.days_remaining < 0 %}
-                  <span class="badge-status disabled" style="font-size:9.5px; width:fit-content;">EXPIRED {{ c.days_remaining|abs }}d AGO</span>
+                  <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; font-weight:800;">EXPIRED {{ c.days_remaining|abs }}d AGO</span>
                 {% elif c.days_remaining == 0 %}
-                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">DUE TODAY</span>
+                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content; font-weight:800;">DUE TODAY</span>
                 {% else %}
-                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">{{ c.days_remaining }}d LEFT</span>
+                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content; font-weight:800;">{{ c.days_remaining }}d LEFT</span>
                 {% endif %}
               {% endif %}
             </div>
 
-            <div style="display:flex; flex-direction:column; gap:2px;">
+            <!-- Monthly Rate & Wallet Credit -->
+            <div style="display:flex; flex-direction:column; gap:3px; min-width:110px;">
               <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Monthly Rate</span>
-              <span class="font-mono text-cyan" style="font-size:13.5px; font-weight:700;">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
+              <span class="font-mono text-cyan" style="font-size:14px; font-weight:800;">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
               {% if c.credit_balance and c.credit_balance > 0 %}
-                <span class="font-mono" style="font-size:10.5px; color:#34d399;">+{{ "%.2f"|format(c.credit_balance) }} in Wallet</span>
+                <span class="font-mono" style="font-size:11px; color:#34d399; font-weight:700;">+{{ "%.2f"|format(c.credit_balance) }} in Wallet</span>
               {% endif %}
             </div>
 
-            <div style="display:flex; flex-direction:column; gap:2px;">
+            <!-- Net Cash Needed -->
+            <div style="display:flex; flex-direction:column; gap:3px; min-width:110px;">
               <span style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Net Cash Needed</span>
-              <span class="font-mono text-white" style="font-size:14px; font-weight:800; color:{% if c.net_due_amount == 0 %}#34d399{% else %}#f87171{% endif %};">
+              <span class="font-mono" style="font-size:16px; font-weight:900; color:{% if c.net_due_amount == 0 %}#34d399{% else %}#f87171{% endif %};">
                 {{ "%.2f"|format(c.net_due_amount) }} SAR
               </span>
             </div>
           </div>
 
+          <!-- Actions -->
           <div style="display:flex; align-items:center; gap:8px;">
             {% if c.can_settle_from_credit %}
-              <button type="button" class="btn-action-sm" onclick="quickSettleCredit({{ c.id }}, {{ c.monthly_fee }})" style="background:rgba(52,211,153,0.15); color:#34d399; border-color:rgba(52,211,153,0.3); font-weight:700;">
-                💳 Settle from Credit
+              <button type="button" class="btn-action-sm" onclick="quickSettleCredit({{ c.id }}, {{ c.monthly_fee }})" style="background:rgba(52,211,153,0.18); color:#34d399; border-color:rgba(52,211,153,0.4); font-weight:800; padding:8px 14px; border-radius:8px; font-size:12px;">
+                💳 1-Click Settle from Credit
               </button>
             {% else %}
-              <button type="button" class="btn-action-sm" onclick="selectForPos({{ c.id }}, {{ c.net_due_amount }})" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+              <button type="button" class="btn-action-sm" onclick="selectForPos({{ c.id }}, {{ c.net_due_amount }})" style="background:rgba(56,189,248,0.18); color:#38bdf8; border-color:rgba(56,189,248,0.4); font-weight:800; padding:8px 14px; border-radius:8px; font-size:12px;">
                 ⚡ Collect Cash
               </button>
             {% endif %}
 
-            <a href="/whatsapp?phone={{ c.phone }}&name={{ c.name|urlencode }}&due={{ c.net_due_amount }}" class="btn-action-sm" style="color:#25d366; background:rgba(37,211,102,0.1); border-color:rgba(37,211,102,0.25); text-decoration:none;" title="Send WhatsApp Reminder">
-              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+            <a href="https://wa.me/{{ c.phone|replace('+', '')|replace(' ', '') }}?text={{ ('مرحباً ' ~ c.name ~ '، نود تذكيركم بموعد تجديد اشتراك الإنترنت بمبلغ ' ~ ('%.2f'|format(c.net_due_amount)) ~ ' ريال. شكرًا لاختياركم خدماتنا!')|urlencode }}" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               class="btn-action-sm" 
+               style="color:#25d366; background:rgba(37,211,102,0.12); border-color:rgba(37,211,102,0.3); padding:8px 10px; border-radius:8px;" 
+               title="Send WhatsApp Payment Reminder">
+              <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
             </a>
           </div>
+
         </div>
         {% endfor %}
       {% else %}
-        <div class="empty-state" style="padding:24px; text-align:center;">
-          <p style="color:#34d399; font-weight:700; font-size:15px; margin-bottom:4px;">✓ All Collections Up to Date!</p>
-          <p style="font-size:12px; color:var(--text-dim);">No subscribers currently have pending or overdue bills.</p>
+        <div class="empty-state" style="padding:32px; text-align:center;">
+          <div style="width:48px; height:48px; border-radius:50%; background:rgba(16,185,129,0.15); color:#34d399; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+            <svg style="width:24px; height:24px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+          <p style="color:#34d399; font-weight:800; font-size:16px; margin-bottom:4px;">All Collections Up to Date!</p>
+          <p style="font-size:12.5px; color:var(--text-dim);">No subscribers currently have pending or overdue bills.</p>
         </div>
       {% endif %}
     </div>
   </div>
 
-  <!-- COLLECTIONS AUDIT LEDGER (TRANSACTION HISTORY) -->
+  <!-- 5. COLLECTIONS AUDIT LEDGER (TRANSACTION HISTORY) -->
   <div class="panel-card" id="ledgerPanel">
     <div class="panel-header">
       <div class="panel-title">
-        <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <svg style="width:20px; height:20px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
         <span>Collections Ledger &amp; Transaction Audit Log</span>
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
-        <span class="font-mono text-white" style="font-size:13px; font-weight:700;">
+        <span class="font-mono text-white" style="font-size:13.5px; font-weight:700;">
           Total: <span class="text-cyan font-mono" id="ledgerTotalSar">{{ "%.2f"|format(filtered_total) }} SAR</span> ({{ filtered_tx_count }} Receipts)
         </span>
       </div>
     </div>
 
     <!-- SEARCH FILTER INPUT -->
-    <div style="padding:12px 20px; background:#090e1a; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:10px;">
-      <svg style="width:16px; height:16px; fill:var(--text-dim);" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="text" class="search-input" id="ledgerSearchInput" placeholder="Filter ledger by subscriber name, phone, or notes..." oninput="filterLedgerTable()" style="background:transparent; border:none; outline:none; color:#ffffff; font-size:13px; width:100%;">
+    <div style="padding:14px 22px; background:#090e1a; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:12px;">
+      <svg style="width:18px; height:18px; fill:var(--text-dim);" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" class="search-input" id="ledgerSearchInput" placeholder="Filter ledger by receipt #, subscriber name, phone, or notes..." oninput="filterLedgerTable()" style="background:transparent; border:none; outline:none; color:#ffffff; font-size:13.5px; width:100%;">
     </div>
 
     <div class="table-responsive">
@@ -972,28 +1347,32 @@
             <th>Amount (SAR)</th>
             <th>Transaction Notes / Cycle Extended</th>
             <th>Collector</th>
-            <th style="text-align:right;">Receipt</th>
+            <th style="text-align:right;">Voucher</th>
           </tr>
         </thead>
         <tbody>
           {% if ledger %}
             {% for tx in ledger %}
-            <tr class="ledger-row" data-search="{{ (tx.customer_name or '')|lower }} {{ tx.customer_phone or '' }} {{ (tx.notes or '')|lower }}">
-              <td class="font-mono text-cyan" style="font-weight:700;">#COL-{{ tx.id }}</td>
+            <tr class="ledger-row" data-search="{{ (tx.customer_name or '')|lower }} {{ tx.customer_phone or '' }} {{ (tx.notes or '')|lower }} col-{{ tx.id }}">
+              <td class="font-mono text-cyan" style="font-weight:800;">#COL-{{ tx.id }}</td>
               <td class="font-mono text-dim" style="font-size:12px;">{{ tx.collected_at }}</td>
               <td>
-                <a href="/customers/{{ tx.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;">
+                <a href="/customers/{{ tx.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" class="hover-underline">
                   {{ tx.customer_name or 'Account #' ~ tx.customer_id }}
                 </a>
               </td>
               <td class="font-mono text-white">{{ tx.customer_phone or '—' }}</td>
-              <td class="font-mono" style="font-weight:800; color:{% if tx.amount > 0 %}#34d399{% else %}#94a3b8{% endif %}; font-size:13.5px;">
-                {{ "%.2f"|format(tx.amount) }} SAR
+              <td class="font-mono" style="font-weight:800; color:{% if tx.amount > 0 %}#34d399{% else %}#94a3b8{% endif %}; font-size:14px;">
+                +{{ "%.2f"|format(tx.amount) }} SAR
               </td>
-              <td style="font-size:12px; color:var(--text-muted);">{{ tx.notes or 'Payment entry' }}</td>
-              <td class="font-mono text-dim" style="font-size:11.5px;">{{ tx.collected_by or 'Admin' }}</td>
+              <td style="font-size:12.5px; color:var(--text-muted);">{{ tx.notes or 'Payment entry' }}</td>
+              <td class="font-mono text-dim" style="font-size:11.5px;">
+                <span class="badge" style="background:rgba(255,255,255,0.06); color:#cbd5e1; font-size:10.5px; padding:2px 7px;">
+                  {{ tx.collected_by or 'Admin' }}
+                </span>
+              </td>
               <td style="text-align:right;">
-                <button type="button" class="btn-action-sm" onclick="printReceiptSlip({{ tx.id }}, '{{ tx.customer_name|escape }}', '{{ tx.customer_phone }}', '{{ tx.amount }}', '{{ tx.collected_at }}', '{{ tx.notes|escape }}', '{{ tx.collected_by }}')" title="Print or view receipt">
+                <button type="button" class="btn-action-sm" onclick="printReceiptSlip({{ tx.id }}, '{{ tx.customer_name|escape }}', '{{ tx.customer_phone }}', '{{ tx.amount }}', '{{ tx.collected_at }}', '{{ tx.notes|escape }}', '{{ tx.collected_by }}')" title="Print or view receipt slip" style="padding:6px 12px; font-size:12px; font-weight:700; background:rgba(56,189,248,0.12); color:#38bdf8; border-color:rgba(56,189,248,0.3);">
                   <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
                   <span>Receipt</span>
                 </button>
@@ -1003,8 +1382,8 @@
           {% else %}
             <tr>
               <td colspan="8">
-                <div class="empty-state" style="padding:28px; text-align:center;">
-                  <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Transactions Found</p>
+                <div class="empty-state" style="padding:36px; text-align:center;">
+                  <p style="font-weight:800; color:#ffffff; font-size:15px; margin-bottom:4px;">No Transactions Found</p>
                   <p style="font-size:12px; color:var(--text-dim);">There are no recorded collections for the selected time period.</p>
                 </div>
               </td>
@@ -1017,31 +1396,35 @@
 
 </div>
 
-<!-- PRINTABLE RECEIPT MODAL -->
+<!-- 6. PRINTABLE THERMAL RECEIPT MODAL -->
 <div class="modal-overlay" id="printableReceiptModal">
   <div class="receipt-slip-box">
     <div class="receipt-header">
-      <h3>CyberNet OS</h3>
-      <p>ISP &amp; Hotspot Internet Services</p>
-      <p class="font-mono" style="font-size:10px; color:#9ca3af; margin-top:4px;">Official Payment Voucher</p>
+      <h3>CyberNet OS Network</h3>
+      <p>High-Speed Hotspot &amp; Fiber Internet Services</p>
+      <p class="font-mono" style="font-size:10.5px; color:#6b7280; margin-top:5px;">Official Payment Voucher</p>
     </div>
 
     <div class="receipt-body-rows">
       <div class="receipt-line">
         <span class="r-lbl">Receipt Number:</span>
-        <span class="r-val font-mono" id="recId">#COL-000</span>
+        <span class="r-val" id="recId">#COL-000</span>
       </div>
       <div class="receipt-line">
         <span class="r-lbl">Date &amp; Time:</span>
-        <span class="r-val font-mono" id="recTime">—</span>
+        <span class="r-val" id="recTime">—</span>
       </div>
       <div class="receipt-line">
-        <span class="r-lbl">Subscriber:</span>
+        <span class="r-lbl">Subscriber Name:</span>
         <span class="r-val" id="recCustName">—</span>
       </div>
       <div class="receipt-line">
         <span class="r-lbl">Phone Number:</span>
-        <span class="r-val font-mono" id="recPhone">—</span>
+        <span class="r-val" id="recPhone">—</span>
+      </div>
+      <div class="receipt-line">
+        <span class="r-lbl">Payment Details:</span>
+        <span class="r-val" id="recNotes">Service Renewal</span>
       </div>
       <div class="receipt-line">
         <span class="r-lbl">Collector Staff:</span>
@@ -1050,50 +1433,64 @@
     </div>
 
     <div class="receipt-total-banner">
-      <div style="font-size:10.5px; font-weight:700; color:#6b7280; text-transform:uppercase;">Amount Paid</div>
+      <div style="font-size:10.5px; font-weight:800; color:#6b7280; text-transform:uppercase; letter-spacing:0.06em;">Total Amount Paid</div>
       <div class="amount font-mono" id="recAmount">0.00 SAR</div>
+      <div style="font-size:11px; color:#059669; font-weight:700; margin-top:2px;">✓ Verified &amp; Applied to Router</div>
     </div>
 
-    <div style="font-size:11px; color:#4b5563; line-height:1.4; border-top:1px dashed #e5e7eb; padding-top:8px;">
-      <div id="recNotes">Service renewal recorded.</div>
+    <!-- Barcode visual -->
+    <div class="receipt-barcode">
+      <div class="barcode-bar w2"></div><div class="barcode-bar space"></div>
+      <div class="barcode-bar"></div><div class="barcode-bar w3"></div>
+      <div class="barcode-bar space"></div><div class="barcode-bar w2"></div>
+      <div class="barcode-bar"></div><div class="barcode-bar space"></div>
+      <div class="barcode-bar w3"></div><div class="barcode-bar"></div>
+      <div class="barcode-bar space"></div><div class="barcode-bar w2"></div>
+      <div class="barcode-bar"></div><div class="barcode-bar space"></div>
+      <div class="barcode-bar w3"></div><div class="barcode-bar"></div>
+    </div>
+
+    <div style="font-size:11px; color:#6b7280; text-align:center; border-top:1px dashed #d1d5db; padding-top:10px; line-height:1.4;">
+      Thank you for choosing CyberNet OS!<br>
+      For technical support or inquiries, call our desk.
     </div>
 
     <div class="no-print" style="display:flex; gap:10px; margin-top:10px;">
-      <button type="button" class="btn-cancel" onclick="closeReceiptModal()" style="flex:1;">Close</button>
-      <button type="button" class="btn-approve" onclick="window.print()" style="flex:1.5; justify-content:center;">🖨️ Print Slip</button>
+      <button type="button" class="btn-table-manage" onclick="closeReceiptModal()" style="flex:1; justify-content:center; height:38px;">Close</button>
+      <button type="button" class="btn-pos-collect" onclick="window.print()" style="flex:1.5; justify-content:center; height:38px; font-size:12.5px;">🖨️ Print Slip (80mm)</button>
     </div>
   </div>
 </div>
 
-<!-- CUSTOMER CREDIT WALLETS BREAKDOWN MODAL -->
-<div id="creditWalletsModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#0f172a; border:1px solid rgba(168,85,247,0.45); border-radius:16px; max-width:680px; width:100%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(168,85,247,0.2); overflow:hidden;">
+<!-- 7. CUSTOMER CREDIT WALLETS BREAKDOWN MODAL -->
+<div id="creditWalletsModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0f172a; border:1px solid rgba(168,85,247,0.45); border-radius:18px; max-width:680px; width:100%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 25px 60px rgba(0,0,0,0.8), 0 0 35px rgba(168,85,247,0.2); overflow:hidden;">
     
-    <div style="padding:18px 22px; background:rgba(168,85,247,0.08); border-bottom:1px solid rgba(168,85,247,0.25); display:flex; justify-content:space-between; align-items:center;">
+    <div style="padding:20px 24px; background:rgba(168,85,247,0.1); border-bottom:1px solid rgba(168,85,247,0.25); display:flex; justify-content:space-between; align-items:center;">
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:38px; height:38px; border-radius:10px; background:rgba(168,85,247,0.2); color:#c084fc; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        <div style="width:42px; height:42px; border-radius:12px; background:rgba(168,85,247,0.2); color:#c084fc; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg style="width:22px; height:22px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
         </div>
         <div>
-          <h3 style="font-size:16px; font-weight:800; color:#ffffff; margin:0;">Customer Credit Wallets Breakdown</h3>
-          <p style="font-size:11.5px; color:var(--text-dim); margin:0;">
+          <h3 style="font-size:17px; font-weight:800; color:#ffffff; margin:0;">Customer Credit Wallets Breakdown</h3>
+          <p style="font-size:12px; color:var(--text-dim); margin:0;">
             Total Credit Held: <strong style="color:#c084fc;">{{ "%.2f"|format(bs.total_credit_held) }} SAR</strong> across <strong class="text-white">{{ bs.credit_holders_count }}</strong> Wallets
           </p>
         </div>
       </div>
-      <button type="button" class="btn-close-modal" onclick="closeCreditWalletsModal()" style="color:#94a3b8; font-size:22px; background:transparent; border:none; cursor:pointer;">&times;</button>
+      <button type="button" class="btn-modal-close" onclick="closeCreditWalletsModal()">&times;</button>
     </div>
 
-    <div style="padding:12px 20px; border-bottom:1px solid rgba(255,255,255,0.06); background:#090e1a;">
-      <input type="text" class="form-input font-mono" id="creditWalletSearchInput" placeholder="Filter credit holders by name or phone..." oninput="filterCreditWalletsList(this.value)" style="font-size:12.5px; height:38px; width:100%;">
+    <div style="padding:14px 22px; border-bottom:1px solid rgba(255,255,255,0.06); background:#090e1a;">
+      <input type="text" class="form-input font-mono" id="creditWalletSearchInput" placeholder="Filter credit holders by name or phone..." oninput="filterCreditWalletsList(this.value)" style="font-size:13px; height:40px; width:100%; border-radius:10px;">
     </div>
 
-    <div style="padding:16px 20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;" id="creditWalletsListContainer">
+    <div style="padding:18px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;" id="creditWalletsListContainer">
       <!-- Dynamically filled with credit holding subscribers via JS -->
     </div>
 
-    <div style="padding:12px 20px; background:#090e1a; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:flex-end;">
-      <button type="button" class="btn-cancel" onclick="closeCreditWalletsModal()">Close</button>
+    <div style="padding:14px 22px; background:#090e1a; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:flex-end;">
+      <button type="button" class="btn-table-manage" onclick="closeCreditWalletsModal()">Close</button>
     </div>
   </div>
 </div>
@@ -1104,6 +1501,7 @@
   const allSubscribers = {{ customers_dropdown | tojson }};
   let currentFilteredSubscribers = [];
   let activeSuggestionIndex = -1;
+  let currentlySelectedCustomer = null;
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -1149,7 +1547,7 @@
 
     if (!list || list.length === 0) {
       dropdown.innerHTML = `
-        <div class="pos-sug-empty">
+        <div style="padding:18px; text-align:center; color:var(--text-dim); font-size:12.5px;">
           No matching subscribers found for "<strong>${escapeHtml(query)}</strong>".
         </div>`;
       dropdown.style.display = 'block';
@@ -1157,7 +1555,7 @@
     }
 
     const headerText = query 
-      ? `<span>Matching Subscribers (${list.length})</span><span>Select or Press Enter</span>`
+      ? `<span>Matching Subscribers (${list.length})</span><span>↑↓ to navigate &bull; Enter to select</span>`
       : `<span>Quick Priority Suggestions</span><span>${list.length} Accounts</span>`;
 
     const headerHtml = `<div class="pos-sug-header">${headerText}</div>`;
@@ -1189,7 +1587,7 @@
               </div>
             </div>
           </div>
-          <div class="pos-sug-right">
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0;">
             <div class="pos-sug-fee">${feeFormatted} SAR</div>
             <div>${badgeHtml}</div>
           </div>
@@ -1210,7 +1608,7 @@
         const remB = b.days_remaining !== null && b.days_remaining !== undefined ? b.days_remaining : 999;
         return remA - remB;
       });
-      return sorted.slice(0, 10);
+      return sorted.slice(0, 12);
     }
 
     const cleanQ = q.replace(/[^a-z0-9]/g, '');
@@ -1235,6 +1633,7 @@
       document.getElementById('posSelectedCustomerId').value = '';
       document.getElementById('posSelectionStatus').style.display = 'none';
       document.getElementById('posCustomerOverview').style.display = 'none';
+      currentlySelectedCustomer = null;
     }
 
     const matches = filterSubscribers(val);
@@ -1295,6 +1694,8 @@
     const cust = allSubscribers.find(c => c.id === custId);
     if (!cust) return;
 
+    currentlySelectedCustomer = cust;
+
     // 1. Set input values
     document.getElementById('posSelectedCustomerId').value = cust.id;
     document.getElementById('posCustomerSearchInput').value = `${cust.name} (${cust.phone})`;
@@ -1303,18 +1704,21 @@
     document.getElementById('posSuggestionsDropdown').style.display = 'none';
 
     // 2. Set Overview banner
-    document.getElementById('posCustName').textContent = `${cust.name} (${cust.phone})`;
+    document.getElementById('posCustAvatar').textContent = cust.name ? cust.name.charAt(0).toUpperCase() : 'U';
+    document.getElementById('posCustName').textContent = cust.name;
+    document.getElementById('posCustPhone').textContent = cust.phone;
     document.getElementById('posCustPlanBadge').textContent = cust.package_name || 'Standard';
     document.getElementById('posCustDueDate').textContent = cust.due_date || '—';
     document.getElementById('posCustMonthlyFee').textContent = parseFloat(cust.monthly_fee || 0).toFixed(2) + ' SAR';
     document.getElementById('posCustCredit').textContent = parseFloat(cust.credit_balance || 0).toFixed(2) + ' SAR';
-    document.getElementById('posCustomerOverview').style.display = 'flex';
-
-    // 3. Pre-fill Amount
+    
     const fee = parseFloat(cust.monthly_fee || 0);
     const credit = parseFloat(cust.credit_balance || 0);
     const netDue = Math.max(0, fee - credit);
+    document.getElementById('posCustNetDue').textContent = netDue.toFixed(2) + ' SAR';
+    document.getElementById('posCustomerOverview').style.display = 'flex';
 
+    // 3. Pre-fill Amount
     if (overrideAmount !== undefined && overrideAmount !== null) {
       document.getElementById('posAmountInput').value = parseFloat(overrideAmount).toFixed(2);
     } else {
@@ -1335,6 +1739,7 @@
     document.getElementById('posSelectionStatus').style.display = 'none';
     document.getElementById('posCustomerOverview').style.display = 'none';
     document.getElementById('posAmountInput').value = '';
+    currentlySelectedCustomer = null;
     input.focus();
     const matches = filterSubscribers('');
     renderSuggestions(matches, '');
@@ -1345,6 +1750,32 @@
     const posCard = document.querySelector('.express-pos-card');
     if (posCard) {
       window.scrollTo({ top: posCard.offsetTop - 80, behavior: 'smooth' });
+    }
+  }
+
+  function setPosAmount(val) {
+    const amtInput = document.getElementById('posAmountInput');
+    if (!amtInput) return;
+    if (val === 'exact') {
+      if (currentlySelectedCustomer) {
+        const fee = parseFloat(currentlySelectedCustomer.monthly_fee || 0);
+        const credit = parseFloat(currentlySelectedCustomer.credit_balance || 0);
+        const netDue = Math.max(0, fee - credit);
+        amtInput.value = (netDue > 0 ? netDue : fee).toFixed(2);
+      }
+    } else {
+      amtInput.value = parseFloat(val).toFixed(2);
+    }
+    amtInput.focus();
+    amtInput.select();
+  }
+
+  function setPayMethod(btn, methodText) {
+    document.querySelectorAll('.pay-method-chip').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const notesInput = document.getElementById('posNotesInput');
+    if (notesInput) {
+      notesInput.value = methodText;
     }
   }
 
@@ -1413,6 +1844,34 @@
     } catch (err) {
       alert('Error: ' + err.message);
     }
+  }
+
+  // Filter Due Worklist by Tab
+  function filterDueList(type, btn) {
+    document.querySelectorAll('.worklist-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const rows = document.querySelectorAll('.queue-card-row');
+    rows.forEach(r => {
+      if (type === 'all') {
+        r.style.display = 'flex';
+      } else if (type === 'overdue') {
+        r.style.display = (r.getAttribute('data-due-type') === 'overdue') ? 'flex' : 'none';
+      } else if (type === 'today') {
+        r.style.display = (r.getAttribute('data-due-type') === 'today') ? 'flex' : 'none';
+      } else if (type === 'credit') {
+        r.style.display = (r.getAttribute('data-can-settle') === 'true') ? 'flex' : 'none';
+      }
+    });
+  }
+
+  function filterDueBySearch(val) {
+    const q = (val || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.queue-card-row');
+    rows.forEach(r => {
+      const s = r.getAttribute('data-search') || '';
+      r.style.display = (!q || s.includes(q)) ? 'flex' : 'none';
+    });
   }
 
   // Filter Ledger Table
@@ -1528,14 +1987,14 @@
     }
 
     container.innerHTML = holders.map(c => `
-      <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="width:34px; height:34px; border-radius:8px; background:rgba(168,85,247,0.18); color:#c084fc; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">
+      <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:rgba(168,85,247,0.18); color:#c084fc; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">
             ${(c.name ? c.name.charAt(0).toUpperCase() : 'U')}
           </div>
           <div>
-            <div style="font-weight:700; color:#ffffff; font-size:13.5px;">${escapeHtml(c.name)}</div>
-            <div style="font-size:11.5px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+            <div style="font-weight:800; color:#ffffff; font-size:14px;">${escapeHtml(c.name)}</div>
+            <div style="font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px; margin-top:2px;">
               <span class="font-mono text-cyan">${escapeHtml(c.phone)}</span>
               <span>&bull;</span>
               <span>${escapeHtml(c.package_name || 'Standard')}</span>
@@ -1543,14 +2002,14 @@
           </div>
         </div>
 
-        <div style="display:flex; align-items:center; gap:12px;">
+        <div style="display:flex; align-items:center; gap:16px;">
           <div style="text-align:right;">
-            <div class="font-mono" style="font-size:14.5px; font-weight:800; color:#c084fc;">
+            <div class="font-mono" style="font-size:15px; font-weight:900; color:#c084fc;">
               ${parseFloat(c.credit_balance).toFixed(2)} SAR
             </div>
-            <div style="font-size:10.5px; color:var(--text-dim);">Available Credit</div>
+            <div style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Available Credit</div>
           </div>
-          <button type="button" class="btn-action-sm" onclick="closeCreditWalletsModal(); selectCustomerById(${c.id});" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); padding:6px 12px; font-weight:700;">
+          <button type="button" class="btn-action-sm" onclick="closeCreditWalletsModal(); selectCustomerById(${c.id});" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); padding:7px 14px; font-weight:700; border-radius:8px;">
             Select in POS
           </button>
         </div>

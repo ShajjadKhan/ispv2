@@ -1200,10 +1200,21 @@
               <div class="form-group" style="margin-bottom:0;">
                 <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Amount (SAR)</label>
                 <input type="number" step="0.01" class="form-input font-mono" id="customPaymentAmount" placeholder="e.g. 50, 100, 150" style="padding:9px 12px; font-size:13.5px;" oninput="calculateCustomPayment()">
+                <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                  <button type="button" class="btn-preset" onclick="setCustomerModalAmount(50)">50</button>
+                  <button type="button" class="btn-preset" onclick="setCustomerModalAmount(75)">75</button>
+                  <button type="button" class="btn-preset" onclick="setCustomerModalAmount(100)">100</button>
+                  <button type="button" class="btn-preset" onclick="setCustomerModalAmount(150)">150</button>
+                </div>
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Payment Notes (Optional)</label>
                 <input type="text" class="form-input" id="customPaymentNotes" placeholder="e.g. Cash received by Admin" style="padding:9px 12px; font-size:13px;">
+                <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                  <button type="button" class="btn-preset" onclick="setCustomerModalNotes('Cash Payment')">💵 Cash</button>
+                  <button type="button" class="btn-preset" onclick="setCustomerModalNotes('STC Pay Transfer')">📱 STC Pay</button>
+                  <button type="button" class="btn-preset" onclick="setCustomerModalNotes('Bank Transfer')">🏦 Bank</button>
+                </div>
               </div>
               <div>
                 <button type="button" class="btn-approve" onclick="submitCustomPayment()" style="padding:9px 16px; font-size:12.5px; font-weight:700; white-space:nowrap; height:41px; display:inline-flex; align-items:center; gap:6px;">
@@ -2073,6 +2084,18 @@
     } catch (e) {
       alert('Error: ' + e.message);
     }
+  }
+
+  function setCustomerModalAmount(val) {
+    const amtInput = document.getElementById('customPaymentAmount');
+    if (!amtInput) return;
+    amtInput.value = parseFloat(val).toFixed(2);
+    calculateCustomPayment();
+  }
+
+  function setCustomerModalNotes(notes) {
+    const notesInput = document.getElementById('customPaymentNotes');
+    if (notesInput) notesInput.value = notes;
   }
 
   // Automatic Calculation for Custom & Advance Payment Input Box
