@@ -732,3 +732,178 @@ def update_user_status(user_id: int, is_active: int) -> Tuple[bool, str]:
         cursor.execute("UPDATE admin_users SET is_active = ?, updated_at = ? WHERE id = ?", (int(is_active), now_str, user_id))
         conn.commit()
         return True, f"Account {'activated' if is_active else 'suspended'}."
+
+
+def update_self_profile(
+    user_id: int,
+    username: Optional[str] = None,
+    full_name: Optional[str] = None,
+    phone: Optional[str] = None,
+    current_password: Optional[str] = None,
+    new_password: Optional[str] = None,
+    client_ip: str = "127.0.0.1"
+) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    """
+    Allows a logged-in user (Superadmin, Admin, Operation Manager, or Reseller)
+    to update their own username, display name, phone, and/or password.
+    """
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM admin_users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "User account not found.", None
+        user = dict(row)
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updates = ["updated_at = ?"]
+        params = [now_str]
+
+        # 1. Username change
+        if username is not None:
+            clean_username = username.strip().lower()
+            if not clean_username or len(clean_username) < 3:
+                return False, "Username must be at least 3 characters long.", None
+            if clean_username != user["username"]:
+                cursor.execute("SELECT id FROM admin_users WHERE username = ? AND id != ?", (clean_username, user_id))
+                if cursor.fetchone():
+                    return False, f"Username '{clean_username}' is already taken.", None
+                updates.append("username = ?")
+                params.append(clean_username)
+
+        # 2. Full Name
+        if full_name is not None:
+            clean_name = full_name.strip()
+            if clean_name:
+                updates.append("full_name = ?")
+                params.append(clean_name)
+
+        # 3. Phone
+        if phone is not None:
+            updates.append("phone = ?")
+            params.append(phone.strip())
+
+        # 4. Password change
+        if new_password and new_password.strip():
+            clean_new_pw = new_password.strip()
+            if len(clean_new_pw) < 6:
+                return False, "New password must be at least 6 characters long.", None
+            if not current_password:
+                return False, "Current password is required to set a new password.", None
+            if not verify_password(current_password, user["password_hash"], user["salt"]):
+                return False, "Current password is incorrect.", None
+
+            new_hash, new_salt = hash_password(clean_new_pw)
+            updates.append("password_hash = ?")
+            params.append(new_hash)
+            updates.append("salt = ?")
+            params.append(new_salt)
+            updates.append("is_default_password = 0")
+
+        params.append(user_id)
+        sql = f"UPDATE admin_users SET {', '.join(updates)} WHERE id = ?"
+        cursor.execute(sql, params)
+        conn.commit()
+
+        updated_user = get_user_by_id(user_id)
+        log_audit_event(
+            updated_user.get("username"),
+            client_ip,
+            "profile_updated",
+            f"User #{user_id} updated their profile/credentials",
+            None
+        )
+        return True, "Profile updated successfully.", updated_user
+
+
+def admin_update_manager(
+    target_user_id: int,
+    username: Optional[str] = None,
+    full_name: Optional[str] = None,
+    phone: Optional[str] = None,
+    role: Optional[str] = None,
+    new_password: Optional[str] = None,
+    is_active: Optional[int] = None,
+    client_ip: str = "127.0.0.1"
+) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+    """
+    Allows Admin/Superadmin to modify another manager or admin's username,
+    full name, phone, role, active status, or reset their password.
+    """
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM admin_users WHERE id = ?", (target_user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "User account not found.", None
+        user = dict(row)
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updates = ["updated_at = ?"]
+        params = [now_str]
+
+        # 1. Username
+        if username is not None:
+            clean_username = username.strip().lower()
+            if not clean_username or len(clean_username) < 3:
+                return False, "Username must be at least 3 characters long.", None
+            if clean_username != user["username"]:
+                cursor.execute("SELECT id FROM admin_users WHERE username = ? AND id != ?", (clean_username, target_user_id))
+                if cursor.fetchone():
+                    return False, f"Username '{clean_username}' is already in use.", None
+                updates.append("username = ?")
+                params.append(clean_username)
+
+        # 2. Full Name
+        if full_name is not None:
+            clean_name = full_name.strip()
+            if clean_name:
+                updates.append("full_name = ?")
+                params.append(clean_name)
+
+        # 3. Phone
+        if phone is not None:
+            updates.append("phone = ?")
+            params.append(phone.strip())
+
+        # 4. Role
+        if role is not None:
+            clean_role = role.strip().lower()
+            if clean_role in ("manager", "admin", "superadmin", "reseller"):
+                updates.append("role = ?")
+                params.append(clean_role)
+
+        # 5. Status
+        if is_active is not None:
+            updates.append("is_active = ?")
+            params.append(int(is_active))
+
+        # 6. Admin Password Reset
+        if new_password and new_password.strip():
+            clean_pw = new_password.strip()
+            if len(clean_pw) < 6:
+                return False, "Password must be at least 6 characters long.", None
+            new_hash, new_salt = hash_password(clean_pw)
+            updates.append("password_hash = ?")
+            params.append(new_hash)
+            updates.append("salt = ?")
+            params.append(new_salt)
+            updates.append("is_default_password = 0")
+            updates.append("failed_attempts = 0")
+            updates.append("locked_until = NULL")
+
+        params.append(target_user_id)
+        sql = f"UPDATE admin_users SET {', '.join(updates)} WHERE id = ?"
+        cursor.execute(sql, params)
+        conn.commit()
+
+        updated_user = get_user_by_id(target_user_id)
+        log_audit_event(
+            updated_user.get("username"),
+            client_ip,
+            "admin_user_updated",
+            f"User #{target_user_id} updated by administrator",
+            None
+        )
+        return True, "Manager account updated successfully.", updated_user
+

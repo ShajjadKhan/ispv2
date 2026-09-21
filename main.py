@@ -152,6 +152,24 @@ class CreateManagerPayload(BaseModel):
     phone: Optional[str] = ""
 
 
+class UpdateManagerPayload(BaseModel):
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = None
+    new_password: Optional[str] = None
+    is_active: Optional[int] = None
+
+
+class UpdateSelfProfilePayload(BaseModel):
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
+    confirm_password: Optional[str] = None
+
+
 class ResellerRechargePayload(BaseModel):
     customer_id: int
     months: Optional[int] = 1
@@ -572,6 +590,36 @@ async def api_me(request: Request):
     if not user:
         return JSONResponse(status_code=401, content={"error": "Unauthorized"})
     return {"success": True, "user": user}
+
+
+@app.post("/api/auth/profile")
+async def api_update_profile(payload: UpdateSelfProfilePayload, request: Request):
+    """Allows any logged-in operator, manager, or admin to change their username, display name, phone, or password."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+
+    target_user_id = user.get("user_id") or user.get("id")
+    if not target_user_id:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid session user ID."})
+
+    if payload.new_password:
+        if payload.new_password != payload.confirm_password:
+            return JSONResponse(status_code=400, content={"success": False, "error": "New passwords do not match."})
+
+    client_ip = get_client_ip(request)
+    ok, msg, updated_user = auth_service.update_self_profile(
+        user_id=target_user_id,
+        username=payload.username,
+        full_name=payload.full_name,
+        phone=payload.phone,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+        client_ip=client_ip
+    )
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg, "user": updated_user}
 
 
 @app.post("/api/auth/change-password")
@@ -1061,6 +1109,42 @@ async def api_create_manager(payload: CreateManagerPayload, request: Request):
     if not success:
         return JSONResponse(status_code=400, content={"success": False, "error": msg})
     return {"success": True, "message": msg, "user": created_user}
+
+
+@app.get("/api/managers/{manager_id}")
+async def api_get_manager(manager_id: int, request: Request):
+    """Fetches details for an operations manager or admin user."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    target_user = auth_service.get_user_by_id(manager_id)
+    if not target_user:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Manager not found."})
+    return {"success": True, "manager": target_user}
+
+
+@app.post("/api/managers/{manager_id}/update")
+async def api_update_manager(manager_id: int, payload: UpdateManagerPayload, request: Request):
+    """Admin updates an operations manager or admin user's username, role, phone, or resets password."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    client_ip = get_client_ip(request)
+    ok, msg, updated_user = auth_service.admin_update_manager(
+        target_user_id=manager_id,
+        username=payload.username,
+        full_name=payload.full_name,
+        phone=payload.phone,
+        role=payload.role,
+        new_password=payload.new_password,
+        is_active=payload.is_active,
+        client_ip=client_ip
+    )
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg, "manager": updated_user}
 
 
 @app.post("/api/reseller/recharge")
