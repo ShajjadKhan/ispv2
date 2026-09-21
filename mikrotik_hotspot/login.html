@@ -249,18 +249,29 @@
 
     <div class="portal-card">
 
+      <input type="hidden" id="rawMac" value="$(mac)">
+      <input type="hidden" id="rawIp" value="$(ip)">
+      <input type="hidden" id="linkLoginOnly" value="$(link-login-only)">
+
       <!-- BLOCKED BANNER -->
       <div id="randomMacBanner" class="blocked-banner" style="display: none;">
+        <div class="lockout-pill" style="display:inline-flex; align-items:center; gap:6px; background:rgba(239,68,68,0.22); border:1px solid rgba(239,68,68,0.5); padding:4px 12px; border-radius:9999px; font-size:11px; font-weight:800; color:#fca5a5; text-transform:uppercase; letter-spacing:0.05em; width:fit-content; margin-bottom:10px;">
+          <span style="display:inline-block; width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>
+          <span>Access Restricted &bull; Random MAC Blocked</span>
+        </div>
         <div class="blocked-title">
           <span>&#9888; Device MAC Required</span>
         </div>
+        <div style="background:rgba(0,0,0,0.45); border-left:3px solid #ef4444; padding:10px 14px; border-radius:8px; font-size:12.5px; color:#fca5a5; line-height:1.5; margin-bottom:12px;">
+          <strong style="color:#ffffff;">Registration Prohibited:</strong> Phone number submission is strictly locked for devices with a Randomized or Private MAC address.
+        </div>
         <div class="blocked-text">
-          Randomized / Private MAC Address detected. Our signal strictly requires your phone's real <strong>Device MAC</strong>.
+          Randomized / Private MAC address detected. Our signal strictly requires your phone's real <strong>Device MAC</strong> to authenticate and provide high-speed internet.
         </div>
         <div class="mac-chip">
-          <span>MAC:</span>
+          <span>DETECTED:</span>
           <span id="blockedMacText">$(mac)</span>
-          <span style="color:#f87171;">[RANDOM]</span>
+          <span style="color:#f87171; font-weight:700;">[RANDOM]</span>
         </div>
 
         <div class="guide-tabs">
@@ -271,18 +282,20 @@
           <ol>
             <li>Settings &rarr; Wi-Fi &rarr; tap <strong>(i)</strong> next to Wi-Fi.</li>
             <li>Turn <strong>OFF</strong> <em>Private Wi-Fi Address</em>.</li>
-            <li>Reconnect to Wi-Fi.</li>
+            <li>Disconnect &amp; reconnect to Wi-Fi.</li>
           </ol>
         </div>
         <div id="g-android" class="guide-body">
           <ol>
             <li>Settings &rarr; Wi-Fi &rarr; tap <strong>Gear</strong> next to Wi-Fi.</li>
-            <li>Tap <strong>Advanced</strong> &rarr; <em>MAC address type</em>.</li>
-            <li>Select <strong>Use Device MAC</strong> &rarr; Reconnect.</li>
+            <li>Tap <strong>Advanced</strong> (or <em>View More</em>) &rarr; <em>MAC address type</em>.</li>
+            <li>Select <strong>Use Device MAC</strong> (or <em>Phone MAC</em>) &rarr; Reconnect.</li>
           </ol>
         </div>
 
-        <button type="button" class="btn-refresh" onclick="location.reload()">I Switched to Device MAC &mdash; Recheck</button>
+        <button type="button" class="btn-refresh" onclick="location.reload()" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:#ffffff; border:none; height:46px; font-size:13px; font-weight:700; border-radius:10px; cursor:pointer; margin-top:14px; box-shadow:0 4px 14px rgba(239,68,68,0.35);">
+          I Switched to Device MAC &mdash; Recheck Connection
+        </button>
       </div>
 
       <!-- VERIFIED BANNER -->
@@ -297,10 +310,6 @@
           <label class="form-label" for="phoneInput">Mobile Phone Number</label>
           <input type="tel" class="form-input" id="phoneInput" placeholder="05XXXXXXXX" required>
         </div>
-
-        <input type="hidden" id="rawMac" value="$(mac)">
-        <input type="hidden" id="rawIp" value="$(ip)">
-        <input type="hidden" id="linkLoginOnly" value="$(link-login-only)">
 
         <button type="submit" id="btnSubmit" class="btn-submit">
           <span>Connect to Internet</span>
@@ -346,16 +355,18 @@
     window.addEventListener('DOMContentLoaded', () => {
       const isRand = isRandomMac(clientMac);
       if (isRand) {
+        // STRICT LOCKOUT: Remove phone form completely
+        const f = document.getElementById('loginForm');
+        if (f) f.remove();
         document.getElementById('randomMacBanner').style.display = 'block';
-        document.getElementById('verifiedBanner').style.display = 'none';
+        const v = document.getElementById('verifiedBanner');
+        if (v) v.style.display = 'none';
         document.getElementById('blockedMacText').innerText = clientMac.toUpperCase();
-        document.getElementById('btnSubmit').disabled = true;
-        document.getElementById('btnSubmit').innerText = 'Switch to Device MAC to Connect';
-        document.getElementById('phoneInput').disabled = true;
       } else {
         document.getElementById('randomMacBanner').style.display = 'none';
         if (clientMac && clientMac.indexOf('$') === -1) {
-          document.getElementById('verifiedBanner').style.display = 'flex';
+          const v = document.getElementById('verifiedBanner');
+          if (v) v.style.display = 'flex';
           document.getElementById('verifiedMac').innerText = clientMac.toUpperCase();
         }
       }
@@ -365,16 +376,21 @@
 
     async function submitAccess(e) {
       e.preventDefault();
-      const phone = document.getElementById('phoneInput').value.trim();
+      const phoneEl = document.getElementById('phoneInput');
+      const phone = phoneEl ? phoneEl.value.trim() : "";
       const btn = document.getElementById('btnSubmit');
 
       if (isRandomMac(clientMac)) {
-        alert('Randomized MAC detected! Switch to Device MAC in Wi-Fi settings to connect.');
+        const f = document.getElementById('loginForm');
+        if (f) f.remove();
+        alert('Randomized MAC detected! Phone number submission is strictly prohibited. Switch to Device MAC in Wi-Fi settings to connect.');
         return;
       }
 
-      btn.disabled = true;
-      btn.innerText = 'Connecting...';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Connecting...';
+      }
 
       try {
         const resp = await fetch(CYBERNET_API + '/api/hotspot/submit', {
