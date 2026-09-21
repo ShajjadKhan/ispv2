@@ -932,12 +932,13 @@
             <div style="margin-top:10px; background:#090e1a; border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px;">
               <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">+ Bind New Hardware MAC Address</div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <input type="text" class="form-input font-mono" id="quickMacInput" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; flex:1; min-width:180px;">
+                <input type="text" class="form-input font-mono" id="quickMacInput" placeholder="Device MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; flex:1; min-width:180px;">
                 <input type="text" class="form-input" id="quickDevName" placeholder="Device Label (e.g. iPhone)" style="font-size:12px; flex:1; min-width:140px;">
-                <button type="button" class="btn-approve" onclick="submitQuickDevice({{ c.id }})" style="padding:7px 14px; font-size:12px; white-space:nowrap;">
+                <button type="button" id="btnQuickDevSubmit" class="btn-approve" onclick="submitQuickDevice({{ c.id }})" style="padding:7px 14px; font-size:12px; white-space:nowrap;">
                   Authorize on MikroTik
                 </button>
               </div>
+              <div id="quickMacFeedback" style="display:none; font-size:11.5px; margin-top:6px; font-weight:600;"></div>
             </div>
           </div>
         </div>
@@ -1195,12 +1196,25 @@
     }
   }
 
+  function isRandomMac(mac) {
+    if (!mac) return false;
+    const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
+    if (clean.length < 2) return false;
+    const firstByte = parseInt(clean.substring(0, 2), 16);
+    return (firstByte & 0x02) !== 0;
+  }
+
   // Quick Add Device
   async function submitQuickDevice(custId) {
     const mac = document.getElementById('quickMacInput').value.trim();
     const dName = document.getElementById('quickDevName').value.trim() || 'Client Device';
     if (!mac) {
       alert('Please enter a valid MAC address');
+      return;
+    }
+
+    if (isRandomMac(mac)) {
+      alert('Cannot bind device: Randomized MAC detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi Address on the phone.');
       return;
     }
 
@@ -1214,12 +1228,49 @@
       if (res.success) {
         location.reload();
       } else {
-        alert('Failed: ' + res.message);
+        alert('Failed: ' + (res.error || res.message));
       }
     } catch (e) {
       alert('Error: ' + e.message);
     }
   }
+
+  // Real-time quick MAC validation
+  document.addEventListener('DOMContentLoaded', () => {
+    const qInput = document.getElementById('quickMacInput');
+    const qFb = document.getElementById('quickMacFeedback');
+    const qBtn = document.getElementById('btnQuickDevSubmit');
+    if (qInput) {
+      qInput.addEventListener('input', () => {
+        const val = qInput.value.trim();
+        if (!val) {
+          if (qFb) qFb.style.display = 'none';
+          if (qBtn) qBtn.disabled = false;
+          return;
+        }
+        if (isRandomMac(val)) {
+          if (qFb) {
+            qFb.style.display = 'block';
+            qFb.style.color = '#f87171';
+            qFb.innerHTML = '⚠️ <strong>Randomized MAC detected!</strong> CyberNet requires physical Device MAC.';
+          }
+          if (qBtn) qBtn.disabled = true;
+        } else {
+          const clean = val.replace(/[^0-9A-Fa-f]/g, '');
+          if (qFb) {
+            if (clean.length === 12) {
+              qFb.style.display = 'block';
+              qFb.style.color = '#34d399';
+              qFb.innerHTML = '✓ <strong>Physical Device MAC verified.</strong>';
+            } else {
+              qFb.style.display = 'none';
+            }
+          }
+          if (qBtn) qBtn.disabled = false;
+        }
+      });
+    }
+  });
 
   // Quick Suspend / Activate Toggle
   async function toggleStatus(custId) {

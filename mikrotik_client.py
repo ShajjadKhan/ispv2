@@ -58,6 +58,23 @@ def normalize_rate_limit(rate: Optional[str]) -> Optional[str]:
             pass
     return str(rate).strip()
 
+def is_randomized_mac(mac: Optional[str]) -> bool:
+    """
+    Checks if a MAC address is locally administered (randomized / private MAC).
+    Under IEEE 802 MAC standard, if the second hex digit of the first octet
+    is 2, 6, A, or E (case-insensitive), it is a locally administered (randomized) MAC.
+    """
+    if not mac:
+        return False
+    clean = re.sub(r'[^0-9A-Fa-f]', '', str(mac).strip())
+    if len(clean) < 2:
+        return False
+    try:
+        first_byte = int(clean[:2], 16)
+        return bool(first_byte & 0x02)
+    except ValueError:
+        return False
+
 class RouterClient:
     def __init__(
         self,
@@ -206,6 +223,10 @@ class RouterClient:
         with type='bypassed'. Also clears any stale active hotspot sessions.
         """
         mac_clean = mac_address.strip().upper()
+        if is_randomized_mac(mac_clean):
+            logger.error(f"Refusing to bind randomized MAC address {mac_clean} on MikroTik. Physical Device MAC required.")
+            return False
+
         pool = None
         try:
             pool = routeros_api.RouterOsApiPool(
@@ -286,6 +307,127 @@ class RouterClient:
                 except Exception:
                     pass
 
+    def _tear_down_session(self, api, mac_clean: str, ip_address: Optional[str] = None):
+        """Internal helper to drop host, active session, cookie, and flushed conntrack."""
+        client_ips = []
+        if ip_address:
+            client_ips.append(ip_address)
+
+        try:
+            host_res = api.get_resource('/ip/hotspot/host')
+            for h in host_res.get():
+                if h.get('mac-address', '').upper() == mac_clean:
+                    h_ip = h.get('address')
+                    if h_ip and h_ip not in client_ips:
+                        client_ips.append(h_ip)
+                    try:
+                        host_res.remove(id=h['id'])
+                        logger.info(f"Removed host entry for {mac_clean} ({h_ip})")
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Could not clear host entry for {mac_clean}: {e}")
+
+        try:
+            active_res = api.get_resource('/ip/hotspot/active')
+            for a in active_res.get():
+                if a.get('mac-address', '').upper() == mac_clean:
+                    active_res.remove(id=a['id'])
+                    logger.info(f"Removed active session for {mac_clean}")
+        except Exception:
+            pass
+
+        try:
+            cookie_res = api.get_resource('/ip/hotspot/cookie')
+            for c in cookie_res.get():
+                if c.get('mac-address', '').upper() == mac_clean:
+                    cookie_res.remove(id=c['id'])
+        except Exception:
+            pass
+
+        if client_ips:
+            try:
+                conn_res = api.get_resource('/ip/firewall/connection')
+                flushed = 0
+                for conn in conn_res.get():
+                    conn_str = str(conn)
+                    for ip in client_ips:
+                        if ip in conn_str:
+                            try:
+                                conn_res.remove(id=conn['id'])
+                                flushed += 1
+                            except Exception:
+                                pass
+                logger.info(f"Flushed {flushed} active firewall connections for {client_ips}.")
+            except Exception as e:
+                logger.warning(f"Could not flush firewall connections: {e}")
+
+        try:
+            queue_res = api.get_resource('/queue/simple')
+            q_name = f"hs-{mac_clean.replace(':', '')}"
+            for q in queue_res.get():
+                if q.get('name') == q_name:
+                    queue_res.remove(id=q['id'])
+        except Exception:
+            pass
+
+    def block_device(
+        self,
+        mac_address: str,
+        ip_address: Optional[str] = None,
+        comment: str = "CyberNet: Blocked (Randomized MAC)"
+    ) -> bool:
+        """
+        Actively blocks a MAC address on MikroTik RouterOS by creating or updating
+        /ip/hotspot/ip-binding with type='blocked', removing any active sessions,
+        hosts, cookies, and flushing firewall connections.
+        """
+        mac_clean = mac_address.strip().upper()
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+
+            # 1. /ip/hotspot/ip-binding: Set type=blocked
+            binding_res = api.get_resource('/ip/hotspot/ip-binding')
+            existing_bindings = binding_res.get()
+            found_id = None
+            for b in existing_bindings:
+                if b.get('mac-address', '').upper() == mac_clean:
+                    found_id = b['id']
+                    break
+
+            if found_id:
+                binding_res.set(id=found_id, type='blocked', comment=comment)
+                logger.info(f"Updated IP binding for MAC {mac_clean} to BLOCKED.")
+            else:
+                add_kwargs = {'mac-address': mac_clean, 'type': 'blocked', 'comment': comment}
+                if ip_address:
+                    add_kwargs['address'] = ip_address
+                binding_res.add(**add_kwargs)
+                logger.info(f"Created new BLOCKED IP binding for MAC {mac_clean}.")
+
+            # 2. Teardown active hotspot sessions, hosts, and conntracks
+            self._tear_down_session(api, mac_clean, ip_address)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to block device {mac_clean} on MikroTik: {e}")
+            return False
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
     def unbind_device(self, mac_address: str, ip_address: Optional[str] = None) -> bool:
         """
         Instantly revokes and cuts off device authorization from MikroTik:
@@ -310,77 +452,15 @@ class RouterClient:
             )
             api = pool.get_api()
 
-            # 1. Discover client IP(s)
-            client_ips = []
-            if ip_address:
-                client_ips.append(ip_address)
-
-            host_res = api.get_resource('/ip/hotspot/host')
-            for h in host_res.get():
-                if h.get('mac-address', '').upper() == mac_clean:
-                    h_ip = h.get('address')
-                    if h_ip and h_ip not in client_ips:
-                        client_ips.append(h_ip)
-                    try:
-                        host_res.remove(id=h['id'])
-                        logger.info(f"Removed host entry for {mac_clean} ({h_ip})")
-                    except Exception:
-                        pass
-
-            # 2. Remove from /ip/hotspot/ip-binding
+            # 1. Remove from /ip/hotspot/ip-binding
             binding_res = api.get_resource('/ip/hotspot/ip-binding')
             for b in binding_res.get():
                 if b.get('mac-address', '').upper() == mac_clean:
                     binding_res.remove(id=b['id'])
                     logger.info(f"Removed IP binding for {mac_clean}")
 
-            # 3. Remove from /ip/hotspot/active
-            try:
-                active_res = api.get_resource('/ip/hotspot/active')
-                for a in active_res.get():
-                    if a.get('mac-address', '').upper() == mac_clean:
-                        active_res.remove(id=a['id'])
-                        logger.info(f"Removed active session for {mac_clean}")
-            except Exception:
-                pass
-
-            # 4. Remove from /ip/hotspot/cookie
-            try:
-                cookie_res = api.get_resource('/ip/hotspot/cookie')
-                for c in cookie_res.get():
-                    if c.get('mac-address', '').upper() == mac_clean:
-                        cookie_res.remove(id=c['id'])
-            except Exception:
-                pass
-
-            # 5. Flush active TCP/UDP connections in firewall conntrack
-            if client_ips:
-                try:
-                    conn_res = api.get_resource('/ip/firewall/connection')
-                    flushed = 0
-                    for conn in conn_res.get():
-                        conn_str = str(conn)
-                        for ip in client_ips:
-                            if ip in conn_str:
-                                try:
-                                    conn_res.remove(id=conn['id'])
-                                    flushed += 1
-                                except Exception:
-                                    pass
-                    logger.info(f"Flushed {flushed} active firewall connections for {client_ips}.")
-                except Exception as e:
-                    logger.warning(f"Could not flush firewall connections: {e}")
-
-            # 6. Remove simple queue if any
-            try:
-                queue_res = api.get_resource('/queue/simple')
-                q_name = f"hs-{mac_clean.replace(':', '')}"
-                for q in queue_res.get():
-                    if q.get('name') == q_name:
-                        queue_res.remove(id=q['id'])
-            except Exception:
-                pass
-
+            # 2. Teardown host, session, cookie, conntrack, queue
+            self._tear_down_session(api, mac_clean, ip_address)
             return True
         except Exception as e:
             logger.error(f"Failed to unbind device {mac_clean}: {e}")

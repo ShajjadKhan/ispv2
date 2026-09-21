@@ -524,9 +524,22 @@
         <tbody id="pendingTableBody">
           {% if pending_requests %}
             {% for req in pending_requests %}
-            <tr id="req-row-{{ req.id }}">
+            <tr id="req-row-{{ req.id }}" {% if req.is_random_mac %}style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"{% endif %}>
               <td class="font-mono text-white" style="font-weight:700;">{{ req.phone }}</td>
-              <td class="font-mono text-cyan">{{ req.mac_address }}</td>
+              <td class="font-mono">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="text-cyan" style="font-weight:700;">{{ req.mac_address }}</span>
+                  {% if req.is_random_mac %}
+                    <span class="tag-mac-warn" title="Randomized / Private MAC Address - Connection Blocked" style="font-size:10px; font-weight:700; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:3px;">
+                      ⚠ RANDOM MAC
+                    </span>
+                  {% else %}
+                    <span class="tag-mac-ok" title="Verified Physical Device MAC" style="font-size:10px; font-weight:600; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:3px;">
+                      ✓ DEVICE MAC
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
               <td class="font-mono text-dim">{{ req.ip_address or '—' }}</td>
               <td>
                 {% if req.is_secondary %}
@@ -552,13 +565,23 @@
               <td class="font-mono text-dim" style="font-size:12px;">{{ req.created_at }}</td>
               <td style="text-align:right;">
                 <div style="display:inline-flex; gap:8px;">
-                  <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', {{ 1 if req.is_secondary else 0 }}, {{ req.customer_max_devices or 1 }})">
-                    <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    <span>Approve</span>
-                  </button>
-                  <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
-                    Reject
-                  </button>
+                  {% if req.is_random_mac %}
+                    <button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
+                      <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                      <span>Random MAC</span>
+                    </button>
+                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})" title="Reject Random MAC request">
+                      Reject
+                    </button>
+                  {% else %}
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', {{ 1 if req.is_secondary else 0 }}, {{ req.customer_max_devices or 1 }})">
+                      <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                      <span>Approve</span>
+                    </button>
+                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                      Reject
+                    </button>
+                  {% endif %}
                 </div>
               </td>
             </tr>
@@ -610,7 +633,20 @@
             <tr class="approved-dev-row" data-billing="{{ dev.billing_type }}">
               <td style="font-weight:700; color:#ffffff;">{{ dev.customer_name }}</td>
               <td class="font-mono text-dim">{{ dev.phone }}</td>
-              <td class="font-mono text-cyan">{{ dev.mac_address }}</td>
+              <td class="font-mono">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="text-cyan">{{ dev.mac_address }}</span>
+                  {% if dev.is_random_mac %}
+                    <span class="tag-mac-warn" title="Randomized MAC detected" style="font-size:10px; font-weight:700; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:1px 5px; border-radius:4px;">
+                      ⚠ RANDOM
+                    </span>
+                  {% else %}
+                    <span class="tag-mac-ok" title="Physical Device MAC" style="font-size:10px; font-weight:600; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:1px 5px; border-radius:4px;">
+                      ✓ DEVICE
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
               <td>
                 {% if dev.billing_type == 'prepaid' %}
                   <span class="tag-device-type" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3);">PREPAID</span>

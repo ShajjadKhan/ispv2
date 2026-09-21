@@ -627,8 +627,9 @@
           <input type="number" step="0.01" class="form-input font-mono" id="regFee" value="30.00" required>
         </div>
         <div class="form-group">
-          <label>MAC Address (Optional)</label>
+          <label>Device MAC Address (Optional - Physical Hardware)</label>
           <input type="text" class="form-input font-mono" id="regMac" placeholder="XX:XX:XX:XX:XX:XX">
+          <div id="regMacFeedback" style="display:none; font-size:11.5px; margin-top:5px; font-weight:600;"></div>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
           <button type="button" class="btn-secondary-action" onclick="closeModal('registerCustomerModal')">Cancel</button>
@@ -816,6 +817,11 @@
       billing_type: 'prepaid'
     };
 
+    if (payload.mac_address && isRandomMac(payload.mac_address)) {
+      alert('Cannot register subscriber: Randomized MAC address detected! CyberNet strictly requires physical Device MAC. Please turn off Private Wi-Fi Address on customer phone.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/reseller/customers/create', {
         method: 'POST',
@@ -833,5 +839,41 @@
       alert('Network error: ' + err.message);
     }
   }
+
+  function isRandomMac(mac) {
+    if (!mac) return false;
+    const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
+    if (clean.length < 2) return false;
+    const firstByte = parseInt(clean.substring(0, 2), 16);
+    return (firstByte & 0x02) !== 0;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const regMacInput = document.getElementById('regMac');
+    const fb = document.getElementById('regMacFeedback');
+    if (regMacInput && fb) {
+      regMacInput.addEventListener('input', () => {
+        const val = regMacInput.value.trim();
+        if (!val) {
+          fb.style.display = 'none';
+          return;
+        }
+        if (isRandomMac(val)) {
+          fb.style.display = 'block';
+          fb.style.color = '#f87171';
+          fb.innerHTML = '⚠️ <strong>Randomized MAC detected!</strong> Customer must switch to Device MAC.';
+        } else {
+          const clean = val.replace(/[^0-9A-Fa-f]/g, '');
+          if (clean.length === 12) {
+            fb.style.display = 'block';
+            fb.style.color = '#34d399';
+            fb.innerHTML = '✓ <strong>Physical Device MAC verified.</strong>';
+          } else {
+            fb.style.display = 'none';
+          }
+        }
+      });
+    }
+  });
 </script>
 {% endblock %}

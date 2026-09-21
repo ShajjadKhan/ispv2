@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CyberNet Wi-Fi | Device MAC Verification &amp; Login</title>
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-canvas: #060913;
+      --bg-card: rgba(15, 23, 42, 0.88);
+      --bg-card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #38bdf8;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .portal-box {
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .brand-badge {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .brand-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .brand-sub {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .portal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 18px;
+      padding: 24px 20px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+    }
+
+    /* BLOCK BANNER */
+    .blocked-banner {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .blocked-title {
+      color: #f87171;
+      font-weight: 800;
+      font-size: 14.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .blocked-text {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #fca5a5;
+    }
+    .mac-chip {
+      background: rgba(0,0,0,0.4);
+      border: 1px dashed rgba(239, 68, 68, 0.6);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      color: #ffffff;
+    }
+
+    /* VERIFIED BANNER */
+    .verified-banner {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #34d399;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    /* GUIDES */
+    .guide-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .guide-tab-btn {
+      flex: 1;
+      padding: 8px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .guide-tab-btn.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+    }
+    .guide-body {
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      margin-top: 6px;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      display: none;
+    }
+    .guide-body.active { display: block; }
+    .guide-body ol { margin-left: 16px; }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      height: 46px;
+      background: rgba(11, 17, 32, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 0 14px;
+      color: #ffffff;
+      font-size: 15px;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 48px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-submit:disabled {
+      background: #1e293b;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .btn-refresh {
+      width: 100%;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 12px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="portal-box">
+    
+    <div class="brand-header">
+      <div class="brand-badge">CyberNet Hotspot</div>
+      <h1 class="brand-title">Wi-Fi Network Access</h1>
+      <p class="brand-sub">Physical Device MAC Required</p>
+    </div>
+
+    <div class="portal-card">
+
+      <!-- BLOCKED BANNER -->
+      <div id="randomMacBanner" class="blocked-banner" style="display: none;">
+        <div class="blocked-title">
+          <span>&#9888; Device MAC Required</span>
+        </div>
+        <div class="blocked-text">
+          Randomized / Private MAC Address detected. Our signal strictly requires your phone's real <strong>Device MAC</strong>.
+        </div>
+        <div class="mac-chip">
+          <span>MAC:</span>
+          <span id="blockedMacText">$(mac)</span>
+          <span style="color:#f87171;">[RANDOM]</span>
+        </div>
+
+        <div class="guide-tabs">
+          <button type="button" class="guide-tab-btn active" onclick="setGuide('ios')">iPhone / iPad</button>
+          <button type="button" class="guide-tab-btn" onclick="setGuide('android')">Android</button>
+        </div>
+        <div id="g-ios" class="guide-body active">
+          <ol>
+            <li>Settings &rarr; Wi-Fi &rarr; tap <strong>(i)</strong> next to Wi-Fi.</li>
+            <li>Turn <strong>OFF</strong> <em>Private Wi-Fi Address</em>.</li>
+            <li>Reconnect to Wi-Fi.</li>
+          </ol>
+        </div>
+        <div id="g-android" class="guide-body">
+          <ol>
+            <li>Settings &rarr; Wi-Fi &rarr; tap <strong>Gear</strong> next to Wi-Fi.</li>
+            <li>Tap <strong>Advanced</strong> &rarr; <em>MAC address type</em>.</li>
+            <li>Select <strong>Use Device MAC</strong> &rarr; Reconnect.</li>
+          </ol>
+        </div>
+
+        <button type="button" class="btn-refresh" onclick="location.reload()">I Switched to Device MAC &mdash; Recheck</button>
+      </div>
+
+      <!-- VERIFIED BANNER -->
+      <div id="verifiedBanner" class="verified-banner" style="display: none;">
+        <span>&#10003;</span>
+        <span>Device MAC Verified: <strong id="verifiedMac">$(mac)</strong></span>
+      </div>
+
+      <!-- FORM -->
+      <form id="loginForm" onsubmit="submitAccess(event)">
+        <div class="form-group">
+          <label class="form-label" for="phoneInput">Mobile Phone Number</label>
+          <input type="tel" class="form-input" id="phoneInput" placeholder="05XXXXXXXX" required>
+        </div>
+
+        <input type="hidden" id="rawMac" value="$(mac)">
+        <input type="hidden" id="rawIp" value="$(ip)">
+        <input type="hidden" id="linkLoginOnly" value="$(link-login-only)">
+
+        <button type="submit" id="btnSubmit" class="btn-submit">
+          <span>Connect to Internet</span>
+        </button>
+      </form>
+
+      <!-- STATUS -->
+      <div id="pollStatus" style="display: none; text-align: center; padding: 12px 0;">
+        <div id="spinner" class="spinner"></div>
+        <div id="statusTitle" style="font-weight: 800; font-size: 15px; margin-bottom: 4px;">Waiting for Approval...</div>
+        <div id="statusBody" style="font-size: 12px; color: var(--text-muted);">Please wait while the administrator approves your connection.</div>
+      </div>
+
+    </div>
+
+    <div class="footer">CyberNet OS v2 &bull; MikroTik Hotspot Gateways</div>
+  </div>
+
+  <script>
+    // Host configuration - set this to CyberNet OS backend IP / domain
+    const CYBERNET_API = window.location.origin;
+
+    function isRandomMac(mac) {
+      if (!mac || mac.indexOf('$') !== -1) return false;
+      const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
+      if (clean.length < 2) return false;
+      const firstByte = parseInt(clean.substring(0, 2), 16);
+      return (firstByte & 0x02) !== 0;
+    }
+
+    function setGuide(os) {
+      document.querySelectorAll('.guide-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.guide-body').forEach(b => b.classList.remove('active'));
+      if (event && event.target) event.target.classList.add('active');
+      const el = document.getElementById('g-' + os);
+      if (el) el.classList.add('active');
+    }
+
+    const clientMac = document.getElementById('rawMac').value.trim();
+    const clientIp = document.getElementById('rawIp').value.trim();
+
+    // Immediate check
+    window.addEventListener('DOMContentLoaded', () => {
+      const isRand = isRandomMac(clientMac);
+      if (isRand) {
+        document.getElementById('randomMacBanner').style.display = 'block';
+        document.getElementById('verifiedBanner').style.display = 'none';
+        document.getElementById('blockedMacText').innerText = clientMac.toUpperCase();
+        document.getElementById('btnSubmit').disabled = true;
+        document.getElementById('btnSubmit').innerText = 'Switch to Device MAC to Connect';
+        document.getElementById('phoneInput').disabled = true;
+      } else {
+        document.getElementById('randomMacBanner').style.display = 'none';
+        if (clientMac && clientMac.indexOf('$') === -1) {
+          document.getElementById('verifiedBanner').style.display = 'flex';
+          document.getElementById('verifiedMac').innerText = clientMac.toUpperCase();
+        }
+      }
+    });
+
+    let pollTimer = null;
+
+    async function submitAccess(e) {
+      e.preventDefault();
+      const phone = document.getElementById('phoneInput').value.trim();
+      const btn = document.getElementById('btnSubmit');
+
+      if (isRandomMac(clientMac)) {
+        alert('Randomized MAC detected! Switch to Device MAC in Wi-Fi settings to connect.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Connecting...';
+
+      try {
+        const resp = await fetch(CYBERNET_API + '/api/hotspot/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: phone,
+            mac: clientMac,
+            ip: clientIp,
+            device_model: navigator.userAgent.substring(0, 60)
+          })
+        });
+
+        const res = await resp.json();
+
+        if (res.status === 'random_mac_blocked' || res.is_random_mac) {
+          alert(res.message);
+          location.reload();
+          return;
+        }
+
+        if (res.status === 'approved') {
+          showApproved();
+          return;
+        }
+
+        startPolling(phone);
+
+      } catch (err) {
+        startPolling(phone);
+      }
+    }
+
+    function startPolling(phone) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('pollStatus').style.display = 'block';
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const r = await fetch(CYBERNET_API + `/api/hotspot/check-status?mac=${encodeURIComponent(clientMac)}&phone=${encodeURIComponent(phone)}`);
+          const d = await r.json();
+          if (d.status === 'approved') {
+            clearInterval(pollTimer);
+            showApproved();
+          } else if (d.status === 'rejected') {
+            clearInterval(pollTimer);
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('statusTitle').innerText = 'Request Rejected';
+            document.getElementById('statusTitle').style.color = '#f87171';
+            document.getElementById('statusBody').innerText = d.message || 'Access was not approved.';
+          }
+        } catch (e) {}
+      }, 3000);
+    }
+
+    function showApproved() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('pollStatus').style.display = 'block';
+      document.getElementById('spinner').style.borderTopColor = '#34d399';
+      document.getElementById('statusTitle').innerText = 'Internet Access Granted!';
+      document.getElementById('statusTitle').style.color = '#34d399';
+      document.getElementById('statusBody').innerText = 'Your device is authorized. Redirecting...';
+
+      const link = document.getElementById('linkLoginOnly').value;
+      if (link && link.indexOf('$') === -1) {
+        setTimeout(() => { window.location.href = link; }, 1500);
+      }
+    }
+  </script>
+</body>
+</html>

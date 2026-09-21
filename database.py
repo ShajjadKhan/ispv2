@@ -5,10 +5,57 @@ Manages customers, devices, connection requests, and billing records using SQLit
 
 import sqlite3
 import os
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 
 DB_PATH = os.getenv("DB_PATH", "/home/tserver/isp_v2/isp_v2.db")
+
+def is_randomized_mac(mac: Optional[str]) -> bool:
+    """
+    Checks if a MAC address is locally administered (randomized / private MAC).
+    Under IEEE 802 MAC standard:
+    - Octet 0, Bit 0 (LSB): 0 = Unicast, 1 = Multicast.
+    - Octet 0, Bit 1: 0 = Universally Administered Address (UAA, real factory hardware / Device MAC).
+                      1 = Locally Administered Address (LAA, randomized / private MAC).
+    For unicast MAC addresses, if the second hex digit of the first octet is
+    2, 6, A, or E (case-insensitive), it is a locally administered (randomized) MAC.
+    """
+    if not mac:
+        return False
+    clean = re.sub(r'[^0-9A-Fa-f]', '', str(mac).strip())
+    if len(clean) < 2:
+        return False
+    try:
+        first_byte = int(clean[:2], 16)
+        # Bit 1 (mask 0x02) indicates Locally Administered Address (LAA)
+        return bool(first_byte & 0x02)
+    except ValueError:
+        return False
+
+def normalize_mac(mac: Optional[str]) -> Optional[str]:
+    """Formats a MAC string into standard uppercase colon-delimited notation (XX:XX:XX:XX:XX:XX)."""
+    if not mac:
+        return None
+    clean = re.sub(r'[^0-9A-Fa-f]', '', str(mac).strip()).upper()
+    if len(clean) != 12:
+        return None
+    return ":".join(clean[i:i+2] for i in range(0, 12, 2))
+
+def validate_mac_address(mac: Optional[str], allow_random: bool = False) -> Tuple[bool, str, Optional[str]]:
+    """
+    Validates a MAC address:
+    Returns (is_valid, error_message_or_description, normalized_mac).
+    If allow_random is False and the MAC is randomized, returns is_valid=False.
+    """
+    if not mac or not str(mac).strip():
+        return False, "MAC address is required.", None
+    norm = normalize_mac(mac)
+    if not norm:
+        return False, "Invalid MAC address format. Expected 12 hexadecimal characters (e.g. 3C:38:24:0F:69:74).", None
+    if not allow_random and is_randomized_mac(norm):
+        return False, f"Randomized MAC address detected ({norm}). Only real physical Device MAC addresses are allowed on this network. Please disable Private Wi-Fi / Randomized MAC in your phone settings.", norm
+    return True, "Valid Device MAC address.", norm
 
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -542,11 +589,16 @@ def get_customer_by_mac(mac: str) -> Optional[Dict[str, Any]]:
 def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_model: Optional[str]) -> Tuple[Dict[str, Any], bool, bool]:
     """
     Processes incoming hotspot submission from phone.
-    Returns (request_dict, is_already_approved, is_secondary)
+    Returns (request_dict, is_already_approved, is_secondary).
+    Strictly forbids randomized MAC addresses (Device MAC required).
     """
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mac_upper = mac.strip().upper()
     phone_clean = phone.strip()
+
+    # Reject randomized MAC addresses
+    if is_randomized_mac(mac_upper):
+        raise ValueError(f"Randomized MAC address '{mac_upper}' detected. CyberNet requires physical Device MAC for connection.")
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -588,6 +640,14 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
 
 def get_request_status_by_mac_and_phone(mac: str, phone: str) -> Dict[str, Any]:
     mac_upper = mac.strip().upper()
+    if is_randomized_mac(mac_upper):
+        return {
+            "status": "random_mac_blocked",
+            "is_random_mac": True,
+            "can_connect": False,
+            "message": "Connection blocked: Randomized MAC detected. Please change Wi-Fi settings to 'Device MAC' to connect."
+        }
+
     with get_db() as conn:
         cursor = conn.cursor()
 
@@ -626,7 +686,10 @@ def get_pending_requests() -> List[Dict[str, Any]]:
             WHERE r.status = 'pending'
             ORDER BY r.id DESC
         """)
-        return [dict(row) for row in cursor.fetchall()]
+        rows = [dict(row) for row in cursor.fetchall()]
+        for r in rows:
+            r["is_random_mac"] = is_randomized_mac(r.get("mac_address", ""))
+        return rows
 
 
 def get_approved_devices() -> List[Dict[str, Any]]:
@@ -639,7 +702,10 @@ def get_approved_devices() -> List[Dict[str, Any]]:
             WHERE d.status = 'approved' AND c.status = 'active'
             ORDER BY d.id DESC
         """)
-        return [dict(row) for row in cursor.fetchall()]
+        rows = [dict(row) for row in cursor.fetchall()]
+        for r in rows:
+            r["is_random_mac"] = is_randomized_mac(r.get("mac_address", ""))
+        return rows
 
 
 def get_request_by_id(req_id: int) -> Optional[Dict[str, Any]]:
@@ -745,6 +811,10 @@ def approve_connection(
         phone = req["phone"]
         mac = req["mac_address"].upper()
         ip = req["ip_address"]
+
+        # Enforce Device MAC - forbid approving randomized MACs
+        if is_randomized_mac(mac):
+            raise ValueError(f"Cannot approve connection for request #{req_id}: MAC '{mac}' is a randomized MAC address. Customer must connect using physical Device MAC.")
 
         # 1. Upsert customer
         cursor.execute("SELECT id, credit_balance FROM customers WHERE phone = ?", (phone,))
@@ -1087,6 +1157,8 @@ def create_customer(
         # Bind MAC if provided
         if mac_address and mac_address.strip():
             mac_clean = mac_address.strip().upper()
+            if is_randomized_mac(mac_clean):
+                raise ValueError(f"Randomized MAC address '{mac_clean}' is not permitted. CyberNet requires physical Device MAC.")
             cursor.execute("""
                 INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
                 VALUES (?, ?, NULL, 'Manual Entry', 'approved', ?, ?)
@@ -1250,6 +1322,9 @@ def add_customer_device(customer_id: int, mac_address: str, device_name: str = "
     """Adds a new MAC device to an existing customer."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mac_clean = mac_address.strip().upper()
+
+    if is_randomized_mac(mac_clean):
+        raise ValueError(f"Randomized MAC address '{mac_clean}' is not permitted. CyberNet requires physical Device MAC.")
 
     with get_db() as conn:
         cursor = conn.cursor()

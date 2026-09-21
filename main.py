@@ -319,13 +319,20 @@ PUBLIC_EXACT_PATHS = {
     "/logout",
     "/api/auth/login",
     "/api/auth/logout",
-    "/favicon.ico"
+    "/favicon.ico",
+    "/portal",
+    "/hotspot",
+    "/hotspot/login"
 }
 
 PUBLIC_PREFIXES = (
     "/static/",
     "/api/hotspot/submit",
-    "/api/hotspot/check-status"
+    "/api/hotspot/check-status",
+    "/api/hotspot/detect-mac",
+    "/api/hotspot/validate-mac",
+    "/portal",
+    "/hotspot"
 )
 
 
@@ -1103,6 +1110,16 @@ async def api_reseller_create_customer(payload: CreateCustomerPayload, request: 
         return JSONResponse(status_code=401, content={"success": False, "error": "Authentication required."})
 
     target_reseller_id = user.get("id") or user.get("user_id")
+    if payload.mac_address and payload.mac_address.strip():
+        if database.is_randomized_mac(payload.mac_address):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error": f"Randomized MAC address '{payload.mac_address}' is not permitted. CyberNet strictly requires physical Device MAC."
+                }
+            )
+
     try:
         cust = database.create_customer(
             phone=payload.phone,
@@ -1148,35 +1165,89 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
     """
     Called by captive portal popup (login.html) when client enters phone number.
     Returns status: 'approved' (if device is already authorized) or 'pending' (waiting for admin).
+    Blocks and rejects any device connecting with a Randomized / Private MAC address.
     """
-    logger.info(f"Incoming hotspot submit: Phone={payload.phone}, MAC={payload.mac}, IP={payload.ip}")
+    mac_clean = payload.mac.strip().upper() if payload.mac else ""
+    phone_clean = payload.phone.strip() if payload.phone else ""
+    logger.info(f"Incoming hotspot submit: Phone={phone_clean}, MAC={mac_clean}, IP={payload.ip}")
+
+    # Enforce Device MAC - Strictly forbid Randomized MACs
+    if database.is_randomized_mac(mac_clean):
+        logger.warning(f"Blocked hotspot submit: Randomized MAC detected {mac_clean} for Phone {phone_clean}")
+        # Automatically push block rule to MikroTik to prevent unauthorized bypassing
+        try:
+            router_client.block_device(mac_clean, ip_address=payload.ip, comment=f"Blocked: Randomized MAC ({phone_clean})")
+        except Exception as e:
+            logger.warning(f"MikroTik block push notice: {e}")
+
+        return JSONResponse(
+            status_code=403,
+            content={
+                "success": False,
+                "status": "random_mac_blocked",
+                "error": "RANDOM_MAC_BLOCKED",
+                "is_random_mac": True,
+                "mac": mac_clean,
+                "message": (
+                    f"Randomized MAC address detected ({mac_clean})! "
+                    "CyberNet Wi-Fi strictly requires your physical Device MAC to connect. "
+                    "Please go to your phone's Wi-Fi Settings -> tap this Wi-Fi network -> "
+                    "switch MAC Address to 'Use Device MAC' (or turn OFF 'Private Wi-Fi Address'), then reconnect."
+                ),
+                "instructions": {
+                    "ios": "Settings -> Wi-Fi -> (i) icon -> Turn OFF 'Private Wi-Fi Address'",
+                    "android": "Settings -> Wi-Fi -> Gear icon -> Advanced -> MAC address type -> Select 'Use Device MAC'",
+                    "windows": "Settings -> Network & Internet -> Wi-Fi -> Turn OFF 'Random hardware addresses'"
+                }
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            }
+        )
 
     # Process through database
-    req_dict, is_approved, is_secondary = database.create_or_update_request(
-        phone=payload.phone,
-        mac=payload.mac,
-        ip=payload.ip,
-        device_model=payload.device_model
-    )
+    try:
+        req_dict, is_approved, is_secondary = database.create_or_update_request(
+            phone=phone_clean,
+            mac=mac_clean,
+            ip=payload.ip,
+            device_model=payload.device_model
+        )
+    except ValueError as e:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "status": "error", "message": str(e)},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     if is_approved:
         # Re-ensure MikroTik binding is active
         router_client.bind_device(
-            mac_address=payload.mac,
+            mac_address=mac_clean,
             ip_address=payload.ip,
-            comment=f"CyberNet: {payload.phone} (Existing Active)"
+            comment=f"CyberNet: {phone_clean} (Existing Active)"
         )
-        return {
-            "status": "approved",
-            "is_secondary_device": False,
-            "message": "Welcome back! Your device is authorized."
-        }
+        return JSONResponse(
+            content={
+                "success": True,
+                "status": "approved",
+                "is_secondary_device": False,
+                "message": "Welcome back! Your device is authorized."
+            },
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
-    return {
-        "status": "pending",
-        "is_secondary_device": is_secondary,
-        "message": "Waiting for Administrator approval..."
-    }
+    return JSONResponse(
+        content={
+            "success": True,
+            "status": "pending",
+            "is_secondary_device": is_secondary,
+            "message": "Waiting for Administrator approval..."
+        },
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
 
 
 @app.options("/api/hotspot/submit")
@@ -1196,9 +1267,24 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
     """
     Called by captive portal polling loop every 4s to check if admin approved the connection.
     Guarantees that any device actively polling with a phone number is registered as pending.
+    Blocks polling and rejects any device connecting with a randomized MAC.
     """
     mac_clean = mac.strip().upper() if mac else ""
     phone_clean = phone.strip() if phone else ""
+
+    if database.is_randomized_mac(mac_clean):
+        return JSONResponse(
+            status_code=403,
+            content={
+                "status": "random_mac_blocked",
+                "error": "RANDOM_MAC_BLOCKED",
+                "can_connect": False,
+                "is_random_mac": True,
+                "mac": mac_clean,
+                "message": "Connection blocked: Randomized MAC detected. Please change Wi-Fi settings to 'Device MAC' to connect."
+            },
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     # If phone is provided and device is not yet registered, auto-register pending request!
     if phone_clean and mac_clean:
@@ -1206,17 +1292,83 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
         existing_status = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
         if existing_status.get("status") in ("none", None):
             logger.info(f"Auto-registering pending request from check-status: Phone={phone_clean}, MAC={mac_clean}, IP={client_ip}")
-            database.create_or_update_request(
-                phone=phone_clean,
-                mac=mac_clean,
-                ip=client_ip,
-                device_model="Mobile Hotspot Client"
-            )
+            try:
+                database.create_or_update_request(
+                    phone=phone_clean,
+                    mac=mac_clean,
+                    ip=client_ip,
+                    device_model="Mobile Hotspot Client"
+                )
+            except ValueError:
+                pass
 
     result = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
     return JSONResponse(
         content=result,
         headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+
+@app.get("/api/hotspot/detect-mac")
+async def detect_mac_endpoint(mac: str):
+    """
+    Utility endpoint for captive portal clients to verify their MAC address type.
+    Returns whether the MAC is a physical Device MAC or a blocked Randomized MAC.
+    """
+    mac_clean = mac.strip().upper() if mac else ""
+    is_valid, msg, norm_mac = database.validate_mac_address(mac_clean, allow_random=True)
+    if not is_valid:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "mac": mac_clean, "is_valid": False, "error": msg},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+    is_rand = database.is_randomized_mac(norm_mac)
+    return JSONResponse(
+        content={
+            "success": True,
+            "mac": norm_mac,
+            "is_valid": True,
+            "is_random_mac": is_rand,
+            "mac_type": "randomized" if is_rand else "device",
+            "allowed": not is_rand,
+            "message": (
+                "Randomized MAC detected! Switch to Device MAC in your Wi-Fi settings to connect."
+                if is_rand else "Device MAC verified. You may proceed."
+            )
+        },
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+
+@app.get("/portal", response_class=HTMLResponse)
+@app.get("/hotspot", response_class=HTMLResponse)
+@app.get("/hotspot/login", response_class=HTMLResponse)
+async def captive_portal_page(
+    request: Request,
+    mac: Optional[str] = "",
+    ip: Optional[str] = "",
+    username: Optional[str] = "",
+    link_login_only: Optional[str] = ""
+):
+    """
+    Renders the customer captive portal Wi-Fi login screen.
+    Enforces physical Device MAC policy with step-by-step mobile guides.
+    """
+    client_ip = ip or (request.client.host if request.client else "")
+    mac_clean = database.normalize_mac(mac) or (mac.strip().upper() if mac else "")
+    is_rand = database.is_randomized_mac(mac_clean) if mac_clean else False
+
+    return templates.TemplateResponse(
+        request=request,
+        name="captive_portal.html",
+        context={
+            "mac": mac_clean,
+            "ip": client_ip,
+            "is_random_mac": is_rand,
+            "link_login_only": link_login_only,
+            "username": username
+        }
     )
 
 
@@ -1238,8 +1390,23 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
     """
     Approves pending connection request, registers customer, records payment,
     and pushes bypass rule & rate-limit to MikroTik RouterOS!
+    Strictly forbids approving requests with Randomized MAC addresses.
     """
     logger.info(f"Admin approving request #{req_id} with payload: {payload}")
+    req = database.get_request_by_id(req_id)
+    if not req:
+        return JSONResponse(status_code=404, content={"success": False, "error": f"Request #{req_id} not found."})
+
+    req_mac = req.get("mac_address", "").strip().upper()
+    if database.is_randomized_mac(req_mac):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": f"Cannot approve request #{req_id}: Device MAC '{req_mac}' is a randomized MAC address. Customer must connect using their physical Device MAC."
+            }
+        )
+
     try:
         # 1. Update database
         customer = database.approve_connection(
@@ -1338,6 +1505,16 @@ async def get_customer_details(customer_id: int):
 async def create_new_customer(payload: CreateCustomerPayload):
     """Manually registers a customer and optionally binds their MAC on MikroTik."""
     logger.info(f"Creating new customer: {payload.name} ({payload.phone})")
+    if payload.mac_address and payload.mac_address.strip():
+        if database.is_randomized_mac(payload.mac_address):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error": f"Randomized MAC address '{payload.mac_address}' is not permitted. CyberNet strictly requires physical Device MAC."
+                }
+            )
+
     try:
         cust = database.create_customer(
             phone=payload.phone,
@@ -1470,6 +1647,15 @@ async def toggle_customer_status(customer_id: int):
 async def add_device(customer_id: int, payload: AddDevicePayload):
     """Adds a new MAC device to customer and authorizes it on MikroTik."""
     logger.info(f"Adding device {payload.mac} to customer #{customer_id}")
+    if database.is_randomized_mac(payload.mac):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": f"Randomized MAC address '{payload.mac}' is not permitted. CyberNet strictly requires physical Device MAC."
+            }
+        )
+
     try:
         dev = database.add_customer_device(
             customer_id=customer_id,

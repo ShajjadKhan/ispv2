@@ -1408,6 +1408,7 @@
         <div class="form-group">
           <label>Initial Device MAC Address (Optional)</label>
           <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74 (Auto-bypasses on MikroTik)">
+          <div id="addCustMacFeedback" style="display:none; margin-top:5px; font-size:11.5px; font-weight:600;"></div>
         </div>
       </div>
 
@@ -2605,6 +2606,13 @@
     const resellerVal = document.getElementById('addCustReseller') ? document.getElementById('addCustReseller').value : '';
     const resellerId = resellerVal ? parseInt(resellerVal) : null;
 
+    if (mac && isRandomMac(mac)) {
+      alert('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
+      btn.disabled = false;
+      btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
+      return;
+    }
+
     try {
       const resp = await fetch('/api/customers', {
         method: 'POST',
@@ -2640,5 +2648,50 @@
       btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
     }
   }
+
+  function isRandomMac(mac) {
+    if (!mac) return false;
+    const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
+    if (clean.length < 2) return false;
+    const firstByte = parseInt(clean.substring(0, 2), 16);
+    return (firstByte & 0x02) !== 0;
+  }
+
+  // Real-time input validation on Add Customer MAC
+  document.addEventListener('DOMContentLoaded', () => {
+    const addMacInput = document.getElementById('addCustMac');
+    if (addMacInput) {
+      addMacInput.addEventListener('input', () => {
+        const val = addMacInput.value.trim();
+        const fb = document.getElementById('addCustMacFeedback');
+        const submitBtn = document.getElementById('btnAddCustSubmit');
+        if (!val) {
+          if (fb) fb.style.display = 'none';
+          if (submitBtn) submitBtn.disabled = false;
+          return;
+        }
+        if (isRandomMac(val)) {
+          if (fb) {
+            fb.style.display = 'block';
+            fb.style.color = '#f87171';
+            fb.innerHTML = '⚠️ <strong>Randomized MAC detected!</strong> CyberNet requires the phone\'s physical Device MAC. Private Wi-Fi must be disabled on the device.';
+          }
+          if (submitBtn) submitBtn.disabled = true;
+        } else {
+          const clean = val.replace(/[^0-9A-Fa-f]/g, '');
+          if (fb) {
+            if (clean.length === 12) {
+              fb.style.display = 'block';
+              fb.style.color = '#34d399';
+              fb.innerHTML = '✓ <strong>Physical Device MAC verified.</strong> Ready for MikroTik binding.';
+            } else {
+              fb.style.display = 'none';
+            }
+          }
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+  });
 </script>
 {% endblock %}
