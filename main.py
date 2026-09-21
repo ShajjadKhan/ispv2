@@ -1175,11 +1175,6 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
     # Enforce Device MAC - Strictly forbid Randomized MACs
     if database.is_randomized_mac(mac_clean):
         logger.warning(f"Blocked hotspot submit: Randomized MAC detected {mac_clean} for Phone {phone_clean}")
-        # Automatically push block rule to MikroTik to prevent unauthorized bypassing
-        try:
-            router_client.block_device(mac_clean, ip_address=payload.ip, comment=f"Blocked: Randomized MAC ({phone_clean})")
-        except Exception as e:
-            logger.warning(f"MikroTik block push notice: {e}")
 
         return JSONResponse(
             status_code=403,
