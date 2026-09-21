@@ -128,6 +128,24 @@ def init_auth_schema():
         )
         """)
 
+        # Migrations for Reseller & Role Fields
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN wallet_balance REAL NOT NULL DEFAULT 0.0")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN commission_rate REAL NOT NULL DEFAULT 0.0")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN shop_name TEXT")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN phone TEXT")
+        except Exception:
+            pass
+
         # 2. Cryptographic Sessions Table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS admin_sessions (
@@ -408,7 +426,10 @@ def validate_session(session_id: str) -> Optional[Dict[str, Any]]:
             SELECT 
                 s.session_id, s.csrf_token, s.expires_at, s.is_active as session_active,
                 u.id as user_id, u.username, u.full_name, u.role, u.is_active as user_active,
-                u.is_default_password, u.last_login
+                u.is_default_password, u.last_login,
+                COALESCE(u.wallet_balance, 0.0) as wallet_balance,
+                COALESCE(u.commission_rate, 0.0) as commission_rate,
+                u.shop_name, u.phone
             FROM admin_sessions s
             JOIN admin_users u ON s.user_id = u.id
             WHERE s.session_id = ? AND s.is_active = 1
@@ -521,3 +542,192 @@ def get_recent_auth_logs(limit: int = 20) -> List[Dict[str, Any]]:
             SELECT * FROM admin_auth_audit ORDER BY id DESC LIMIT ?
         """, (limit,))
         return [dict(r) for r in cursor.fetchall()]
+
+
+def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
+    """Fetches user account by ID."""
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, username, full_name, role, is_active, is_default_password,
+                   wallet_balance, commission_rate, shop_name, phone, last_login, created_at
+            FROM admin_users WHERE id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def create_user(
+    username: str,
+    password: str,
+    full_name: str,
+    role: str = "manager",
+    shop_name: Optional[str] = None,
+    phone: Optional[str] = None,
+    commission_rate: float = 0.0,
+    initial_wallet: float = 0.0,
+    created_by: str = "admin"
+) -> Tuple[bool, Optional[Dict[str, Any]], str]:
+    """
+    Creates a new user account (Manager or Reseller/Agent/Shop/Broker).
+    Enforces password hashing and checks username uniqueness.
+    """
+    clean_username = (username or "").strip().lower()
+    clean_name = (full_name or "").strip()
+    clean_role = (role or "manager").strip().lower()
+
+    if not clean_username or len(clean_username) < 3:
+        return False, None, "Username must be at least 3 characters long."
+    if not password or len(password) < 6:
+        return False, None, "Password must be at least 6 characters long."
+    if clean_role not in ("admin", "superadmin", "manager", "reseller"):
+        return False, None, "Invalid role specified."
+
+    clean_comm = max(0.0, min(100.0, float(commission_rate or 0.0)))
+    clean_wallet = max(0.0, float(initial_wallet or 0.0))
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    p_hash, p_salt = hash_password(password)
+
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM admin_users WHERE username = ?", (clean_username,))
+        if cursor.fetchone():
+            return False, None, f"Username '{clean_username}' is already taken."
+
+        cursor.execute("""
+            INSERT INTO admin_users (
+                username, password_hash, salt, full_name, role,
+                is_active, is_default_password, wallet_balance, commission_rate,
+                shop_name, phone, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?)
+        """, (
+            clean_username, p_hash, p_salt, clean_name or clean_username, clean_role,
+            clean_wallet, clean_comm, shop_name or "", phone or "", now_str, now_str
+        ))
+        new_id = cursor.lastrowid
+
+        # If initial wallet balance is provided for a reseller, log it in the wallet ledger
+        if clean_role == "reseller" and clean_wallet > 0:
+            try:
+                cursor.execute("""
+                    INSERT INTO reseller_wallet_ledger (
+                        reseller_id, type, amount, balance_before, balance_after,
+                        description, created_by, created_at
+                    )
+                    VALUES (?, 'topup', ?, 0.0, ?, 'Initial opening wallet balance', ?, ?)
+                """, (new_id, clean_wallet, clean_wallet, created_by, now_str))
+            except Exception as e:
+                logger.warning(f"Could not write initial wallet ledger entry: {e}")
+
+        conn.commit()
+
+        log_audit_event(
+            clean_username,
+            "127.0.0.1",
+            "account_created",
+            f"Created {clean_role} account '{clean_username}' ({clean_name})",
+            None
+        )
+
+        return True, get_user_by_id(new_id), "Account created successfully."
+
+
+def get_resellers_list() -> List[Dict[str, Any]]:
+    """
+    Returns all Reseller partners with current wallet balances, commission rates,
+    shop names, customer counts, and monthly sales volume.
+    """
+    now = datetime.now()
+    month_prefix = now.strftime("%Y-%m")
+
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                u.id, u.username, u.full_name, u.role, u.is_active,
+                COALESCE(u.wallet_balance, 0.0) as wallet_balance,
+                COALESCE(u.commission_rate, 0.0) as commission_rate,
+                COALESCE(u.shop_name, '') as shop_name,
+                COALESCE(u.phone, '') as phone,
+                u.last_login, u.created_at,
+                (SELECT COUNT(*) FROM customers c WHERE c.reseller_id = u.id) as customer_count,
+                (SELECT COUNT(*) FROM customers c WHERE c.reseller_id = u.id AND c.status = 'active') as active_customer_count,
+                COALESCE((
+                    SELECT SUM(col.amount) FROM collections col
+                    JOIN customers c ON col.customer_id = c.id
+                    WHERE c.reseller_id = u.id AND col.collected_at LIKE ?
+                ), 0.0) as month_sales
+            FROM admin_users u
+            WHERE u.role = 'reseller'
+            ORDER BY u.id DESC
+        """, (f"{month_prefix}%",))
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def get_managers_list() -> List[Dict[str, Any]]:
+    """Returns internal managers and admins."""
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, username, full_name, role, is_active, phone, last_login, created_at
+            FROM admin_users
+            WHERE role IN ('manager', 'admin', 'superadmin')
+            ORDER BY id ASC
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def update_reseller_profile(
+    reseller_id: int,
+    full_name: Optional[str] = None,
+    shop_name: Optional[str] = None,
+    phone: Optional[str] = None,
+    commission_rate: Optional[float] = None,
+    is_active: Optional[int] = None
+) -> Tuple[bool, str]:
+    """Updates reseller profile, commission, and active status."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, role FROM admin_users WHERE id = ?", (reseller_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "User not found."
+
+        updates = ["updated_at = ?"]
+        params = [now_str]
+
+        if full_name is not None:
+            updates.append("full_name = ?")
+            params.append(full_name.strip())
+        if shop_name is not None:
+            updates.append("shop_name = ?")
+            params.append(shop_name.strip())
+        if phone is not None:
+            updates.append("phone = ?")
+            params.append(phone.strip())
+        if commission_rate is not None:
+            clean_comm = max(0.0, min(100.0, float(commission_rate)))
+            updates.append("commission_rate = ?")
+            params.append(clean_comm)
+        if is_active is not None:
+            updates.append("is_active = ?")
+            params.append(int(is_active))
+
+        params.append(reseller_id)
+        sql = f"UPDATE admin_users SET {', '.join(updates)} WHERE id = ?"
+        cursor.execute(sql, params)
+        conn.commit()
+        return True, "Reseller profile updated successfully."
+
+
+def update_user_status(user_id: int, is_active: int) -> Tuple[bool, str]:
+    """Enables or disables a user account."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE admin_users SET is_active = ?, updated_at = ? WHERE id = ?", (int(is_active), now_str, user_id))
+        conn.commit()
+        return True, f"Account {'activated' if is_active else 'suspended'}."

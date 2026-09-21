@@ -753,6 +753,15 @@
       <button type="button" class="filter-btn" id="filterCredit" onclick="setBillingFilter('credit')">Credit Held</button>
       <button type="button" class="filter-btn" id="filterSuspended" onclick="setBillingFilter('suspended')">Suspended</button>
 
+      <!-- Partner / Reseller Filter -->
+      <select id="filterReseller" class="filter-btn" onchange="filterCustomerTable()" style="background:#090e1a; border:1px solid var(--border-subtle); color:var(--text-muted); cursor:pointer; outline:none; height:34px; padding:0 10px;">
+        <option value="all">🏪 All Partners &amp; Direct</option>
+        <option value="direct">🏢 Direct ISP Only</option>
+        {% for r in resellers %}
+          <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }}</option>
+        {% endfor %}
+      </select>
+
       <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
         <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         <span>Add Customer</span>
@@ -789,11 +798,22 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
+              <tr class="cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}">
                 <td>
                   <div class="cust-name-cell">
                     <span class="cust-name">{{ c.name }}</span>
-                    <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                      <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                      {% if c.reseller_shop_name or c.reseller_username %}
+                        <span class="badge-status" style="font-size:10px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">
+                          🏪 {{ c.reseller_shop_name or c.reseller_username }}
+                        </span>
+                      {% else %}
+                        <span class="badge-status" style="font-size:10px; background:rgba(148,163,184,0.08); color:#94a3b8; border:1px solid rgba(148,163,184,0.2); padding:1px 6px; border-radius:4px;">
+                          🏢 Direct
+                        </span>
+                      {% endif %}
+                    </div>
                   </div>
                 </td>
                 <td class="font-mono text-white" style="font-weight:600;">{{ c.phone }}</td>
@@ -899,13 +919,24 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }}">
+        <div class="cust-mobile-card cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
               <div class="mobile-cust-info">
                 <span class="mobile-cust-name">{{ c.name }}</span>
-                <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                  <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                  {% if c.reseller_shop_name or c.reseller_username %}
+                    <span class="badge-status" style="font-size:9.5px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 5px; border-radius:4px; font-weight:700;">
+                      🏪 {{ c.reseller_shop_name or c.reseller_username }}
+                    </span>
+                  {% else %}
+                    <span class="badge-status" style="font-size:9.5px; background:rgba(148,163,184,0.08); color:#94a3b8; border:1px solid rgba(148,163,184,0.2); padding:1px 5px; border-radius:4px;">
+                      🏢 Direct
+                    </span>
+                  {% endif %}
+                </div>
               </div>
             </div>
             <div class="mobile-card-badges">
@@ -1094,6 +1125,10 @@
               <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Current Status</div>
               <div style="margin-top:2px;" id="profStatusBadge">—</div>
             </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Reseller / Partner</div>
+              <div style="margin-top:2px; font-weight:700; color:#f472b6;" id="profReseller">—</div>
+            </div>
           </div>
 
           <!-- LINKED DEVICES (MACS) -->
@@ -1262,6 +1297,17 @@
         <div class="form-group">
           <label>Primary Phone Number</label>
           <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
+        </div>
+
+        <div class="form-group">
+          <label>Assigned Reseller / Partner Shop (Optional)</label>
+          <select class="form-select" id="addCustReseller">
+            <option value="">🏢 Direct ISP (No Reseller)</option>
+            {% for r in resellers %}
+              <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }} ({{ r.commission_rate }}% discount)</option>
+            {% endfor %}
+          </select>
+          <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Attributes subscriber to a partner shop/broker for dedicated POS collection.</span>
         </div>
 
         <div class="form-group">
@@ -1541,6 +1587,7 @@
       const status = el.getAttribute('data-status');
       const credit = parseFloat(el.getAttribute('data-credit') || 0);
       const fee = parseFloat(el.getAttribute('data-fee') || 0);
+      const reseller = el.getAttribute('data-reseller') || '';
       const searchData = el.getAttribute('data-search') || '';
 
       let matchesFilter = true;
@@ -1550,6 +1597,16 @@
       else if (activeFilter === 'active') matchesFilter = (status === 'active');
       else if (activeFilter === 'credit') matchesFilter = (credit > 0);
       else if (activeFilter === 'revenue') matchesFilter = (status === 'active' && fee > 0);
+
+      const resFilterEl = document.getElementById('filterReseller');
+      if (resFilterEl && matchesFilter) {
+        const resVal = resFilterEl.value;
+        if (resVal === 'direct') {
+          matchesFilter = (reseller === '');
+        } else if (resVal !== 'all') {
+          matchesFilter = (reseller === resVal);
+        }
+      }
 
       const matchesSearch = !q || searchData.includes(q);
       const isVisible = matchesFilter && matchesSearch;
@@ -1735,6 +1792,15 @@
         stBadge.innerHTML = '<span class="badge-status running">ACTIVE</span>';
       } else {
         stBadge.innerHTML = '<span class="badge-status disabled">SUSPENDED</span>';
+      }
+
+      const resField = document.getElementById('profReseller');
+      if (resField) {
+        if (c.reseller_shop_name || c.reseller_username) {
+          resField.innerHTML = `<span style="color:#f472b6;">🏪 ${c.reseller_shop_name || c.reseller_username}</span>`;
+        } else {
+          resField.innerHTML = `<span style="color:#94a3b8; font-weight:normal;">🏢 Direct ISP</span>`;
+        }
       }
 
       const fee = parseFloat(c.monthly_fee || 0.0);
@@ -2536,6 +2602,8 @@
     const mac = document.getElementById('addCustMac').value.trim();
     const initPay = parseFloat(document.getElementById('addCustInitialPay').value) || 0.0;
     const advMode = (document.querySelector('input[name="add_cust_adv_mode"]:checked') || {}).value || 'credit';
+    const resellerVal = document.getElementById('addCustReseller') ? document.getElementById('addCustReseller').value : '';
+    const resellerId = resellerVal ? parseInt(resellerVal) : null;
 
     try {
       const resp = await fetch('/api/customers', {
@@ -2552,7 +2620,8 @@
           max_devices: maxDev,
           mac_address: mac || null,
           initial_payment: initPay,
-          advance_mode: advMode
+          advance_mode: advMode,
+          reseller_id: resellerId
         })
       });
 

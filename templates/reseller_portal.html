@@ -1,0 +1,837 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Partner Reseller Portal{% endblock %}
+{% block heading %}Partner Reseller Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+  .portal-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  /* TOP RESELLER HERO & WALLET CARD */
+  .reseller-hero-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(20, 30, 58, 0.95) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 18px;
+    padding: 24px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  .agency-info-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .agency-info-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .wallet-chip-box {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 14px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+  }
+
+  .wallet-chip-val {
+    font-size: 30px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #34d399;
+    line-height: 1.1;
+  }
+
+  .wallet-chip-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* 3-CARD STAT DECK */
+  .portal-stats-deck {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .portal-stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .portal-stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .portal-stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+
+  /* RECHARGE POS CARD */
+  .pos-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .pos-header {
+    padding: 18px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .pos-body {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 860px) {
+    .pos-body { grid-template-columns: 1fr; }
+  }
+
+  .subscriber-picker-box {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .pos-calc-box {
+    background: rgba(56, 189, 248, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .calc-row.total-row {
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    padding-top: 12px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .btn-pos-recharge {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #000000;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+  .btn-pos-recharge:hover {
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .search-suggest-input {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+  }
+  .search-suggest-input:focus { border-color: #38bdf8; }
+
+  .suggest-results-box {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: #0b1120;
+    display: none;
+  }
+  .suggest-results-box.open { display: block; }
+  .suggest-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .suggest-item:hover { background: rgba(56, 189, 248, 0.1); }
+
+  /* MY SUBSCRIBERS TABLE */
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-main);
+  }
+  .clean-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+  .badge-tier {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-tier.active { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .badge-tier.due { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  .badge-tier.expired { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+  .modal-header {
+    padding: 18px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-body {
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .form-input {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    outline: none;
+  }
+  .form-input:focus { border-color: #38bdf8; }
+
+  /* PRINTABLE SLIP */
+  @media print {
+    body * { visibility: hidden; }
+    #printableReceipt, #printableReceipt * { visibility: visible; }
+    #printableReceipt {
+      position: absolute;
+      left: 0; top: 0; width: 100%;
+      background: #fff !important;
+      color: #000 !important;
+      padding: 20px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="portal-wrapper">
+
+  <!-- RESELLER HERO & PREPAID WALLET -->
+  <div class="reseller-hero-card">
+    <div>
+      <div class="agency-info-title">
+        <span>🏪 {{ stats.reseller.shop_name or stats.reseller.full_name or 'Partner Agency' }}</span>
+        <span class="badge-tier active" style="font-size:11px; padding:3px 8px;">VERIFIED PARTNER</span>
+      </div>
+      <div class="agency-info-sub">
+        Agent Username: <strong>@{{ stats.reseller.username }}</strong> &bull; Contact: <strong>{{ stats.reseller.phone or 'Direct' }}</strong> &bull; Margin: <strong>{{ "%.1f"|format(stats.commission_rate) }}% Discount</strong>
+      </div>
+    </div>
+
+    <div class="wallet-chip-box">
+      <svg style="width:34px; height:34px; fill:#34d399;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+      <div>
+        <div class="wallet-chip-lbl">Prepaid Wallet Balance</div>
+        <div class="wallet-chip-val">{{ "%.2f"|format(stats.wallet_balance) }} <span style="font-size:16px; font-weight:600;">SAR</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3-CARD STAT DECK -->
+  <div class="portal-stats-deck">
+    <div class="portal-stat-card">
+      <div class="portal-stat-icon" style="background:rgba(56,189,248,0.12); color:#38bdf8;">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <div>
+        <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:#fff;">{{ stats.active_customers }} <span style="font-size:13px; color:var(--text-dim); font-weight:500;">/ {{ stats.total_customers }}</span></div>
+        <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Active Agency Subscribers</div>
+      </div>
+    </div>
+
+    <div class="portal-stat-card">
+      <div class="portal-stat-icon" style="background:rgba(16,185,129,0.12); color:#34d399;">
+        <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      </div>
+      <div>
+        <div class="font-mono text-emerald" style="font-size:22px; font-weight:800;">{{ "%.2f"|format(stats.month_sales) }} SAR</div>
+        <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">{{ stats.month_tx_count }} Recharges (This Month)</div>
+      </div>
+    </div>
+
+    <div class="portal-stat-card">
+      <div class="portal-stat-icon" style="background:rgba(245,158,11,0.12); color:#fbbf24;">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+      </div>
+      <div>
+        <div class="font-mono text-amber" style="font-size:22px; font-weight:800;">{{ "%.2f"|format(stats.today_sales) }} SAR</div>
+        <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Today's Sales ({{ stats.today_tx_count }} tx)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAST 1-CLICK RECHARGE POS -->
+  <div class="pos-card" id="rechargePanel">
+    <div class="pos-header">
+      <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+        <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+        <span>⚡ 1-Click Fast Subscriber Recharge POS</span>
+      </div>
+      <span class="font-mono text-dim" style="font-size:12px;">Instant MikroTik activation &bull; Automatic partner discount</span>
+    </div>
+
+    <div class="pos-body">
+      <!-- Left: Subscriber Picker -->
+      <div class="subscriber-picker-box">
+        <div class="form-group">
+          <label>1. Select Subscriber to Recharge</label>
+          <input type="text" id="posSearchInput" class="search-suggest-input" placeholder="Type subscriber name or phone number..." autocomplete="off" onkeyup="filterPosSuggestions()">
+          <div id="posSuggestBox" class="suggest-results-box">
+            {% for c in customers %}
+            <div class="suggest-item" onclick="selectPosCustomer({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}', '{{ c.package_name }}', {{ c.monthly_fee }}, '{{ c.expiry_date or c.due_date or '' }}')">
+              <div>
+                <div style="font-weight:700; color:#fff;">{{ c.name }}</div>
+                <div class="font-mono text-dim" style="font-size:11px;">{{ c.phone }} &bull; {{ c.package_name }}</div>
+              </div>
+              <div class="font-mono text-cyan" style="font-weight:700;">{{ "%.2f"|format(c.monthly_fee) }} SAR</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="selectedCustomerPanel" style="display:none; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div style="font-size:15px; font-weight:800; color:#fff;" id="posCustName">—</div>
+              <div class="font-mono text-dim" style="font-size:12px;" id="posCustPhone">—</div>
+            </div>
+            <span class="badge-tier active" id="posCustPackage">—</span>
+          </div>
+          <div style="margin-top:10px; font-size:12px; color:var(--text-dim);">
+            Current Expiry: <strong class="text-white font-mono" id="posCustExpiry">—</strong>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>2. Select Renewal Period</label>
+          <select class="form-input font-mono" id="posMonthsSelect" onchange="calculatePosBreakdown()">
+            <option value="1">1 Month (30 Days Renewal)</option>
+            <option value="2">2 Months (60 Days Renewal)</option>
+            <option value="3">3 Months (90 Days Renewal)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Optional Note</label>
+          <input type="text" class="form-input" id="posNotes" placeholder="e.g. Paid cash at shop counter">
+        </div>
+      </div>
+
+      <!-- Right: POS Cost & Deduction Breakdown -->
+      <div class="pos-calc-box">
+        <div>
+          <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:14px; display:flex; align-items:center; gap:6px;">
+            <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            <span>Transaction Cost Breakdown</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div class="calc-row">
+              <span>Standard Retail Price:</span>
+              <span class="font-mono text-white" id="calcRetailPrice">0.00 SAR</span>
+            </div>
+            <div class="calc-row">
+              <span>Partner Discount ({{ "%.1f"|format(stats.commission_rate) }}%):</span>
+              <span class="font-mono text-emerald" id="calcDiscount">-0.00 SAR</span>
+            </div>
+            <div class="calc-row">
+              <span>Your Available Wallet Balance:</span>
+              <span class="font-mono text-cyan">{{ "%.2f"|format(stats.wallet_balance) }} SAR</span>
+            </div>
+            <div class="calc-row total-row">
+              <span>Net Wallet Deduction:</span>
+              <span class="font-mono text-emerald" id="calcNetDeduction">0.00 SAR</span>
+            </div>
+            <div class="calc-row">
+              <span>Remaining Wallet Balance After:</span>
+              <span class="font-mono text-dim" id="calcRemainingBal">{{ "%.2f"|format(stats.wallet_balance) }} SAR</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-pos-recharge" id="btnPosSubmit" onclick="executeRecharge()" disabled>
+          <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          <span>Confirm &amp; Activate Subscriber</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY SUBSCRIBERS DIRECTORY -->
+  <div class="pos-card" id="customersPanel">
+    <div class="pos-header">
+      <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+        <svg style="width:18px; height:18px; fill:#c084fc;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <span>My Agency Subscribers ({{ customers | length }})</span>
+      </div>
+      <button type="button" class="btn-primary-action" onclick="openModal('registerCustomerModal')">
+        <svg style="width:15px; height:15px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <span>Register New Subscriber</span>
+      </button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="clean-table">
+        <thead>
+          <tr>
+            <th>Subscriber</th>
+            <th>Package</th>
+            <th>Monthly Fee</th>
+            <th>Expiry / Due Date</th>
+            <th>Status</th>
+            <th style="text-align:right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not customers %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:32px; color:var(--text-dim);">
+              No subscribers attributed to your agency yet. Click "Register New Subscriber" to onboard clients.
+            </td>
+          </tr>
+          {% else %}
+            {% for c in customers %}
+            <tr>
+              <td>
+                <div style="font-weight:700; color:#fff;">{{ c.name }}</div>
+                <div class="font-mono text-dim" style="font-size:11px;">{{ c.phone }}</div>
+              </td>
+              <td>{{ c.package_name }}</td>
+              <td class="font-mono text-cyan">{{ "%.2f"|format(c.monthly_fee) }} SAR</td>
+              <td>
+                <div class="font-mono" style="font-weight:600; color:#fff;">{{ c.expiry_date or c.due_date or '—' }}</div>
+                {% if c.days_remaining is not none %}
+                  <div style="font-size:11px; color:{% if c.days_remaining < 0 %}#f87171{% elif c.days_remaining <= 3 %}#fbbf24{% else %}var(--text-dim){% endif %};">
+                    {% if c.days_remaining < 0 %}Expired {{ c.days_remaining|abs }}d ago{% elif c.days_remaining == 0 %}Expires Today{% else %}{{ c.days_remaining }} days remaining{% endif %}
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if c.is_expired or c.status == 'suspended' %}
+                  <span class="badge-tier expired">EXPIRED</span>
+                {% elif c.days_remaining is not none and c.days_remaining <= 3 %}
+                  <span class="badge-tier due">EXPIRING</span>
+                {% else %}
+                  <span class="badge-tier active">ACTIVE</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
+                <button type="button" class="btn-topup-sm" onclick="selectPosCustomer({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}', '{{ c.package_name }}', {{ c.monthly_fee }}, '{{ c.expiry_date or c.due_date or '' }}'); document.getElementById('rechargePanel').scrollIntoView({behavior:'smooth'});">
+                  <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+                  <span>Recharge</span>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WALLET LEDGER FEED -->
+  <div class="pos-card" id="ledgerPanel">
+    <div class="pos-header">
+      <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+        <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>My Wallet Activity &amp; Deductions</span>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="clean-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Resulting Balance</th>
+            <th>Details / Subscriber</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not ledger %}
+          <tr>
+            <td colspan="5" style="text-align:center; padding:28px; color:var(--text-dim);">
+              No transactions recorded yet.
+            </td>
+          </tr>
+          {% else %}
+            {% for l in ledger %}
+            <tr>
+              <td class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_at }}</td>
+              <td>
+                {% if l.type == 'topup' %}
+                  <span class="badge-tier active">+ TOP-UP</span>
+                {% else %}
+                  <span class="badge-tier expired">- DEDUCTION</span>
+                {% endif %}
+              </td>
+              <td class="font-mono" style="font-weight:800; color:{% if l.type == 'topup' %}#34d399{% else %}#f87171{% endif %};">
+                {% if l.type == 'topup' %}+{% else %}-{% endif %}{{ "%.2f"|format(l.amount) }} SAR
+              </td>
+              <td class="font-mono text-dim" style="font-size:12px;">{{ "%.2f"|format(l.balance_after) }} SAR</td>
+              <td style="font-size:12px;">{{ l.description }}</td>
+            </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: REGISTER NEW SUBSCRIBER -->
+<div id="registerCustomerModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>👥 Register New Subscriber</h3>
+      <button type="button" class="btn-close" onclick="closeModal('registerCustomerModal')">&times;</button>
+    </div>
+    <form id="registerCustomerForm" onsubmit="submitRegisterCustomer(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Subscriber Full Name</label>
+          <input type="text" class="form-input" id="regName" placeholder="e.g. Ahmed Al-Harbi" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number (Mobile)</label>
+          <input type="text" class="form-input font-mono" id="regPhone" placeholder="05xxxxxxxx" required>
+        </div>
+        <div class="form-group">
+          <label>Bandwidth Package</label>
+          <select class="form-input" id="regPackage" required onchange="handleRegPkgChange(this)">
+            {% for p in packages %}
+            <option value="{{ p.name }}" data-price="{{ p.default_price or p.price or 30.0 }}">{{ p.name }} ({{ "%.2f"|format(p.default_price or p.price or 30.0) }} SAR)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Monthly Fee (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="regFee" value="30.00" required>
+        </div>
+        <div class="form-group">
+          <label>MAC Address (Optional)</label>
+          <input type="text" class="form-input font-mono" id="regMac" placeholder="XX:XX:XX:XX:XX:XX">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn-secondary-action" onclick="closeModal('registerCustomerModal')">Cancel</button>
+          <button type="submit" class="btn-primary-action">Register Subscriber</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- PRINTABLE RECEIPT POPUP -->
+<div id="receiptModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>🧾 Recharge Receipt</h3>
+      <button type="button" class="btn-close" onclick="closeModal('receiptModal')">&times;</button>
+    </div>
+    <div class="modal-body" id="printableReceipt">
+      <div style="text-align:center; padding-bottom:12px; border-bottom:1px dashed #475569;">
+        <div style="font-size:18px; font-weight:800; color:#fff;">CYBERNET INTERNET</div>
+        <div style="font-size:12px; color:var(--text-dim);">Authorized Partner Receipt</div>
+        <div style="font-size:13px; font-weight:700; color:#38bdf8; margin-top:4px;">{{ stats.reseller.shop_name or stats.reseller.full_name }}</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; margin-top:12px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-dim);">Date:</span>
+          <span class="font-mono text-white" id="rcptDate">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-dim);">Subscriber:</span>
+          <span style="font-weight:700; color:#fff;" id="rcptCustomer">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-dim);">Phone:</span>
+          <span class="font-mono text-white" id="rcptPhone">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-dim);">Period:</span>
+          <span class="font-mono text-white" id="rcptMonths">1 Month</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-dim);">Valid Until:</span>
+          <span class="font-mono text-emerald" style="font-weight:700;" id="rcptExpiry">—</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-top:1px dashed #475569; padding-top:8px; font-size:15px; font-weight:800;">
+          <span style="color:#fff;">Total Paid:</span>
+          <span class="font-mono text-emerald" id="rcptAmount">— SAR</span>
+        </div>
+      </div>
+
+      <div style="text-align:center; font-size:11px; color:var(--text-dim); margin-top:14px;">
+        Thank you for choosing CyberNet High-Speed Fiber!
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn-secondary-action" onclick="closeModal('receiptModal')">Done</button>
+        <button type="button" class="btn-primary-action" onclick="window.print()">Print Receipt</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let currentSelectedCustomer = null;
+  const partnerCommission = {{ stats.commission_rate }};
+  const partnerWallet = {{ stats.wallet_balance }};
+
+  function openModal(id) {
+    document.getElementById(id)?.classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id)?.classList.remove('open');
+  }
+
+  function filterPosSuggestions() {
+    const q = document.getElementById('posSearchInput').value.toLowerCase().trim();
+    const box = document.getElementById('posSuggestBox');
+    if (!q) {
+      box.classList.remove('open');
+      return;
+    }
+    box.classList.add('open');
+    const items = box.querySelectorAll('.suggest-item');
+    items.forEach(it => {
+      const txt = it.textContent.toLowerCase();
+      it.style.display = txt.includes(q) ? 'flex' : 'none';
+    });
+  }
+
+  function selectPosCustomer(id, name, phone, pkg, fee, expiry) {
+    currentSelectedCustomer = { id, name, phone, pkg, fee: parseFloat(fee || 30.0), expiry };
+    document.getElementById('posSearchInput').value = `${name} (${phone})`;
+    document.getElementById('posSuggestBox').classList.remove('open');
+
+    document.getElementById('posCustName').textContent = name;
+    document.getElementById('posCustPhone').textContent = phone;
+    document.getElementById('posCustPackage').textContent = pkg;
+    document.getElementById('posCustExpiry').textContent = expiry || 'Immediate';
+    document.getElementById('selectedCustomerPanel').style.display = 'block';
+
+    calculatePosBreakdown();
+  }
+
+  function calculatePosBreakdown() {
+    if (!currentSelectedCustomer) return;
+    const months = parseInt(document.getElementById('posMonthsSelect').value || 1);
+    const fee = currentSelectedCustomer.fee;
+    const retail = fee * months;
+    const discount = retail * (partnerCommission / 100.0);
+    const netDeduction = retail - discount;
+    const remaining = partnerWallet - netDeduction;
+
+    document.getElementById('calcRetailPrice').textContent = retail.toFixed(2) + ' SAR';
+    document.getElementById('calcDiscount').textContent = '-' + discount.toFixed(2) + ' SAR';
+    document.getElementById('calcNetDeduction').textContent = netDeduction.toFixed(2) + ' SAR';
+    document.getElementById('calcRemainingBal').textContent = remaining.toFixed(2) + ' SAR';
+
+    const btn = document.getElementById('btnPosSubmit');
+    if (remaining < 0) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.innerHTML = '<span>⚠️ Insufficient Wallet Balance</span>';
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.innerHTML = `<span>Confirm &amp; Deduct ${netDeduction.toFixed(2)} SAR</span>`;
+    }
+  }
+
+  async function executeRecharge() {
+    if (!currentSelectedCustomer) return;
+    const months = parseInt(document.getElementById('posMonthsSelect').value || 1);
+    const notes = document.getElementById('posNotes').value.trim();
+
+    if (!confirm(`Confirm renewal for ${currentSelectedCustomer.name} (${months} month(s))?`)) return;
+
+    try {
+      const res = await fetch('/api/reseller/recharge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: currentSelectedCustomer.id,
+          months: months,
+          notes: notes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Populate receipt slip
+        document.getElementById('rcptDate').textContent = data.data.recorded_at;
+        document.getElementById('rcptCustomer').textContent = data.data.customer_name;
+        document.getElementById('rcptPhone').textContent = data.data.customer_phone;
+        document.getElementById('rcptMonths').textContent = `${data.data.months} Month(s)`;
+        document.getElementById('rcptExpiry').textContent = data.data.new_expiry_date;
+        document.getElementById('rcptAmount').textContent = `${data.data.gross_amount.toFixed(2)} SAR`;
+
+        openModal('receiptModal');
+      } else {
+        alert('Recharge failed: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+
+  function handleRegPkgChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.getAttribute('data-price');
+    if (price) {
+      document.getElementById('regFee').value = parseFloat(price).toFixed(2);
+    }
+  }
+
+  async function submitRegisterCustomer(e) {
+    e.preventDefault();
+    const payload = {
+      name: document.getElementById('regName').value.trim(),
+      phone: document.getElementById('regPhone').value.trim(),
+      package_name: document.getElementById('regPackage').value,
+      monthly_fee: parseFloat(document.getElementById('regFee').value || 30.0),
+      mac_address: document.getElementById('regMac').value.trim(),
+      billing_type: 'prepaid'
+    };
+
+    try {
+      const res = await fetch('/api/reseller/customers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Subscriber successfully registered!');
+        location.reload();
+      } else {
+        alert('Registration error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+</script>
+{% endblock %}

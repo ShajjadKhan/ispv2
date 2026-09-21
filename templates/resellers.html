@@ -1,0 +1,948 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Reseller Partners & Team Management{% endblock %}
+{% block heading %}Reseller Network & Team Management{% endblock %}
+
+{% block extra_head %}
+<style>
+  .resellers-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding-bottom: 40px;
+  }
+
+  /* TOP KPI STATS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stat-icon.purple-icon { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+  .stat-icon.emerald-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .stat-icon.cyan-icon { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+  .stat-icon.amber-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  .stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+
+  .stat-data .num {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    line-height: 1.1;
+  }
+  .stat-data .lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+
+  /* SECTION PANELS */
+  .panel-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 18px 22px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .panel-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary-action {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
+  }
+  .btn-primary-action:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary-action {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .btn-secondary-action:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  .btn-topup-sm {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+  }
+  .btn-topup-sm:hover {
+    background: #10b981;
+    color: #000;
+  }
+
+  .btn-table-action {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dim);
+    border: 1px solid var(--border-subtle);
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .btn-table-action:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
+  .badge-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-tag.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .badge-tag.suspended {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .clean-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-dim);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .clean-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-main);
+  }
+  .clean-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .search-box {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    outline: none;
+    width: 240px;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: #38bdf8; }
+
+  /* MODAL STYLES */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--bg-card);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-header {
+    padding: 18px 24px;
+    background: var(--bg-card-header);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+  }
+  .btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .btn-close:hover { color: #ffffff; }
+
+  .modal-body {
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .form-input {
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    color: #ffffff;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    outline: none;
+  }
+  .form-input:focus { border-color: #38bdf8; }
+
+  .tab-strip {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 22px;
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .tab-btn {
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: #ffffff; }
+  .tab-btn.active {
+    color: #38bdf8;
+    border-bottom-color: #38bdf8;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="resellers-wrapper">
+
+  <!-- TOP KPI CARDS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon purple-icon">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg>
+      </div>
+      <div class="stat-data">
+        <div class="num text-purple" style="color:#c084fc;">{{ stats.total_resellers }}</div>
+        <div class="lbl">Total Resellers &amp; Shops</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon emerald-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <div class="stat-data">
+        <div class="num text-emerald">{{ stats.active_resellers }}</div>
+        <div class="lbl">Active Selling Agencies</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon cyan-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+      </div>
+      <div class="stat-data">
+        <div class="num text-cyan">{{ "%.2f"|format(stats.total_wallet_pool) }} <span style="font-size:13px; font-weight:500;">SAR</span></div>
+        <div class="lbl">Reseller Wallet Balance Pool</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon amber-icon">
+        <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      </div>
+      <div class="stat-data">
+        <div class="num text-amber">{{ "%.2f"|format(stats.total_partner_sales) }} <span style="font-size:13px; font-weight:500;">SAR</span></div>
+        <div class="lbl">Partner Turnover (This Month)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN TABBED PANEL -->
+  <div class="panel-card">
+    <div class="tab-strip">
+      <button type="button" class="tab-btn active" id="tabResellers" onclick="switchTab('resellers')">
+        🏪 Reseller Partners (Shops &amp; Brokers)
+      </button>
+      <button type="button" class="tab-btn" id="tabManagers" onclick="switchTab('managers')">
+        👔 Internal Operations Managers
+      </button>
+      <button type="button" class="tab-btn" id="tabLedger" onclick="switchTab('ledger')">
+        📜 Wallet Credit &amp; Top-up Ledger
+      </button>
+    </div>
+
+    <!-- 1. RESELLERS SECTION -->
+    <div id="sectionResellers">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg style="width:18px; height:18px; fill:#c084fc;" viewBox="0 0 24 24"><path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z"/></svg>
+          <span>Authorized Partner Agencies</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <input type="text" id="resellerSearch" class="search-box" placeholder="Search partner, shop, or phone..." onkeyup="filterResellersTable()">
+          <button type="button" class="btn-primary-action" onclick="openCreateResellerModal()">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>Add Reseller Partner</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="clean-table" id="resellersTable">
+          <thead>
+            <tr>
+              <th>Shop / Partner Name</th>
+              <th>Username</th>
+              <th>Contact Phone</th>
+              <th>Commission %</th>
+              <th>Prepaid Wallet</th>
+              <th>Subscribers</th>
+              <th>Month Sales</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resellersTableBody">
+            {% if not resellers %}
+            <tr>
+              <td colspan="9" style="text-align:center; padding:36px; color:var(--text-dim);">
+                No reseller partners registered yet. Click "Add Reseller Partner" to onboard your first shop or broker.
+              </td>
+            </tr>
+            {% else %}
+              {% for r in resellers %}
+              <tr data-search="{{ (r.shop_name or '')|lower }} {{ r.username|lower }} {{ r.full_name|lower }} {{ r.phone }}">
+                <td>
+                  <div style="font-weight:700; color:#ffffff;">{{ r.shop_name or r.full_name }}</div>
+                  <div class="font-mono text-dim" style="font-size:11px;">{{ r.full_name }}</div>
+                </td>
+                <td class="font-mono text-cyan" style="font-weight:700;">{{ r.username }}</td>
+                <td class="font-mono text-dim">{{ r.phone or '—' }}</td>
+                <td>
+                  <span class="badge-tag" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">
+                    {{ "%.1f"|format(r.commission_rate) }}% Discount
+                  </span>
+                </td>
+                <td>
+                  <div class="font-mono" style="font-weight:800; font-size:14px; color:{% if r.wallet_balance > 0 %}#34d399{% else %}#f87171{% endif %};">
+                    {{ "%.2f"|format(r.wallet_balance) }} SAR
+                  </div>
+                </td>
+                <td>
+                  <span class="font-mono" style="font-weight:700; color:#ffffff;">{{ r.active_customer_count }}</span>
+                  <span class="text-dim" style="font-size:11px;">/ {{ r.customer_count }} Total</span>
+                </td>
+                <td class="font-mono text-emerald" style="font-weight:700;">
+                  {{ "%.2f"|format(r.month_sales) }} SAR
+                </td>
+                <td>
+                  {% if r.is_active %}
+                    <span class="badge-tag active">ACTIVE</span>
+                  {% else %}
+                    <span class="badge-tag suspended">DISABLED</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:right;">
+                  <div style="display:inline-flex; align-items:center; gap:6px;">
+                    <button type="button" class="btn-topup-sm" onclick="openTopupModal({{ r.id }}, '{{ r.shop_name or r.username }}', {{ r.wallet_balance }})">
+                      <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                      <span>Top-up</span>
+                    </button>
+                    <a href="/reseller?as_reseller_id={{ r.id }}" target="_blank" class="btn-table-action" title="Open Partner Portal as this Reseller">
+                      <span>Portal ↗</span>
+                    </a>
+                    <button type="button" class="btn-table-action" onclick="openEditModal({{ r.id }}, '{{ r.full_name|escape }}', '{{ r.shop_name|escape }}', '{{ r.phone|escape }}', {{ r.commission_rate }}, {{ r.is_active }})" title="Edit Reseller Settings">
+                      <span>Edit</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. MANAGERS SECTION -->
+    <div id="sectionManagers" style="display:none;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Internal Team (Admins &amp; Operations Managers)</span>
+        </div>
+        <button type="button" class="btn-primary-action" onclick="openCreateManagerModal()">
+          <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span>Add Operations Manager</span>
+        </button>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="clean-table">
+          <thead>
+            <tr>
+              <th>Full Name</th>
+              <th>Username</th>
+              <th>System Role</th>
+              <th>Phone</th>
+              <th>Last Active</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in managers %}
+            <tr>
+              <td style="font-weight:700; color:#ffffff;">{{ m.full_name }}</td>
+              <td class="font-mono text-cyan">{{ m.username }}</td>
+              <td>
+                <span class="badge-tag {% if m.role in ('admin', 'superadmin') %}active{% else %}suspended{% endif %}" style="{% if m.role == 'manager' %}background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);{% endif %}">
+                  {{ m.role|upper }}
+                </span>
+              </td>
+              <td class="font-mono text-dim">{{ m.phone or '—' }}</td>
+              <td class="font-mono text-dim" style="font-size:11.5px;">{{ m.last_login or 'Never' }}</td>
+              <td>
+                {% if m.is_active %}
+                  <span class="badge-tag active">ACTIVE</span>
+                {% else %}
+                  <span class="badge-tag suspended">DISABLED</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3. WALLET LEDGER SECTION -->
+    <div id="sectionLedger" style="display:none;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          <span>Partner Wallet Audit Ledger (Top-ups &amp; Deductions)</span>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="clean-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Reseller / Partner</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Balance Result</th>
+              <th>Details / Subscriber</th>
+              <th>Created By</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if not ledger %}
+            <tr>
+              <td colspan="7" style="text-align:center; padding:32px; color:var(--text-dim);">
+                No wallet transactions recorded yet.
+              </td>
+            </tr>
+            {% else %}
+              {% for l in ledger %}
+              <tr>
+                <td class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_at }}</td>
+                <td>
+                  <div style="font-weight:700; color:#ffffff;">{{ l.reseller_shop_name or l.reseller_username }}</div>
+                  <div class="font-mono text-dim" style="font-size:11px;">@{{ l.reseller_username }}</div>
+                </td>
+                <td>
+                  {% if l.type == 'topup' %}
+                    <span class="badge-tag active">+ TOP-UP</span>
+                  {% else %}
+                    <span class="badge-tag suspended">- RECHARGE</span>
+                  {% endif %}
+                </td>
+                <td class="font-mono" style="font-weight:800; color:{% if l.type == 'topup' %}#34d399{% else %}#f87171{% endif %};">
+                  {% if l.type == 'topup' %}+{% else %}-{% endif %}{{ "%.2f"|format(l.amount) }} SAR
+                </td>
+                <td class="font-mono text-dim" style="font-size:12px;">
+                  {{ "%.2f"|format(l.balance_after) }} SAR
+                </td>
+                <td style="font-size:12px;">{{ l.description }}</td>
+                <td class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_by }}</td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: CREATE RESELLER -->
+<div id="createResellerModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🏪 Add New Reseller Partner</h3>
+      <button type="button" class="btn-close" onclick="closeModal('createResellerModal')">&times;</button>
+    </div>
+    <form id="createResellerForm" onsubmit="submitCreateReseller(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Shop / Agency / Broker Name</label>
+          <input type="text" class="form-input" id="crShopName" placeholder="e.g. Al-Madina Grocery &amp; Mobile" required>
+        </div>
+        <div class="form-group">
+          <label>Partner Contact Person (Full Name)</label>
+          <input type="text" class="form-input" id="crFullName" placeholder="e.g. Tariq Al-Otaibi" required>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Partner Login Username</label>
+            <input type="text" class="form-input font-mono" id="crUsername" placeholder="e.g. shop_madina" required>
+          </div>
+          <div class="form-group">
+            <label>Login Password</label>
+            <input type="password" class="form-input" id="crPassword" placeholder="Min. 6 chars" required>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Phone / WhatsApp</label>
+            <input type="text" class="form-input font-mono" id="crPhone" placeholder="05xxxxxxxx">
+          </div>
+          <div class="form-group">
+            <label>Commission Discount %</label>
+            <input type="number" step="0.5" class="form-input font-mono" id="crCommission" value="10.0" min="0" max="100" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Initial Wallet Balance (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="crInitialWallet" value="0.00" min="0">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn-secondary-action" onclick="closeModal('createResellerModal')">Cancel</button>
+          <button type="submit" class="btn-primary-action">Create Partner Account</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: TOP-UP WALLET -->
+<div id="topupWalletModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>⚡ Credit Partner Prepaid Wallet</h3>
+      <button type="button" class="btn-close" onclick="closeModal('topupWalletModal')">&times;</button>
+    </div>
+    <form id="topupWalletForm" onsubmit="submitTopup(event)">
+      <input type="hidden" id="topupResellerId">
+      <div class="modal-body">
+        <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:14px; font-weight:700; color:#fff;" id="topupShopLabel">—</div>
+            <div style="font-size:12px; color:var(--text-dim);">Prepaid Partner Balance</div>
+          </div>
+          <div class="font-mono text-cyan" style="font-size:18px; font-weight:800;" id="topupCurrentBal">0.00 SAR</div>
+        </div>
+
+        <div class="form-group">
+          <label>Credit Top-up Amount Received (SAR)</label>
+          <input type="number" step="0.01" class="form-input font-mono" id="topupAmount" placeholder="e.g. 500.00" required min="1">
+        </div>
+        <div class="form-group">
+          <label>Payment / Deposit Notes</label>
+          <input type="text" class="form-input" id="topupNotes" placeholder="e.g. Cash collected by Owner / Bank Transfer">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn-secondary-action" onclick="closeModal('topupWalletModal')">Cancel</button>
+          <button type="submit" class="btn-primary-action" style="background:#10b981; color:#000;">Confirm &amp; Add Credit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: CREATE MANAGER -->
+<div id="createManagerModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>👔 Add Operations Manager</h3>
+      <button type="button" class="btn-close" onclick="closeModal('createManagerModal')">&times;</button>
+    </div>
+    <form id="createManagerForm" onsubmit="submitCreateManager(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Manager Full Name</label>
+          <input type="text" class="form-input" id="cmFullName" placeholder="e.g. Mohammed Salem" required>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" class="form-input font-mono" id="cmUsername" placeholder="e.g. mohammed_mgr" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" class="form-input" id="cmPassword" placeholder="Min. 6 chars" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Contact Phone</label>
+          <input type="text" class="form-input font-mono" id="cmPhone" placeholder="05xxxxxxxx">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn-secondary-action" onclick="closeModal('createManagerModal')">Cancel</button>
+          <button type="submit" class="btn-primary-action">Create Manager</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: EDIT RESELLER -->
+<div id="editResellerModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✏️ Edit Partner Agency Settings</h3>
+      <button type="button" class="btn-close" onclick="closeModal('editResellerModal')">&times;</button>
+    </div>
+    <form id="editResellerForm" onsubmit="submitEditReseller(event)">
+      <input type="hidden" id="erId">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Shop / Agency Name</label>
+          <input type="text" class="form-input" id="erShopName" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Person (Full Name)</label>
+          <input type="text" class="form-input" id="erFullName" required>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Contact Phone</label>
+            <input type="text" class="form-input font-mono" id="erPhone">
+          </div>
+          <div class="form-group">
+            <label>Commission Discount %</label>
+            <input type="number" step="0.5" class="form-input font-mono" id="erCommission" required min="0" max="100">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Partner Account Status</label>
+          <select class="form-input" id="erStatus">
+            <option value="1">Active (Can Recharge Subscribers)</option>
+            <option value="0">Suspended / Disabled</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
+          <button type="button" class="btn-secondary-action" onclick="closeModal('editResellerModal')">Cancel</button>
+          <button type="submit" class="btn-primary-action">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('sectionResellers').style.display = 'none';
+    document.getElementById('sectionManagers').style.display = 'none';
+    document.getElementById('sectionLedger').style.display = 'none';
+
+    if (tab === 'resellers') {
+      document.getElementById('tabResellers').classList.add('active');
+      document.getElementById('sectionResellers').style.display = 'block';
+    } else if (tab === 'managers') {
+      document.getElementById('tabManagers').classList.add('active');
+      document.getElementById('sectionManagers').style.display = 'block';
+    } else if (tab === 'ledger') {
+      document.getElementById('tabLedger').classList.add('active');
+      document.getElementById('sectionLedger').style.display = 'block';
+    }
+  }
+
+  function filterResellersTable() {
+    const q = document.getElementById('resellerSearch').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#resellersTableBody tr[data-search]');
+    rows.forEach(r => {
+      const text = r.getAttribute('data-search') || '';
+      r.style.display = (!q || text.includes(q)) ? '' : 'none';
+    });
+  }
+
+  function openModal(id) {
+    document.getElementById(id)?.classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id)?.classList.remove('open');
+  }
+
+  function openCreateResellerModal() {
+    document.getElementById('createResellerForm').reset();
+    openModal('createResellerModal');
+  }
+
+  function openCreateManagerModal() {
+    document.getElementById('createManagerForm').reset();
+    openModal('createManagerModal');
+  }
+
+  function openTopupModal(id, name, bal) {
+    document.getElementById('topupResellerId').value = id;
+    document.getElementById('topupShopLabel').textContent = name;
+    document.getElementById('topupCurrentBal').textContent = parseFloat(bal).toFixed(2) + ' SAR';
+    document.getElementById('topupAmount').value = '';
+    document.getElementById('topupNotes').value = '';
+    openModal('topupWalletModal');
+  }
+
+  function openEditModal(id, fullName, shopName, phone, comm, active) {
+    document.getElementById('erId').value = id;
+    document.getElementById('erFullName').value = fullName;
+    document.getElementById('erShopName').value = shopName;
+    document.getElementById('erPhone').value = phone || '';
+    document.getElementById('erCommission').value = comm;
+    document.getElementById('erStatus').value = active ? '1' : '0';
+    openModal('editResellerModal');
+  }
+
+  async function submitCreateReseller(e) {
+    e.preventDefault();
+    const payload = {
+      username: document.getElementById('crUsername').value.trim(),
+      password: document.getElementById('crPassword').value,
+      full_name: document.getElementById('crFullName').value.trim(),
+      shop_name: document.getElementById('crShopName').value.trim(),
+      phone: document.getElementById('crPhone').value.trim(),
+      commission_rate: parseFloat(document.getElementById('crCommission').value || 0),
+      initial_wallet: parseFloat(document.getElementById('crInitialWallet').value || 0)
+    };
+
+    try {
+      const res = await fetch('/api/resellers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Reseller partner created successfully!');
+        location.reload();
+      } else {
+        alert('Error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+
+  async function submitCreateManager(e) {
+    e.preventDefault();
+    const payload = {
+      username: document.getElementById('cmUsername').value.trim(),
+      password: document.getElementById('cmPassword').value,
+      full_name: document.getElementById('cmFullName').value.trim(),
+      phone: document.getElementById('cmPhone').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/managers/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Operations manager created successfully!');
+        location.reload();
+      } else {
+        alert('Error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+
+  async function submitTopup(e) {
+    e.preventDefault();
+    const id = document.getElementById('topupResellerId').value;
+    const payload = {
+      amount: parseFloat(document.getElementById('topupAmount').value),
+      notes: document.getElementById('topupNotes').value.trim()
+    };
+
+    try {
+      const res = await fetch(`/api/resellers/${id}/topup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert('Error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+
+  async function submitEditReseller(e) {
+    e.preventDefault();
+    const id = document.getElementById('erId').value;
+    const payload = {
+      full_name: document.getElementById('erFullName').value.trim(),
+      shop_name: document.getElementById('erShopName').value.trim(),
+      phone: document.getElementById('erPhone').value.trim(),
+      commission_rate: parseFloat(document.getElementById('erCommission').value || 0),
+      is_active: parseInt(document.getElementById('erStatus').value)
+    };
+
+    try {
+      const res = await fetch(`/api/resellers/${id}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Partner settings saved!');
+        location.reload();
+      } else {
+        alert('Error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      alert('Network error: ' + err.message);
+    }
+  }
+</script>
+{% endblock %}

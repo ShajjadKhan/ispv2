@@ -105,6 +105,7 @@ class CreateCustomerPayload(BaseModel):
     speed_limit: Optional[str] = None
     initial_payment: Optional[float] = 0.0
     advance_mode: Optional[str] = "credit"
+    reseller_id: Optional[int] = None
 
 
 class EditCustomerPayload(BaseModel):
@@ -118,6 +119,43 @@ class EditCustomerPayload(BaseModel):
     max_devices: Optional[int] = None
     status: Optional[str] = None
     credit_balance: Optional[float] = None
+    reseller_id: Optional[int] = -1
+
+
+class CreateResellerPayload(BaseModel):
+    username: str
+    password: str
+    full_name: str
+    shop_name: Optional[str] = ""
+    phone: Optional[str] = ""
+    commission_rate: Optional[float] = 0.0
+    initial_wallet: Optional[float] = 0.0
+
+
+class TopupResellerPayload(BaseModel):
+    amount: float
+    notes: Optional[str] = ""
+
+
+class UpdateResellerPayload(BaseModel):
+    full_name: Optional[str] = None
+    shop_name: Optional[str] = None
+    phone: Optional[str] = None
+    commission_rate: Optional[float] = None
+    is_active: Optional[int] = None
+
+
+class CreateManagerPayload(BaseModel):
+    username: str
+    password: str
+    full_name: str
+    phone: Optional[str] = ""
+
+
+class ResellerRechargePayload(BaseModel):
+    customer_id: int
+    months: Optional[int] = 1
+    notes: Optional[str] = ""
 
 
 class UpdateDeviceLimitPayload(BaseModel):
@@ -431,6 +469,10 @@ async def login_post(request: Request):
     if not next_url.startswith("/") or next_url.startswith("//"):
         next_url = "/"
 
+    # Route resellers to Reseller Portal if logging in without a specific target
+    if user.get("role") == "reseller" and (next_url == "/" or next_url == "/dashboard"):
+        next_url = "/reseller"
+
     response = RedirectResponse(url=next_url, status_code=303)
     max_age = 30 * 86400 if remember_me else 24 * 3600
     is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
@@ -488,7 +530,8 @@ async def api_login(payload: LoginPayload, request: Request):
             "full_name": user["full_name"],
             "role": user["role"],
             "is_default_password": bool(user.get("is_default_password", 0))
-        }
+        },
+        "redirect_url": "/reseller" if user.get("role") == "reseller" else "/"
     })
     max_age = 30 * 86400 if payload.remember_me else 24 * 3600
     is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
@@ -729,9 +772,14 @@ async def customers_view(request: Request):
     """
     Step 3: Customer Directory & Subscription Operations.
     """
+    user = getattr(request.state, "user", None)
+    if user and user.get("role") == "reseller":
+        return RedirectResponse(url="/reseller", status_code=303)
+
     live_status = router_client.get_live_status()
     customers = database.get_all_customers()
     packages = database.get_packages()
+    resellers = auth_service.get_resellers_list()
 
     return templates.TemplateResponse(
         request=request,
@@ -740,7 +788,8 @@ async def customers_view(request: Request):
             "router": live_status,
             "active_page": "customers",
             "customers": customers,
-            "packages": packages
+            "packages": packages,
+            "resellers": resellers
         }
     )
 
@@ -755,6 +804,7 @@ async def customer_edit_view(request: Request, customer_id: int):
     if not cust:
         return RedirectResponse(url="/customers", status_code=303)
     packages = database.get_packages()
+    resellers = auth_service.get_resellers_list()
 
     return templates.TemplateResponse(
         request=request,
@@ -763,7 +813,8 @@ async def customer_edit_view(request: Request, customer_id: int):
             "router": live_status,
             "active_page": "customers",
             "c": cust,
-            "packages": packages
+            "packages": packages,
+            "resellers": resellers
         }
     )
 
@@ -825,6 +876,267 @@ async def packages_view(request: Request):
             "packages": packages
         }
     )
+
+
+@app.api_route("/resellers", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def resellers_view(request: Request):
+    """
+    Owner Side: Reseller Partners & Internal Staff Hub.
+    Accessible only by Admins / Superadmins.
+    """
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        if user and user.get("role") == "reseller":
+            return RedirectResponse(url="/reseller", status_code=303)
+        if user and user.get("role") == "manager":
+            return RedirectResponse(url="/customers", status_code=303)
+        return RedirectResponse(url="/login?next=/resellers", status_code=303)
+
+    live_status = router_client.get_live_status()
+    resellers = auth_service.get_resellers_list()
+    managers = auth_service.get_managers_list()
+    ledger = database.get_reseller_wallet_ledger(limit=50)
+
+    total_wallet_pool = sum(float(r.get("wallet_balance") or 0.0) for r in resellers)
+    total_partner_sales = sum(float(r.get("month_sales") or 0.0) for r in resellers)
+    active_resellers_count = sum(1 for r in resellers if r.get("is_active", 1))
+
+    return templates.TemplateResponse(
+        request=request,
+        name="resellers.html",
+        context={
+            "router": live_status,
+            "active_page": "resellers",
+            "resellers": resellers,
+            "managers": managers,
+            "ledger": ledger,
+            "stats": {
+                "total_resellers": len(resellers),
+                "active_resellers": active_resellers_count,
+                "total_wallet_pool": total_wallet_pool,
+                "total_partner_sales": total_partner_sales
+            }
+        }
+    )
+
+
+@app.api_route("/reseller", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] = None):
+    """
+    Reseller Side: Dedicated External Partner Portal.
+    Fast Recharge POS, Subscriber Worklist, Wallet Balance & Ledger.
+    """
+    user = getattr(request.state, "user", None)
+    if not user:
+        return RedirectResponse(url="/login?next=/reseller", status_code=303)
+
+    target_reseller_id = user["id"]
+    # If Admin/Superadmin is previewing another reseller's portal:
+    if user.get("role") in ("admin", "superadmin") and as_reseller_id:
+        target_reseller_id = as_reseller_id
+
+    live_status = router_client.get_live_status()
+    stats = database.get_reseller_stats(target_reseller_id)
+    my_customers = database.get_all_customers(reseller_id=target_reseller_id)
+    packages = database.get_packages()
+    ledger = database.get_reseller_wallet_ledger(reseller_id=target_reseller_id, limit=30)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="reseller_portal.html",
+        context={
+            "router": live_status,
+            "active_page": "reseller_portal",
+            "stats": stats,
+            "customers": my_customers,
+            "packages": packages,
+            "ledger": ledger,
+            "current_user": user
+        }
+    )
+
+
+# =========================================================
+# Reseller & Partner API Endpoints
+# =========================================================
+
+@app.post("/api/resellers/create")
+async def api_create_reseller(payload: CreateResellerPayload, request: Request):
+    """Admin creates a new Reseller Partner account."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    success, created_user, msg = auth_service.create_user(
+        username=payload.username,
+        password=payload.password,
+        full_name=payload.full_name,
+        role="reseller",
+        shop_name=payload.shop_name,
+        phone=payload.phone,
+        commission_rate=payload.commission_rate or 0.0,
+        initial_wallet=payload.initial_wallet or 0.0,
+        created_by=user.get("username", "admin")
+    )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg, "user": created_user}
+
+
+@app.post("/api/resellers/{reseller_id}/topup")
+async def api_topup_reseller(reseller_id: int, payload: TopupResellerPayload, request: Request):
+    """Admin credits / tops up reseller prepaid wallet."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    success, msg, new_bal = database.topup_reseller_wallet(
+        reseller_id=reseller_id,
+        amount=payload.amount,
+        notes=payload.notes,
+        created_by=user.get("username", "admin")
+    )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg, "new_balance": new_bal}
+
+
+@app.post("/api/resellers/{reseller_id}/update")
+async def api_update_reseller(reseller_id: int, payload: UpdateResellerPayload, request: Request):
+    """Admin updates reseller commission or account details."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    success, msg = auth_service.update_reseller_profile(
+        reseller_id=reseller_id,
+        full_name=payload.full_name,
+        shop_name=payload.shop_name,
+        phone=payload.phone,
+        commission_rate=payload.commission_rate,
+        is_active=payload.is_active
+    )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
+
+
+@app.get("/api/resellers/{reseller_id}/ledger")
+async def api_reseller_ledger(reseller_id: int, request: Request):
+    """Returns wallet ledger for a specific reseller."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+    # Allowed if admin/superadmin OR if reseller looking at their own ledger
+    if user.get("role") not in ("admin", "superadmin") and user.get("id") != reseller_id:
+        return JSONResponse(status_code=403, content={"error": "Forbidden"})
+
+    records = database.get_reseller_wallet_ledger(reseller_id=reseller_id, limit=50)
+    return {"success": True, "ledger": records}
+
+
+@app.post("/api/managers/create")
+async def api_create_manager(payload: CreateManagerPayload, request: Request):
+    """Admin creates an internal operations manager account."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    success, created_user, msg = auth_service.create_user(
+        username=payload.username,
+        password=payload.password,
+        full_name=payload.full_name,
+        role="manager",
+        phone=payload.phone,
+        created_by=user.get("username", "admin")
+    )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg, "user": created_user}
+
+
+@app.post("/api/reseller/recharge")
+async def api_reseller_recharge(payload: ResellerRechargePayload, request: Request):
+    """
+    Reseller Fast POS Recharge:
+    Deducts net fee from reseller wallet, renews customer line on MikroTik router.
+    """
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Authentication required."})
+
+    target_reseller_id = user["id"]
+
+    success, msg, data = database.reseller_recharge_customer(
+        reseller_id=target_reseller_id,
+        customer_id=payload.customer_id,
+        months=payload.months or 1,
+        notes=payload.notes or "",
+        operator_username=user.get("username", "Reseller")
+    )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg, "details": data})
+
+    # Trigger MikroTik synchronization to ensure line is active
+    try:
+        cust = database.get_customer_profile(payload.customer_id)
+        if cust and cust.get("devices"):
+            for dev in cust["devices"]:
+                if dev.get("status") == "approved":
+                    router_client.bind_device(
+                        mac_address=dev["mac_address"],
+                        ip_address=dev.get("ip_address"),
+                        comment=f"CyberNet: {cust['phone']} - {cust['name']} (RENEWED)",
+                        rate_limit=cust.get("effective_speed")
+                    )
+    except Exception as e:
+        logger.warning(f"Post-recharge router sync notice: {e}")
+
+    return {"success": True, "message": msg, "data": data}
+
+
+@app.post("/api/reseller/customers/create")
+async def api_reseller_create_customer(payload: CreateCustomerPayload, request: Request):
+    """Reseller registers a new subscriber attributed to their agency."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Authentication required."})
+
+    target_reseller_id = user["id"]
+    try:
+        cust = database.create_customer(
+            phone=payload.phone,
+            name=payload.name,
+            billing_type="prepaid",
+            package_name=payload.package_name,
+            monthly_fee=payload.monthly_fee,
+            due_date=payload.due_date,
+            due_day=payload.due_day,
+            mac_address=payload.mac_address,
+            max_devices=payload.max_devices,
+            speed_limit=payload.speed_limit,
+            initial_payment=payload.initial_payment or 0.0,
+            advance_mode=payload.advance_mode or "credit",
+            reseller_id=target_reseller_id
+        )
+
+        # Bind on MikroTik if MAC was supplied
+        mt_ok = True
+        if payload.mac_address and payload.mac_address.strip():
+            mt_ok = router_client.bind_device(
+                mac_address=payload.mac_address,
+                comment=f"CyberNet Partner [{user.get('username')}]: {cust['phone']} - {cust['name']}"
+            )
+
+        return {
+            "success": True,
+            "message": f"Subscriber '{payload.name}' registered under your partner agency.",
+            "customer": cust,
+            "mikrotik_synced": mt_ok
+        }
+    except Exception as e:
+        logger.exception(f"Reseller customer registration failed: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
 
 
 # =========================================================
@@ -1039,7 +1351,8 @@ async def create_new_customer(payload: CreateCustomerPayload):
             max_devices=payload.max_devices,
             speed_limit=payload.speed_limit,
             initial_payment=payload.initial_payment or 0.0,
-            advance_mode=payload.advance_mode or "credit"
+            advance_mode=payload.advance_mode or "credit",
+            reseller_id=payload.reseller_id
         )
 
         mt_ok = True
@@ -1071,7 +1384,7 @@ async def create_new_customer(payload: CreateCustomerPayload):
 async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
     """
     Manually edits customer parameters from Customer Directory:
-    Monthly fee, payment due date, custom speed limit, speed package, billing type, device limit.
+    Monthly fee, payment due date, custom speed limit, speed package, billing type, device limit, reseller.
     Immediately synchronizes the new speed limit to MikroTik for all the customer's active devices!
     """
     logger.info(f"Admin editing customer #{customer_id} with payload: {payload}")
@@ -1087,7 +1400,8 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             speed_limit=payload.speed_limit,
             max_devices=payload.max_devices,
             status=payload.status,
-            credit_balance=payload.credit_balance
+            credit_balance=payload.credit_balance,
+            reseller_id=payload.reseller_id
         )
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "message": "Customer not found."})

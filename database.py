@@ -62,6 +62,11 @@ def init_db():
         except Exception:
             pass
 
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN reseller_id INTEGER REFERENCES admin_users(id)")
+        except Exception:
+            pass
+
         # 2. Customer Devices Table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS customer_devices (
@@ -104,6 +109,23 @@ def init_db():
             collected_at TEXT NOT NULL,
             collected_by TEXT NOT NULL DEFAULT 'Admin',
             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        )
+        """)
+
+        # 4b. Reseller Partner Wallet & Transaction Ledger
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reseller_wallet_ledger (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reseller_id INTEGER NOT NULL,
+            type TEXT NOT NULL, -- 'topup', 'recharge_deduction', 'commission', 'adjustment'
+            amount REAL NOT NULL,
+            balance_before REAL NOT NULL,
+            balance_after REAL NOT NULL,
+            customer_id INTEGER NULL,
+            description TEXT,
+            created_by TEXT NOT NULL DEFAULT 'Admin',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (reseller_id) REFERENCES admin_users(id) ON DELETE CASCADE
         )
         """)
 
@@ -839,33 +861,47 @@ def revoke_customer_device(mac: str) -> Optional[Dict[str, Any]]:
 # Step 3: Customer Directory Operations
 # =========================================================
 
-def get_all_customers() -> List[Dict[str, Any]]:
+def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """
-    Returns all registered customers with device counts, payment stats,
-    and computed validity/days remaining.
+    Returns registered customers with device counts, payment stats,
+    reseller partner metadata, and computed validity/days remaining.
+    Optionally scoped to a specific reseller partner.
     """
     now = datetime.now()
     today_str = now.strftime("%Y-%m-%d")
 
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+
+        where_sql = ""
+        params = []
+        if reseller_id is not None:
+            where_sql = "WHERE c.reseller_id = ?"
+            params.append(reseller_id)
+
+        query = f"""
             SELECT 
                 c.*,
+                COALESCE(u_res.username, '') as reseller_username,
+                COALESCE(u_res.shop_name, '') as reseller_shop_name,
                 COUNT(DISTINCT CASE WHEN d.status = 'approved' THEN d.id END) as active_devices_count,
                 COALESCE(SUM(col.amount), 0.0) as total_paid
             FROM customers c
+            LEFT JOIN admin_users u_res ON c.reseller_id = u_res.id
             LEFT JOIN customer_devices d ON d.customer_id = c.id
             LEFT JOIN collections col ON col.customer_id = c.id
+            {where_sql}
             GROUP BY c.id
             ORDER BY c.id DESC
-        """)
+        """
+        rows = cursor.execute(query, params).fetchall()
+
         # Preload packages to resolve default speed rates
         cursor.execute("SELECT name, rate_limit, default_price FROM packages")
         pkg_map = {row["name"]: dict(row) for row in cursor.fetchall()}
 
         customers = []
-        for r in cursor.fetchall() if False else cursor.execute("SELECT c.*, COUNT(DISTINCT CASE WHEN d.status = 'approved' THEN d.id END) as active_devices_count, COALESCE(SUM(col.amount), 0.0) as total_paid FROM customers c LEFT JOIN customer_devices d ON d.customer_id = c.id LEFT JOIN collections col ON col.customer_id = c.id GROUP BY c.id ORDER BY c.id DESC").fetchall():
+        for r in rows:
             item = dict(r)
             
             # Days remaining calculation
@@ -896,14 +932,21 @@ def get_all_customers() -> List[Dict[str, Any]]:
 
 def get_customer_profile(customer_id: int) -> Optional[Dict[str, Any]]:
     """
-    Returns complete customer profile: personal details, all bound devices,
-    effective speed, credit balance, and payment ledger history.
+    Returns complete customer profile: personal details, bound devices,
+    reseller partner metadata, effective speed, credit balance, and payment ledger history.
     """
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # Customer row
-        cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+        # Customer row with reseller details
+        cursor.execute("""
+            SELECT c.*,
+                   COALESCE(u_res.username, '') as reseller_username,
+                   COALESCE(u_res.shop_name, '') as reseller_shop_name
+            FROM customers c
+            LEFT JOIN admin_users u_res ON c.reseller_id = u_res.id
+            WHERE c.id = ?
+        """, (customer_id,))
         cust_row = cursor.fetchone()
         if not cust_row:
             return None
@@ -969,9 +1012,10 @@ def create_customer(
     max_devices: int = 1,
     speed_limit: Optional[str] = None,
     initial_payment: float = 0.0,
-    advance_mode: str = "credit"
+    advance_mode: str = "credit",
+    reseller_id: Optional[int] = None
 ) -> Dict[str, Any]:
-    """Manually creates a new customer with custom speed, fee, due date, device limit, and advance credit handling."""
+    """Manually creates a new customer with custom speed, fee, due date, device limit, advance credit handling, and optional reseller attribution."""
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -1035,9 +1079,9 @@ def create_customer(
         cursor = conn.cursor()
 
         cursor.execute("""
-            INSERT INTO customers (phone, name, billing_type, package_name, monthly_fee, collected_today, due_day, due_date, status, expiry_date, max_devices, speed_limit, credit_balance, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
-        """, (phone.strip(), name.strip(), final_billing_type, package_name, monthly_fee, clean_payment, due_day, final_due_date, expiry_date, clean_limit, clean_speed, credit_to_add, now_str, now_str))
+            INSERT INTO customers (phone, name, billing_type, package_name, monthly_fee, collected_today, due_day, due_date, status, expiry_date, max_devices, speed_limit, credit_balance, reseller_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)
+        """, (phone.strip(), name.strip(), final_billing_type, package_name, monthly_fee, clean_payment, due_day, final_due_date, expiry_date, clean_limit, clean_speed, credit_to_add, reseller_id, now_str, now_str))
         customer_id = cursor.lastrowid
 
         # Bind MAC if provided
@@ -1071,11 +1115,12 @@ def update_customer_details(
     speed_limit: Optional[str] = None,
     max_devices: Optional[int] = None,
     status: Optional[str] = None,
-    credit_balance: Optional[float] = None
+    credit_balance: Optional[float] = None,
+    reseller_id: Optional[int] = -1
 ) -> Optional[Dict[str, Any]]:
     """
     Updates any customer fields: monthly rate, payment due date, custom speed limit,
-    billing type, device limit, package name, name, phone, status, and credit balance.
+    billing type, device limit, package name, name, phone, status, credit balance, and reseller attribution.
     Automatically keeps prepaid expiry_date and due_day in sync.
     """
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1096,6 +1141,7 @@ def update_customer_details(
         new_status = status.strip() if status and status.strip() else current["status"]
         new_max_devices = max(1, int(max_devices)) if max_devices is not None else int(current.get("max_devices") or 1)
         new_credit = round(max(0.0, float(credit_balance)), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
+        final_reseller_id = current.get("reseller_id") if reseller_id == -1 else reseller_id
 
         # Speed limit: if explicitly passed, update it (empty string or "0" or "unlimited" means cleared/unlimited)
         if speed_limit is not None:
@@ -1120,12 +1166,12 @@ def update_customer_details(
             UPDATE customers
             SET name = ?, phone = ?, billing_type = ?, package_name = ?,
                 monthly_fee = ?, due_date = ?, due_day = ?, expiry_date = ?,
-                speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, updated_at = ?
+                speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, reseller_id = ?, updated_at = ?
             WHERE id = ?
         """, (
             new_name, new_phone, new_btype, new_pkg,
             new_fee, new_due_date, new_due_day, new_expiry_date,
-            new_speed, new_max_devices, new_status, new_credit, now_str,
+            new_speed, new_max_devices, new_status, new_credit, final_reseller_id, now_str,
             customer_id
         ))
         conn.commit()
@@ -2836,6 +2882,272 @@ def get_collections_hub_data(
             "filtered_tx_count": filtered_tx_count,
             "period": period,
             "customers_dropdown": all_customers_minimal
+        }
+
+
+# =========================================================
+# Reseller Partner Operations & Wallet Ledger
+# =========================================================
+
+def topup_reseller_wallet(
+    reseller_id: int,
+    amount: float,
+    notes: Optional[str] = None,
+    created_by: str = "Admin"
+) -> Tuple[bool, str, float]:
+    """
+    Tops up a reseller's prepaid wallet balance.
+    Logs transaction in reseller_wallet_ledger.
+    Returns (success, message, new_balance).
+    """
+    clean_amt = float(amount or 0.0)
+    if clean_amt <= 0:
+        return False, "Top-up amount must be greater than 0.", 0.0
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, wallet_balance, is_active FROM admin_users WHERE id = ? AND role = 'reseller'", (reseller_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "Reseller partner not found.", 0.0
+
+        reseller = dict(row)
+        if not reseller.get("is_active", 1):
+            return False, "This reseller partner account is suspended.", float(reseller.get("wallet_balance") or 0.0)
+
+        balance_before = float(reseller.get("wallet_balance") or 0.0)
+        balance_after = round(balance_before + clean_amt, 2)
+
+        # Update wallet
+        cursor.execute("UPDATE admin_users SET wallet_balance = ?, updated_at = ? WHERE id = ?", (balance_after, now_str, reseller_id))
+
+        # Log ledger entry
+        cursor.execute("""
+            INSERT INTO reseller_wallet_ledger (
+                reseller_id, type, amount, balance_before, balance_after,
+                customer_id, description, created_by, created_at
+            )
+            VALUES (?, 'topup', ?, ?, ?, NULL, ?, ?, ?)
+        """, (
+            reseller_id, clean_amt, balance_before, balance_after,
+            notes or f"Prepaid wallet credit top-up (+{clean_amt:.2f} SAR)",
+            created_by or "Admin", now_str
+        ))
+        conn.commit()
+
+        return True, f"Successfully credited {clean_amt:.2f} SAR. New balance: {balance_after:.2f} SAR", balance_after
+
+
+def reseller_recharge_customer(
+    reseller_id: int,
+    customer_id: int,
+    months: int = 1,
+    notes: Optional[str] = None,
+    operator_username: Optional[str] = None
+) -> Tuple[bool, str, Dict[str, Any]]:
+    """
+    Reseller Fast Recharge POS operation:
+    1. Validates reseller wallet balance.
+    2. Applies partner discount according to commission_rate.
+    3. Deducts net cost from reseller's wallet.
+    4. Automatically extends customer's due/expiry date and reactivates subscriber.
+    5. Records entry in reseller_wallet_ledger and customer collections audit ledger.
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    clean_months = max(1, int(months or 1))
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # 1. Fetch reseller
+        cursor.execute("SELECT id, username, full_name, role, is_active, wallet_balance, commission_rate, shop_name FROM admin_users WHERE id = ?", (reseller_id,))
+        r_row = cursor.fetchone()
+        if not r_row:
+            return False, "Reseller not found.", {}
+        reseller = dict(r_row)
+
+        if not reseller.get("is_active", 1):
+            return False, "Reseller account is deactivated.", {}
+
+        # 2. Fetch customer
+        cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+        c_row = cursor.fetchone()
+        if not c_row:
+            return False, f"Customer #{customer_id} not found.", {}
+        cust = dict(c_row)
+
+        # Check reseller assignment (or auto-assign if customer was unassigned)
+        current_reseller = cust.get("reseller_id")
+        if current_reseller and current_reseller != reseller_id and reseller.get("role") == "reseller":
+            return False, "This subscriber belongs to another agency/partner.", {}
+
+        monthly_fee = float(cust.get("monthly_fee") or 0.0)
+        if monthly_fee <= 0:
+            monthly_fee = 30.0  # Default plan fee fallback
+
+        gross_amount = round(monthly_fee * clean_months, 2)
+        commission_rate = float(reseller.get("commission_rate") or 0.0)
+        # Net deduction with partner commission discount
+        discount_factor = max(0.0, min(1.0, 1.0 - (commission_rate / 100.0)))
+        net_deduction = round(gross_amount * discount_factor, 2)
+
+        wallet_balance = float(reseller.get("wallet_balance") or 0.0)
+        if wallet_balance < net_deduction:
+            return False, f"Insufficient wallet balance ({wallet_balance:.2f} SAR). Need {net_deduction:.2f} SAR to recharge {clean_months} month(s).", {
+                "wallet_balance": wallet_balance,
+                "required_amount": net_deduction
+            }
+
+        balance_after = round(wallet_balance - net_deduction, 2)
+
+        # 3. Deduct from reseller wallet
+        cursor.execute("UPDATE admin_users SET wallet_balance = ?, updated_at = ? WHERE id = ?", (balance_after, now_str, reseller_id))
+
+        # 4. Record in reseller wallet ledger
+        ledger_desc = f"Recharge for {cust['name']} ({cust['phone']}) - {clean_months} month(s) [{gross_amount:.2f} SAR fee, {commission_rate:.1f}% discount = {net_deduction:.2f} SAR deducted]"
+        cursor.execute("""
+            INSERT INTO reseller_wallet_ledger (
+                reseller_id, type, amount, balance_before, balance_after,
+                customer_id, description, created_by, created_at
+            )
+            VALUES (?, 'recharge_deduction', ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            reseller_id, net_deduction, wallet_balance, balance_after,
+            customer_id, ledger_desc, operator_username or reseller.get("username") or "Reseller", now_str
+        ))
+
+        # 5. Extend customer expiry & due date
+        added_days = clean_months * 30
+        current_exp = cust.get("expiry_date") or cust.get("due_date")
+        try:
+            base_dt = datetime.strptime(current_exp.split()[0], "%Y-%m-%d")
+            calc_base = max(base_dt, now)
+        except Exception:
+            calc_base = now
+
+        new_expiry = (calc_base + timedelta(days=added_days)).strftime("%Y-%m-%d")
+        try:
+            new_due_day = int(new_expiry.split("-")[2])
+        except Exception:
+            new_due_day = cust.get("due_day") or 1
+
+        cursor.execute("""
+            UPDATE customers
+            SET expiry_date = ?, due_date = ?, due_day = ?, status = 'active',
+                billing_type = 'prepaid', reseller_id = ?, updated_at = ?
+            WHERE id = ?
+        """, (new_expiry, new_expiry, new_due_day, reseller_id, now_str, customer_id))
+
+        # 6. Unblock customer devices
+        cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+
+        # 7. Record in master collections ledger
+        shop_label = reseller.get("shop_name") or reseller.get("username")
+        col_notes = f"[Reseller: {shop_label}] {notes or 'Prepaid Cycle Renewal'} ({clean_months} mo until {new_expiry})"
+        cursor.execute("""
+            INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+            VALUES (?, ?, 'prepaid', ?, ?, ?)
+        """, (
+            customer_id, gross_amount, col_notes, now_str,
+            operator_username or reseller.get("username") or "Reseller"
+        ))
+
+        conn.commit()
+
+        return True, f"Recharge confirmed! Line active until {new_expiry}. Deducted {net_deduction:.2f} SAR.", {
+            "customer_id": customer_id,
+            "customer_name": cust.get("name"),
+            "customer_phone": cust.get("phone"),
+            "months": clean_months,
+            "gross_amount": gross_amount,
+            "commission_rate": commission_rate,
+            "net_deduction": net_deduction,
+            "wallet_balance": balance_after,
+            "new_expiry_date": new_expiry,
+            "recorded_at": now_str
+        }
+
+
+def get_reseller_wallet_ledger(
+    reseller_id: Optional[int] = None,
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """Fetches wallet ledger entries with reseller and customer names."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        where_sql = ""
+        params = []
+        if reseller_id is not None:
+            where_sql = "WHERE l.reseller_id = ?"
+            params.append(reseller_id)
+        params.append(limit)
+
+        cursor.execute(f"""
+            SELECT 
+                l.*,
+                COALESCE(u.username, '') as reseller_username,
+                COALESCE(u.shop_name, '') as reseller_shop_name,
+                COALESCE(c.name, '') as customer_name,
+                COALESCE(c.phone, '') as customer_phone
+            FROM reseller_wallet_ledger l
+            LEFT JOIN admin_users u ON l.reseller_id = u.id
+            LEFT JOIN customers c ON l.customer_id = c.id
+            {where_sql}
+            ORDER BY l.id DESC
+            LIMIT ?
+        """, params)
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def get_reseller_stats(reseller_id: int) -> Dict[str, Any]:
+    """Calculates summary KPIs for a specific reseller."""
+    now = datetime.now()
+    month_prefix = now.strftime("%Y-%m")
+    today_prefix = now.strftime("%Y-%m-%d")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # Reseller info
+        cursor.execute("SELECT id, username, full_name, wallet_balance, commission_rate, shop_name, phone FROM admin_users WHERE id = ?", (reseller_id,))
+        res_row = cursor.fetchone()
+        reseller = dict(res_row) if res_row else {}
+
+        # Customers
+        cursor.execute("SELECT COUNT(*) as total, COUNT(CASE WHEN status = 'active' THEN 1 END) as active FROM customers WHERE reseller_id = ?", (reseller_id,))
+        c_stats = dict(cursor.fetchone() or {})
+
+        # Sales month
+        cursor.execute("""
+            SELECT COALESCE(SUM(col.amount), 0.0) as month_sales, COUNT(*) as month_tx
+            FROM collections col
+            JOIN customers c ON col.customer_id = c.id
+            WHERE c.reseller_id = ? AND col.collected_at LIKE ?
+        """, (reseller_id, f"{month_prefix}%"))
+        m_sales = dict(cursor.fetchone() or {})
+
+        # Sales today
+        cursor.execute("""
+            SELECT COALESCE(SUM(col.amount), 0.0) as today_sales, COUNT(*) as today_tx
+            FROM collections col
+            JOIN customers c ON col.customer_id = c.id
+            WHERE c.reseller_id = ? AND col.collected_at LIKE ?
+        """, (reseller_id, f"{today_prefix}%"))
+        t_sales = dict(cursor.fetchone() or {})
+
+        return {
+            "reseller": reseller,
+            "total_customers": c_stats.get("total", 0),
+            "active_customers": c_stats.get("active", 0),
+            "month_sales": float(m_sales.get("month_sales", 0.0)),
+            "month_tx_count": int(m_sales.get("month_tx", 0)),
+            "today_sales": float(t_sales.get("today_sales", 0.0)),
+            "today_tx_count": int(t_sales.get("today_tx", 0)),
+            "wallet_balance": float(reseller.get("wallet_balance", 0.0)),
+            "commission_rate": float(reseller.get("commission_rate", 0.0))
         }
 
 
