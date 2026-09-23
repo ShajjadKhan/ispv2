@@ -403,7 +403,7 @@ async def auth_middleware(request: Request, call_next):
 # Authentication Web & API Routes
 # =========================================================
 
-@app.get("/login", response_class=HTMLResponse)
+@app.api_route("/login", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def login_page(
     request: Request,
     next: Optional[str] = "/",
