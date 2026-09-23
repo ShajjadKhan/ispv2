@@ -780,7 +780,7 @@
         document.getElementById('edit_uplink').value = r.uplink_type || '';
         document.getElementById('editRouterModal').classList.add('open');
       })
-      .catch(err => alert('Error loading router: ' + err.message));
+      .catch(err => cyberToast('Error loading router: ' + err.message));
   }
 
   function closeEditRouterModal() {
@@ -795,7 +795,7 @@
     const resDiv = document.getElementById('testConnResult');
 
     if (!host) {
-      alert('Please enter an IP address to test.');
+      cyberToast('Please enter an IP address to test.');
       return;
     }
 
@@ -839,14 +839,14 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert(`✅ Router '${payload.name}' added successfully!\nSubscribers and packages have been provisioned for roaming.`);
+        cyberToast(`✅ Router '${payload.name}' added successfully!\nSubscribers and packages have been provisioned for roaming.`);
         closeAddRouterModal();
         window.location.reload();
       } else {
-        alert('Failed to add router: ' + (data.error || 'Unknown error'));
+        cyberToast('Failed to add router: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
     }
   }
 
@@ -873,45 +873,45 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Router settings updated successfully!');
+        cyberToast('Router settings updated successfully!');
         closeEditRouterModal();
         window.location.reload();
       } else {
-        alert('Failed to update: ' + (data.error || 'Unknown error'));
+        cyberToast('Failed to update: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
     }
   }
 
   async function deleteRouter(id, name) {
-    if (!confirm(`Are you sure you want to remove '${name}' from the fleet?`)) return;
+    if (!(await cyberConfirm(`Remove "${name}" from the router fleet?`, { title: 'Remove Router', okText: 'Remove Router', danger: true }))) return;
     try {
       const res = await fetch(`/api/routers/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        alert('Router removed from fleet.');
+        cyberToast('Router removed from fleet.');
         window.location.href = '/gateway';
       } else {
-        alert('Failed to delete router.');
+        cyberToast('Failed to delete router.');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
     }
   }
 
   async function syncFleetRouter(id, name) {
-    if (!confirm(`Broadcast and provision all active subscribers and rate limits to '${name}'?`)) return;
+    if (!(await cyberConfirm(`Broadcast and provision all active subscribers and rate limits to "${name}"?`, { title: 'Sync Router Fleet', okText: 'Sync Now' }))) return;
     try {
       const res = await fetch(`/api/routers/${id}/sync`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        alert(`✅ Roaming Sync Complete for ${name}!\n• Packages Synced: ${data.packages_synced}\n• Devices Bypassed: ${data.devices_synced}`);
+        cyberToast(`✅ Roaming Sync Complete for ${name}!\n• Packages Synced: ${data.packages_synced}\n• Devices Bypassed: ${data.devices_synced}`);
       } else {
-        alert('Sync error: ' + (data.error || 'Failed'));
+        cyberToast('Sync error: ' + (data.error || 'Failed'));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     }
   }
 </script>

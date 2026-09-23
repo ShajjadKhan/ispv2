@@ -1,7 +1,7 @@
 # Python & Bytecode
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 
 # SQLite Databases & Logs
 *.db
@@ -16,3 +16,5 @@ __pycache__/
 .idea/
 .vscode/
 venv/
+backups/
+*.tmp

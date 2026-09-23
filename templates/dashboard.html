@@ -2214,12 +2214,12 @@
         // Refresh page to update all KPIs and table
         window.location.reload();
       } else {
-        alert('Collection failed: ' + (data.error || 'Unknown error'));
+        cyberToast('Collection failed: ' + (data.error || 'Unknown error'));
         btn.disabled = false;
         btn.textContent = 'Record Payment & Activate';
       }
     } catch (err) {
-      alert('Error recording payment: ' + err.message);
+      cyberToast('Error recording payment: ' + err.message);
       btn.disabled = false;
       btn.textContent = 'Record Payment & Activate';
     }
@@ -2278,14 +2278,20 @@
 
       document.getElementById('printableReportArea').style.display = 'block';
     } catch (err) {
-      alert('Report error: ' + err.message);
+      cyberToast('Report error: ' + err.message);
     }
   }
 
   // Hook into live telemetry poller from base.html to update live connectivity numbers without full reload
   function handleTelemetryUpdate(d) {
     fetch('/api/dashboard/metrics')
-      .then(r => r.json())
+      .then(r => {
+        if (r.status === 401) {
+          if (typeof window.handleAuthExpired === 'function') window.handleAuthExpired();
+          return null;
+        }
+        return r.json();
+      })
       .then(res => {
         if (res && res.metrics) {
           // Optional telemetry updates
@@ -2501,14 +2507,14 @@
         closeApprovalModal();
         window.location.reload();
       } else {
-        alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+        cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'));
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
         }
       }
     } catch (err) {
-      alert('Error approving request: ' + err.message);
+      cyberToast('Error approving request: ' + err.message);
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
@@ -2517,7 +2523,7 @@
   }
 
   async function rejectRequest(reqId) {
-    if (!confirm('Reject and delete this connection request?')) return;
+    if (!(await cyberConfirm('Reject and delete this connection request?', { title: 'Reject Request', okText: 'Reject Request', danger: true }))) return;
     try {
       const resp = await fetch(`/api/hotspot/requests/${reqId}/reject`, { method: 'POST' });
       const res = await resp.json();
@@ -2526,10 +2532,10 @@
         if (row) row.remove();
         refreshPendingRequests();
       } else {
-        alert('Could not reject request: ' + (res.error || 'Server error'));
+        cyberToast('Could not reject request: ' + (res.error || 'Server error'));
       }
     } catch (err) {
-      alert('Rejection error: ' + err.message);
+      cyberToast('Rejection error: ' + err.message);
     }
   }
 
@@ -2537,6 +2543,10 @@
   async function refreshPendingRequests() {
     try {
       const resp = await fetch('/api/hotspot/requests/pending');
+      if (resp.status === 401) {
+        if (typeof window.handleAuthExpired === 'function') window.handleAuthExpired();
+        return;
+      }
       const data = await resp.json();
       if (!data || !data.requests) return;
 
@@ -2634,7 +2644,7 @@
   }
 
   // Poll pending requests every 6 seconds
-  setInterval(refreshPendingRequests, 6000);
+  window.pendingRequestsInterval = setInterval(refreshPendingRequests, 6000);
 
   // =========================================================
   // CUSTOMER DETAILS MODAL
@@ -2781,7 +2791,7 @@
 
   async function toggleCustomerStatusFromModal(customerId, currentStatus) {
     const action = currentStatus === 'active' ? 'suspend' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this subscriber?`)) return;
+    if (!(await cyberConfirm(`Are you sure you want to ${action} this subscriber?`, { title: action === 'suspend' ? 'Suspend Subscriber' : 'Activate Subscriber', okText: action === 'suspend' ? 'Suspend' : 'Activate', danger: action === 'suspend' }))) return;
 
     try {
       const resp = await fetch(`/api/customers/${customerId}/toggle-status`, { method: 'POST' });
@@ -2790,10 +2800,10 @@
         closeCustomerDetailsModal();
         window.location.reload();
       } else {
-        alert('Could not update status: ' + (res.error || 'Unknown error'));
+        cyberToast('Could not update status: ' + (res.error || 'Unknown error'));
       }
     } catch (err) {
-      alert('Error updating status: ' + err.message);
+      cyberToast('Error updating status: ' + err.message);
     }
   }
 </script>

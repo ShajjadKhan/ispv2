@@ -1168,12 +1168,16 @@
   }
 
   // Auto-poller for new pending requests every 4 seconds
-  setInterval(async () => {
+  window.approvalsPollInterval = setInterval(async () => {
     try {
       const r = await fetch('/api/hotspot/pending-count');
+      if (r.status === 401) {
+        if (typeof window.handleAuthExpired === 'function') window.handleAuthExpired();
+        return;
+      }
       const d = await r.json();
       const currentCount = parseInt(document.getElementById('statPendingNum')?.textContent || '0');
-      if (d.count !== currentCount) {
+      if (d && d.count !== undefined && d.count !== currentCount) {
         location.reload();
       }
     } catch (e) {}

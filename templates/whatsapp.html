@@ -1039,19 +1039,20 @@
     const forceNight = chkForce ? chkForce.checked : false;
 
     if (!phone) {
-      alert('Please enter or select a recipient mobile number.');
+      cyberToast('Please enter or select a recipient mobile number.');
       return;
     }
     if (!raw) {
-      alert('Message cannot be empty.');
+      cyberToast('Message cannot be empty.');
       return;
     }
 
     if (IS_NIGHT && !forceNight && !simulate) {
-      const confirmNight = confirm(
+      const confirmNight = await cyberConfirm(
         "🌙 NIGHT QUIET HOURS WARNING:\n\n" +
         "It is currently night time. Sending WhatsApp messages now may disturb the customer.\n\n" +
-        "Are you sure you want to proceed with immediate dispatch?"
+        "Are you sure you want to proceed with immediate dispatch?",
+        { title: 'Quiet Hours Warning', okText: 'Send Anyway', danger: true }
       );
       if (!confirmNight) return;
     }
@@ -1075,16 +1076,16 @@
 
       if (data.success) {
         if (simulate) {
-          alert('🛡️ Simulation Success: Message preview logged into audit ledger. No actual network dispatch made.');
+          cyberToast('🛡️ Simulation Success: Message preview logged into audit ledger. No actual network dispatch made.');
         } else {
-          alert('✅ WhatsApp message dispatched successfully!');
+          cyberToast('✅ WhatsApp message dispatched successfully!');
         }
         window.location.reload();
       } else {
-        alert('Dispatch error: ' + (data.error || 'Failed'));
+        cyberToast('Dispatch error: ' + (data.error || 'Failed'));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     }
   }
 
@@ -1097,9 +1098,9 @@
       const res = await fetch('/api/whatsapp/status');
       const data = await res.json();
       document.getElementById('gatewayStatusText').textContent = (data.status || 'unknown').toUpperCase();
-      alert(`Gateway Status: ${data.status}\nPhone: ${data.phone || 'N/A'}\nName: ${data.name || 'N/A'}`);
+      cyberToast(`Gateway Status: ${data.status}\nPhone: ${data.phone || 'N/A'}\nName: ${data.name || 'N/A'}`);
     } catch (err) {
-      alert('Failed to connect to WhatsApp Gateway: ' + err.message);
+      cyberToast('Failed to connect to WhatsApp Gateway: ' + err.message);
     } finally {
       btn.disabled = false;
       btn.textContent = '🔄 Refresh Status';
@@ -1149,13 +1150,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('WhatsApp settings and templates saved successfully!');
+        cyberToast('WhatsApp settings and templates saved successfully!');
         window.location.reload();
       } else {
-        alert('Failed to save settings: ' + (data.error || 'Unknown error'));
+        cyberToast('Failed to save settings: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
     }
   }
 

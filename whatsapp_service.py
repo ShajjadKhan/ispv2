@@ -1,3 +1,9 @@
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 """
 CyberNet OS v2 - WhatsApp Messaging Engine & Safety Service
 Direct integration with OpenWA container running on port 2785.

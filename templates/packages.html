@@ -1033,12 +1033,12 @@
         closeCreatePkgModal();
         location.reload();
       } else {
-        alert('Failed: ' + (res.error || res.message));
+        cyberToast('Failed: ' + (res.error || res.message));
         btn.disabled = false;
         btn.textContent = 'Create Package';
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
       btn.disabled = false;
       btn.textContent = 'Create Package';
     }
@@ -1068,7 +1068,7 @@
 
       document.getElementById('btnEditPkg').disabled = false;
     } catch (err) {
-      alert('Failed to load package: ' + err.message);
+      cyberToast('Failed to load package: ' + err.message);
       closeEditPkgModal();
     }
   }
@@ -1109,12 +1109,12 @@
         closeEditPkgModal();
         location.reload();
       } else {
-        alert('Failed: ' + (res.error || res.message));
+        cyberToast('Failed: ' + (res.error || res.message));
         btn.disabled = false;
         btn.textContent = 'Save Changes';
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
       btn.disabled = false;
       btn.textContent = 'Save Changes';
     }
@@ -1122,7 +1122,7 @@
 
   // DELETE
   async function deletePkg(pkgId, name) {
-    if (!confirm(`Are you sure you want to delete package "${name}"?`)) return;
+    if (!(await cyberConfirm(`Delete package "${name}"?`, { title: 'Delete Package', okText: 'Delete Package', danger: true }))) return;
 
     try {
       const resp = await fetch(`/api/packages/${pkgId}`, { method: 'DELETE' });
@@ -1130,10 +1130,10 @@
       if (res.success) {
         location.reload();
       } else {
-        alert(res.message || 'Cannot delete package.');
+        cyberToast(res.message || 'Cannot delete package.');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
     }
   }
 
@@ -1143,12 +1143,12 @@
       const resp = await fetch(`/api/packages/${pkgId}/sync-router`, { method: 'POST' });
       const res = await resp.json();
       if (res.success) {
-        alert('✓ ' + res.message);
+        cyberToast('✓ ' + res.message);
       } else {
-        alert('Sync Error: ' + res.message);
+        cyberToast('Sync Error: ' + res.message);
       }
     } catch (err) {
-      alert('Network Error: ' + err.message);
+      cyberToast('Network Error: ' + err.message);
     }
   }
 </script>

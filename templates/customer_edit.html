@@ -1168,12 +1168,12 @@
           window.location.href = '/customers';
         }, 800);
       } else {
-        alert('Update failed: ' + (res.message || res.error));
+        cyberToast('Update failed: ' + (res.message || res.error));
         btn.disabled = false;
         btn.innerHTML = '<span>Save &amp; Sync MikroTik</span>';
       }
     } catch (err) {
-      alert('Error updating customer: ' + err.message);
+      cyberToast('Error updating customer: ' + err.message);
       btn.disabled = false;
       btn.innerHTML = '<span>Save &amp; Sync MikroTik</span>';
     }
@@ -1181,7 +1181,7 @@
 
   // Quick Unlink Device
   async function unlinkDevice(devId) {
-    if (!confirm('Unlink this MAC from subscriber and revoke MikroTik authorization?')) return;
+    if (!(await cyberConfirm('Unlink this MAC from subscriber and revoke MikroTik authorization?', { title: 'Revoke Device', okText: 'Revoke Device', danger: true }))) return;
     try {
       const resp = await fetch(`/api/customers/${customerId}/devices/${devId}`, { method: 'DELETE' });
       const res = await resp.json();
@@ -1189,10 +1189,10 @@
         const row = document.getElementById(`devRow-${devId}`);
         if (row) row.remove();
       } else {
-        alert('Failed: ' + res.message);
+        cyberToast('Failed: ' + res.message);
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -1209,12 +1209,12 @@
     const mac = document.getElementById('quickMacInput').value.trim();
     const dName = document.getElementById('quickDevName').value.trim() || 'Client Device';
     if (!mac) {
-      alert('Please enter a valid MAC address');
+      cyberToast('Please enter a valid MAC address');
       return;
     }
 
     if (isRandomMac(mac)) {
-      alert('Cannot bind device: Randomized MAC detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi Address on the phone.');
+      cyberToast('Cannot bind device: Randomized MAC detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi Address on the phone.');
       return;
     }
 
@@ -1228,10 +1228,10 @@
       if (res.success) {
         location.reload();
       } else {
-        alert('Failed: ' + (res.error || res.message));
+        cyberToast('Failed: ' + (res.error || res.message));
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -1280,10 +1280,10 @@
       if (res.success) {
         location.reload();
       } else {
-        alert('Failed: ' + res.message);
+        cyberToast('Failed: ' + res.message);
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -1334,15 +1334,15 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message || 'Subscriber permanently deleted.');
+        cyberToast(res.message || 'Subscriber permanently deleted.');
         window.location.href = '/customers';
       } else {
-        alert('Permanent delete failed: ' + (res.message || res.error));
+        cyberToast('Permanent delete failed: ' + (res.message || res.error));
         btn.disabled = false;
         btn.innerHTML = '<span>Confirm Delete</span>';
       }
     } catch (err) {
-      alert('Error during deletion: ' + err.message);
+      cyberToast('Error during deletion: ' + err.message);
       btn.disabled = false;
       btn.innerHTML = '<span>Confirm Delete</span>';
     }

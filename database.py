@@ -1,3 +1,9 @@
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 """
 Database module for CyberNet OS v2.
 Manages customers, devices, connection requests, and billing records using SQLite.

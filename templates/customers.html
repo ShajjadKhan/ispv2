@@ -1695,10 +1695,10 @@
       if (res.success) {
         location.reload();
       } else {
-        alert('Toggle failed: ' + res.message);
+        cyberToast('Toggle failed: ' + res.message);
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -1706,13 +1706,14 @@
   async function quickDeleteCustomer(custId, name) {
     if (!custId) return;
     const displayName = name || `Customer #${custId}`;
-    const confirmed = confirm(
+    const confirmed = await cyberConfirm(
       `⚠️ PERMANENT ACCOUNT DELETION\n\n` +
       `Are you sure you want to permanently delete "${displayName}"?\n\n` +
       `• All authorized MAC devices will be immediately unlinked and dropped from MikroTik.\n` +
       `• All billing history and records will be deleted.\n` +
       `• This action is permanent and CANNOT be undone.\n\n` +
-      `Click OK to permanently delete.`
+      `Click OK to permanently delete.`,
+      { title: 'Permanent Delete', okText: 'Delete Subscriber', danger: true }
     );
     if (!confirmed) return;
 
@@ -1723,13 +1724,13 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message || 'Subscriber permanently deleted.');
+        cyberToast(res.message || 'Subscriber permanently deleted.');
         location.reload();
       } else {
-        alert('Deletion failed: ' + (res.message || res.error));
+        cyberToast('Deletion failed: ' + (res.message || res.error));
       }
     } catch (e) {
-      alert('Error during deletion: ' + e.message);
+      cyberToast('Error during deletion: ' + e.message);
     }
   }
 
@@ -2033,7 +2034,7 @@
       }
 
     } catch (err) {
-      alert('Failed to load profile: ' + err.message);
+      cyberToast('Failed to load profile: ' + err.message);
     }
   }
 
@@ -2050,7 +2051,7 @@
   async function submitAddDevice() {
     const mac = document.getElementById('newDeviceMac').value.trim();
     const name = document.getElementById('newDeviceName').value.trim() || 'Secondary Device';
-    if (!mac) return alert('Please enter a MAC address.');
+    if (!mac) return cyberToast('Please enter a MAC address.');
 
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/devices`, {
@@ -2064,25 +2065,25 @@
         document.getElementById('addDeviceInlineForm').style.display = 'none';
         openProfileModal(activeCustomerId, 'details');
       } else {
-        alert('Failed to add device: ' + res.message);
+        cyberToast('Failed to add device: ' + res.message);
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
   async function removeDevice(devId) {
-    if (!confirm('Revoke this device and disconnect it immediately from MikroTik?')) return;
+    if (!(await cyberConfirm('Revoke this device and disconnect it immediately from MikroTik?', { title: 'Revoke Device', okText: 'Revoke Device', danger: true }))) return;
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/devices/${devId}`, { method: 'DELETE' });
       const res = await resp.json();
       if (res.success) {
         openProfileModal(activeCustomerId, 'details');
       } else {
-        alert('Failed: ' + res.message);
+        cyberToast('Failed: ' + res.message);
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -2257,7 +2258,7 @@
   }
 
   async function submitApplyCredit() {
-    if (!confirm('Apply available credit balance to settle and extend service (+30 Days) for this customer?')) return;
+    if (!(await cyberConfirm('Apply available credit balance to settle and extend service (+30 Days) for this customer?', { title: 'Apply Wallet Credit', okText: 'Apply Credit' }))) return;
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/apply-credit`, {
         method: 'POST',
@@ -2266,19 +2267,19 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message);
+        cyberToast(res.message);
         openProfileModal(activeCustomerId, 'billing');
       } else {
-        alert('Failed to apply credit: ' + (res.error || res.message));
+        cyberToast('Failed to apply credit: ' + (res.error || res.message));
       }
     } catch (e) {
-      alert('Error applying credit: ' + e.message);
+      cyberToast('Error applying credit: ' + e.message);
     }
   }
 
   // Quick 1-Click Collection of Due Bill (When Eligible)
   async function quickCollectDueBill(amount) {
-    if (!confirm(`Collect ${parseFloat(amount).toFixed(2)} SAR and renew cycle (+30 days) for this customer?`)) return;
+    if (!(await cyberConfirm(`Collect ${parseFloat(amount).toFixed(2)} SAR and renew cycle (+30 days) for this customer?`, { title: 'Collect Payment', okText: 'Collect Payment' }))) return;
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
@@ -2287,19 +2288,19 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message);
+        cyberToast(res.message);
         openProfileModal(activeCustomerId, 'billing');
       } else {
-        alert('Failed: ' + (res.error || res.message));
+        cyberToast('Failed: ' + (res.error || res.message));
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
   // Quick 1-Click Settle from Wallet Credit
   async function quickSettleDueFromCredit() {
-    if (!confirm('Apply available credit balance to settle due cycle (+30 Days)?')) return;
+    if (!(await cyberConfirm('Apply available credit balance to settle due cycle (+30 Days)?', { title: 'Settle From Credit', okText: 'Settle Now' }))) return;
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/apply-credit`, {
         method: 'POST',
@@ -2308,13 +2309,13 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message);
+        cyberToast(res.message);
         openProfileModal(activeCustomerId, 'billing');
       } else {
-        alert('Failed to apply credit: ' + (res.error || res.message));
+        cyberToast('Failed to apply credit: ' + (res.error || res.message));
       }
     } catch (e) {
-      alert('Error applying credit: ' + e.message);
+      cyberToast('Error applying credit: ' + e.message);
     }
   }
 
@@ -2325,7 +2326,7 @@
     if (!amtInput) return;
     const valStr = amtInput.value.trim();
     if (valStr === '') {
-      return alert('Please enter an amount to collect.');
+      return cyberToast('Please enter an amount to collect.');
     }
     const amt = parseFloat(valStr) || 0.0;
     const notes = notesInput ? notesInput.value.trim() : '';
@@ -2338,17 +2339,17 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message);
+        cyberToast(res.message);
         amtInput.value = '';
         if (notesInput) notesInput.value = '';
         const prev = document.getElementById('customPaymentPreview');
         if (prev) prev.style.display = 'none';
         openProfileModal(activeCustomerId, 'billing');
       } else {
-        alert('Failed: ' + (res.error || res.message));
+        cyberToast('Failed: ' + (res.error || res.message));
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -2487,7 +2488,7 @@
 
       document.getElementById('editCustomerModal').classList.add('open');
     } catch (err) {
-      alert('Failed to load customer details: ' + err.message);
+      cyberToast('Failed to load customer details: ' + err.message);
     }
   }
 
@@ -2571,12 +2572,12 @@
           location.reload();
         }
       } else {
-        alert('Failed to update: ' + (res.error || res.message));
+        cyberToast('Failed to update: ' + (res.error || res.message));
         btn.disabled = false;
         btn.innerHTML = '<span>💾 Save &amp; Sync to MikroTik</span>';
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
       btn.disabled = false;
       btn.innerHTML = '<span>💾 Save &amp; Sync to MikroTik</span>';
     }
@@ -2589,7 +2590,7 @@
     if (input === null) return;
     const newLimit = parseInt(input.trim());
     if (isNaN(newLimit) || newLimit < 1) {
-      return alert("Invalid number. Please enter a valid number of devices (1 or more).");
+      return cyberToast("Invalid number. Please enter a valid number of devices (1 or more).");
     }
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/device-limit`, {
@@ -2599,13 +2600,13 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message);
+        cyberToast(res.message);
         openProfileModal(activeCustomerId);
       } else {
-        alert('Failed: ' + res.message);
+        cyberToast('Failed: ' + res.message);
       }
     } catch (e) {
-      alert('Error: ' + e.message);
+      cyberToast('Error: ' + e.message);
     }
   }
 
@@ -2630,7 +2631,7 @@
     const resellerId = resellerVal ? parseInt(resellerVal) : null;
 
     if (mac && isRandomMac(mac)) {
-      alert('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
+      cyberToast('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
       btn.disabled = false;
       btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
       return;
@@ -2661,12 +2662,12 @@
         closeAddCustomerModal();
         location.reload();
       } else {
-        alert('Failed: ' + (res.error || res.message));
+        cyberToast('Failed: ' + (res.error || res.message));
         btn.disabled = false;
         btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message);
       btn.disabled = false;
       btn.innerHTML = '<span>Create &amp; Authorize Customer</span>';
     }

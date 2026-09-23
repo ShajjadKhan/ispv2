@@ -914,13 +914,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Reseller partner created successfully!');
+        cyberToast('Reseller partner created successfully!');
         location.reload();
       } else {
-        alert('Error: ' + (data.error || data.message));
+        cyberToast('Error: ' + (data.error || data.message));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     }
   }
 
@@ -941,13 +941,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Operations manager created successfully!');
+        cyberToast('Operations manager created successfully!');
         location.reload();
       } else {
-        alert('Error: ' + (data.error || data.message));
+        cyberToast('Error: ' + (data.error || data.message));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     }
   }
 
@@ -967,13 +967,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        cyberToast(data.message);
         location.reload();
       } else {
-        alert('Error: ' + (data.error || data.message));
+        cyberToast('Error: ' + (data.error || data.message));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     }
   }
 
@@ -996,13 +996,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Partner settings saved!');
+        cyberToast('Partner settings saved!');
         location.reload();
       } else {
-        alert('Error: ' + (data.error || data.message));
+        cyberToast('Error: ' + (data.error || data.message));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     }
   }
 
@@ -1029,7 +1029,7 @@
     const newPass = document.getElementById('emPassword').value;
 
     if (username.length < 3) {
-      alert('Username must be at least 3 characters long.');
+      cyberToast('Username must be at least 3 characters long.');
       return;
     }
 
@@ -1043,7 +1043,7 @@
 
     if (newPass) {
       if (newPass.length < 6) {
-        alert('New password must be at least 6 characters long.');
+        cyberToast('New password must be at least 6 characters long.');
         return;
       }
       payload.new_password = newPass;
@@ -1060,13 +1060,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Manager account updated successfully!');
+        cyberToast('Manager account updated successfully!');
         location.reload();
       } else {
-        alert('Error: ' + (data.error || data.message));
+        cyberToast('Error: ' + (data.error || data.message));
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message);
     } finally {
       btn.disabled = false;
       btn.textContent = 'Save Changes';

@@ -1,3 +1,9 @@
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 """
 CyberNet OS v2 - Clean ISP Management System
 Entry Point & Gateway Operations Dashboard (Port 9911)
@@ -414,6 +420,8 @@ async def login_page(
         success_msg = "You have been securely signed out."
     elif msg == "pw_changed":
         success_msg = "Password changed successfully. Please sign in with your new password."
+    elif msg == "session_expired":
+        error = "Your session has expired. Please sign in again."
 
     return templates.TemplateResponse(
         request=request,

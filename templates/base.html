@@ -612,11 +612,192 @@
         grid-template-columns: 1fr !important;
       }
     }
+
+    .cyber-toast-stack {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 12000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: min(380px, calc(100vw - 28px));
+      pointer-events: none;
+    }
+    .cyber-toast {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-left: 4px solid #38bdf8;
+      border-radius: 12px;
+      color: #f8fafc;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+      animation: cyberToastIn 0.18s ease-out;
+    }
+    .cyber-toast.success { border-left-color: #10b981; }
+    .cyber-toast.warning { border-left-color: #f59e0b; }
+    .cyber-toast.error { border-left-color: #ef4444; }
+    .cyber-toast-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 12px;
+      margin-top: 1px;
+    }
+    .cyber-toast.success .cyber-toast-icon { background: rgba(16,185,129,0.14); color: #34d399; }
+    .cyber-toast.warning .cyber-toast-icon { background: rgba(245,158,11,0.14); color: #fbbf24; }
+    .cyber-toast.error .cyber-toast-icon { background: rgba(239,68,68,0.14); color: #f87171; }
+    .cyber-toast-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+    .cyber-toast-message {
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+    .cyber-toast-close {
+      border: 0;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .cyber-toast-close:hover { color: #ffffff; }
+    @keyframes cyberToastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .cyber-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 11950;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(3, 7, 18, 0.76);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .cyber-confirm-overlay.open { display: flex; }
+    .cyber-confirm-box {
+      width: min(440px, 100%);
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+    .cyber-confirm-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cyber-confirm-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(245, 158, 11, 0.14);
+      color: #fbbf24;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .cyber-confirm-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .cyber-confirm-message {
+      padding: 18px 20px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+    .cyber-confirm-actions {
+      padding: 14px 20px 18px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cyber-confirm-btn {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      padding: 9px 15px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .cyber-confirm-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+    .cyber-confirm-btn.primary {
+      border-color: rgba(56, 189, 248, 0.35);
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #ffffff;
+      box-shadow: 0 10px 22px rgba(56, 189, 248, 0.22);
+    }
+    .cyber-confirm-btn.danger {
+      border-color: rgba(239, 68, 68, 0.45);
+      background: linear-gradient(135deg, #b91c1c, #ef4444);
+    }
+    @media (max-width: 640px) {
+      .cyber-toast-stack {
+        right: 10px;
+        bottom: 10px;
+        width: calc(100vw - 20px);
+      }
+      .cyber-confirm-actions {
+        flex-direction: column-reverse;
+      }
+      .cyber-confirm-btn {
+        width: 100%;
+      }
+    }
   </style>
 
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+  <div id="cyberToastStack" class="cyber-toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+  <div id="cyberConfirmOverlay" class="cyber-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="cyberConfirmTitle">
+    <div class="cyber-confirm-box">
+      <div class="cyber-confirm-head">
+        <div class="cyber-confirm-icon">!</div>
+        <div class="cyber-confirm-title" id="cyberConfirmTitle">Confirm Action</div>
+      </div>
+      <div class="cyber-confirm-message" id="cyberConfirmMessage"></div>
+      <div class="cyber-confirm-actions">
+        <button type="button" class="cyber-confirm-btn" id="cyberConfirmCancel">Cancel</button>
+        <button type="button" class="cyber-confirm-btn primary" id="cyberConfirmOk">Continue</button>
+      </div>
+    </div>
+  </div>
 
   <!-- LEFT SIDEBAR -->
   <aside class="app-sidebar">
@@ -811,18 +992,133 @@
   </main>
 
   <script>
+    function inferToastType(message) {
+      const text = String(message || '').toLowerCase();
+      if (text.includes('fail') || text.includes('error') || text.includes('cannot') || text.includes('invalid') || text.includes('denied')) return 'error';
+      if (text.includes('warning') || text.includes('careful') || text.includes('night') || text.includes('expired')) return 'warning';
+      if (text.includes('success') || text.includes('saved') || text.includes('complete') || text.includes('connected') || text.includes('created') || text.includes('updated')) return 'success';
+      return 'info';
+    }
+
+    function cyberToast(message, type, options = {}) {
+      const stack = document.getElementById('cyberToastStack');
+      if (!stack) return;
+      const kind = type || inferToastType(message);
+      const toast = document.createElement('div');
+      toast.className = `cyber-toast ${kind}`;
+      const title = options.title || (kind === 'error' ? 'Needs Attention' : kind === 'warning' ? 'Please Confirm' : kind === 'success' ? 'Success' : 'Notice');
+      const icon = kind === 'error' ? '!' : kind === 'warning' ? '!' : kind === 'success' ? '✓' : 'i';
+      toast.innerHTML = `
+        <div class="cyber-toast-icon">${icon}</div>
+        <div>
+          <div class="cyber-toast-title">${title}</div>
+          <div class="cyber-toast-message"></div>
+        </div>
+        <button type="button" class="cyber-toast-close" aria-label="Dismiss">&times;</button>
+      `;
+      toast.querySelector('.cyber-toast-message').textContent = String(message || '');
+      toast.querySelector('.cyber-toast-close').addEventListener('click', () => toast.remove());
+      stack.appendChild(toast);
+      window.setTimeout(() => toast.remove(), options.duration || (kind === 'error' ? 6200 : 4200));
+    }
+
+    function cyberConfirm(message, options = {}) {
+      return new Promise(resolve => {
+        const overlay = document.getElementById('cyberConfirmOverlay');
+        const msg = document.getElementById('cyberConfirmMessage');
+        const ok = document.getElementById('cyberConfirmOk');
+        const cancel = document.getElementById('cyberConfirmCancel');
+        const title = document.getElementById('cyberConfirmTitle');
+        if (!overlay || !msg || !ok || !cancel || !title) {
+          resolve(window.confirm(String(message || 'Continue?')));
+          return;
+        }
+
+        title.textContent = options.title || 'Confirm Action';
+        msg.textContent = String(message || 'Continue?');
+        ok.textContent = options.okText || 'Continue';
+        cancel.textContent = options.cancelText || 'Cancel';
+        ok.className = `cyber-confirm-btn ${options.danger ? 'danger' : 'primary'}`;
+        overlay.classList.add('open');
+        ok.focus();
+
+        const cleanup = result => {
+          overlay.classList.remove('open');
+          ok.onclick = null;
+          cancel.onclick = null;
+          overlay.onclick = null;
+          document.removeEventListener('keydown', onKey);
+          resolve(result);
+        };
+        const onKey = event => {
+          if (event.key === 'Escape') cleanup(false);
+          if (event.key === 'Enter') cleanup(true);
+        };
+        ok.onclick = () => cleanup(true);
+        cancel.onclick = () => cleanup(false);
+        overlay.onclick = event => {
+          if (event.target === overlay) cleanup(false);
+        };
+        document.addEventListener('keydown', onKey);
+      });
+    }
+
+    window.cyberToast = cyberToast;
+    window.cyberConfirm = cyberConfirm;
+
+    // Global Auth Expiration Handler (Stops polling & redirects to login)
+    window.handleAuthExpired = function() {
+      if (window._isHandlingAuthExpiry) return;
+      window._isHandlingAuthExpiry = true;
+      
+      if (window.telemetryInterval) {
+        clearInterval(window.telemetryInterval);
+        window.telemetryInterval = null;
+      }
+      if (window.pendingRequestsInterval) {
+        clearInterval(window.pendingRequestsInterval);
+        window.pendingRequestsInterval = null;
+      }
+      if (window.approvalsPollInterval) {
+        clearInterval(window.approvalsPollInterval);
+        window.approvalsPollInterval = null;
+      }
+
+      if (typeof cyberToast === 'function') {
+        cyberToast('Your session has expired. Redirecting to login...', 'warning', { title: 'Session Expired', duration: 4000 });
+      }
+
+      setTimeout(() => {
+        const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = '/login?msg=session_expired&next=' + nextUrl;
+      }, 1200);
+    };
+
     // Live Telemetry Auto-Poller (Every 5 seconds)
     function fetchTelemetry() {
       fetch('/api/router/telemetry')
-        .then(r => r.json())
+        .then(r => {
+          if (r.status === 401) {
+            window.handleAuthExpired();
+            return null;
+          }
+          return r.json();
+        })
         .then(data => {
-          updateUiWithTelemetry(data);
+          if (data) updateUiWithTelemetry(data);
         })
         .catch(err => console.warn('Telemetry poll error:', err));
 
       fetch('/api/hotspot/pending-count')
-        .then(r => r.json())
+        .then(r => {
+          if (r.status === 401) {
+            window.handleAuthExpired();
+            return null;
+          }
+          return r.json();
+        })
         .then(data => {
+          if (!data) return;
           const badge = document.getElementById('sidebarPendingBadge');
           if (badge) {
             if (data.count > 0) {
@@ -864,7 +1160,7 @@
     }
 
     // Start 5-second interval
-    setInterval(fetchTelemetry, 5000);
+    window.telemetryInterval = setInterval(fetchTelemetry, 5000);
   </script>
 
   <!-- My Account & Security Profile Modal -->
