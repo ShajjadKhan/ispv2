@@ -3860,126 +3860,30 @@ def get_customer_usage_analytics(
 
 def seed_historical_usage_if_empty():
     """
-    Populates realistic 90-day bandwidth and internet usage records for registered
-    subscribers if the table is currently empty, ensuring the operator immediately
-    has a complete 90-day archive to demonstrate dispute verification.
+    Disabled: only real live traffic from MikroTik accounting collector will be populated.
+    """
+    return
+
+
+def clear_all_traffic_history() -> Dict[str, int]:
+    """
+    Truncates all recorded internet usage, daily rollups, hourly tables, and connection sessions.
+    Returns counts of deleted records.
     """
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM customer_traffic_daily")
-        count = cursor.fetchone()[0]
-        if count > 5:
-            return
-
-        cursor.execute("SELECT id, name FROM customers")
-        custs = cursor.fetchall()
-        if not custs:
-            return
-
-        import random
-        rng = random.Random(42)
-
-        now = datetime.now()
-        today = now.date()
-
-        for c in custs:
-            cid = c["id"]
-            cursor.execute("SELECT id, mac_address, device_name FROM customer_devices WHERE customer_id = ? AND status = 'approved'", (cid,))
-            devs = [dict(d) for d in cursor.fetchall()]
-            if not devs:
-                continue
-
-            # Generate 90 days backwards
-            for day_offset in range(90, -1, -1):
-                d_date = today - timedelta(days=day_offset)
-                date_str = d_date.strftime("%Y-%m-%d")
-                weekday = d_date.weekday()
-                is_weekend = (weekday in (4, 5))
-
-                base_gb = rng.uniform(2.8, 6.8) if is_weekend else rng.uniform(1.8, 5.2)
-                if rng.random() < 0.12:
-                    base_gb += rng.uniform(4.0, 7.0)
-
-                day_down_bytes = int(base_gb * (1024 ** 3))
-                day_up_bytes = int(day_down_bytes * rng.uniform(0.08, 0.16))
-                day_active_sec = int(rng.uniform(14400, 43200))
-
-                weights = [0.70, 0.30] if len(devs) >= 2 else [1.0] * len(devs)
-                w_sum = sum(weights[:len(devs)])
-                dev_weights = [w / w_sum for w in weights[:len(devs)]]
-
-                for i, dev in enumerate(devs):
-                    dev_pct = dev_weights[i]
-                    d_down = int(day_down_bytes * dev_pct)
-                    d_up = int(day_up_bytes * dev_pct)
-                    d_tot = d_down + d_up
-                    d_sec = int(day_active_sec * dev_pct)
-
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO customer_traffic_daily
-                        (customer_id, mac_address, device_id, date_str, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        cid, dev["mac_address"].upper(), dev["id"], date_str,
-                        d_down, d_up, d_tot, d_sec, f"{date_str} 23:59:59"
-                    ))
-
-                    # Hourly breakdown for the last 14 days
-                    if day_offset <= 14:
-                        hourly_curve = [
-                            0.02, 0.01, 0.005, 0.005, 0.005, 0.01,
-                            0.02, 0.03, 0.04, 0.04, 0.05, 0.05,
-                            0.06, 0.06, 0.05, 0.05, 0.06, 0.07,
-                            0.08, 0.09, 0.11, 0.09, 0.06, 0.04
-                        ]
-                        for h in range(24):
-                            h_weight = hourly_curve[h] * rng.uniform(0.8, 1.2)
-                            h_down = int(d_down * h_weight)
-                            h_up = int(d_up * h_weight)
-                            h_tot = h_down + h_up
-                            h_sec = int(min(3600, d_sec * h_weight * 2))
-
-                            cursor.execute("""
-                                INSERT OR REPLACE INTO customer_traffic_hourly
-                                (customer_id, mac_address, device_id, date_str, hour_int, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (
-                                cid, dev["mac_address"].upper(), dev["id"], date_str, h,
-                                h_down, h_up, h_tot, h_sec, f"{date_str} {h:02d}:59:59"
-                            ))
-
-            # Generate connection sessions for the last 7 days
-            sample_ips = ["10.40.3.252", "10.40.3.248", "10.40.3.189", "10.40.3.210"]
-            for s_idx in range(18):
-                days_ago = s_idx // 3
-                s_hour = (s_idx * 3 + 8) % 24
-                s_date = today - timedelta(days=days_ago)
-                start_dt = datetime.combine(s_date, datetime.min.time()) + timedelta(hours=s_hour, minutes=rng.randint(2, 45))
-                dur_minutes = rng.randint(45, 320)
-                end_dt = start_dt + timedelta(minutes=dur_minutes)
-                dur_sec = dur_minutes * 60
-
-                dev = rng.choice(devs)
-                sess_down = int(rng.uniform(0.3, 2.4) * (1024 ** 3))
-                sess_up = int(sess_down * rng.uniform(0.07, 0.15))
-                sess_tot = sess_down + sess_up
-
-                is_active = 1 if (s_idx == 0 and days_ago == 0) else 0
-
-                cursor.execute("""
-                    INSERT INTO customer_connection_sessions
-                    (customer_id, mac_address, device_name, ip_address, started_at, last_seen_at, closed_at, duration_seconds, download_bytes, upload_bytes, total_bytes, is_active)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    cid, dev["mac_address"].upper(), dev.get("device_name") or "Device",
-                    rng.choice(sample_ips),
-                    start_dt.strftime("%Y-%m-%d %H:%M:%S"),
-                    end_dt.strftime("%Y-%m-%d %H:%M:%S"),
-                    None if is_active else end_dt.strftime("%Y-%m-%d %H:%M:%S"),
-                    dur_sec, sess_down, sess_up, sess_tot, is_active
-                ))
-
+        cursor.execute("DELETE FROM customer_traffic_hourly")
+        h_cnt = cursor.rowcount
+        cursor.execute("DELETE FROM customer_traffic_daily")
+        d_cnt = cursor.rowcount
+        cursor.execute("DELETE FROM customer_connection_sessions")
+        s_cnt = cursor.rowcount
         conn.commit()
+        return {
+            "hourly_deleted": h_cnt,
+            "daily_deleted": d_cnt,
+            "sessions_deleted": s_cnt
+        }
 
 
 

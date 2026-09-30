@@ -154,10 +154,7 @@ async def traffic_collector_loop():
 
 @app.on_event("startup")
 async def startup_event():
-    try:
-        database.seed_historical_usage_if_empty()
-    except Exception as e:
-        logger.warning(f"Historical usage seeding notice: {e}")
+    # Real live data from MikroTik traffic collector only
     asyncio.create_task(traffic_collector_loop())
 
 
@@ -2154,6 +2151,23 @@ async def api_customer_usage_whatsapp(
         "success": True,
         "phone": cust.get("phone", ""),
         "message": text_msg
+    }
+
+
+@app.post("/api/traffic/clear")
+async def api_clear_traffic_history(request: Request):
+    """Admin endpoint to clear historical traffic entries to start testing with fresh real data."""
+    session_id = request.cookies.get(auth_service.COOKIE_NAME)
+    user = auth_service.validate_session(session_id)
+    if not user or user.get("role") not in ("superadmin", "admin", "manager"):
+        raise HTTPException(status_code=403, detail="Permission denied")
+    global _PREV_ROUTER_COUNTERS
+    _PREV_ROUTER_COUNTERS.clear()
+    res = database.clear_all_traffic_history()
+    return {
+        "success": True,
+        "message": "All traffic entries cleared. System is now recording fresh live MikroTik traffic.",
+        "details": res
     }
 
 
