@@ -541,30 +541,43 @@
 
   .mobile-card-actions {
     display: grid;
-    grid-template-columns: 1fr 1.2fr 1.2fr;
-    gap: 8px;
-    padding-top: 2px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding-top: 4px;
   }
-  .btn-m-edit {
-    background: rgba(56, 189, 248, 0.1) !important;
-    border-color: rgba(56, 189, 248, 0.3) !important;
-    color: #38bdf8 !important;
+  .btn-m-edit, .btn-m-usage, .btn-m-manage {
     justify-content: center;
-    padding: 9px 8px !important;
-    font-size: 12px !important;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
+    white-space: nowrap;
+  }
+  .btn-m-usage {
+    background: rgba(168, 85, 247, 0.12) !important;
+    border-color: rgba(168, 85, 247, 0.3) !important;
+    color: #c084fc !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
   .btn-m-manage {
     background: rgba(255, 255, 255, 0.07) !important;
     color: #ffffff !important;
     justify-content: center;
-    padding: 9px 8px !important;
-    font-size: 12px !important;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
   }
   .btn-m-toggle {
+    grid-column: span 2;
     justify-content: center;
-    padding: 9px 8px !important;
-    font-size: 12px !important;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
     font-weight: 700 !important;
+  }
+  .btn-m-delete {
+    grid-column: span 1;
+    justify-content: center;
+    padding: 8px 6px !important;
+    font-size: 11.5px !important;
   }
 
   /* LIVE DEVICE TELEMETRY & MAC STYLING */
@@ -823,7 +836,12 @@
       grid-template-columns: 1fr !important;
     }
     .mobile-card-actions {
-      grid-template-columns: 1fr !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 5px !important;
+    }
+    .mobile-card-actions a, .mobile-card-actions button {
+      padding: 7px 4px !important;
+      font-size: 11px !important;
     }
   }
 </style>

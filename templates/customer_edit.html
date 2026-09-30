@@ -541,11 +541,18 @@
       align-items: stretch;
     }
     .banner-actions {
-      justify-content: stretch;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+    }
+    .banner-actions .btn-save-master {
+      grid-column: span 2;
     }
     .banner-actions a, .banner-actions button {
-      flex: 1;
       justify-content: center;
+      padding: 8px 10px;
+      font-size: 11.5px;
     }
     .billing-card-picker {
       grid-template-columns: 1fr;

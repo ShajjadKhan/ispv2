@@ -7,11 +7,15 @@
 <style>
   /* ========================================================= */
   /* CUSTOMER USAGE AUDIT & 90-DAY TIMELINE STYLING           */
+  /* Fully Responsive for Desktop, Tablets & All Mobile Phones  */
   /* ========================================================= */
   .usage-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
+    max-width: 1360px;
+    margin: 0 auto;
+    width: 100%;
   }
 
   /* TOP BREADCRUMB & HEADER */
@@ -19,48 +23,53 @@
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 16px 20px;
+    padding: 16px 18px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     flex-wrap: wrap;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
   .usage-user-block {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
+    min-width: 0;
   }
   .usage-avatar {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     background: linear-gradient(135deg, #0284c7, #2563eb);
     color: #ffffff;
     font-weight: 800;
-    font-size: 19px;
+    font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
     flex-shrink: 0;
   }
+  .usage-user-info {
+    min-width: 0;
+  }
   .usage-user-info h2 {
     margin: 0;
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     flex-wrap: wrap;
   }
   .usage-user-meta {
-    font-size: 12px;
+    font-size: 11.5px;
     color: var(--text-dim);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
     margin-top: 3px;
   }
@@ -84,6 +93,12 @@
     gap: 12px;
     flex-wrap: wrap;
   }
+  .range-presets-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
   .range-presets {
     display: flex;
     gap: 6px;
@@ -91,12 +106,12 @@
     align-items: center;
   }
   .range-btn {
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 5px 12px;
+    border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
@@ -104,6 +119,7 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    white-space: nowrap;
   }
   .range-btn:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -127,7 +143,7 @@
     background: #090e1a;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 6px;
-    padding: 5px 9px;
+    padding: 5px 8px;
     font-size: 11.5px;
     color: #ffffff;
     font-family: var(--font-mono);
@@ -136,17 +152,17 @@
   /* KPI METRICS GRID */
   .usage-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
   }
   .kpi-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     position: relative;
     overflow: hidden;
   }
@@ -156,7 +172,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
+    height: 2.5px;
   }
   .kpi-card.c-total::before { background: linear-gradient(90deg, #38bdf8, #818cf8); }
   .kpi-card.c-down::before { background: linear-gradient(90deg, #38bdf8, #0ea5e9); }
@@ -164,29 +180,29 @@
   .kpi-card.c-peak::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
 
   .kpi-lbl {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
   .kpi-val {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
     font-family: var(--font-mono);
-    line-height: 1.1;
+    line-height: 1.15;
   }
   .kpi-sub {
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--text-dim);
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
   /* SECTION TITLE */
@@ -200,15 +216,15 @@
   }
   .sec-heading h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
   }
   .sec-heading span {
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--text-dim);
   }
 
@@ -217,17 +233,24 @@
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 16px 20px;
+    padding: 14px 16px;
+  }
+  .hourly-scroll-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
   }
   .hourly-chart-wrap {
     display: flex;
     align-items: flex-end;
     gap: 6px;
-    height: 140px;
+    height: 130px;
     padding-top: 20px;
     padding-bottom: 24px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
+    min-width: 580px;
   }
   .hourly-col {
     flex: 1;
@@ -238,10 +261,16 @@
     justify-content: flex-end;
     position: relative;
     cursor: pointer;
+    border-radius: 4px;
+    padding: 0 1px;
+    transition: background 0.15s ease;
+  }
+  .hourly-col:hover, .hourly-col.is-inspected {
+    background: rgba(56, 189, 248, 0.08);
   }
   .hourly-bar-container {
     width: 100%;
-    max-width: 24px;
+    max-width: 22px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -281,7 +310,7 @@
   .hourly-peak-badge {
     position: absolute;
     top: -18px;
-    font-size: 8.5px;
+    font-size: 8px;
     font-weight: 800;
     color: #fbbf24;
     background: rgba(245, 158, 11, 0.15);
@@ -308,14 +337,40 @@
   .hourly-col:hover .hourly-tooltip {
     display: block;
   }
+
+  /* MOBILE TAP INSPECTOR BOX */
+  .hourly-tap-inspector {
+    display: none;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: #ffffff;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .mobile-scroll-cue {
+    display: none;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
   .chart-legend {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     margin-top: 10px;
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--text-dim);
+    flex-wrap: wrap;
   }
   .legend-item {
     display: inline-flex;
@@ -332,13 +387,13 @@
   .device-breakdown-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 12px;
+    gap: 10px;
   }
   .dev-stat-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -353,11 +408,15 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
   .dev-stat-name {
     font-weight: 700;
     font-size: 13px;
     color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .dev-stat-mac {
     font-family: var(--font-mono);
@@ -377,14 +436,33 @@
     border-radius: 3px;
     background: linear-gradient(90deg, #0284c7, #38bdf8);
   }
-  .dev-stat-metrics {
+  .dev-stat-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    text-align: center;
+  }
+  .dev-metric-cell {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    padding: 5px 4px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dev-metric-cell .d-lbl {
+    font-size: 9.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .dev-metric-cell .d-val {
     font-size: 11.5px;
+    font-weight: 700;
+    font-family: var(--font-mono);
   }
 
-  /* DAILY USAGE BREAKDOWN TABLE */
+  /* DAILY USAGE BREAKDOWN TABLE & MOBILE CARDS */
   .usage-table-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -393,8 +471,8 @@
   }
   .intensity-bar-wrap {
     width: 100%;
-    max-width: 120px;
-    height: 6px;
+    max-width: 110px;
+    height: 5px;
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.05);
     overflow: hidden;
@@ -405,12 +483,78 @@
     background: linear-gradient(90deg, #38bdf8, #818cf8);
   }
 
+  /* MOBILE DAILY CARDS FEED (DISPLAYED ON PHONES) */
+  .usage-daily-mobile-feed {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  .daily-mobile-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .daily-mobile-item.is-peak {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.04);
+  }
+  .daily-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .daily-item-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .daily-item-meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px 8px;
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  /* MOBILE SESSION FEED (DISPLAYED ON PHONES) */
+  .sessions-mobile-feed {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  .session-mobile-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .session-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
   /* SESSION AUDIT LOGS */
   .session-status-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 9.5px;
+    font-size: 9px;
     font-weight: 800;
     padding: 1.5px 6px;
     border-radius: 4px;
@@ -428,19 +572,245 @@
   }
 
   /* WHATSAPP MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box-responsive {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+  }
+  .modal-header-resp {
+    padding: 14px 18px;
+    background: #131d36;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .modal-body-resp {
+    padding: 16px 18px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-footer-resp {
+    padding: 12px 18px;
+    background: #131d36;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
   .wa-chat-bubble {
     background: #064e3b;
     border: 1px solid rgba(16, 185, 129, 0.3);
     border-radius: 12px;
     padding: 14px 16px;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11.5px;
     color: #ecfdf5;
     line-height: 1.6;
     white-space: pre-wrap;
-    max-height: 380px;
+    max-height: 320px;
     overflow-y: auto;
     user-select: text;
+  }
+
+  /* =========================================================
+     DEEP RESPONSIVE QUERIES FOR PHONES & TABLETS
+     ========================================================= */
+  @media (max-width: 900px) {
+    .usage-kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .usage-container {
+      gap: 10px;
+    }
+    .usage-header-card {
+      padding: 12px 14px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .usage-avatar {
+      width: 38px;
+      height: 38px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+    .usage-user-info h2 {
+      font-size: 15px;
+    }
+    .usage-user-meta {
+      font-size: 11px;
+      gap: 6px;
+    }
+    .usage-header-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+    }
+    .usage-header-actions .btn-wa-main {
+      grid-column: span 2;
+      padding: 9px !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+    }
+
+    /* Horizontal scroll track for range pills */
+    .range-bar {
+      padding: 8px 10px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .range-presets-wrap {
+      width: 100%;
+      overflow: hidden;
+    }
+    .range-presets {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex-wrap: nowrap;
+      width: 100%;
+      padding-bottom: 2px;
+    }
+    .range-presets::-webkit-scrollbar {
+      display: none;
+    }
+    .range-btn {
+      padding: 5px 10px;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .custom-range-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      width: 100%;
+    }
+    .range-date-input {
+      width: 100%;
+      font-size: 11px;
+      padding: 6px 8px;
+    }
+    .custom-range-form button {
+      grid-column: span 2;
+      justify-content: center;
+      padding: 7px !important;
+      font-size: 12px !important;
+      font-weight: 700;
+    }
+
+    /* 2x2 Compact KPI Grid */
+    .usage-kpi-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px;
+    }
+    .kpi-card {
+      padding: 10px 10px;
+      border-radius: 10px;
+    }
+    .kpi-lbl {
+      font-size: 9.5px;
+      letter-spacing: 0.02em;
+    }
+    .kpi-val {
+      font-size: 16px;
+    }
+    .kpi-sub {
+      font-size: 9.5px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 24h Visualizer Tap Inspector on mobile */
+    .hourly-tap-inspector {
+      display: flex;
+    }
+    .mobile-scroll-cue {
+      display: block;
+    }
+    .chart-legend {
+      justify-content: center;
+      gap: 10px;
+      font-size: 9.5px;
+    }
+
+    /* Swap Desktop Tables to Native Mobile Card Feeds */
+    .usage-table-desktop {
+      display: none !important;
+    }
+    .usage-daily-mobile-feed {
+      display: flex;
+    }
+    .sessions-table-desktop {
+      display: none !important;
+    }
+    .sessions-mobile-feed {
+      display: flex;
+    }
+
+    /* WhatsApp Modal Footer Responsive */
+    .modal-footer-resp {
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+    .modal-footer-resp button, .modal-footer-resp div {
+      width: 100%;
+    }
+    .modal-footer-resp .btn-wa-send {
+      width: 100%;
+      justify-content: center;
+      padding: 10px !important;
+      font-size: 13px !important;
+      font-weight: 700;
+    }
+    .modal-footer-resp .btn-cancel {
+      width: 100%;
+      text-align: center;
+      padding: 8px !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .kpi-val {
+      font-size: 14.5px;
+    }
+    .daily-item-meta {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
   }
 
   /* PRINT MEDIA STYLING */
@@ -470,18 +840,18 @@
         <h2>
           <span>{{ c.name }}</span>
           {% if c.status == 'active' %}
-            <span class="badge-status running" style="font-size:10px;">ACTIVE</span>
+            <span class="badge-status running" style="font-size:9.5px; padding:1px 6px;">ACTIVE</span>
           {% else %}
-            <span class="badge-status disabled" style="font-size:10px;">SUSPENDED</span>
+            <span class="badge-status disabled" style="font-size:9.5px; padding:1px 6px;">SUSPENDED</span>
           {% endif %}
-          <span class="badge-plan {{ c.billing_type }}" style="font-size:10px;">{{ c.billing_type|upper }}</span>
+          <span class="badge-plan {{ c.billing_type }}" style="font-size:9.5px; padding:1px 6px;">{{ c.billing_type|upper }}</span>
         </h2>
-        <div class="usage-user-meta">
-          <span class="font-mono text-white" style="font-weight:600;">📱 {{ c.phone }}</span>
+        <div class="usage-user-meta font-mono">
+          <span class="text-white" style="font-weight:600;">📱 {{ c.phone }}</span>
           <span>&bull;</span>
           <span>ID #{{ c.id }}</span>
           <span>&bull;</span>
-          <span class="text-cyan font-mono" style="font-weight:700;">⚡ {{ c.speed_limit or 'Package Wire Speed' }}</span>
+          <span class="text-cyan" style="font-weight:700;">⚡ {{ c.speed_limit or 'Wire Speed' }}</span>
           <span>&bull;</span>
           <span>{{ c.package_name }} ({{ "%.2f"|format(c.monthly_fee) }} SAR)</span>
         </div>
@@ -489,96 +859,102 @@
     </div>
 
     <div class="usage-header-actions">
-      <a href="/customers" class="btn-action-sm" style="text-decoration:none;">
+      <button type="button" class="btn-action-sm btn-wa-main" onclick="openWhatsAppModal()" style="color:#34d399; background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.35); justify-content:center;" title="Generate timestamped dispute proof for customer WhatsApp">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+        <span>WhatsApp Dispute Proof</span>
+      </button>
+
+      <a href="/customers" class="btn-action-sm" style="text-decoration:none; justify-content:center;">
         <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
         <span>Back</span>
       </a>
 
-      <button type="button" class="btn-action-sm" onclick="openWhatsAppModal()" style="color:#34d399; background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.3);" title="Generate timestamped dispute proof for customer WhatsApp">
-        <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
-        <span>WhatsApp Proof</span>
-      </button>
-
-      <button type="button" class="btn-action-sm" onclick="window.print()" style="color:#ffffff; background:rgba(255,255,255,0.06);" title="Print or save as PDF">
-        <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
-        <span>Print</span>
-      </button>
-
-      <a href="/customers/{{ c.id }}/edit" class="btn-action-sm" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25); text-decoration:none;">
+      <a href="/customers/{{ c.id }}/edit" class="btn-action-sm" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25); text-decoration:none; justify-content:center;">
         <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
         <span>Edit Line</span>
       </a>
+
+      <button type="button" class="btn-action-sm" onclick="window.print()" style="color:#ffffff; background:rgba(255,255,255,0.06); justify-content:center;" title="Print or save as PDF">
+        <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+        <span>Print</span>
+      </button>
     </div>
   </div>
 
   <!-- DATE RANGE FILTER BAR -->
   <div class="range-bar">
-    <div class="range-presets">
-      <span style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-right:4px;">Period:</span>
-      <a href="/customers/{{ c.id }}/usage?range=today" class="range-btn {% if range_preset == 'today' %}active{% endif %}">Today</a>
-      <a href="/customers/{{ c.id }}/usage?range=yesterday" class="range-btn {% if range_preset == 'yesterday' %}active{% endif %}">Yesterday</a>
-      <a href="/customers/{{ c.id }}/usage?range=7d" class="range-btn {% if range_preset == '7d' %}active{% endif %}">Last 7 Days</a>
-      <a href="/customers/{{ c.id }}/usage?range=30d" class="range-btn {% if range_preset == '30d' %}active{% endif %}">Last 30 Days</a>
-      <a href="/customers/{{ c.id }}/usage?range=90d" class="range-btn {% if range_preset == '90d' %}active{% endif %}" title="Full 90-Day Hardware Archive">
-        <span>Last 90 Days</span>
-        <span style="font-size:9px; background:rgba(255,255,255,0.2); padding:1px 4px; border-radius:3px;">Max</span>
-      </a>
+    <div class="range-presets-wrap">
+      <span style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; flex-shrink:0;">Period:</span>
+      <div class="range-presets">
+        <a href="/customers/{{ c.id }}/usage?range=today" class="range-btn {% if range_preset == 'today' %}active{% endif %}">Today</a>
+        <a href="/customers/{{ c.id }}/usage?range=yesterday" class="range-btn {% if range_preset == 'yesterday' %}active{% endif %}">Yesterday</a>
+        <a href="/customers/{{ c.id }}/usage?range=7d" class="range-btn {% if range_preset == '7d' %}active{% endif %}">Last 7d</a>
+        <a href="/customers/{{ c.id }}/usage?range=30d" class="range-btn {% if range_preset == '30d' %}active{% endif %}">Last 30d</a>
+        <a href="/customers/{{ c.id }}/usage?range=90d" class="range-btn {% if range_preset == '90d' %}active{% endif %}" title="Full 90-Day Hardware Archive">
+          <span>90-Day Full Archive</span>
+          <span style="font-size:8.5px; background:rgba(255,255,255,0.2); padding:0 4px; border-radius:3px;">Max</span>
+        </a>
+      </div>
     </div>
 
     <!-- CUSTOM DATE RANGE SELECTOR -->
     <form action="/customers/{{ c.id }}/usage" method="GET" class="custom-range-form">
       <input type="hidden" name="range" value="custom">
-      <span style="font-size:11px; color:var(--text-dim);">From:</span>
-      <input type="date" name="start_date" class="range-date-input" value="{{ start_date }}" required>
-      <span style="font-size:11px; color:var(--text-dim);">To:</span>
-      <input type="date" name="end_date" class="range-date-input" value="{{ end_date }}" required>
-      <button type="submit" class="btn-action-sm" style="padding:5px 10px; font-size:11.5px;">Filter</button>
+      <div style="display:flex; align-items:center; gap:5px; width:100%; min-width:0;">
+        <span style="font-size:10.5px; color:var(--text-dim);">From:</span>
+        <input type="date" name="start_date" class="range-date-input" value="{{ start_date }}" required>
+      </div>
+      <div style="display:flex; align-items:center; gap:5px; width:100%; min-width:0;">
+        <span style="font-size:10.5px; color:var(--text-dim);">To:</span>
+        <input type="date" name="end_date" class="range-date-input" value="{{ end_date }}" required>
+      </div>
+      <button type="submit" class="btn-action-sm" style="padding:6px 12px; font-size:11.5px;">Apply</button>
     </form>
   </div>
 
-  <!-- KPI SUMMARY CARDS -->
+  <!-- KPI SUMMARY CARDS (COMPACT 2x2 ON MOBILE, 4-COL ON DESKTOP) -->
   <div class="usage-kpi-grid">
     <div class="kpi-card c-total">
       <div class="kpi-lbl">
-        <span>Total Bandwidth Used</span>
+        <span>Total Bandwidth</span>
         <span>🌐</span>
       </div>
       <div class="kpi-val text-cyan">{{ analytics.summary.formatted_total }}</div>
       <div class="kpi-sub">
-        <span>Daily Average: <strong>{{ analytics.summary.formatted_daily_avg }}</strong> / day</span>
+        <span>Avg: <strong>{{ analytics.summary.formatted_daily_avg }}</strong> / day</span>
       </div>
     </div>
 
     <div class="kpi-card c-down">
       <div class="kpi-lbl">
-        <span>Total Download</span>
+        <span>Download (In)</span>
         <span class="text-cyan">{{ analytics.summary.down_percent }}%</span>
       </div>
       <div class="kpi-val" style="color:#38bdf8;">{{ analytics.summary.formatted_down }}</div>
       <div class="kpi-sub">
-        <span>Incoming stream / browsing to client</span>
+        <span>Incoming streaming &amp; web</span>
       </div>
     </div>
 
     <div class="kpi-card c-up">
       <div class="kpi-lbl">
-        <span>Total Upload</span>
+        <span>Upload (Out)</span>
         <span class="text-emerald">{{ analytics.summary.up_percent }}%</span>
       </div>
       <div class="kpi-val" style="color:#34d399;">{{ analytics.summary.formatted_up }}</div>
       <div class="kpi-sub">
-        <span>Outgoing requests, voice, gaming</span>
+        <span>Voice, requests, games</span>
       </div>
     </div>
 
     <div class="kpi-card c-peak">
       <div class="kpi-lbl">
-        <span>Peak Traffic Hour</span>
+        <span>Peak Hour</span>
         <span>🔥</span>
       </div>
-      <div class="kpi-val" style="color:#fbbf24; font-size:19px;">{{ analytics.summary.peak_hour.label }}</div>
+      <div class="kpi-val" style="color:#fbbf24; font-size:15px;">{{ analytics.summary.peak_hour.label }}</div>
       <div class="kpi-sub">
-        <span>Volume: <strong>{{ analytics.summary.peak_hour.formatted_total }}</strong> transferred</span>
+        <span>Vol: <strong>{{ analytics.summary.peak_hour.formatted_total }}</strong></span>
       </div>
     </div>
   </div>
@@ -590,40 +966,65 @@
         <svg style="width:14px; height:14px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
         <span>Hourly Traffic Pattern across Day (00:00 - 23:00)</span>
       </h3>
-      <span>Hover over any hour column to view exact Download &amp; Upload</span>
+      <span>Hover or tap bar to inspect exact volume</span>
     </div>
 
-    <div class="hourly-chart-wrap">
-      {% for h in analytics.hourly_distribution %}
-      <div class="hourly-col {% if h.is_peak %}is-peak{% endif %}" title="{{ h.hour_label }}: {{ h.formatted_total }} (Down: {{ h.formatted_down }}, Up: {{ h.formatted_up }})">
-        {% if h.is_peak %}
-          <div class="hourly-peak-badge">🔥 Peak</div>
-        {% endif %}
-        
-        <div class="hourly-tooltip">
-          <div style="font-weight:700; color:#38bdf8; margin-bottom:2px;">{{ h.hour_label }}</div>
-          <div>📥 Down: <strong class="text-white">{{ h.formatted_down }}</strong></div>
-          <div>📤 Up: <strong class="text-white">{{ h.formatted_up }}</strong></div>
-          <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:3px; padding-top:2px;">Total: <strong class="text-cyan">{{ h.formatted_total }}</strong></div>
-        </div>
+    <div class="hourly-scroll-container">
+      <div class="hourly-chart-wrap" id="hourlyChartWrap">
+        {% for h in analytics.hourly_distribution %}
+        <div class="hourly-col {% if h.is_peak %}is-peak{% endif %}" 
+             data-hour="{{ h.hour_label }}" 
+             data-down="{{ h.formatted_down }}" 
+             data-up="{{ h.formatted_up }}" 
+             data-total="{{ h.formatted_total }}" 
+             data-peak="{{ 1 if h.is_peak else 0 }}"
+             onclick="handleHourTap(this)"
+             title="{{ h.hour_label }}: {{ h.formatted_total }} (Down: {{ h.formatted_down }}, Up: {{ h.formatted_up }})">
+          
+          {% if h.is_peak %}
+            <div class="hourly-peak-badge">🔥 Peak</div>
+          {% endif %}
+          
+          <div class="hourly-tooltip">
+            <div style="font-weight:700; color:#38bdf8; margin-bottom:2px;">{{ h.hour_label }}</div>
+            <div>📥 Down: <strong class="text-white">{{ h.formatted_down }}</strong></div>
+            <div>📤 Up: <strong class="text-white">{{ h.formatted_up }}</strong></div>
+            <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:3px; padding-top:2px;">Total: <strong class="text-cyan">{{ h.formatted_total }}</strong></div>
+          </div>
 
-        <div class="hourly-bar-container">
-          <div class="hourly-bar-up" style="height: {{ (h.height_percent * 0.25)|round(1) }}%;"></div>
-          <div class="hourly-bar-down" style="height: {{ (h.height_percent * 0.75)|round(1) }}%;"></div>
+          <div class="hourly-bar-container">
+            <div class="hourly-bar-up" style="height: {{ (h.height_percent * 0.25)|round(1) }}%;"></div>
+            <div class="hourly-bar-down" style="height: {{ (h.height_percent * 0.75)|round(1) }}%;"></div>
+          </div>
+          <span class="hourly-time-lbl">{{ "%02d"|format(h.hour) }}</span>
         </div>
-        <span class="hourly-time-lbl">{{ "%02d"|format(h.hour) }}</span>
+        {% endfor %}
       </div>
-      {% endfor %}
+    </div>
+
+    <!-- Mobile Scroll Cue & Live Tap Inspector -->
+    <div class="mobile-scroll-cue">👈 Swipe timeline horizontally &bull; Tap bar to inspect hour 👉</div>
+    
+    <div class="hourly-tap-inspector" id="hourlyTapInspector">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-weight:800; color:#38bdf8;" id="inspHour">—</span>
+        <span id="inspPeakBadge" class="badge-status stopped" style="display:none; font-size:9px; color:#fbbf24; background:rgba(245,158,11,0.2);">🔥 Peak Hour</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:11px;">
+        <span style="color:#38bdf8;">📥 <span id="inspDown">—</span></span>
+        <span style="color:#34d399;">📤 <span id="inspUp">—</span></span>
+        <span style="color:#ffffff; font-weight:800;">Total: <span id="inspTotal" class="text-cyan">—</span></span>
+      </div>
     </div>
 
     <div class="chart-legend">
       <div class="legend-item">
         <span class="legend-dot" style="background:#38bdf8;"></span>
-        <span>Download (Incoming)</span>
+        <span>Download</span>
       </div>
       <div class="legend-item">
         <span class="legend-dot" style="background:#10b981;"></span>
-        <span>Upload (Outgoing)</span>
+        <span>Upload</span>
       </div>
       <div class="legend-item">
         <span class="legend-dot" style="background:#fbbf24;"></span>
@@ -637,9 +1038,9 @@
     <div class="sec-heading">
       <h3>
         <svg style="width:14px; height:14px; fill:#a78bfa;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z"/></svg>
-        <span>Consumption Breakdown by Authorized Hardware MAC</span>
+        <span>Consumption by Hardware Device (MAC)</span>
       </h3>
-      <span>Pinpoints which phone, laptop, or tablet consumed the traffic</span>
+      <span>Pinpoints which phone, laptop, or tablet consumed the data</span>
     </div>
 
     <div class="device-breakdown-grid">
@@ -647,17 +1048,17 @@
       <div class="dev-stat-card">
         <div class="dev-stat-header">
           <div class="dev-stat-title">
-            <span style="font-size:18px;">📱</span>
-            <div>
+            <span style="font-size:18px; flex-shrink:0;">📱</span>
+            <div style="min-width:0;">
               <div class="dev-stat-name">{{ d.friendly_name }}</div>
               <div class="dev-stat-mac" onclick="copyMac('{{ d.mac_address }}', event)" title="Click to copy MAC" style="cursor:pointer;">
                 {{ d.mac_address }} 📋
               </div>
             </div>
           </div>
-          <div style="text-align:right;">
+          <div style="text-align:right; flex-shrink:0;">
             <div class="font-mono text-cyan" style="font-size:15px; font-weight:800;">{{ d.formatted_total }}</div>
-            <div style="font-size:10.5px; color:var(--text-dim);">{{ d.share_percent }}% of total</div>
+            <div style="font-size:10px; color:var(--text-dim);">{{ d.share_percent }}% of total</div>
           </div>
         </div>
 
@@ -665,10 +1066,19 @@
           <div class="dev-stat-fill" style="width: {{ d.share_percent }}%;"></div>
         </div>
 
-        <div class="dev-stat-metrics">
-          <span style="color:#38bdf8;">📥 Down: <strong>{{ d.formatted_down }}</strong></span>
-          <span style="color:#34d399;">📤 Up: <strong>{{ d.formatted_up }}</strong></span>
-          <span style="color:var(--text-dim);">⏱️ Active: <strong>{{ d.formatted_active_time }}</strong></span>
+        <div class="dev-stat-metrics-grid">
+          <div class="dev-metric-cell">
+            <span class="d-lbl">📥 Download</span>
+            <span class="d-val" style="color:#38bdf8;">{{ d.formatted_down }}</span>
+          </div>
+          <div class="dev-metric-cell">
+            <span class="d-lbl">📤 Upload</span>
+            <span class="d-val" style="color:#34d399;">{{ d.formatted_up }}</span>
+          </div>
+          <div class="dev-metric-cell">
+            <span class="d-lbl">⏱️ Active Time</span>
+            <span class="d-val text-white">{{ d.formatted_active_time }}</span>
+          </div>
         </div>
       </div>
       {% endfor %}
@@ -677,15 +1087,16 @@
 
   <!-- DAILY LOG TABLE (UP TO 90 DAYS) -->
   <div class="usage-table-card">
-    <div style="padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-weight:700; color:#ffffff; font-size:14px;">📅 Daily Bandwidth Audit Records ({{ analytics.daily_records|length }} Days)</span>
-        <span class="badge-status running" style="font-size:10px;">90-DAY ARCHIVE READY</span>
+        <span style="font-weight:700; color:#ffffff; font-size:13.5px;">📅 Daily Bandwidth Audit Records ({{ analytics.daily_records|length }} Days)</span>
+        <span class="badge-status running" style="font-size:9.5px; padding:1px 5px;">90-DAY ARCHIVE READY</span>
       </div>
-      <span style="font-size:12px; color:var(--text-dim);">Audited Period: {{ analytics.period.start_date }} to {{ analytics.period.end_date }}</span>
+      <span style="font-size:11.5px; color:var(--text-dim);">Period: {{ analytics.period.start_date }} to {{ analytics.period.end_date }}</span>
     </div>
 
-    <div style="overflow-x:auto;">
+    <!-- DESKTOP TABLE VIEW (> 640px) -->
+    <div class="usage-table-desktop" style="overflow-x:auto;">
       <table class="clean-table" style="margin-bottom:0;">
         <thead>
           <tr>
@@ -693,7 +1104,7 @@
             <th>Download (In)</th>
             <th>Upload (Out)</th>
             <th>Total Consumed</th>
-            <th style="min-width:140px;">Relative Intensity</th>
+            <th style="min-width:130px;">Relative Intensity</th>
             <th>Active Online Time</th>
             <th>Devices Active</th>
           </tr>
@@ -705,9 +1116,9 @@
               <td>
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span class="font-mono text-white" style="font-weight:700;">{{ r.date_str }}</span>
-                  <span class="badge-status {% if r.is_weekend %}stopped{% else %}disabled{% endif %}" style="font-size:9.5px; padding:1px 5px;">{{ r.day_name }}</span>
+                  <span class="badge-status {% if r.is_weekend %}stopped{% else %}disabled{% endif %}" style="font-size:9px; padding:1px 5px;">{{ r.day_name }}</span>
                   {% if r.is_peak %}
-                    <span class="badge-status stopped" style="font-size:9px; color:#fbbf24; background:rgba(245,158,11,0.2);">🔥 PEAK DAY</span>
+                    <span class="badge-status stopped" style="font-size:8.5px; color:#fbbf24; background:rgba(245,158,11,0.2);">🔥 PEAK</span>
                   {% endif %}
                 </div>
               </td>
@@ -721,7 +1132,7 @@
               </td>
               <td class="font-mono" style="font-size:11.5px; color:#cbd5e1;">{{ r.formatted_active_time }}</td>
               <td>
-                <span class="badge-status" style="font-size:10px; background:rgba(255,255,255,0.06); color:#ffffff; padding:1px 6px;">{{ r.dev_count }} Device(s)</span>
+                <span class="badge-status" style="font-size:9.5px; background:rgba(255,255,255,0.06); color:#ffffff; padding:1px 6px;">{{ r.dev_count }} Device(s)</span>
               </td>
             </tr>
             {% endfor %}
@@ -730,7 +1141,7 @@
               <td colspan="7">
                 <div class="empty-state">
                   <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Traffic Recorded in Selected Date Range</p>
-                  <p style="font-size:12px;">Try selecting a wider date range or click "Last 90 Days".</p>
+                  <p style="font-size:12px;">Try selecting a wider date range or click "90-Day Full Archive".</p>
                 </div>
               </td>
             </tr>
@@ -738,19 +1149,56 @@
         </tbody>
       </table>
     </div>
+
+    <!-- MOBILE CARD FEED VIEW (<= 640px) -->
+    <div class="usage-daily-mobile-feed">
+      {% if analytics.daily_records %}
+        {% for r in analytics.daily_records %}
+        <div class="daily-mobile-item {% if r.is_peak %}is-peak{% endif %}">
+          <div class="daily-item-top">
+            <div class="daily-item-date">
+              <span class="font-mono text-white" style="font-weight:700; font-size:13px;">{{ r.date_str }}</span>
+              <span class="badge-status {% if r.is_weekend %}stopped{% else %}disabled{% endif %}" style="font-size:9px; padding:1px 5px;">{{ r.day_name }}</span>
+              {% if r.is_peak %}
+                <span class="badge-status stopped" style="font-size:8.5px; color:#fbbf24; background:rgba(245,158,11,0.2);">🔥 PEAK</span>
+              {% endif %}
+            </div>
+            <div class="font-mono text-cyan" style="font-weight:800; font-size:14px;">{{ r.formatted_total }}</div>
+          </div>
+          
+          <div class="intensity-bar-wrap" style="max-width:100%; height:5px; margin:4px 0;" title="{{ r.intensity_percent }}% of max day">
+            <div class="intensity-bar" style="width: {{ r.intensity_percent }}%;"></div>
+          </div>
+
+          <div class="daily-item-meta">
+            <span>📥 <strong class="text-white">{{ r.formatted_down }}</strong></span>
+            <span>📤 <strong class="text-white">{{ r.formatted_up }}</strong></span>
+            <span>⏱️ <strong class="text-white">{{ r.formatted_active_time }}</strong></span>
+            <span>📱 <strong class="text-white">{{ r.dev_count }} dev</strong></span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:16px;">
+          <p style="font-weight:700; color:#ffffff; margin-bottom:4px; font-size:12px;">No Traffic Recorded</p>
+          <p style="font-size:11px;">Try selecting a wider date range or click "90-Day Full Archive".</p>
+        </div>
+      {% endif %}
+    </div>
   </div>
 
   <!-- RECENT CONNECTION SESSIONS LOG -->
   <div class="usage-table-card">
-    <div style="padding:14px 18px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-weight:700; color:#ffffff; font-size:14px;">⏱️ Connection Sessions &amp; Hardware Audit Trail</span>
-        <span class="badge-status running" style="font-size:10px;">ROUTEROS LIVE</span>
+        <span style="font-weight:700; color:#ffffff; font-size:13.5px;">⏱️ Hardware Connection Sessions</span>
+        <span class="badge-status running" style="font-size:9.5px; padding:1px 5px;">LIVE MIKROTIK</span>
       </div>
-      <span style="font-size:12px; color:var(--text-dim);">Shows exact connection connect &amp; disconnect timestamps</span>
+      <span style="font-size:11.5px; color:var(--text-dim);">Connect &amp; Disconnect Audit Trail</span>
     </div>
 
-    <div style="overflow-x:auto;">
+    <!-- DESKTOP TABLE VIEW (> 640px) -->
+    <div class="sessions-table-desktop" style="overflow-x:auto;">
       <table class="clean-table" style="margin-bottom:0;">
         <thead>
           <tr>
@@ -771,7 +1219,7 @@
                 {% if s.is_active %}
                   <span class="session-status-badge active">
                     <span class="live-dot-pulse dot-online" style="width:5px; height:5px;"></span>
-                    <span>ACTIVE NOW</span>
+                    <span>ACTIVE</span>
                   </span>
                 {% else %}
                   <span class="session-status-badge closed">CLOSED</span>
@@ -808,39 +1256,78 @@
         </tbody>
       </table>
     </div>
+
+    <!-- MOBILE SESSION FEED VIEW (<= 640px) -->
+    <div class="sessions-mobile-feed">
+      {% if analytics.recent_sessions %}
+        {% for s in analytics.recent_sessions %}
+        <div class="session-mobile-card">
+          <div class="session-card-top">
+            <div style="display:flex; align-items:center; gap:6px;">
+              {% if s.is_active %}
+                <span class="session-status-badge active">
+                  <span class="live-dot-pulse dot-online" style="width:4px; height:4px;"></span>
+                  <span>ACTIVE</span>
+                </span>
+              {% else %}
+                <span class="session-status-badge closed">CLOSED</span>
+              {% endif %}
+              <span style="font-weight:700; color:#ffffff; font-size:12px;">{{ s.friendly_name }}</span>
+            </div>
+            <div class="font-mono text-cyan" style="font-weight:800; font-size:12.5px;">{{ s.formatted_total }}</div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim);">
+            <span onclick="copyMac('{{ s.mac_address }}', event)" style="cursor:pointer;">{{ s.mac_address }} 📋</span>
+            <span class="text-white">IP: {{ s.ip_address or '—' }}</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; background:rgba(0,0,0,0.2); padding:5px 8px; border-radius:6px; font-size:10.5px;">
+            <div><span style="color:var(--text-dim);">Started:</span> <span class="font-mono text-white">{{ s.started_at[11:16] if s.started_at|length >= 16 else s.started_at }}</span></div>
+            <div><span style="color:var(--text-dim);">Duration:</span> <span class="font-mono text-white font-weight-bold">{{ s.formatted_duration }}</span></div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:16px;">
+          <p style="font-weight:700; color:#ffffff; margin-bottom:4px; font-size:12px;">No Recent Sessions Logged</p>
+          <p style="font-size:11px;">Sessions will appear automatically as client connects.</p>
+        </div>
+      {% endif %}
+    </div>
   </div>
 
 </div>
 
 <!-- WHATSAPP DISPUTE PROOF MODAL -->
-<div class="modal-backdrop" id="waProofModal">
-  <div class="modal-card" style="max-width:560px;">
-    <div class="modal-header">
+<div class="modal-overlay" id="waProofModal">
+  <div class="modal-box-responsive">
+    <div class="modal-header-resp">
       <div style="display:flex; align-items:center; gap:8px;">
         <span style="font-size:18px;">📱</span>
         <div>
-          <div style="font-weight:700; color:#ffffff;">WhatsApp Dispute Resolution Proof</div>
-          <div style="font-size:11px; color:var(--text-dim);">Ready-to-send verification message for customer inquiries</div>
+          <div style="font-weight:700; color:#ffffff; font-size:14px;">WhatsApp Dispute Verification Proof</div>
+          <div style="font-size:11px; color:var(--text-dim);">Official hardware counters to resolve speed/usage disputes</div>
         </div>
       </div>
-      <button type="button" class="modal-close" onclick="closeWhatsAppModal()">&times;</button>
+      <button type="button" class="btn-close-modal" onclick="closeWhatsAppModal()">&times;</button>
     </div>
 
-    <div class="modal-body">
-      <p style="font-size:12px; color:var(--text-dim); margin-bottom:10px;">
-        Send this hardware verification report to customer <strong>{{ c.name }}</strong> ({{ c.phone }}) to demonstrate exact bandwidth usage and resolve slow-speed or unmetered disputes:
+    <div class="modal-body-resp">
+      <p style="font-size:11.5px; color:var(--text-dim); margin-bottom:10px;">
+        Send this hardware verification report to customer <strong>{{ c.name }}</strong> ({{ c.phone }}) to demonstrate exact bandwidth usage and resolve disputes:
       </p>
 
       <div class="wa-chat-bubble" id="waProofText">Loading verification message...</div>
     </div>
 
-    <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="modal-footer-resp">
       <button type="button" class="btn-cancel" onclick="closeWhatsAppModal()">Close</button>
-      <div style="display:flex; gap:8px;">
-        <button type="button" class="btn-action-sm" onclick="copyWhatsAppProof()" style="color:#ffffff; background:rgba(255,255,255,0.08); padding:8px 14px; font-size:12px;">
+      <div style="display:flex; gap:8px; flex:1; justify-content:flex-end;">
+        <button type="button" class="btn-action-sm" onclick="copyWhatsAppProof()" style="color:#ffffff; background:rgba(255,255,255,0.08); padding:8px 12px; font-size:12px; justify-content:center;">
           📋 Copy Proof
         </button>
-        <button type="button" class="btn-confirm-approve" onclick="openWhatsAppWeb()" style="padding:8px 14px; font-size:12px; background:#10b981; border-color:#059669;">
+        <button type="button" class="btn-confirm-approve btn-wa-send" onclick="openWhatsAppWeb()" style="padding:8px 14px; font-size:12px; background:#10b981; border-color:#059669; justify-content:center;">
           <span>📲 Send on WhatsApp</span>
         </button>
       </div>
@@ -866,11 +1353,35 @@
     });
   }
 
+  // Handle Touch Tap on Hourly Bar
+  function handleHourTap(el) {
+    // Clear previous inspected
+    document.querySelectorAll('.hourly-col').forEach(c => c.classList.remove('is-inspected'));
+    el.classList.add('is-inspected');
+
+    const hour = el.getAttribute('data-hour');
+    const down = el.getAttribute('data-down');
+    const up = el.getAttribute('data-up');
+    const total = el.getAttribute('data-total');
+    const isPeak = el.getAttribute('data-peak') === '1';
+
+    const insp = document.getElementById('hourlyTapInspector');
+    if (insp) {
+      insp.style.display = 'flex';
+      document.getElementById('inspHour').textContent = hour;
+      document.getElementById('inspDown').textContent = down;
+      document.getElementById('inspUp').textContent = up;
+      document.getElementById('inspTotal').textContent = total;
+      const peakBadge = document.getElementById('inspPeakBadge');
+      if (peakBadge) peakBadge.style.display = isPeak ? 'inline-block' : 'none';
+    }
+  }
+
   // Open WhatsApp Dispute Proof Modal
   async function openWhatsAppModal() {
     const modal = document.getElementById('waProofModal');
     const bubble = document.getElementById('waProofText');
-    modal.classList.add('active');
+    modal.classList.add('open');
     bubble.textContent = 'Generating verification message...';
 
     const range = '{{ range_preset }}';
@@ -892,8 +1403,15 @@
   }
 
   function closeWhatsAppModal() {
-    document.getElementById('waProofModal').classList.remove('active');
+    document.getElementById('waProofModal').classList.remove('open');
   }
+
+  // Close modal when clicking on backdrop
+  document.getElementById('waProofModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeWhatsAppModal();
+    }
+  });
 
   function copyWhatsAppProof() {
     if (!cachedWhatsAppMessage) return;
