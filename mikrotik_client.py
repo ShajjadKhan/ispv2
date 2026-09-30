@@ -1038,7 +1038,35 @@ class RouterClient:
             logger.error(f"Error fetching device telemetry map from MikroTik: {e}")
             if self._telemetry_cache is not None:
                 return self._telemetry_cache
-            return {}
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    def get_hotspot_hosts_raw(self) -> List[Dict[str, Any]]:
+        """
+        Fetches raw /ip/hotspot/host entries with bytes-in, bytes-out, uptime, address, and mac-address.
+        Used by the background Internet Traffic Accounting Collector to compute delta usage.
+        """
+        self.refresh_from_db()
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            return api.get_resource('/ip/hotspot/host').get()
+        except Exception as e:
+            logger.debug(f"Could not read hotspot hosts: {e}")
+            return []
         finally:
             if pool is not None:
                 try:

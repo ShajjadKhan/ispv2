@@ -1063,6 +1063,11 @@
                       <span>Edit</span>
                     </a>
 
+                    <a href="/customers/{{ c.id }}/usage" class="btn-action-sm" title="90-Day Internet Usage History & WhatsApp Dispute Proof" style="color:#a855f7; background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.25); text-decoration:none;">
+                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+                      <span>Usage</span>
+                    </a>
+
                     <button type="button" class="btn-action-sm" onclick="openProfileModal({{ c.id }})">
                       <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                       <span>Manage</span>
@@ -1211,6 +1216,10 @@
               <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
               <span>Edit</span>
             </a>
+            <a href="/customers/{{ c.id }}/usage" class="btn-action-sm" style="color:#a855f7; background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.25); text-decoration:none;" title="Usage History">
+              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+              <span>Usage</span>
+            </a>
             <button type="button" class="btn-action-sm btn-m-manage" onclick="openProfileModal({{ c.id }})">
               <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
               <span>Manage</span>
@@ -1254,6 +1263,10 @@
         <p class="font-mono text-dim" style="font-size:12px;" id="profSubhead">Loading details...</p>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
+        <a id="profUsagePageBtn" href="#" class="btn-action-sm" style="background:rgba(168,85,247,0.15); color:#c084fc; border-color:rgba(168,85,247,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" title="Open Dedicated 90-Day Usage Dashboard">
+          <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+          <span>90d Usage</span>
+        </a>
         <a id="profEditPageBtn" href="#" class="btn-action-sm" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
           <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           <span>Edit Details</span>
@@ -1481,10 +1494,16 @@
               <svg style="width:15px; height:15px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
               <span>Live MikroTik Internet Session &amp; Traffic</span>
             </div>
-            <button type="button" class="btn-action-sm" onclick="loadCustomerUsage(activeCustomerId)" style="font-size:11px; padding:4px 10px; color:#38bdf8; border-color:rgba(56,189,248,0.3);">
-              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-              <span>Refresh Realtime Data</span>
-            </button>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <a id="profUsageFullLink" href="#" class="btn-action-sm" style="font-size:11px; padding:4px 10px; color:#c084fc; background:rgba(168,85,247,0.12); border-color:rgba(168,85,247,0.3); text-decoration:none; font-weight:700;" title="Open Dedicated 90-Day Analytics & Dispute Proof">
+                <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+                <span>Full 90-Day Analytics &amp; WhatsApp Proof ↗</span>
+              </a>
+              <button type="button" class="btn-action-sm" onclick="loadCustomerUsage(activeCustomerId)" style="font-size:11px; padding:4px 10px; color:#38bdf8; border-color:rgba(56,189,248,0.3);">
+                <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                <span>Refresh Live</span>
+              </button>
+            </div>
           </div>
 
           <div id="usageContentBox">
@@ -1981,6 +2000,10 @@
     activeCustomerId = custId;
     const editBtn = document.getElementById('profEditPageBtn');
     if (editBtn) editBtn.href = `/customers/${custId}/edit`;
+    const usageBtn = document.getElementById('profUsagePageBtn');
+    if (usageBtn) usageBtn.href = `/customers/${custId}/usage`;
+    const usageFull = document.getElementById('profUsageFullLink');
+    if (usageFull) usageFull.href = `/customers/${custId}/usage`;
     document.getElementById('profileModal').classList.add('open');
     document.getElementById('profSubhead').textContent = 'Loading account data...';
 

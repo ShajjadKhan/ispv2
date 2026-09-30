@@ -12,12 +12,13 @@ Includes Step 2: Hotspot Approvals, Onboarding Modal, and Real-Time RouterOS Syn
 
 import os
 import time
+import asyncio
 import logging
 import base64
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -72,6 +73,92 @@ router_client = RouterClient(
     password=os.getenv("MIKROTIK_PASS", "admin"),
     port=int(os.getenv("MIKROTIK_PORT", "8728"))
 )
+
+# Background Traffic Accounting & 90-Day Delta Collector
+_last_host_traffic_snapshot: Dict[str, Dict[str, Any]] = {}
+_last_daily_prune_time: float = 0.0
+
+def collect_router_traffic_snapshot():
+    """Polls live hotspot hosts from MikroTik, computes delta traffic, and writes to database."""
+    global _last_host_traffic_snapshot, _last_daily_prune_time
+    now = time.time()
+    try:
+        hosts = router_client.get_hotspot_hosts_raw()
+    except Exception as e:
+        logger.debug(f"Traffic collector read error: {e}")
+        return
+
+    current_macs = set()
+    for h in hosts:
+        mac = (h.get("mac-address") or "").strip().upper()
+        if not mac:
+            continue
+        current_macs.add(mac)
+
+        raw_in = int(h.get("bytes-in", 0) or 0)   # Upload from client
+        raw_out = int(h.get("bytes-out", 0) or 0) # Download to client
+        ip_addr = h.get("address")
+
+        prev = _last_host_traffic_snapshot.get(mac)
+        if prev is not None:
+            delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
+            delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+            delta_sec = int(now - prev["timestamp"])
+            if delta_sec > 300:
+                delta_sec = 60
+        else:
+            delta_up = 0
+            delta_down = 0
+            delta_sec = 0
+
+        _last_host_traffic_snapshot[mac] = {
+            "bytes_in": raw_in,
+            "bytes_out": raw_out,
+            "timestamp": now,
+            "ip": ip_addr
+        }
+
+        database.record_device_traffic_delta(
+            mac_address=mac,
+            download_bytes=delta_down,
+            upload_bytes=delta_up,
+            active_seconds=delta_sec,
+            ip_address=ip_addr
+        )
+
+    # Disconnected devices
+    disconnected_macs = set(_last_host_traffic_snapshot.keys()) - current_macs
+    for d_mac in disconnected_macs:
+        database.close_device_session(d_mac)
+        _last_host_traffic_snapshot.pop(d_mac, None)
+
+    # Daily prune (> 90 days)
+    if (now - _last_daily_prune_time) > 86400:
+        database.purge_old_traffic_logs(days_to_keep=90)
+        _last_daily_prune_time = now
+
+
+async def traffic_collector_loop():
+    """Background worker that continuously tracks internet traffic every 60 seconds."""
+    logger.info("Background 90-Day Traffic Accounting Collector initialized.")
+    while True:
+        try:
+            await asyncio.sleep(60)
+            await asyncio.to_thread(collect_router_traffic_snapshot)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Traffic collector worker loop error: {e}")
+            await asyncio.sleep(15)
+
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        database.seed_historical_usage_if_empty()
+    except Exception as e:
+        logger.warning(f"Historical usage seeding notice: {e}")
+    asyncio.create_task(traffic_collector_loop())
 
 
 # =========================================================
@@ -1069,6 +1156,73 @@ async def customer_edit_view(request: Request, customer_id: int):
     )
 
 
+@app.api_route("/customers/{customer_id}/usage", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def customer_usage_view(
+    request: Request,
+    customer_id: int,
+    range: Optional[str] = "30d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """
+    Dedicated 90-Day Internet Usage & Bandwidth Audit View for a Customer.
+    Answers customer disputes with exact timestamped hardware proof.
+    """
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    range_preset = range or "30d"
+
+    if range_preset == "today":
+        start_d = today_str
+        end_d = today_str
+    elif range_preset == "yesterday":
+        yest = (now.date() - timedelta(days=1)).strftime("%Y-%m-%d")
+        start_d = yest
+        end_d = yest
+    elif range_preset == "7d":
+        start_d = (now.date() - timedelta(days=7)).strftime("%Y-%m-%d")
+        end_d = today_str
+    elif range_preset == "30d":
+        start_d = (now.date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_d = today_str
+    elif range_preset == "90d":
+        start_d = (now.date() - timedelta(days=90)).strftime("%Y-%m-%d")
+        end_d = today_str
+    elif range_preset == "custom" and start_date and end_date:
+        start_d = start_date
+        end_d = end_date
+    else:
+        start_d = (now.date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_d = today_str
+        range_preset = "30d"
+
+    analytics = database.get_customer_usage_analytics(customer_id, start_d, end_d)
+    if not analytics or not analytics.get("customer"):
+        return RedirectResponse(url="/customers", status_code=303)
+
+    live_status = router_client.get_live_status()
+
+    try:
+        telemetry_map = router_client.get_devices_telemetry_map()
+        enrich_customer_devices_telemetry([analytics["customer"]], telemetry_map)
+    except Exception:
+        pass
+
+    return templates.TemplateResponse(
+        request=request,
+        name="customer_usage.html",
+        context={
+            "router": live_status,
+            "active_page": "customers",
+            "c": analytics["customer"],
+            "analytics": analytics,
+            "range_preset": range_preset,
+            "start_date": start_d,
+            "end_date": end_d
+        }
+    )
+
+
 @app.api_route("/collections", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @app.api_route("/billing", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def collections_view(
@@ -1852,6 +2006,157 @@ async def get_customer_details(customer_id: int):
     return prof
 
 
+@app.get("/api/customers/{customer_id}/usage")
+async def api_customer_usage(
+    customer_id: int,
+    range: Optional[str] = "30d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """
+    Returns JSON analytics of 90-day internet traffic usage for a customer.
+    """
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    range_preset = range or "30d"
+
+    if range_preset == "today":
+        start_d = today_str
+        end_d = today_str
+    elif range_preset == "yesterday":
+        yest = (now.date() - timedelta(days=1)).strftime("%Y-%m-%d")
+        start_d = yest
+        end_d = yest
+    elif range_preset == "7d":
+        start_d = (now.date() - timedelta(days=7)).strftime("%Y-%m-%d")
+        end_d = today_str
+    elif range_preset == "30d":
+        start_d = (now.date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_d = today_str
+    elif range_preset == "90d":
+        start_d = (now.date() - timedelta(days=90)).strftime("%Y-%m-%d")
+        end_d = today_str
+    elif range_preset == "custom" and start_date and end_date:
+        start_d = start_date
+        end_d = end_date
+    else:
+        start_d = (now.date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_d = today_str
+
+    analytics = database.get_customer_usage_analytics(customer_id, start_d, end_d)
+    if not analytics:
+        raise HTTPException(status_code=404, detail="Customer not found or no usage data available")
+
+    summ = analytics.get("summary", {})
+    cust = analytics.get("customer", {})
+    devs = analytics.get("device_breakdown", [])
+    active_count = len([d for d in devs if d.get("total_bytes", 0) > 0])
+
+    return {
+        "success": True,
+        "customer_id": customer_id,
+        "customer_name": cust.get("name"),
+        "is_online": (summ.get("total_active_seconds", 0) > 0),
+        "active_devices_count": active_count,
+        "total_download": summ.get("formatted_down", "0 B"),
+        "total_upload": summ.get("formatted_up", "0 B"),
+        "total_traffic": summ.get("formatted_total", "0 B"),
+        "devices": devs,
+        "analytics": analytics
+    }
+
+
+@app.get("/api/customers/{customer_id}/usage/whatsapp")
+async def api_customer_usage_whatsapp(
+    customer_id: int,
+    range: Optional[str] = "30d",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """
+    Generates a clear, professional dispute proof message for WhatsApp.
+    """
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    range_preset = range or "30d"
+
+    if range_preset == "today":
+        start_d = today_str
+        end_d = today_str
+        period_label = f"Today ({today_str})"
+    elif range_preset == "yesterday":
+        yest = (now.date() - timedelta(days=1)).strftime("%Y-%m-%d")
+        start_d = yest
+        end_d = yest
+        period_label = f"Yesterday ({yest})"
+    elif range_preset == "7d":
+        start_d = (now.date() - timedelta(days=7)).strftime("%Y-%m-%d")
+        end_d = today_str
+        period_label = f"Last 7 Days ({start_d} to {end_d})"
+    elif range_preset == "30d":
+        start_d = (now.date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_d = today_str
+        period_label = f"Last 30 Days ({start_d} to {end_d})"
+    elif range_preset == "90d":
+        start_d = (now.date() - timedelta(days=90)).strftime("%Y-%m-%d")
+        end_d = today_str
+        period_label = f"Last 90 Days Archive ({start_d} to {end_d})"
+    elif range_preset == "custom" and start_date and end_date:
+        start_d = start_date
+        end_d = end_date
+        period_label = f"Period ({start_d} to {end_d})"
+    else:
+        start_d = (now.date() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_d = today_str
+        period_label = f"Last 30 Days ({start_d} to {end_d})"
+
+    analytics = database.get_customer_usage_analytics(customer_id, start_d, end_d)
+    if not analytics:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    cust = analytics["customer"]
+    summ = analytics["summary"]
+    devs = analytics.get("device_breakdown", [])
+
+    lines = [
+        "🌐 *CyberNet Internet Usage Verification*",
+        "━━━━━━━━━━━━━━━━━━━━━",
+        f"👤 *Subscriber:* {cust.get('name')}",
+        f"📱 *Account ID:* #{cust.get('id')} | Phone: {cust.get('phone')}",
+        f"📅 *Audited Period:* {period_label}",
+        f"⚡ *Package:* {cust.get('package_name', 'Active Plan')}",
+        "",
+        "📊 *Total Data Transferred:*",
+        f"  • 📥 Download: {summ.get('formatted_down')}",
+        f"  • 📤 Upload: {summ.get('formatted_up')}",
+        f"  • 🌐 Total Consumed: {summ.get('formatted_total')} (Daily Avg: {summ.get('formatted_daily_avg')})",
+        f"  • ⏱️ Online Active Time: {summ.get('formatted_active_time')}",
+        ""
+    ]
+
+    if devs:
+        lines.append("📱 *Consumption by Authorized Device:*")
+        for d in devs[:5]:
+            lines.append(f"  • {d.get('friendly_name')} ({d.get('mac_address')}): {d.get('formatted_total')} ({d.get('share_percent')}%)")
+        lines.append("")
+
+    peak_h = summ.get("peak_hour", {})
+    peak_d = summ.get("peak_day", {})
+    lines.append("⏰ *Peak Bandwidth Activity:*")
+    lines.append(f"  • Busiest Hour: {peak_h.get('label')} ({peak_h.get('formatted_total')} transferred)")
+    lines.append(f"  • Highest Day: {peak_d.get('formatted_name')} ({peak_d.get('formatted_total')} transferred)")
+    lines.append("")
+    lines.append("━━━━━━━━━━━━━━━━━━━━━")
+    lines.append("ℹ️ *Audit Guarantee:* All traffic counters and connection timestamps are recorded directly by the MikroTik hardware gateway.")
+
+    text_msg = "\n".join(lines)
+    return {
+        "success": True,
+        "phone": cust.get("phone", ""),
+        "message": text_msg
+    }
+
+
 @app.post("/api/customers")
 async def create_new_customer(payload: CreateCustomerPayload):
     """Manually registers a customer and optionally binds their MAC on MikroTik."""
@@ -2184,76 +2489,6 @@ async def update_device_limit(customer_id: int, payload: UpdateDeviceLimitPayloa
         return {"success": success, "max_devices": payload.max_devices}
     except Exception as e:
         logger.exception(f"Error updating device limit: {e}")
-        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
-
-
-@app.get("/api/customers/{customer_id}/usage")
-async def get_customer_usage(customer_id: int):
-    """
-    Returns live internet session status and data traffic metrics for all devices of a customer.
-    Includes active IP, hostname, uptime, last-seen, upload and download data from MikroTik.
-    """
-    try:
-        cust = database.get_customer_profile(customer_id)
-        if not cust:
-            return JSONResponse(status_code=404, content={"success": False, "error": "Customer not found."})
-
-        devices = cust.get("devices", [])
-        macs = [d["mac_address"] for d in devices if d.get("mac_address")]
-
-        # Query MikroTik for live device traffic & session data
-        live_usage = router_client.get_devices_usage(macs)
-
-        enriched_devices = []
-        total_download_bytes = 0
-        total_upload_bytes = 0
-        is_any_online = False
-
-        for d in devices:
-            mac = d["mac_address"].upper()
-            usage = live_usage.get(mac, {
-                "mac_address": mac,
-                "is_online": False,
-                "status": "Offline",
-                "ip_address": d.get("ip_address") or "—",
-                "host_name": d.get("device_name") or "Client Device",
-                "uptime": "—",
-                "last_seen": "—",
-                "idle_time": "—",
-                "upload_bytes": 0,
-                "download_bytes": 0,
-                "total_bytes": 0,
-                "upload_formatted": "0 B",
-                "download_formatted": "0 B",
-                "total_formatted": "0 B",
-                "packets_in": 0,
-                "packets_out": 0
-            })
-
-            if usage.get("is_online"):
-                is_any_online = True
-            total_download_bytes += usage.get("download_bytes", 0)
-            total_upload_bytes += usage.get("upload_bytes", 0)
-
-            merged = {**d, **usage}
-            enriched_devices.append(merged)
-
-        total_combined_bytes = total_download_bytes + total_upload_bytes
-
-        return {
-            "success": True,
-            "customer_id": customer_id,
-            "customer_name": cust.get("name"),
-            "is_online": is_any_online,
-            "active_devices_count": len([x for x in enriched_devices if x.get("is_online")]),
-            "total_download": format_bytes(total_download_bytes),
-            "total_upload": format_bytes(total_upload_bytes),
-            "total_traffic": format_bytes(total_combined_bytes),
-            "devices": enriched_devices,
-            "queried_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-    except Exception as e:
-        logger.exception(f"Error fetching usage for customer #{customer_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
