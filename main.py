@@ -13,6 +13,8 @@ Includes Step 2: Hotspot Approvals, Onboarding Modal, and Real-Time RouterOS Syn
 import os
 import time
 import logging
+import base64
+import io
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -21,9 +23,10 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
+import qrcode
 
 import mikrotik_client
-from mikrotik_client import RouterClient, format_bytes
+from mikrotik_client import RouterClient, format_bytes, clean_device_friendly_name
 import database
 import whatsapp_service
 import auth_service
@@ -321,6 +324,15 @@ class ChangePasswordPayload(BaseModel):
     confirm_password: str
 
 
+class TotpEnablePayload(BaseModel):
+    code: str
+
+
+class TotpDisablePayload(BaseModel):
+    current_password: str
+    code: Optional[str] = ""
+
+
 # =========================================================
 # Security & Authentication Engine
 # =========================================================
@@ -355,6 +367,7 @@ PUBLIC_PREFIXES = (
     "/api/hotspot/check-status",
     "/api/hotspot/detect-mac",
     "/api/hotspot/validate-mac",
+    "/api/customer/lookup",
     "/portal",
     "/hotspot"
 )
@@ -443,12 +456,59 @@ async def login_post(request: Request):
     form = await request.form()
     username = str(form.get("username", "")).strip()
     password = str(form.get("password", ""))
+    otp_code = str(form.get("otp_code", ""))
+    preauth_token = str(form.get("preauth_token", ""))
     csrf_token = str(form.get("csrf_token", ""))
     remember_me = bool(form.get("remember_me"))
     next_url = str(form.get("next", "/")).strip() or "/"
 
     client_ip = get_client_ip(request)
     user_agent = request.headers.get("user-agent", "")
+
+    if preauth_token:
+        ok, user, message = auth_service.consume_totp_pending_login(preauth_token, otp_code)
+        if not ok:
+            new_csrf = auth_service.generate_login_csrf_token()
+            return templates.TemplateResponse(
+                request=request,
+                name="login.html",
+                context={
+                    "request": request,
+                    "csrf_token": new_csrf,
+                    "next_url": next_url,
+                    "error_msg": message,
+                    "success_msg": None,
+                    "username": username,
+                    "requires_totp": True,
+                    "preauth_token": preauth_token
+                },
+                status_code=401
+            )
+
+        session_id, _ = auth_service.create_session(
+            user_id=user["id"],
+            client_ip=client_ip,
+            user_agent=user_agent,
+            remember_me=bool(user.get("remember_me"))
+        )
+        next_url = user.get("next_url") or next_url or "/"
+        if not next_url.startswith("/") or next_url.startswith("//"):
+            next_url = "/"
+        if user.get("role") == "reseller" and (next_url == "/" or next_url == "/dashboard"):
+            next_url = "/reseller"
+        response = RedirectResponse(url=next_url, status_code=303)
+        max_age = 30 * 86400 if user.get("remember_me") else 24 * 3600
+        is_https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+        response.set_cookie(
+            key=auth_service.COOKIE_NAME,
+            value=session_id,
+            max_age=max_age,
+            httponly=True,
+            samesite="lax",
+            secure=is_https,
+            path="/"
+        )
+        return response
 
     # Verify form CSRF token
     if not auth_service.validate_login_csrf_token(csrf_token):
@@ -488,6 +548,30 @@ async def login_post(request: Request):
                 "username": username
             },
             status_code=401
+        )
+
+    if user.get("totp_enabled") and user.get("totp_secret"):
+        preauth = auth_service.create_totp_pending_login(
+            user=user,
+            client_ip=client_ip,
+            user_agent=user_agent,
+            remember_me=remember_me,
+            next_url=next_url
+        )
+        new_csrf = auth_service.generate_login_csrf_token()
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "request": request,
+                "csrf_token": new_csrf,
+                "next_url": next_url,
+                "error_msg": None,
+                "success_msg": "Password accepted. Enter your 6-digit authenticator code.",
+                "username": username,
+                "requires_totp": True,
+                "preauth_token": preauth
+            }
         )
 
     # Issue cryptographic session
@@ -546,6 +630,16 @@ async def api_login(payload: LoginPayload, request: Request):
     )
     if not success:
         return JSONResponse(status_code=401, content={"success": False, "error": message})
+
+    if user.get("totp_enabled") and user.get("totp_secret"):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "requires_2fa": True,
+                "error": "Two-factor authentication is enabled. Please use the web login flow."
+            }
+        )
 
     session_id, csrf_token = auth_service.create_session(
         user_id=user["id"],
@@ -647,6 +741,53 @@ async def api_change_password(payload: ChangePasswordPayload, request: Request):
         new_password=payload.new_password,
         client_ip=client_ip
     )
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
+
+
+@app.get("/api/auth/2fa/setup")
+async def api_totp_setup(request: Request):
+    """Starts Google Authenticator compatible TOTP setup for the logged-in user."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+    user_id = user.get("user_id") or user.get("id")
+    ok, secret, msg = auth_service.ensure_totp_secret(user_id)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    uri = auth_service.build_totp_uri(user.get("username", "admin"), secret)
+    img = qrcode.make(uri)
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    qr_data = "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+    return {
+        "success": True,
+        "secret": secret,
+        "qr_data": qr_data,
+        "enabled": bool(user.get("totp_enabled", 0))
+    }
+
+
+@app.post("/api/auth/2fa/enable")
+async def api_totp_enable(payload: TotpEnablePayload, request: Request):
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+    user_id = user.get("user_id") or user.get("id")
+    ok, msg = auth_service.enable_totp(user_id, payload.code, client_ip=get_client_ip(request))
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
+
+
+@app.post("/api/auth/2fa/disable")
+async def api_totp_disable(payload: TotpDisablePayload, request: Request):
+    user = getattr(request.state, "user", None)
+    if not user:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Unauthorized"})
+    user_id = user.get("user_id") or user.get("id")
+    ok, msg = auth_service.disable_totp(user_id, payload.current_password, payload.code or "", client_ip=get_client_ip(request))
     if not ok:
         return JSONResponse(status_code=400, content={"success": False, "error": msg})
     return {"success": True, "message": msg}
@@ -831,6 +972,43 @@ async def approvals_view(request: Request):
     )
 
 
+def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict):
+    """
+    Enriches each customer's devices list with live connection telemetry (online/recent/offline),
+    calculates online_devices_count, and formats friendly device labels.
+    """
+    for cust in customers_list:
+        online_count = 0
+        devices = cust.get("devices", [])
+        for dev in devices:
+            mac_clean = (dev.get("mac_address") or "").strip().upper()
+            telem = telemetry_map.get(mac_clean)
+            if telem:
+                dev["state"] = telem.get("state", "offline")
+                dev["status_label"] = telem.get("status_label", "Offline")
+                dev["is_online"] = telem.get("is_online", False)
+                dev["live_ip"] = telem.get("live_ip") or dev.get("ip_address")
+                dev["uptime"] = telem.get("uptime")
+                dev["last_seen"] = telem.get("last_seen")
+                dev["idle_time"] = telem.get("idle_time")
+                dev["detail"] = telem.get("detail", "Offline")
+                dev["friendly_name"] = clean_device_friendly_name(dev.get("device_name"), telem.get("dhcp_host_name"))
+            else:
+                dev["state"] = "offline"
+                dev["status_label"] = "Offline"
+                dev["is_online"] = False
+                dev["live_ip"] = dev.get("ip_address")
+                dev["uptime"] = None
+                dev["last_seen"] = None
+                dev["idle_time"] = None
+                dev["detail"] = "Offline"
+                dev["friendly_name"] = clean_device_friendly_name(dev.get("device_name"))
+
+            if dev["state"] == "online":
+                online_count += 1
+        cust["online_devices_count"] = online_count
+
+
 @app.api_route("/customers", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def customers_view(request: Request):
     """
@@ -844,6 +1022,10 @@ async def customers_view(request: Request):
     customers = database.get_all_customers()
     packages = database.get_packages()
     resellers = auth_service.get_resellers_list()
+
+    # Live device telemetry (green/yellow/red status indicators)
+    telemetry_map = router_client.get_devices_telemetry_map()
+    enrich_customer_devices_telemetry(customers, telemetry_map)
 
     return templates.TemplateResponse(
         request=request,
@@ -869,6 +1051,10 @@ async def customer_edit_view(request: Request, customer_id: int):
         return RedirectResponse(url="/customers", status_code=303)
     packages = database.get_packages()
     resellers = auth_service.get_resellers_list()
+
+    # Live device telemetry for customer devices
+    telemetry_map = router_client.get_devices_telemetry_map()
+    enrich_customer_devices_telemetry([cust], telemetry_map)
 
     return templates.TemplateResponse(
         request=request,
@@ -1004,6 +1190,10 @@ async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] =
     my_customers = database.get_all_customers(reseller_id=target_reseller_id)
     packages = database.get_packages()
     ledger = database.get_reseller_wallet_ledger(reseller_id=target_reseller_id, limit=30)
+
+    # Live device telemetry
+    telemetry_map = router_client.get_devices_telemetry_map()
+    enrich_customer_devices_telemetry(my_customers, telemetry_map)
 
     return templates.TemplateResponse(
         request=request,
@@ -1377,6 +1567,8 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
     # If phone is provided and device is not yet registered, auto-register pending request!
     if phone_clean and mac_clean:
         client_ip = request.client.host if request.client else None
+        if client_ip and (client_ip.startswith("10.20.30.") or client_ip == "127.0.0.1"):
+            client_ip = None
         existing_status = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
         if existing_status.get("status") in ("none", None):
             logger.info(f"Auto-registering pending request from check-status: Phone={phone_clean}, MAC={mac_clean}, IP={client_ip}")
@@ -1424,6 +1616,31 @@ async def detect_mac_endpoint(mac: str):
                 "Randomized MAC detected! Switch to Device MAC in your Wi-Fi settings to connect."
                 if is_rand else "Device MAC verified. You may proceed."
             )
+        },
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+
+@app.get("/api/customer/lookup")
+async def api_customer_lookup(phone: str):
+    """Allows subscriber to look up their current account plan and expiry status in captive portal."""
+    clean_phone = phone.strip()
+    cust = database.get_customer_by_phone(clean_phone)
+    if not cust:
+        return JSONResponse(
+            content={"found": False, "message": "No subscriber account found with this mobile number."},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+    return JSONResponse(
+        content={
+            "found": True,
+            "name": cust.get("name", "Subscriber"),
+            "package": cust.get("package_name", "Standard"),
+            "expiry_date": cust.get("due_date") or cust.get("expiry_date") or "Active",
+            "zone": cust.get("zone", ""),
+            "room": cust.get("room", ""),
+            "status": cust.get("status", "active"),
+            "is_active": cust.get("status") == "active"
         },
         headers={"Access-Control-Allow-Origin": "*"}
     )
@@ -1582,6 +1799,43 @@ async def revoke_device(payload: RevokeDevicePayload):
 # =========================================================
 # Step 3: Customer Directory API Endpoints
 # =========================================================
+
+@app.get("/api/customers/live-devices")
+async def get_customers_live_devices(request: Request):
+    """
+    Returns live connection telemetry (green/yellow/red) for all customer devices,
+    enabling real-time status dots and connected counters on the customer directory.
+    """
+    telemetry_map = router_client.get_devices_telemetry_map()
+    customers = database.get_all_customers()
+    enrich_customer_devices_telemetry(customers, telemetry_map)
+
+    result_customers = {}
+    for cust in customers:
+        cid = cust["id"]
+        dev_list = []
+        for dev in cust.get("devices", []):
+            dev_list.append({
+                "id": dev.get("id"),
+                "mac": dev.get("mac_address", ""),
+                "state": dev.get("state", "offline"),
+                "status_label": dev.get("status_label", "Offline"),
+                "detail": dev.get("detail", "Offline"),
+                "live_ip": dev.get("live_ip"),
+                "friendly_name": dev.get("friendly_name", "Device")
+            })
+        result_customers[str(cid)] = {
+            "online_count": cust.get("online_devices_count", 0),
+            "total_devices": len(dev_list),
+            "max_devices": cust.get("max_devices", 1),
+            "devices": dev_list
+        }
+    return {
+        "success": True,
+        "customers": result_customers,
+        "timestamp": time.strftime("%H:%M:%S")
+    }
+
 
 @app.get("/api/customers")
 async def list_customers():

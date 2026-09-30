@@ -8,24 +8,24 @@
   .dir-grid {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 10px;
   }
 
   /* TOP STATS */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
   }
 
   .stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 16px 18px;
+    border-radius: 10px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
     cursor: pointer;
     user-select: none;
     transition: all 0.15s ease;
@@ -58,9 +58,9 @@
   }
 
   .stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -70,16 +70,16 @@
   .stat-icon.active-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
   .stat-icon.prepaid-icon { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
   .stat-icon.revenue-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-  .stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+  .stat-icon svg { width: 16px; height: 16px; fill: currentColor; }
 
   .stat-data .num {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 800;
     font-family: var(--font-mono);
     line-height: 1.1;
   }
   .stat-data .lbl {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -90,33 +90,33 @@
   .toolbar-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 14px 20px;
+    border-radius: 12px;
+    padding: 8px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 8px;
   }
 
   .search-wrapper {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: #090e1a;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 8px 14px;
+    border-radius: 7px;
+    padding: 5px 10px;
     flex-grow: 1;
-    max-width: 400px;
+    max-width: 320px;
   }
-  .search-wrapper svg { width: 16px; height: 16px; fill: var(--text-dim); flex-shrink: 0; }
+  .search-wrapper svg { width: 14px; height: 14px; fill: var(--text-dim); flex-shrink: 0; }
   .search-input {
     background: transparent;
     border: none;
     outline: none;
     color: #ffffff;
-    font-size: 13px;
+    font-size: 12px;
     width: 100%;
     font-family: inherit;
   }
@@ -124,7 +124,7 @@
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     flex-wrap: wrap;
   }
 
@@ -132,10 +132,10 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border-subtle);
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
-    padding: 7px 12px;
-    border-radius: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
   }
@@ -193,19 +193,19 @@
   }
 
   .table-responsive { width: 100%; overflow-x: auto; }
-  .clean-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+  .clean-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12.5px; }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 600;
-    padding: 12px 20px;
+    padding: 6px 10px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table td {
-    padding: 14px 20px;
+    padding: 5px 10px;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-main);
   }
@@ -567,6 +567,161 @@
     font-weight: 700 !important;
   }
 
+  /* LIVE DEVICE TELEMETRY & MAC STYLING */
+  .cust-devices-cell {
+    min-width: 210px;
+    vertical-align: top;
+  }
+  .cust-dev-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .cust-dev-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .dev-conn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5.5px;
+    padding: 2.5px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+  }
+  .dev-conn-badge.is-online {
+    background: rgba(16, 185, 129, 0.14);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .dev-conn-badge.is-offline {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .dev-conn-badge.is-empty {
+    background: rgba(100, 116, 139, 0.08);
+    color: #64748b;
+    border: 1px solid rgba(100, 116, 139, 0.15);
+  }
+
+  .live-dot-pulse {
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .live-dot-pulse.dot-online {
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+    animation: livePulseAnim 2s infinite ease-in-out;
+  }
+  .live-dot-pulse.dot-offline {
+    background: #64748b;
+  }
+  @keyframes livePulseAnim {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  .dev-slot-hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .cust-mac-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5px;
+  }
+  .cust-mac-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2.5px 7px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: fit-content;
+    max-width: 100%;
+  }
+  .cust-mac-item:hover {
+    border-color: rgba(56, 189, 248, 0.45);
+    background: rgba(30, 41, 59, 0.85);
+    transform: translateY(-1px);
+  }
+
+  .dev-status-indicator {
+    width: 7.5px;
+    height: 7.5px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .dev-status-indicator.online {
+    background: #10b981;
+    box-shadow: 0 0 7px #10b981;
+  }
+  .dev-status-indicator.recent {
+    background: #f59e0b;
+    box-shadow: 0 0 6px #f59e0b;
+  }
+  .dev-status-indicator.offline {
+    background: #ef4444;
+    opacity: 0.85;
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
+  }
+
+  .cust-mac-addr {
+    font-size: 11px;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: 0.2px;
+  }
+  .cust-mac-name {
+    font-size: 9.5px;
+    color: #94a3b8;
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .cust-mac-pill {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 4.5px;
+    border-radius: 3px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .cust-mac-pill.online {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .cust-mac-pill.recent {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .cust-mac-pill.offline {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+  }
+
   /* MODAL RESPONSIVENESS */
   .modal-grid-2 {
     display: grid;
@@ -658,7 +813,8 @@
 
   @media (max-width: 440px) {
     .stats-row {
-      grid-template-columns: 1fr !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 6px !important;
     }
     .stat-card:nth-child(5) {
       grid-column: span 1 !important;
@@ -790,7 +946,7 @@
               <th>Package</th>
               <th>Monthly Fee</th>
               <th>Due / Expiry Date</th>
-              <th>Devices</th>
+              <th style="min-width:210px;">Devices &amp; Live MACs</th>
               <th>Status</th>
               <th style="text-align:right;">Actions</th>
             </tr>
@@ -798,7 +954,7 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}">
+              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
                 <td>
                   <div class="cust-name-cell">
                     <span class="cust-name">{{ c.name }}</span>
@@ -857,11 +1013,41 @@
                     {% endif %}
                   </div>
                 </td>
-                <td>
-                  <span class="font-mono" style="font-weight:700; color:#ffffff;">{{ c.active_devices_count }} / {{ c.max_devices or 1 }} Device{{ 's' if (c.max_devices or 1) != 1 else '' }}</span>
-                  {% if c.active_devices_count >= (c.max_devices or 1) %}
-                    <span class="badge-status stopped" style="font-size:9.5px; padding:2px 6px; margin-left:4px;">Full</span>
-                  {% endif %}
+                <td class="cust-devices-cell">
+                  <div class="cust-dev-container">
+                    <div class="cust-dev-summary">
+                      <span class="dev-conn-badge {% if (c.online_devices_count or 0) > 0 %}is-online{% elif c.devices|length > 0 %}is-offline{% else %}is-empty{% endif %}">
+                        <span class="live-dot-pulse {% if (c.online_devices_count or 0) > 0 %}dot-online{% else %}dot-offline{% endif %}"></span>
+                        <span class="dev-conn-text">{{ c.online_devices_count or 0 }} / {{ c.devices|length }} Connected</span>
+                      </span>
+                      {% if c.active_devices_count >= (c.max_devices or 1) %}
+                        <span class="badge-status stopped" style="font-size:9px; padding:1px 5px;" title="Quota reached ({{ c.max_devices }} max)">Full</span>
+                      {% else %}
+                        <span class="dev-slot-hint" title="{{ c.max_devices }} allowed simultaneous devices">({{ c.max_devices }} max)</span>
+                      {% endif %}
+                    </div>
+
+                    {% if c.devices %}
+                      <div class="cust-mac-list">
+                        {% for d in c.devices %}
+                          <div class="cust-mac-item" data-mac="{{ d.mac_address }}" title="{{ d.status_label }}{% if d.detail %} &bull; {{ d.detail }}{% endif %}{% if d.live_ip %} &bull; IP: {{ d.live_ip }}{% endif %} &bull; Click to copy MAC" onclick="copyMac('{{ d.mac_address }}', event)">
+                            <span class="dev-status-indicator {{ d.state }}" title="{{ d.status_label }}"></span>
+                            <span class="font-mono cust-mac-addr">{{ d.mac_address }}</span>
+                            <span class="cust-mac-name" title="{{ d.device_name or '' }}">{{ d.friendly_name }}</span>
+                            {% if d.state == 'online' %}
+                              <span class="cust-mac-pill online">ONLINE</span>
+                            {% elif d.state == 'recent' %}
+                              <span class="cust-mac-pill recent">RECENT</span>
+                            {% else %}
+                              <span class="cust-mac-pill offline">OFFLINE</span>
+                            {% endif %}
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <span class="text-dim" style="font-size:11px; font-style:italic;">No devices paired</span>
+                    {% endif %}
+                  </div>
                 </td>
                 <td>
                   {% if c.status == 'active' %}
@@ -919,7 +1105,7 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}">
+        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
@@ -984,13 +1170,39 @@
               {% endif %}
             </div>
             <div class="mobile-grid-item" style="grid-column: span 2;">
-              <span class="m-lbl">Authorized Devices</span>
-              <span class="m-val font-mono" style="font-size:12px;">
-                {{ c.active_devices_count }} / {{ c.max_devices or 1 }} Device{{ 's' if (c.max_devices or 1) != 1 else '' }}
-                {% if c.active_devices_count >= (c.max_devices or 1) %}
-                  <span class="badge-status stopped" style="font-size:9.5px; padding:1px 5px; margin-left:4px;">Full</span>
-                {% endif %}
-              </span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <span class="m-lbl" style="margin-bottom:0;">Devices &amp; Live MACs</span>
+                <span class="dev-conn-badge {% if (c.online_devices_count or 0) > 0 %}is-online{% elif c.devices|length > 0 %}is-offline{% else %}is-empty{% endif %}" style="padding:1.5px 6.5px; font-size:10px;">
+                  <span class="live-dot-pulse {% if (c.online_devices_count or 0) > 0 %}dot-online{% else %}dot-offline{% endif %}"></span>
+                  <span class="dev-conn-text">{{ c.online_devices_count or 0 }} / {{ c.devices|length }} Connected</span>
+                  {% if c.active_devices_count >= (c.max_devices or 1) %}
+                    <span class="badge-status stopped" style="font-size:8.5px; padding:0 4px; margin-left:3px;">Full</span>
+                  {% else %}
+                    <span style="font-size:9.5px; opacity:0.8; margin-left:2px;">({{ c.max_devices }} max)</span>
+                  {% endif %}
+                </span>
+              </div>
+
+              {% if c.devices %}
+                <div class="cust-mac-list mobile-mac-list">
+                  {% for d in c.devices %}
+                    <div class="cust-mac-item" data-mac="{{ d.mac_address }}" title="{{ d.status_label }}{% if d.detail %} &bull; {{ d.detail }}{% endif %}{% if d.live_ip %} &bull; IP: {{ d.live_ip }}{% endif %} &bull; Click to copy MAC" onclick="copyMac('{{ d.mac_address }}', event)">
+                      <span class="dev-status-indicator {{ d.state }}" title="{{ d.status_label }}"></span>
+                      <span class="font-mono cust-mac-addr" style="font-size:11px;">{{ d.mac_address }}</span>
+                      <span class="cust-mac-name" style="max-width:85px;">{{ d.friendly_name }}</span>
+                      {% if d.state == 'online' %}
+                        <span class="cust-mac-pill online">ONLINE</span>
+                      {% elif d.state == 'recent' %}
+                        <span class="cust-mac-pill recent">RECENT</span>
+                      {% else %}
+                        <span class="cust-mac-pill offline">OFFLINE</span>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="text-dim" style="font-size:11px; font-style:italic;">No devices paired</span>
+              {% endif %}
             </div>
           </div>
 
@@ -2681,8 +2893,105 @@
     return (firstByte & 0x02) !== 0;
   }
 
+  // Copy MAC address to clipboard
+  function copyMac(mac, event) {
+    if (event) event.stopPropagation();
+    if (!mac) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(mac).then(() => {
+        cyberToast('📋 MAC Copied: ' + mac);
+      }).catch(() => fallbackCopy(mac));
+    } else {
+      fallbackCopy(mac);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      cyberToast('📋 MAC Copied: ' + text);
+    } catch (e) {
+      prompt('Copy MAC:', text);
+    }
+    document.body.removeChild(ta);
+  }
+
+  // Real-time live device status refresh poller
+  async function refreshLiveDeviceTelemetry() {
+    try {
+      const resp = await fetch('/api/customers/live-devices');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!data || !data.customers) return;
+
+      for (const [custId, cInfo] of Object.entries(data.customers)) {
+        const desktopRow = document.querySelector(`.desktop-table-view .cust-row[data-cust-id="${custId}"]`);
+        if (desktopRow) updateCustTelemetryDOM(desktopRow, cInfo);
+
+        const mobileCard = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${custId}"]`);
+        if (mobileCard) updateCustTelemetryDOM(mobileCard, cInfo);
+      }
+    } catch (err) {
+      console.debug('Telemetry poll error:', err);
+    }
+  }
+
+  function updateCustTelemetryDOM(parentEl, cInfo) {
+    const badgeText = parentEl.querySelector('.dev-conn-text');
+    if (badgeText) {
+      badgeText.textContent = `${cInfo.online_count} / ${cInfo.total_devices} Connected`;
+    }
+    const badge = parentEl.querySelector('.dev-conn-badge');
+    if (badge) {
+      badge.classList.remove('is-online', 'is-offline', 'is-empty');
+      if (cInfo.online_count > 0) {
+        badge.classList.add('is-online');
+      } else if (cInfo.total_devices > 0) {
+        badge.classList.add('is-offline');
+      } else {
+        badge.classList.add('is-empty');
+      }
+    }
+    const pulseDot = parentEl.querySelector('.live-dot-pulse');
+    if (pulseDot) {
+      pulseDot.classList.remove('dot-online', 'dot-offline');
+      pulseDot.classList.add(cInfo.online_count > 0 ? 'dot-online' : 'dot-offline');
+    }
+
+    if (cInfo.devices && cInfo.devices.length > 0) {
+      for (const d of cInfo.devices) {
+        const macItem = parentEl.querySelector(`.cust-mac-item[data-mac="${d.mac}"]`);
+        if (macItem) {
+          const ind = macItem.querySelector('.dev-status-indicator');
+          if (ind) {
+            ind.className = `dev-status-indicator ${d.state}`;
+            ind.title = d.status_label;
+          }
+          const pill = macItem.querySelector('.cust-mac-pill');
+          if (pill) {
+            pill.className = `cust-mac-pill ${d.state}`;
+            pill.textContent = d.state === 'online' ? 'ONLINE' : (d.state === 'recent' ? 'RECENT' : 'OFFLINE');
+          }
+          if (d.detail) {
+            macItem.title = `${d.status_label}${d.detail ? ' • ' + d.detail : ''}${d.live_ip ? ' • IP: ' + d.live_ip : ''} • Click to copy MAC`;
+          }
+        }
+      }
+    }
+  }
+
   // Real-time input validation on Add Customer MAC
   document.addEventListener('DOMContentLoaded', () => {
+    // Start background telemetry poller (every 25s)
+    setInterval(refreshLiveDeviceTelemetry, 25000);
+    window.addEventListener('focus', () => { refreshLiveDeviceTelemetry(); });
+
     const addMacInput = document.getElementById('addCustMac');
     if (addMacInput) {
       addMacInput.addEventListener('input', () => {

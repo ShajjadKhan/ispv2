@@ -619,22 +619,27 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
         is_secondary = 1 if existing_cust else 0
         customer_id = existing_cust["id"] if existing_cust else None
 
+        # Filter out router-internal NAT IP
+        clean_ip = ip if (ip and not ip.startswith("10.20.30.") and ip != "127.0.0.1") else None
+
         # Check for existing pending request with same MAC
-        cursor.execute("SELECT id FROM connection_requests WHERE UPPER(mac_address) = ? AND status = 'pending'", (mac_upper,))
+        cursor.execute("SELECT id, ip_address, device_model FROM connection_requests WHERE UPPER(mac_address) = ? AND status = 'pending'", (mac_upper,))
         existing_req = cursor.fetchone()
 
         if existing_req:
             req_id = existing_req["id"]
+            final_ip = clean_ip if clean_ip else existing_req["ip_address"]
+            final_model = device_model if device_model else existing_req["device_model"]
             cursor.execute("""
                 UPDATE connection_requests
                 SET phone = ?, ip_address = ?, device_model = ?, customer_id = ?, is_secondary = ?, updated_at = ?
                 WHERE id = ?
-            """, (phone_clean, ip, device_model, customer_id, is_secondary, now, req_id))
+            """, (phone_clean, final_ip, final_model, customer_id, is_secondary, now, req_id))
         else:
             cursor.execute("""
                 INSERT INTO connection_requests (phone, mac_address, ip_address, device_model, status, customer_id, is_secondary, created_at, updated_at)
                 VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-            """, (phone_clean, mac_upper, ip, device_model, customer_id, is_secondary, now, now))
+            """, (phone_clean, mac_upper, clean_ip, device_model, customer_id, is_secondary, now, now))
             req_id = cursor.lastrowid
 
         conn.commit()
@@ -976,9 +981,25 @@ def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]
         cursor.execute("SELECT name, rate_limit, default_price FROM packages")
         pkg_map = {row["name"]: dict(row) for row in cursor.fetchall()}
 
+        # Preload approved devices for customer list
+        cursor.execute("""
+            SELECT id, customer_id, mac_address, ip_address, device_name, status, approved_at, created_at
+            FROM customer_devices
+            WHERE status = 'approved'
+            ORDER BY id ASC
+        """)
+        dev_rows = cursor.fetchall()
+        cust_dev_map: Dict[int, List[Dict[str, Any]]] = {}
+        for dr in dev_rows:
+            cid = dr["customer_id"]
+            if cid not in cust_dev_map:
+                cust_dev_map[cid] = []
+            cust_dev_map[cid].append(dict(dr))
+
         customers = []
         for r in rows:
             item = dict(r)
+            item["devices"] = cust_dev_map.get(item["id"], [])
             
             # Days remaining calculation
             expiry = item.get("expiry_date") or item.get("due_date")

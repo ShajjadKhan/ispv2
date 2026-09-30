@@ -75,6 +75,58 @@ def is_randomized_mac(mac: Optional[str]) -> bool:
     except ValueError:
         return False
 
+
+def parse_routeros_duration(val: Optional[str]) -> Optional[int]:
+    """
+    Parses RouterOS duration string (e.g. '1h55m3s', '4m5s', '8s', '2d1h', '3w') into total seconds.
+    Returns None if cannot parse or 'never' / '—'.
+    """
+    if not val or val in ('never', '—', ''):
+        return None
+    val = str(val).strip().lower()
+    matches = re.findall(r'(\d+)([wdhms])', val)
+    if not matches:
+        try:
+            return int(val)
+        except ValueError:
+            return None
+    multipliers = {'w': 604800, 'd': 86400, 'h': 3600, 'm': 60, 's': 1}
+    return sum(int(amount) * multipliers.get(unit, 0) for amount, unit in matches)
+
+
+def clean_device_friendly_name(stored_name: Optional[str], dhcp_host_name: Optional[str] = None) -> str:
+    """
+    Cleans up User-Agent strings or unhelpful device names to provide a clean, human-readable label.
+    """
+    if dhcp_host_name and dhcp_host_name.strip() and dhcp_host_name not in ("*", "—", "unknown"):
+        clean_dhcp = dhcp_host_name.strip().replace("-", " ")
+        if not stored_name or "Mozilla" in stored_name or "AppleWebKit" in stored_name:
+            return clean_dhcp
+
+    if not stored_name or not stored_name.strip():
+        return dhcp_host_name or "Client Device"
+
+    name = stored_name.strip()
+    if "Mozilla" in name or "AppleWebKit" in name:
+        if "iPhone" in name:
+            return "Apple iPhone"
+        if "iPad" in name:
+            return "Apple iPad"
+        if "Android" in name:
+            return "Android Device"
+        if "Macintosh" in name or "Mac OS" in name:
+            return "Apple Mac"
+        if "Windows" in name:
+            return "Windows PC"
+        if "Linux" in name:
+            return "Linux Device"
+        return "Mobile Device"
+
+    if len(name) > 28:
+        return name[:26] + "…"
+    return name
+
+
 class RouterClient:
     def __init__(
         self,
@@ -89,12 +141,31 @@ class RouterClient:
         self.password = password
         self.port = port
         self.use_ssl = use_ssl
+        self._telemetry_cache: Optional[Dict[str, Dict[str, Any]]] = None
+        self._telemetry_cache_time: float = 0.0
+
+    def refresh_from_db(self):
+        """Dynamically reloads router connection parameters from database if available."""
+        try:
+            import database
+            routers = database.get_all_routers(active_only=True)
+            if routers:
+                default_r = next((r for r in routers if r.get("is_default")), routers[0])
+                if default_r:
+                    self.host = default_r.get("host") or self.host
+                    self.username = default_r.get("username") or self.username
+                    self.password = default_r.get("password") or self.password
+                    self.port = default_r.get("port") or self.port
+                    self.use_ssl = (self.port == 8729 or bool(default_r.get("use_ssl", False)))
+        except Exception:
+            pass
 
     def get_live_status(self) -> Dict[str, Any]:
         """
         Connects to MikroTik and fetches live status, resource metrics, and interfaces.
         Returns a structured dictionary with success state, latency, and hardware telemetry.
         """
+        self.refresh_from_db()
         start_time = time.time()
         pool = None
         try:
@@ -254,7 +325,7 @@ class RouterClient:
                 logger.info(f"Updated existing IP binding for MAC {mac_clean} to bypassed.")
             else:
                 add_kwargs = {'mac-address': mac_clean, 'type': 'bypassed', 'comment': comment}
-                if ip_address:
+                if ip_address and not ip_address.startswith("10.20.30.") and ip_address != "127.0.0.1":
                     add_kwargs['address'] = ip_address
                 binding_res.add(**add_kwargs)
                 logger.info(f"Created new IP binding for MAC {mac_clean} as bypassed.")
@@ -282,12 +353,23 @@ class RouterClient:
                         except Exception:
                             pass
                 else:
-                    target_ip = ip_address
+                    target_ip = ip_address if (ip_address and not ip_address.startswith("10.20.30.") and ip_address != "127.0.0.1") else None
                     if not target_ip:
-                        for h in api.get_resource('/ip/hotspot/host').get():
-                            if h.get('mac-address', '').upper() == mac_clean and h.get('address'):
-                                target_ip = h.get('address')
-                                break
+                        try:
+                            for h in api.get_resource('/ip/hotspot/host').get():
+                                if h.get('mac-address', '').upper() == mac_clean and h.get('address'):
+                                    target_ip = h.get('address')
+                                    break
+                        except Exception:
+                            pass
+                    if not target_ip:
+                        try:
+                            for l in api.get_resource('/ip/dhcp-server/lease').get():
+                                if l.get('mac-address', '').upper() == mac_clean and l.get('address'):
+                                    target_ip = l.get('address')
+                                    break
+                        except Exception:
+                            pass
                     if target_ip:
                         if existing_q:
                             queue_res.set(id=existing_q[0]['id'], max_limit=norm_limit, target=target_ip)
@@ -832,6 +914,138 @@ class RouterClient:
                 except Exception:
                     pass
 
+    def get_devices_telemetry_map(self, max_cache_age_sec: float = 5.0) -> Dict[str, Dict[str, Any]]:
+        """
+        Fetches live network telemetry for all devices across the router.
+        Combines /ip/hotspot/host and /ip/dhcp-server/lease in a single quick call.
+        Results are cached in memory for max_cache_age_sec to avoid duplicate socket connections.
+        
+        Returns a dict mapping normalized MAC (e.g. '3C:38:24:0F:69:74') to telemetry:
+            - state: 'online' (green), 'recent' (yellow), 'offline' (red)
+            - status_label: 'Online', 'Recently Offline', 'Offline'
+            - is_online: bool
+            - live_ip: str or None
+            - dhcp_host_name: str or None
+            - uptime: str or None
+            - last_seen: str or None
+            - idle_time: str or None
+            - detail: human-friendly description
+        """
+        now = time.time()
+        if self._telemetry_cache is not None and (now - self._telemetry_cache_time) < max_cache_age_sec:
+            return self._telemetry_cache
+
+        self.refresh_from_db()
+        pool = None
+        telemetry: Dict[str, Dict[str, Any]] = {}
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+
+            # 1. Hotspot Hosts (live sessions, uptime, idle time, IP)
+            hosts = []
+            try:
+                hosts = api.get_resource('/ip/hotspot/host').get()
+            except Exception as e:
+                logger.warning(f"Could not read hotspot hosts: {e}")
+
+            # 2. DHCP Leases (host-name, lease status, last-seen)
+            leases = []
+            try:
+                leases = api.get_resource('/ip/dhcp-server/lease').get()
+            except Exception as e:
+                logger.warning(f"Could not read DHCP leases: {e}")
+
+            host_map: Dict[str, Dict[str, Any]] = {}
+            for h in hosts:
+                m = h.get("mac-address")
+                if m:
+                    host_map[m.strip().upper()] = h
+
+            lease_map: Dict[str, Dict[str, Any]] = {}
+            for l in leases:
+                m = l.get("mac-address")
+                if m:
+                    lease_map[m.strip().upper()] = l
+
+            all_router_macs = set(host_map.keys()) | set(lease_map.keys())
+
+            for mac in all_router_macs:
+                h = host_map.get(mac)
+                l = lease_map.get(mac)
+
+                last_seen_str = l.get("last-seen") if l else None
+                last_seen_sec = parse_routeros_duration(last_seen_str)
+                idle_str = h.get("idle-time") if h else None
+                idle_sec = parse_routeros_duration(idle_str)
+                uptime_str = h.get("uptime") if h else None
+                dhcp_host_name = l.get("host-name") if l else None
+                lease_status = l.get("status") if l else None
+                live_ip = (h.get("address") if h else None) or (l.get("active-address") or l.get("address") if l else None)
+
+                # Classification:
+                # 🟢 Online: In active hotspot host table OR bound in DHCP with last-seen <= 300s
+                # (unless idle for > 15m without any hotspot activity)
+                if h:
+                    if idle_sec is not None and idle_sec > 900:
+                        state = "recent"
+                        status_label = "Recently Offline"
+                        detail = f"Idle {idle_str}"
+                    else:
+                        state = "online"
+                        status_label = "Online"
+                        detail = f"Up {uptime_str}" if uptime_str else "Online"
+                elif l and lease_status == "bound" and last_seen_sec is not None and last_seen_sec <= 300:
+                    state = "online"
+                    status_label = "Online"
+                    detail = f"Seen {last_seen_str} ago"
+                elif last_seen_sec is not None and last_seen_sec <= 3600:
+                    # 🟡 Recently Offline: Seen in DHCP lease within the last 1 hour
+                    state = "recent"
+                    status_label = "Recently Offline"
+                    detail = f"Seen {last_seen_str} ago"
+                else:
+                    # 🔴 Offline
+                    state = "offline"
+                    status_label = "Offline"
+                    detail = f"Last seen {last_seen_str}" if last_seen_str else "Offline"
+
+                telemetry[mac] = {
+                    "mac_address": mac,
+                    "state": state,
+                    "status_label": status_label,
+                    "is_online": (state == "online"),
+                    "live_ip": live_ip,
+                    "dhcp_host_name": dhcp_host_name,
+                    "uptime": uptime_str,
+                    "last_seen": last_seen_str,
+                    "idle_time": idle_str,
+                    "detail": detail
+                }
+
+            self._telemetry_cache = telemetry
+            self._telemetry_cache_time = now
+            return telemetry
+        except Exception as e:
+            logger.error(f"Error fetching device telemetry map from MikroTik: {e}")
+            if self._telemetry_cache is not None:
+                return self._telemetry_cache
+            return {}
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
 
 # =========================================================
 # MULTI-ROUTER FLEET ROAMING & SYNC HELPERS
@@ -848,13 +1062,14 @@ def test_router_connection(
     """
     start_time = time.time()
     pool = None
+    use_ssl = (port == 8729)
     try:
         pool = routeros_api.RouterOsApiPool(
             host,
             username=username,
             password=password,
             port=port,
-            use_ssl=False,
+            use_ssl=use_ssl,
             ssl_verify=False,
             plaintext_login=True
         )
@@ -903,11 +1118,14 @@ def test_router_connection(
 
 def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
     """Instantiates a RouterClient from a router record dictionary."""
+    port = r_dict.get("port", 8728)
+    use_ssl = (port == 8729 or bool(r_dict.get("use_ssl", False)))
     return RouterClient(
         host=r_dict["host"],
         username=r_dict["username"],
         password=r_dict["password"],
-        port=r_dict.get("port", 8728)
+        port=port,
+        use_ssl=use_ssl
     )
 
 
