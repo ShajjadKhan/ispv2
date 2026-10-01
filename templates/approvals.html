@@ -203,6 +203,48 @@
     background: rgba(239, 68, 68, 0.25);
   }
 
+  .cust-mac-cell {
+    vertical-align: top;
+    min-width: 260px;
+  }
+  .approved-mac-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+  .approved-mac-chip:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .btn-revoke-chip {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 2px 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.2;
+    min-height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .btn-revoke-chip:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #ffffff;
+  }
+
   .empty-state {
     padding: 40px 20px;
     text-align: center;
@@ -809,19 +851,7 @@
       color: #ffffff !important;
     }
 
-    /* Line 1 Right: Status / Expiry */
-    #approvedDevicesSection tr.approved-dev-row td[data-label="Status / Expiry"] {
-      grid-column: 2;
-      justify-self: end;
-    }
-
-    /* Line 2 Left: Phone & MAC */
-    #approvedDevicesSection tr.approved-dev-row td[data-label="MAC Address"] {
-      grid-column: 1;
-      font-size: 11px !important;
-    }
-
-    /* Line 2 Right: Monthly Fee */
+    /* Line 1 Right: Monthly Fee */
     #approvedDevicesSection tr.approved-dev-row td[data-label="Monthly Fee"] {
       grid-column: 2;
       justify-self: end;
@@ -829,11 +859,24 @@
       color: #38bdf8 !important;
     }
 
-    /* Line 3 Left: Package */
+    /* Line 2 Left: Package */
     #approvedDevicesSection tr.approved-dev-row td[data-label="Package"] {
       grid-column: 1;
       font-size: 11px !important;
       color: var(--text-dim) !important;
+    }
+
+    /* Line 2 Right: Status / Expiry */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Status / Expiry"] {
+      grid-column: 2;
+      justify-self: end;
+    }
+
+    /* Line 3: MAC Address chips list spanning full width */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="MAC Address"] {
+      grid-column: 1 / -1;
+      font-size: 11px !important;
+      margin-top: 4px !important;
     }
 
     /* Redundant tag */
@@ -849,10 +892,11 @@
       grid-column: 1 / -1;
       border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
       padding-top: 5px !important;
-      margin-top: 2px !important;
+      margin-top: 4px !important;
       display: block !important;
     }
 
+    #approvedDevicesSection tr.approved-dev-row td:last-child a,
     #approvedDevicesSection tr.approved-dev-row td:last-child button {
       width: 100% !important;
       padding: 5px 8px !important;
@@ -860,6 +904,8 @@
       font-weight: 700 !important;
       border-radius: 6px !important;
       justify-content: center !important;
+      text-align: center !important;
+      box-sizing: border-box !important;
     }
 
     .modal-box {
@@ -918,7 +964,7 @@
         <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
       </div>
       <div class="stat-data">
-        {% set prepaid_count = approved_devices | selectattr('billing_type', 'equalto', 'prepaid') | list | length %}
+        {% set prepaid_count = approved_customers | selectattr('billing_type', 'equalto', 'prepaid') | list | length %}
         <div class="num text-cyan">{{ prepaid_count }}</div>
         <div class="lbl">Prepaid Customers</div>
       </div>
@@ -929,7 +975,7 @@
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
       </div>
       <div class="stat-data">
-        {% set postpaid_count = approved_devices | selectattr('billing_type', 'equalto', 'postpaid') | list | length %}
+        {% set postpaid_count = approved_customers | selectattr('billing_type', 'equalto', 'postpaid') | list | length %}
         <div class="num text-purple" style="color:#c084fc;">{{ postpaid_count }}</div>
         <div class="lbl">Postpaid Customers</div>
       </div>
@@ -1050,7 +1096,8 @@
       <div class="panel-title">
         <svg style="width:18px; height:18px; fill:#34d399;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <span>Authorized Devices on MikroTik</span>
-        <span class="badge-count green">{{ approved_devices | length }} Active</span>
+        <span class="badge-count green">{{ approved_devices | length }} Active Device{{ 's' if approved_devices | length != 1 else '' }}</span>
+        <span class="badge-count" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">{{ approved_customers | length }} Subscriber{{ 's' if approved_customers | length != 1 else '' }}</span>
       </div>
       <span class="font-mono text-dim" style="font-size:12px;">Synced with /ip/hotspot/ip-binding (type=bypassed)</span>
     </div>
@@ -1061,7 +1108,7 @@
           <tr>
             <th>Customer Name</th>
             <th>Phone</th>
-            <th>MAC Address</th>
+            <th>Authorized Devices (MAC)</th>
             <th>Billing Type</th>
             <th>Package</th>
             <th>Monthly Fee</th>
@@ -1070,45 +1117,62 @@
           </tr>
         </thead>
         <tbody>
-          {% if approved_devices %}
-            {% for dev in approved_devices %}
-            <tr class="approved-dev-row" data-billing="{{ dev.billing_type }}">
-              <td data-label="Customer Name" style="font-weight:700; color:#ffffff;">{{ dev.customer_name }}</td>
-              <td data-label="Phone" class="font-mono text-dim">{{ dev.phone }}</td>
-              <td data-label="MAC Address" class="font-mono">
-                <div style="display:flex; align-items:center; gap:6px;">
-                  <span class="text-cyan">{{ dev.mac_address }}</span>
-                  {% if dev.is_random_mac %}
-                    <span class="tag-mac-warn" title="Randomized MAC detected" style="font-size:10px; font-weight:700; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:1px 5px; border-radius:4px;">
-                      ⚠ RANDOM
-                    </span>
-                  {% else %}
-                    <span class="tag-mac-ok" title="Physical Device MAC" style="font-size:10px; font-weight:600; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:1px 5px; border-radius:4px;">
-                      ✓ DEVICE
-                    </span>
-                  {% endif %}
+          {% if approved_customers %}
+            {% for cust in approved_customers %}
+            <tr class="approved-dev-row" data-billing="{{ cust.billing_type }}">
+              <td data-label="Customer Name" style="font-weight:700; color:#ffffff;">
+                <a href="/customers/{{ cust.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
+                  {{ cust.customer_name }}
+                </a>
+              </td>
+              <td data-label="Phone" class="font-mono text-dim">{{ cust.phone }}</td>
+              <td data-label="MAC Address" class="cust-mac-cell font-mono">
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  {% for dev in cust.devices %}
+                    <div class="approved-mac-chip">
+                      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span class="text-cyan font-mono" style="font-weight:700;">{{ dev.mac_address }}</span>
+                        {% if dev.device_name %}<span class="text-dim" style="font-size:11px;">({{ dev.device_name }})</span>{% endif %}
+                        {% if dev.is_random_mac %}
+                          <span class="tag-mac-warn" title="Randomized MAC detected" style="font-size:9.5px; font-weight:700; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:1px 5px; border-radius:4px;">
+                            ⚠ RANDOM
+                          </span>
+                        {% else %}
+                          <span class="tag-mac-ok" title="Physical Device MAC" style="font-size:9.5px; font-weight:600; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:1px 5px; border-radius:4px;">
+                            ✓ DEVICE
+                          </span>
+                        {% endif %}
+                      </div>
+                      <button type="button" class="btn-revoke-chip" onclick="revokeDevice('{{ dev.mac_address }}')" title="Revoke MikroTik access for {{ dev.mac_address }}">
+                        Revoke
+                      </button>
+                    </div>
+                  {% endfor %}
+                  <div style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">
+                    {{ cust.devices | length }} of {{ cust.max_devices or 1 }} device slot(s) used
+                  </div>
                 </div>
               </td>
               <td data-label="Billing Type">
-                {% if dev.billing_type == 'prepaid' %}
+                {% if cust.billing_type == 'prepaid' %}
                   <span class="tag-device-type" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3);">PREPAID</span>
                 {% else %}
                   <span class="tag-device-type" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">POSTPAID</span>
                 {% endif %}
               </td>
-              <td data-label="Package">{{ dev.package_name }}</td>
-              <td data-label="Monthly Fee" class="font-mono text-white">{{ dev.monthly_fee }} SAR</td>
+              <td data-label="Package">{{ cust.package_name }}</td>
+              <td data-label="Monthly Fee" class="font-mono text-white">{{ cust.monthly_fee }} SAR</td>
               <td data-label="Status / Expiry">
-                {% if dev.billing_type == 'prepaid' %}
-                  <span class="font-mono text-dim" style="font-size:11.5px;">Exp: {{ dev.expiry_date or '30 days' }}</span>
+                {% if cust.billing_type == 'prepaid' %}
+                  <span class="font-mono text-dim" style="font-size:11.5px;">Exp: {{ cust.expiry_date or '30 days' }}</span>
                 {% else %}
                   <span class="badge-status running">ACTIVE</span>
                 {% endif %}
               </td>
               <td data-label="Actions" style="text-align:right;">
-                <button type="button" class="btn-reject" onclick="revokeDevice('{{ dev.mac_address }}')" title="Revoke MikroTik access">
-                  Revoke
-                </button>
+                <a href="/customers/{{ cust.customer_id }}/edit" class="btn-action-sm" title="Edit Customer & Devices" style="padding:5px 10px; font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600;">
+                  <span>✏️ Edit</span>
+                </a>
               </td>
             </tr>
             {% endfor %}

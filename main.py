@@ -1071,6 +1071,26 @@ async def approvals_view(request: Request):
     approved_devices = database.get_approved_devices()
     packages = database.get_packages()
 
+    # Group approved devices by customer subscription
+    customers_map = {}
+    for dev in approved_devices:
+        cid = dev["customer_id"]
+        if cid not in customers_map:
+            customers_map[cid] = {
+                "customer_id": cid,
+                "customer_name": dev.get("customer_name") or "Unknown",
+                "phone": dev.get("phone") or "—",
+                "billing_type": dev.get("billing_type") or "prepaid",
+                "package_name": dev.get("package_name") or "—",
+                "monthly_fee": dev.get("monthly_fee") or 0.0,
+                "customer_status": dev.get("customer_status") or "active",
+                "expiry_date": dev.get("expiry_date"),
+                "max_devices": dev.get("max_devices") or 1,
+                "devices": []
+            }
+        customers_map[cid]["devices"].append(dev)
+    approved_customers = list(customers_map.values())
+
     return templates.TemplateResponse(
         request=request,
         name="approvals.html",
@@ -1079,6 +1099,7 @@ async def approvals_view(request: Request):
             "active_page": "approvals",
             "pending_requests": pending_requests,
             "approved_devices": approved_devices,
+            "approved_customers": approved_customers,
             "packages": packages
         }
     )

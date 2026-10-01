@@ -1096,7 +1096,18 @@ def revoke_customer_device(mac: str) -> Optional[Dict[str, Any]]:
         # Update statuses
         cursor.execute("UPDATE customer_devices SET status = 'blocked' WHERE UPPER(mac_address) = ?", (mac_clean,))
         cursor.execute("UPDATE connection_requests SET status = 'revoked', updated_at = ? WHERE UPPER(mac_address) = ?", (now_str, mac_clean))
-        cursor.execute("UPDATE customers SET status = 'suspended', updated_at = ? WHERE id = ?", (now_str, info["cust_id"]))
+
+        # Check if customer has any other approved devices
+        cursor.execute("""
+            SELECT COUNT(*) as count 
+            FROM customer_devices 
+            WHERE customer_id = ? AND status = 'approved' AND UPPER(mac_address) != ?
+        """, (info["cust_id"], mac_clean))
+        remaining = cursor.fetchone()["count"]
+        if remaining == 0:
+            cursor.execute("UPDATE customers SET status = 'suspended', updated_at = ? WHERE id = ?", (now_str, info["cust_id"]))
+        else:
+            cursor.execute("UPDATE customers SET updated_at = ? WHERE id = ?", (now_str, info["cust_id"]))
 
         conn.commit()
         return info
