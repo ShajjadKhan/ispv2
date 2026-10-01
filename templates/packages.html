@@ -1167,18 +1167,18 @@
         <div class="form-row">
           <div class="form-group">
             <label for="cPkgPrice">Retail Price (SAR) *</label>
-            <input type="number" step="0.5" class="form-control font-mono" id="cPkgPrice" placeholder="75.00" required>
+            <input type="number" step="0.5" inputmode="decimal" class="form-control font-mono" id="cPkgPrice" placeholder="75.00" required>
           </div>
           <div class="form-group">
             <label for="cPkgCost">Wholesale / Cost Price (SAR)</label>
-            <input type="number" step="0.5" class="form-control font-mono" id="cPkgCost" placeholder="0.00" value="0.00">
+            <input type="number" step="0.5" inputmode="decimal" class="form-control font-mono" id="cPkgCost" placeholder="0.00" value="0.00">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="cPkgValidity">Validity Period (Days) *</label>
-            <input type="number" class="form-control font-mono" id="cPkgValidity" value="30" min="1" required>
+            <input type="number" inputmode="numeric" class="form-control font-mono" id="cPkgValidity" value="30" min="1" required>
             <div class="preset-row">
               <button type="button" class="btn-preset" onclick="setVal('create', 1)">1 Day</button>
               <button type="button" class="btn-preset" onclick="setVal('create', 7)">7 Days</button>
@@ -1280,18 +1280,18 @@
         <div class="form-row">
           <div class="form-group">
             <label for="ePkgPrice">Retail Price (SAR) *</label>
-            <input type="number" step="0.5" class="form-control font-mono" id="ePkgPrice" required>
+            <input type="number" step="0.5" inputmode="decimal" class="form-control font-mono" id="ePkgPrice" required>
           </div>
           <div class="form-group">
             <label for="ePkgCost">Wholesale / Cost Price (SAR)</label>
-            <input type="number" step="0.5" class="form-control font-mono" id="ePkgCost">
+            <input type="number" step="0.5" inputmode="decimal" class="form-control font-mono" id="ePkgCost">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="ePkgValidity">Validity Period (Days) *</label>
-            <input type="number" class="form-control font-mono" id="ePkgValidity" min="1" required>
+            <input type="number" inputmode="numeric" class="form-control font-mono" id="ePkgValidity" min="1" required>
             <div class="preset-row">
               <button type="button" class="btn-preset" onclick="setVal('edit', 1)">1 Day</button>
               <button type="button" class="btn-preset" onclick="setVal('edit', 7)">7 Days</button>
