@@ -1980,22 +1980,52 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         except Exception:
             pass
 
-    # Build sequence of months from start_date to max_month_date
-    months_seq: List[str] = []
-    curr_iter = datetime(start_date.year, start_date.month, 1).date()
-    end_iter = datetime(max_month_date.year, max_month_date.month, 1).date()
+    # Determine billing day and effective start date matching billing_reminder
+    billing_day = int(cust.get("due_day") or cust.get("billing_day") or 1)
 
-    iter_count = 0
-    while curr_iter <= end_iter and iter_count < 60:
-        iter_count += 1
-        months_seq.append(curr_iter.strftime("%Y-%m"))
-        # Advance 1 month
-        ny = curr_iter.year
-        nm = curr_iter.month + 1
+    def get_effective_billing_start(b_date_str: str, bd: int) -> date:
+        if not b_date_str:
+            return date(today.year, today.month, 1)
+        try:
+            dt = datetime.strptime(b_date_str[:10], "%Y-%m-%d").date()
+        except Exception:
+            return date(today.year, today.month, 1)
+        j_day = dt.day
+        j_year = dt.year
+        j_month = dt.month
+        dim = calendar.monthrange(j_year, j_month)[1]
+        if j_day <= bd:
+            return date(j_year, j_month, min(bd, dim))
+        else:
+            nm = j_month + 1
+            ny = j_year
+            if nm > 12:
+                nm = 1
+                ny += 1
+            ndim = calendar.monthrange(ny, nm)[1]
+            return date(ny, nm, min(bd, ndim))
+
+    eff_start = get_effective_billing_start(start_str, billing_day)
+    months_seq: List[str] = []
+    cur_d = eff_start
+    i_cnt = 0
+    while cur_d <= today and i_cnt < 60:
+        i_cnt += 1
+        months_seq.append(cur_d.strftime("%Y-%m"))
+        ny = cur_d.year
+        nm = cur_d.month + 1
         if nm > 12:
             nm = 1
             ny += 1
-        curr_iter = datetime(ny, nm, 1).date()
+        dim = calendar.monthrange(ny, nm)[1]
+        safe_day = min(billing_day, dim)
+        cur_d = date(ny, nm, safe_day)
+
+    # If customer has active suspension hold (grace promise) extending into future months, include it
+    if has_active_promise and promise_date_str:
+        p_m = promise_date_str[:7]
+        if p_m not in months_seq:
+            months_seq.append(p_m)
 
     # Also include any months present in collections that might not be in sequence
     for my in colls_by_month.keys():
@@ -2114,6 +2144,26 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         "unpaid_cycles": unpaid_cycles,
         "settled_cycles": settled_cycles
     }
+
+
+def get_customer_unpaid_months(customer_id: int) -> List[Dict[str, Any]]:
+    """
+    Returns unpaid billing cycles for customer in billing_reminder format:
+    [{ "month": "2026-09", "month_name": "September 2026", "due": 30.0, "fee": 30.0, "paid": 0.0 }]
+    """
+    breakdown = get_customer_billing_breakdown(customer_id)
+    unpaid = []
+    for u in breakdown.get("unpaid_cycles", []):
+        unpaid.append({
+            "month": u["month"],
+            "month_name": u.get("label") or u["month"],
+            "due": round(float(u.get("rem_due", 0.0)), 2),
+            "fee": round(float(u.get("expected_fee", 0.0)), 2),
+            "paid": round(float(u.get("paid", 0.0)), 2),
+            "is_grace": bool(u.get("is_grace", False)),
+            "grace_days": int(u.get("grace_days", 0))
+        })
+    return unpaid
 
 
 def settle_customer_cycles(

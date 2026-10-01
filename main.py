@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Query, Form
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -2605,6 +2605,31 @@ async def get_customer_billing_breakdown_endpoint(customer_id: int):
     except Exception as e:
         logger.exception(f"Error fetching billing breakdown for #{customer_id}: {e}")
         return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
+
+
+@app.get("/api/customers/{customer_id}/unpaid")
+async def get_customer_unpaid_endpoint(customer_id: int):
+    """
+    Returns unpaid billing cycles in billing_reminder format:
+    [{ "month": "2026-09", "month_name": "September 2026", "due": 30.0, "fee": 30.0, "paid": 0.0 }]
+    """
+    try:
+        data = database.get_customer_unpaid_months(customer_id)
+        return JSONResponse(content=data)
+    except Exception as e:
+        logger.exception(f"Error fetching unpaid cycles for customer #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"error": str(e)})
+
+
+@app.get("/get_unpaid.php")
+async def get_unpaid_php_endpoint(cid: int = Query(...)):
+    """PHP-compatible endpoint matching billing_reminder get_unpaid.php?cid=..."""
+    try:
+        data = database.get_customer_unpaid_months(cid)
+        return JSONResponse(content=data)
+    except Exception as e:
+        logger.exception(f"Error fetching unpaid cycles (PHP compat) for customer #{cid}: {e}")
+        return JSONResponse(status_code=400, content=[])
 
 
 @app.post("/api/customers/{customer_id}/promise")
