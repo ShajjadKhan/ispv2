@@ -211,6 +211,7 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: normal;
+    vertical-align: top;
   }
   .clean-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
@@ -378,6 +379,7 @@
     font-size: 12px;
     font-weight: 700;
     padding: 10px 14px;
+    min-height: 44px;
     cursor: pointer;
     transition: all 0.15s ease;
     display: inline-flex;
@@ -471,7 +473,11 @@
     color: var(--text-dim);
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 6px 10px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -1045,6 +1051,20 @@
       width: 100% !important;
       justify-content: center !important;
     }
+    .search-input {
+      font-size: 16px !important;
+    }
+    .manage-tab-btn {
+      min-height: 44px !important;
+      padding: 10px 14px !important;
+      font-size: 13px !important;
+    }
+    .btn-preset {
+      min-height: 40px !important;
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+      flex: 1 1 auto !important;
+    }
   }
 
   @media (max-width: 440px) {
@@ -1073,9 +1093,9 @@
       gap: 8px !important;
     }
     .m-action-row > * {
-      padding: 7px 4px !important;
-      font-size: 11px !important;
-      min-height: 36px !important;
+      padding: 8px 4px !important;
+      font-size: 11.5px !important;
+      min-height: 40px !important;
     }
   }
 </style>
@@ -1718,7 +1738,7 @@
 
             <div class="custom-pay-grid">
               <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Amount (SAR)</label>
+                <label for="customPaymentAmount" style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Amount (SAR)</label>
                 <input type="number" step="0.01" class="form-input font-mono" id="customPaymentAmount" placeholder="e.g. 50, 100, 150" style="padding:9px 12px; font-size:13.5px;" oninput="calculateCustomPayment()">
                 <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
                   <button type="button" class="btn-preset" onclick="setCustomerModalAmount(50)">50</button>
@@ -1728,7 +1748,7 @@
                 </div>
               </div>
               <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Payment Notes (Optional)</label>
+                <label for="customPaymentNotes" style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Payment Notes (Optional)</label>
                 <input type="text" class="form-input" id="customPaymentNotes" placeholder="e.g. Cash received by Admin" style="padding:9px 12px; font-size:13px;">
                 <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
                   <button type="button" class="btn-preset" onclick="setCustomerModalNotes('Cash Payment')">💵 Cash</button>
@@ -1827,17 +1847,17 @@
     <form id="addCustForm" onsubmit="submitNewCustomer(event)">
       <div class="modal-body">
         <div class="form-group">
-          <label>Customer Full Name</label>
+          <label for="newCustName">Customer Full Name</label>
           <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi">
         </div>
 
         <div class="form-group">
-          <label>Primary Phone Number</label>
+          <label for="newCustPhone">Primary Phone Number</label>
           <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
         </div>
 
         <div class="form-group">
-          <label>Assigned Reseller / Partner Shop (Optional)</label>
+          <label for="addCustReseller">Assigned Reseller / Partner Shop (Optional)</label>
           <select class="form-select" id="addCustReseller">
             <option value="">🏢 Direct ISP (No Reseller)</option>
             {% for r in resellers %}
@@ -1863,7 +1883,7 @@
         </div>
 
         <div class="form-group">
-          <label>Speed Package</label>
+          <label for="addCustPkg">Speed Package</label>
           <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
             {% for pkg in packages %}
             <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
@@ -1873,7 +1893,7 @@
 
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label style="margin-bottom:0;">Speed that Customer Will Get (Speed Limit)</label>
+            <label for="addCustSpeed" style="margin-bottom:0;">Speed that Customer Will Get (Speed Limit)</label>
             <span style="font-size:11px; color:var(--text-dim);">Live MikroTik Queue</span>
           </div>
           <div class="preset-wrap">
@@ -1893,17 +1913,17 @@
 
         <div class="modal-grid-2">
           <div class="form-group">
-            <label>Monthly Fee (SAR)</label>
+            <label for="addCustFee">Monthly Fee (SAR)</label>
             <input type="number" step="0.01" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()">
           </div>
           <div class="form-group">
-            <label>Payment Due Date (Manual)</label>
+            <label for="addCustDueDate">Payment Due Date (Manual)</label>
             <input type="date" class="form-input font-mono" id="addCustDueDate" required style="color:#ffffff;">
           </div>
         </div>
 
         <div class="form-group">
-          <label>Initial / Advance Payment Collected (SAR) (Optional)</label>
+          <label for="addCustInitialPay">Initial / Advance Payment Collected (SAR) (Optional)</label>
           <input type="number" step="0.01" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateAddCustAdvance()">
           <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 30 SAR fee) goes to Credit Balance!</span>
         </div>
@@ -1925,7 +1945,7 @@
 
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label style="margin-bottom:0;">Allowed Devices (Max Device Limit)</label>
+            <label for="addCustMaxDevices" style="margin-bottom:0;">Allowed Devices (Max Device Limit)</label>
             <span style="font-size:11px; color:var(--text-dim);">Simultaneous logins</span>
           </div>
           <div class="preset-wrap">
@@ -1943,7 +1963,7 @@
         </div>
 
         <div class="form-group">
-          <label>Initial Device MAC Address (Optional)</label>
+          <label for="addCustMac">Initial Device MAC Address (Optional)</label>
           <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74 (Auto-bypasses on MikroTik)">
           <div id="addCustMacFeedback" style="display:none; margin-top:5px; font-size:11.5px; font-weight:600;"></div>
         </div>
@@ -1988,11 +2008,11 @@
           </div>
           <div class="modal-grid-2">
             <div class="form-group" style="margin-bottom:0;">
-              <label>Customer Full Name</label>
+              <label for="editCustName">Customer Full Name</label>
               <input type="text" class="form-input" id="editCustName" required>
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label>Primary Phone Number</label>
+              <label for="editCustPhone">Primary Phone Number</label>
               <input type="text" class="form-input font-mono" id="editCustPhone" required>
             </div>
           </div>
@@ -2021,7 +2041,7 @@
           </div>
 
           <div class="form-group" style="margin-bottom:0;">
-            <label>Speed Package</label>
+            <label for="editCustPkg">Speed Package</label>
             <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
               {% for pkg in packages %}
               <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
@@ -2031,7 +2051,7 @@
 
           <div class="form-group" style="margin-bottom:0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="margin-bottom:0;">Allocated Speed Limit (Upload / Download)</label>
+              <label for="editCustSpeed" style="margin-bottom:0;">Allocated Speed Limit (Upload / Download)</label>
               <span style="font-size:11px; color:#38bdf8; font-weight:600;">Live MikroTik Queue</span>
             </div>
             <div class="preset-wrap">
@@ -2058,15 +2078,15 @@
 
           <div class="modal-grid-3">
             <div class="form-group" style="margin-bottom:0;">
-              <label>Monthly Fee (SAR)</label>
+              <label for="editCustFee">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label>Payment Due Date</label>
+              <label for="editCustDueDate">Payment Due Date</label>
               <input type="date" class="form-input font-mono" id="editCustDueDate" required style="color:#ffffff;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label>Credit Balance (SAR)</label>
+              <label for="editCustCredit">Credit Balance (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
             </div>
           </div>
@@ -2080,7 +2100,7 @@
           </div>
 
           <div class="form-group" style="margin-bottom:0;">
-            <label style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
+            <label for="editCustMaxDevices" style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
             <div class="preset-wrap">
               <input type="number" min="1" max="100" class="form-input font-mono" id="editCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
               <div style="display:flex; gap:4px; flex-wrap:wrap;">
@@ -2199,7 +2219,7 @@
 
         <!-- Extension Presets & Input -->
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
+          <label for="promiseDaysInput" style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
             Extension Days / Grace Period
           </label>
           <div class="preset-wrap" style="display:flex; gap:8px; align-items:center;">
@@ -2215,7 +2235,7 @@
 
         <!-- Target Date Picker -->
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
+          <label for="promiseDatePicker" style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
             Target Promise / Due Date
           </label>
           <input type="date" class="form-input font-mono" id="promiseDatePicker" style="font-size:13px; color:#ffffff; padding:8px 12px;" onchange="onPromiseDateChanged()">
@@ -2245,7 +2265,7 @@
 
         <!-- Optional Reason Note -->
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
+          <label for="promiseNoteInput" style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
             Promise Note / Reason (Optional)
           </label>
           <input type="text" class="form-input" id="promiseNoteInput" placeholder="e.g. Customer promised to pay on the 20th" style="font-size:12.5px; padding:8px 12px;">
