@@ -366,6 +366,117 @@
       padding: 5px 6px;
       font-size: 11px;
     }
+    .pon-ports-bar {
+      grid-template-columns: 1fr;
+      padding: 12px;
+      gap: 10px;
+    }
+    .filter-bar {
+      padding: 10px 12px;
+    }
+
+    /* ONU Table Card Deck */
+    #onuTable thead,
+    .olt-ledger-table thead {
+      display: none;
+    }
+    #onuTable, #onuTable tbody, #onuTable tr,
+    .olt-ledger-table, .olt-ledger-table tbody, .olt-ledger-table tr {
+      display: block;
+      width: 100%;
+    }
+    #onuTable tr[data-search],
+    .olt-ledger-table tr.ledger-row {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    #onuTable tr[data-search] td,
+    .olt-ledger-table tr.ledger-row td {
+      border: none !important;
+      padding: 2px 0 !important;
+      font-size: 12px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #onuTable tr[data-search] td::before,
+    .olt-ledger-table tr.ledger-row td::before {
+      content: attr(data-label);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 1px;
+    }
+    #onuTable tr[data-search] td[data-label="ONU Name / Label"] {
+      grid-column: 1 / -1;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 2px !important;
+    }
+    #onuTable tr[data-search] td[data-label="Serial & Hardware"] {
+      grid-column: 1;
+    }
+    #onuTable tr[data-search] td[data-label="Link State"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    #onuTable tr[data-search] td[data-label="PON Port"] {
+      grid-column: 1;
+    }
+    #onuTable tr[data-search] td[data-label="Optical RX Power"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    #onuTable tr[data-search] td[data-label="Distance"] {
+      grid-column: 1;
+    }
+    #onuTable tr[data-search] td[data-label="Uptime"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    #onuTable tr[data-search] td[data-label="Diagnostic Status"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 4px !important;
+      margin-top: 2px !important;
+    }
+
+    .olt-ledger-table tr.ledger-row td[data-label="Event Details / Reason"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 4px !important;
+      margin-top: 2px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-input, #onuSearchInput {
+      font-size: 16px !important;
+    }
+    .btn-rename {
+      min-height: 38px !important;
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+    }
+    .pill-btn {
+      min-height: 38px !important;
+      padding: 8px 12px !important;
+    }
+  }
+
+  @media (max-width: 440px) {
+    .telemetry-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
   }
 </style>
 {% endblock %}
@@ -575,7 +686,7 @@
           {% else %}
             {% for u in onus %}
             <tr data-search="{{ u.name | lower }} {{ u.serial_number | lower }} {{ (u.customer_name or '') | lower }} {{ u.customer_phone or '' }}">
-              <td>
+              <td data-label="ONU Name / Label">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <strong style="color: #ffffff; font-size: 13.5px;">{{ u.name }}</strong>
                   <button type="button" class="btn-rename" onclick="openRenameModal({{ u.id }}, '{{ u.name }}')">
@@ -589,24 +700,24 @@
                   </div>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="Serial & Hardware">
                 <div class="font-mono" style="font-weight: 700; color: #38bdf8;">{{ u.serial_number }}</div>
                 <div class="text-dim" style="font-size: 11px;">{{ u.onu_model }}</div>
               </td>
-              <td>
+              <td data-label="PON Port">
                 <span class="font-mono" style="font-weight: 700; color: #ffffff;">PON {{ u.pon_port }}</span>
                 <span class="font-mono text-dim" style="font-size: 11px;">(ID: {{ u.onu_id }})</span>
               </td>
-              <td>
+              <td data-label="Optical RX Power">
                 <span class="badge-optical {{ u.signal_quality }}">
                   <span>{{ "%.2f"|format(u.rx_power) }} dBm</span>
                 </span>
               </td>
-              <td>
+              <td data-label="Distance">
                 <span class="font-mono" style="font-weight: 600; color: #ffffff;">{{ u.distance_km }} km</span>
                 <div class="text-dim" style="font-size: 10px;">{{ u.distance_m }}m</div>
               </td>
-              <td>
+              <td data-label="Link State">
                 {% if u.status == 'online' %}
                   <span class="badge-status running">ONLINE</span>
                 {% elif u.status == 'los' %}
@@ -615,11 +726,11 @@
                   <span class="badge-status stopped">OFFLINE</span>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="Uptime">
                 <span class="font-mono text-cyan" style="font-weight: 600;">{{ u.uptime }}</span>
                 <div class="text-dim font-mono" style="font-size: 10px;">{{ u.availability_pct }}% availability</div>
               </td>
-              <td>
+              <td data-label="Diagnostic Status">
                 {% if u.error_severity == 'critical' or u.status == 'los' %}
                   <span style="color: #f87171; font-weight: 700; font-size: 12px;">🚨 {{ u.last_error }}</span>
                 {% elif u.error_severity == 'warning' %}
@@ -647,7 +758,7 @@
     </div>
 
     <div style="overflow-x: auto;">
-      <table class="clean-table">
+      <table class="clean-table olt-ledger-table">
         <thead>
           <tr>
             <th>Event Timestamp</th>
@@ -668,17 +779,17 @@
           </tr>
           {% else %}
             {% for leg in uptime_ledger %}
-            <tr>
-              <td class="font-mono text-dim" style="font-size: 11px;">{{ leg.event_time }}</td>
-              <td>
+            <tr class="ledger-row">
+              <td data-label="Event Timestamp" class="font-mono text-dim" style="font-size: 11px;">{{ leg.event_time }}</td>
+              <td data-label="ONU Name &amp; Serial">
                 <div style="font-weight: 700; color: #ffffff;">{{ leg.onu_name }}</div>
                 <div class="font-mono text-dim" style="font-size: 11px;">{{ leg.serial_number }}</div>
               </td>
-              <td>
+              <td data-label="Location">
                 <span class="font-mono text-cyan">PON {{ leg.pon_port }}</span>
                 <span class="font-mono text-dim" style="font-size: 11px;">(ID: {{ leg.onu_idx }})</span>
               </td>
-              <td>
+              <td data-label="Event Type">
                 {% if leg.event_type == 'online' or leg.event_type == 'recovered' %}
                   <span class="badge-status running">LINK UP</span>
                 {% elif leg.event_type == 'los' %}
@@ -691,15 +802,15 @@
                   <span class="badge-status stopped">{{ leg.event_type | upper }}</span>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="Session Duration">
                 <span class="font-mono" style="font-weight: 700; color: #ffffff;">{{ leg.duration_str or '—' }}</span>
               </td>
-              <td>
+              <td data-label="Optical Power">
                 <span class="font-mono" style="font-weight: 600; color: {% if leg.rx_power and leg.rx_power < -27 %}#f87171{% elif leg.rx_power and leg.rx_power < -24 %}#fbbf24{% else %}#34d399{% endif %};">
                   {{ leg.rx_power }} dBm
                 </span>
               </td>
-              <td class="text-dim" style="font-size: 12px;">
+              <td data-label="Event Details / Reason" class="text-dim" style="font-size: 12px;">
                 {{ leg.reason }}
               </td>
             </tr>
@@ -717,13 +828,13 @@
   <div class="modal-container">
     <div class="modal-header">
       <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Edit ONU Name / Label</h3>
-      <button type="button" class="btn-modal-close" onclick="closeRenameModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+      <button type="button" class="btn-modal-close" onclick="closeRenameModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <form id="renameOnuForm" onsubmit="submitRename(event)">
       <div class="modal-body">
         <input type="hidden" id="renameOnuId">
         <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ONU Friendly Name</label>
+          <label for="renameOnuInput" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ONU Friendly Name</label>
           <input type="text" class="form-input" id="renameOnuInput" required placeholder="e.g. Shajjad Khan Office ONT">
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">

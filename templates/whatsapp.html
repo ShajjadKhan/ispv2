@@ -382,6 +382,17 @@
     overflow-y: auto;
   }
 
+  .quiet-hours-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .support-server-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
   /* MOBILE RESPONSIVE OPTIMIZATION */
   @media (max-width: 768px) {
     .wa-hero-card {
@@ -394,6 +405,107 @@
     .clean-table th, .clean-table td {
       padding: 5px 6px;
       font-size: 11px;
+    }
+
+    /* Logs Table Card Deck */
+    #logsTable thead {
+      display: none;
+    }
+    #logsTable, #logsTable tbody, #logsTable tr {
+      display: block;
+      width: 100%;
+    }
+    #logsTable tr[data-search] {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    #logsTable tr[data-search] td {
+      border: none !important;
+      padding: 2px 0 !important;
+      font-size: 12px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #logsTable tr[data-search] td::before {
+      content: attr(data-label);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 1px;
+    }
+    #logsTable tr[data-search] td[data-label="Timestamp"] {
+      grid-column: 1;
+    }
+    #logsTable tr[data-search] td[data-label="Status"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    #logsTable tr[data-search] td[data-label="Recipient / Subscriber"] {
+      grid-column: 1;
+    }
+    #logsTable tr[data-search] td[data-label="Mobile"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    #logsTable tr[data-search] td[data-label="Category"] {
+      grid-column: 1;
+    }
+    #logsTable tr[data-search] td[data-label="Action"] {
+      grid-column: 2;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #logsTable tr[data-search] td[data-label="Action"] button {
+      min-height: 36px;
+      padding: 6px 12px;
+    }
+    #logsTable tr[data-search] td[data-label="Message Snippet"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 4px !important;
+      margin-top: 2px !important;
+    }
+    #logsTable tr[data-search] td[data-label="Message Snippet"] div {
+      max-width: 100% !important;
+      white-space: normal !important;
+      line-height: 1.4;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .quiet-hours-grid,
+    .support-server-grid {
+      grid-template-columns: 1fr !important;
+      gap: 8px;
+    }
+    .form-control {
+      font-size: 16px !important;
+    }
+    .filter-bar {
+      padding: 10px 12px;
+    }
+    #waLogSearch {
+      width: 100% !important;
+    }
+    .btn-wa-send, .btn-simulate {
+      min-height: 42px !important;
+      font-size: 13px !important;
+    }
+  }
+
+  @media (max-width: 440px) {
+    .telemetry-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
     }
   }
 </style>
@@ -519,7 +631,7 @@
 
         <!-- RECIPIENT SELECTOR -->
         <div class="form-group">
-          <label class="form-label">1. Choose Recipient</label>
+          <label class="form-label" for="custPicker">1. Choose Recipient</label>
           <div style="display: flex; gap: 8px;">
             <select id="custPicker" class="form-control" onchange="onCustomerSelected(this.value)">
               <option value="">-- Choose Existing Subscriber or Enter Phone --</option>
@@ -539,7 +651,7 @@
 
         <!-- PHONE NUMBER -->
         <div class="form-group">
-          <label class="form-label">Recipient Mobile Number</label>
+          <label class="form-label" for="targetPhone">Recipient Mobile Number</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="font-mono" style="background:#090e1a; border:1px solid var(--border-subtle); padding:10px 12px; border-radius:8px; font-size:13px; color:#38bdf8;">+966</span>
             <input type="text" id="targetPhone" class="form-control font-mono" placeholder="05XXXXXXXX or 5XXXXXXXX" oninput="updateLivePreview()">
@@ -580,7 +692,7 @@
 
         <!-- MESSAGE EDITOR -->
         <div class="form-group">
-          <label class="form-label">3. Message Text</label>
+          <label class="form-label" for="messageEditor">3. Message Text</label>
           <textarea id="messageEditor" class="form-control font-mono" rows="8" style="resize: vertical; font-size: 12.5px; line-height: 1.5;" oninput="updateLivePreview()"></textarea>
           <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-top: 4px;">
             <span id="charCount">0 characters</span>
@@ -783,21 +895,21 @@
           {% else %}
             {% for l in logs %}
             <tr data-search="{{ l.display_name | lower }} {{ l.phone }} {{ l.message_type | lower }} {{ l.status | lower }}">
-              <td class="font-mono text-dim" style="font-size: 11px;">{{ l.created_at }}</td>
-              <td>
+              <td data-label="Timestamp" class="font-mono text-dim" style="font-size: 11px;">{{ l.created_at }}</td>
+              <td data-label="Recipient / Subscriber">
                 <strong style="color: #ffffff;">{{ l.display_name }}</strong>
                 <div class="text-dim font-mono" style="font-size: 10px;">By: {{ l.sent_by }}</div>
               </td>
-              <td class="font-mono text-cyan">+{{ l.phone }}</td>
-              <td>
+              <td data-label="Mobile" class="font-mono text-cyan">+{{ l.phone }}</td>
+              <td data-label="Category">
                 <span class="badge-tag" style="text-transform: uppercase;">{{ l.message_type }}</span>
               </td>
-              <td>
+              <td data-label="Message Snippet">
                 <div style="max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--text-muted);">
                   {{ l.message_body }}
                 </div>
               </td>
-              <td>
+              <td data-label="Status">
                 {% if l.status == 'sent' %}
                   <span class="badge-status running" style="font-size: 10px;">DELIVERED ✅</span>
                 {% elif l.status == 'blocked_night' %}
@@ -808,7 +920,7 @@
                   <span class="badge-status stopped" style="font-size: 10px;">FAILED ❌</span>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="Action">
                 <button type="button" class="btn-simulate" style="font-size: 10.5px; padding: 3px 8px;" onclick="viewFullMessage({{ l.id }}, '{{ l.phone }}', '{{ l.display_name }}', '{{ l.created_at }}', '{{ l.status }}')">
                   View Text
                 </button>
@@ -829,7 +941,7 @@
   <div class="modal-container" style="max-width: 500px;">
     <div class="modal-header">
       <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">📋 Outbox Message Details</h3>
-      <button type="button" onclick="closeViewMessageModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+      <button type="button" onclick="closeViewMessageModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <div class="modal-body">
       <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim);">
@@ -849,7 +961,7 @@
   <div class="modal-container">
     <div class="modal-header">
       <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">⚙️ WhatsApp Settings &amp; Templates</h3>
-      <button type="button" onclick="closeSettingsModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+      <button type="button" onclick="closeSettingsModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <form onsubmit="saveSettings(event)">
       <div class="modal-body">
@@ -858,7 +970,7 @@
         <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong style="color: #ffffff; font-size: 13px;">Master Automated Messaging Switch</strong>
+              <label for="set_auto_dispatch" style="color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer;">Master Automated Messaging Switch</label>
               <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
                 Controls whether background cron jobs are permitted to send notices automatically.
               </div>
@@ -876,46 +988,46 @@
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px;">
             Blocks outbound dispatches during sleeping hours so subscribers are never disturbed.
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div class="quiet-hours-grid">
             <div>
-              <label class="form-label">Shield Status</label>
+              <label class="form-label" for="set_quiet_enabled">Shield Status</label>
               <select id="set_quiet_enabled" class="form-control">
                 <option value="1" {% if wa_settings.quiet_hours_enabled == '1' %}selected{% endif %}>Active (Protected)</option>
                 <option value="0" {% if wa_settings.quiet_hours_enabled == '0' %}selected{% endif %}>Disabled</option>
               </select>
             </div>
             <div>
-              <label class="form-label">Night Begins</label>
+              <label class="form-label" for="set_quiet_start">Night Begins</label>
               <input type="text" id="set_quiet_start" class="form-control font-mono" value="{{ wa_settings.quiet_hours_start or '22:00' }}" placeholder="22:00">
             </div>
             <div>
-              <label class="form-label">Morning Ends</label>
+              <label class="form-label" for="set_quiet_end">Morning Ends</label>
               <input type="text" id="set_quiet_end" class="form-control font-mono" value="{{ wa_settings.quiet_hours_end or '09:00' }}" placeholder="09:00">
             </div>
           </div>
         </div>
 
         <!-- CONTACT & SERVERS -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="support-server-grid">
           <div class="form-group">
-            <label class="form-label">Support Phone</label>
+            <label class="form-label" for="set_support_phone">Support Phone</label>
             <input type="text" id="set_support_phone" class="form-control font-mono" value="{{ wa_settings.support_phone or '0597595059' }}">
           </div>
           <div class="form-group">
-            <label class="form-label">Free Movie Portal</label>
+            <label class="form-label" for="set_movie_server">Free Movie Portal</label>
             <input type="text" id="set_movie_server" class="form-control font-mono" value="{{ wa_settings.movie_server or 'http://10.12.14.16:8082' }}">
           </div>
         </div>
 
         <!-- TEMPLATE: DUE REMINDER -->
         <div class="form-group">
-          <label class="form-label">Default Due Reminder Template</label>
+          <label class="form-label" for="set_tpl_reminder">Default Due Reminder Template</label>
           <textarea id="set_tpl_reminder" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_reminder }}</textarea>
         </div>
 
         <!-- TEMPLATE: PAYMENT RECEIPT -->
         <div class="form-group">
-          <label class="form-label">Default Payment Receipt Template</label>
+          <label class="form-label" for="set_tpl_receipt">Default Payment Receipt Template</label>
           <textarea id="set_tpl_receipt" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_receipt }}</textarea>
         </div>
 
