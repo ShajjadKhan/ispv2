@@ -463,7 +463,8 @@ PUBLIC_EXACT_PATHS = {
     "/favicon.ico",
     "/portal",
     "/hotspot",
-    "/hotspot/login"
+    "/hotspot/login",
+    "/get_unpaid.php"
 }
 
 PUBLIC_PREFIXES = (
