@@ -239,15 +239,15 @@
   }
 
   .ports-board {
-    padding: 10px;
+    padding: 12px;
     background: #090e1a;
-    border-radius: 10px;
+    border-radius: 12px;
     margin: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   .ports-rack {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 10px;
   }
   @media (max-width: 860px) {
@@ -262,10 +262,46 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    transition: all 0.2s ease;
+  }
+  .port-box:hover {
+    border-color: rgba(56, 189, 248, 0.35);
   }
   .port-box.is-active {
-    border-color: rgba(56, 189, 248, 0.35);
+    border-color: rgba(56, 189, 248, 0.4);
     background: #13203b;
+  }
+  .port-box.is-sfp {
+    background: #15162b;
+    border-color: rgba(245, 158, 11, 0.25);
+  }
+  .port-box.is-sfp.is-active {
+    border-color: rgba(245, 158, 11, 0.5);
+    background: #1c1c38;
+  }
+  .badge-port-type {
+    font-size: 9px;
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-port-type.rj45 {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .badge-port-type.sfp {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .badge-port-type.wlan {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
   }
 
   /* TABLES */
@@ -557,30 +593,63 @@
   </div>
   {% endif %}
 
-  <!-- HARDWARE PORTS VISUALIZER (FOR SELECTED ROUTER) -->
+  <!-- HARDWARE PORTS VISUALIZER (DYNAMIC FOR CONNECTED ROUTER) -->
   <div class="section-card">
     <div class="section-card-header">
       <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-        <span>Physical RJ45 Ports &amp; Uplinks ({{ selected_router.name if selected_router else 'Primary' }})</span>
+        <span>Hardware Ports &amp; Uplinks ({{ selected_router.name if selected_router else 'Primary' }})</span>
       </div>
-      <span class="font-mono text-dim" style="font-size: 11px;">Hardware Interface Link State</span>
+      <div style="display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 11px;">
+        <span class="text-dim">Model: <strong class="text-white">{{ router.model }}</strong></span>
+        {% set port_list = router.physical_interfaces if (router.physical_interfaces is defined and router.physical_interfaces) else (router.interfaces | rejectattr('type', 'equalto', 'loopback') | list if router.interfaces else []) %}
+        <span class="badge-vlan" style="font-size: 10px; padding: 2px 7px;">{{ port_list | length }} Ports Detected</span>
+      </div>
     </div>
 
     <div class="ports-board">
       <div class="ports-rack">
-        {% for iface in router.interfaces[:4] %}
-        <div class="port-box {% if iface.running %}is-active{% endif %}" id="port-box-{{ iface.name }}">
+        {% for iface in port_list %}
+        <div class="port-box {% if iface.running %}is-active{% endif %} {% if iface.media_type == 'sfp' or 'sfp' in iface.name|lower %}is-sfp{% endif %}" id="port-box-{{ iface.name }}">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="font-mono" style="font-size: 13px; font-weight: 800; color: #ffffff;">{{ iface.name }}</span>
-            <span class="optical-led {% if iface.running %}up{% endif %}"></span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="font-mono" style="font-size: 13px; font-weight: 800; color: #ffffff;">{{ iface.name }}</span>
+              {% if iface.media_type == 'sfp' or 'sfp' in iface.name|lower %}
+                <span class="badge-port-type sfp">SFP</span>
+              {% elif iface.media_type == 'wireless' or 'wlan' in iface.name|lower %}
+                <span class="badge-port-type wlan">WLAN</span>
+              {% else %}
+                <span class="badge-port-type rj45">RJ45</span>
+              {% endif %}
+            </div>
+            <span class="optical-led {% if iface.running %}up{% endif %}" title="Link State: {% if iface.running %}Up / Carrier Detected{% else %}Down / No Link{% endif %}"></span>
           </div>
-          <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
-            Role: <span style="color:#ffffff;">{{ iface.comment or iface.type }}</span>
+
+          <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); display: flex; justify-content: space-between; align-items: center;">
+            <span class="text-dim">Role:</span>
+            <span style="color:#ffffff; font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:115px;" title="{{ iface.comment or iface.type }}">
+              {{ iface.comment or ( 'Fiber SFP Uplink' if ('sfp' in iface.name|lower or iface.media_type == 'sfp') else (iface.type | upper if iface.type else 'Ethernet') ) }}
+            </span>
           </div>
-          <div style="font-size: 11px; font-family: var(--font-mono);">
-            Link: {% if iface.running %}<strong class="text-emerald">CONNECTED</strong>{% else %}<span class="text-dim">NO CARRIER</span>{% endif %}
+
+          <div style="font-size: 11px; font-family: var(--font-mono); display: flex; justify-content: space-between; align-items: center;">
+            <span class="text-dim">Link:</span>
+            {% if iface.running %}
+              <strong class="text-emerald" style="display: flex; align-items: center; gap: 4px;">
+                <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%;"></span>
+                CONNECTED
+              </strong>
+            {% else %}
+              <span class="text-dim" style="display: flex; align-items: center; gap: 4px;">
+                <span style="display:inline-block; width:6px; height:6px; background:#64748b; border-radius:50%;"></span>
+                NO CARRIER
+              </span>
+            {% endif %}
           </div>
+        </div>
+        {% else %}
+        <div style="grid-column: 1 / -1; padding: 25px; text-align: center; color: var(--text-dim); font-size: 13px;">
+          No hardware interfaces returned by {{ selected_router.name if selected_router else 'Router' }}.
         </div>
         {% endfor %}
       </div>

@@ -196,17 +196,81 @@ class RouterClient:
             except Exception:
                 rb = {}
 
-            # 4. Interfaces
-            ifaces_raw = api.get_resource('/interface').get()
+            # 4. Interfaces & Hardware Physical Ports
+            try:
+                ifaces_raw = api.get_resource('/interface').get()
+            except Exception as e:
+                logger.warning(f"Failed to fetch /interface from {self.host}: {e}")
+                ifaces_raw = []
+
+            eth_map = {}
+            try:
+                eth_raw = api.get_resource('/interface/ethernet').get()
+                for e in eth_raw:
+                    eth_map[e.get("name")] = e
+            except Exception as e:
+                logger.debug(f"Could not fetch /interface/ethernet from {self.host}: {e}")
+
             interfaces = []
             for i in ifaces_raw:
+                name = i.get("name", "")
+                name_lower = name.lower()
+                itype = i.get("type", "")
+
+                is_sfp = name_lower.startswith("sfp") or "sfp" in itype.lower() or (name in eth_map and "sfp" in eth_map[name].get("default-name", "").lower())
+                is_eth = (name in eth_map) or (itype == "ether") or name_lower.startswith("ether")
+                is_wlan = name_lower.startswith("wlan") or "wlan" in itype.lower() or "wifi" in itype.lower()
+                is_loopback = itype == "loopback" or name_lower == "lo"
+
+                if is_sfp:
+                    media_type = "sfp"
+                    is_physical = True
+                elif is_eth:
+                    media_type = "ether"
+                    is_physical = True
+                elif is_wlan:
+                    media_type = "wireless"
+                    is_physical = True
+                elif is_loopback:
+                    media_type = "loopback"
+                    is_physical = False
+                else:
+                    media_type = itype
+                    is_physical = False
+
+                eth_info = eth_map.get(name, {})
                 interfaces.append({
-                    "name": i.get("name"),
-                    "type": i.get("type"),
+                    "name": name,
+                    "default_name": i.get("default-name") or eth_info.get("default-name", name),
+                    "type": itype,
+                    "media_type": media_type,
+                    "is_physical": is_physical,
                     "running": i.get("running") == "true",
                     "disabled": i.get("disabled") == "true",
-                    "comment": i.get("comment", "")
+                    "comment": i.get("comment", "") or eth_info.get("comment", ""),
+                    "mac_address": i.get("mac-address") or eth_info.get("mac-address", "")
                 })
+
+            def _sort_key(iface):
+                nm = iface["name"].lower()
+                mt = iface.get("media_type")
+                if mt == "ether" and not nm.startswith("sfp"):
+                    cat = 1
+                elif mt == "sfp" or nm.startswith("sfp"):
+                    cat = 2
+                elif mt == "wireless":
+                    cat = 3
+                elif iface.get("is_physical"):
+                    cat = 4
+                elif mt == "loopback" or nm == "lo":
+                    cat = 99
+                else:
+                    cat = 50
+                tokens = [int(t) if t.isdigit() else t for t in re.split(r'(\d+)', nm)]
+                return (cat, tokens)
+
+            interfaces.sort(key=_sort_key)
+            physical_interfaces = [i for i in interfaces if i.get("is_physical")]
 
             # 5. IP Addresses
             ip_list = api.get_resource('/ip/address').get()
@@ -248,6 +312,7 @@ class RouterClient:
                 "memory_percent": mem_percent,
                 "uptime": uptime,
                 "interfaces": interfaces,
+                "physical_interfaces": physical_interfaces,
                 "ip_map": ip_map,
                 "error": None,
                 "checked_at": time.strftime("%H:%M:%S")
@@ -271,6 +336,7 @@ class RouterClient:
                 "memory_percent": 0,
                 "uptime": "Offline",
                 "interfaces": [],
+                "physical_interfaces": [],
                 "ip_map": {},
                 "error": str(e),
                 "checked_at": time.strftime("%H:%M:%S")
