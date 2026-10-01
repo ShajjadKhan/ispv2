@@ -1907,7 +1907,7 @@
               </td>
               <td data-label="Actions" class="sub-actions-cell" style="text-align: right;">
                 <div style="display: inline-flex; align-items: center; gap: 5px;">
-                  <button type="button" class="btn-quick-collect" onclick="openCollectModal({{ c.id }}, '{{ c.name|escape }}')" title="Collect Payment &amp; Settle Unpaid Month(s)">
+                  <button type="button" class="btn-quick-collect" data-cid="{{ c.id }}" data-cname="{{ c.name }}" onclick="openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'))" title="Collect Payment &amp; Settle Unpaid Month(s)">
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                     <span>Collect</span>
                   </button>
@@ -2699,7 +2699,12 @@
     document.getElementById('unpaidList').innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;"><svg style="width:18px; height:18px; animation:spin 1s linear infinite; vertical-align:middle; margin-right:6px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c-4.41 0-8-3.59-8-8H2c0 5.52 4.48 10 10 10v-2z"/></svg> Loading unpaid cycles…</div>';
 
     fetch('/api/customers/' + cid + '/unpaid')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          return fetch('/get_unpaid.php?cid=' + cid).then(r2 => r2.json());
+        }
+        return r.json();
+      })
       .then(data => {
         if (!data || !data.length) {
           document.getElementById('unpaidList').innerHTML = '<div style="padding:14px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:#34d399; font-weight:700;"><svg style="width:16px; height:16px; vertical-align:text-bottom; margin-right:6px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> All bills are paid for this customer!</div>';
@@ -2894,7 +2899,13 @@
     }
   }
 
-  // Backwards compatibility alias
+  // Global exports & backwards compatibility aliases
+  window.openCollectModal = openCollectModal;
+  window.closeCollectModal = closeCollectModal;
+  window.updateTotal = updateTotal;
+  window.submitCollectForm = submitCollectForm;
+  window.openQuickCollectModal = openCollectModal;
+  window.closeQuickCollectModal = closeCollectModal;
   function openQuickCollectModal(id, name) {
     openCollectModal(id, name);
   }
@@ -3441,7 +3452,7 @@
         <!-- Modal Action Footer -->
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; padding-top:12px; border-top:1px solid var(--border-subtle); flex-wrap:wrap;">
           <div style="display:flex; gap:8px;">
-            <button type="button" class="btn-quick-collect" onclick="closeCustomerDetailsModal(); openCollectModal(${c.id}, '${c.name.replace(/'/g, &quot;\\'&quot;)}');">
+            <button type="button" class="btn-quick-collect" data-cid="${c.id}" data-cname="${escapeHtml(c.name)}" onclick="closeCustomerDetailsModal(); openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'));">
               <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
               <span>Collect Bill</span>
             </button>
