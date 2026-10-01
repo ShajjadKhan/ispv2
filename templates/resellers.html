@@ -333,6 +333,12 @@
     border-bottom-color: #38bdf8;
   }
 
+  .form-grid-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
   /* MOBILE RESPONSIVE OPTIMIZATION */
   @media (max-width: 768px) {
     .stats-row {
@@ -358,12 +364,116 @@
       padding: 8px 10px;
       gap: 8px;
     }
-    .clean-table th, .clean-table td {
-      padding: 5px 6px;
-      font-size: 11px;
-    }
     .search-box {
       width: 100%;
+    }
+    .tab-strip {
+      padding: 0 10px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .tab-btn {
+      padding: 10px 12px;
+      font-size: 12px;
+      min-height: 42px;
+    }
+
+    /* Resellers Table Card Deck */
+    #resellersTable thead,
+    #sectionManagers .clean-table thead,
+    #sectionLedger .clean-table thead {
+      display: none;
+    }
+    #resellersTable, #resellersTable tbody, #resellersTable tr,
+    #sectionManagers .clean-table, #sectionManagers .clean-table tbody, #sectionManagers .clean-table tr,
+    #sectionLedger .clean-table, #sectionLedger .clean-table tbody, #sectionLedger .clean-table tr {
+      display: block;
+      width: 100%;
+    }
+    #resellersTable tr.reseller-row,
+    #sectionManagers .clean-table tr.manager-row,
+    #sectionLedger .clean-table tr.ledger-row {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    #resellersTable tr.reseller-row td,
+    #sectionManagers .clean-table tr.manager-row td,
+    #sectionLedger .clean-table tr.ledger-row td {
+      border: none !important;
+      padding: 2px 0 !important;
+      font-size: 12px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #resellersTable tr.reseller-row td::before,
+    #sectionManagers .clean-table tr.manager-row td::before,
+    #sectionLedger .clean-table tr.ledger-row td::before {
+      content: attr(data-label);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 1px;
+    }
+    #resellersTable tr.reseller-row td[data-label="Shop / Partner Name"] {
+      grid-column: 1 / -1;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 2px !important;
+    }
+    #resellersTable tr.reseller-row td[data-label="Actions"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 6px !important;
+      margin-top: 2px !important;
+      align-items: flex-end;
+    }
+    #resellersTable tr.reseller-row td[data-label="Actions"] > div {
+      width: 100%;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    #resellersTable tr.reseller-row td[data-label="Actions"] button,
+    #resellersTable tr.reseller-row td[data-label="Actions"] a {
+      min-height: 38px;
+      padding: 6px 12px;
+    }
+
+    #sectionManagers .clean-table tr.manager-row td[data-label="Actions"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 6px !important;
+      margin-top: 2px !important;
+      align-items: flex-end;
+    }
+
+    #sectionLedger .clean-table tr.ledger-row td[data-label="Details / Subscriber"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 4px !important;
+      margin-top: 2px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-grid-pair {
+      grid-template-columns: 1fr !important;
+      gap: 10px;
+    }
+    .form-input, .search-box {
+      font-size: 16px !important;
+    }
+    .btn-primary-action, .btn-secondary-action {
+      min-height: 42px !important;
+      font-size: 13px !important;
     }
   }
 </style>
@@ -469,38 +579,38 @@
             </tr>
             {% else %}
               {% for r in resellers %}
-              <tr data-search="{{ (r.shop_name or '')|lower }} {{ r.username|lower }} {{ r.full_name|lower }} {{ r.phone }}">
-                <td>
+              <tr class="reseller-row" data-search="{{ (r.shop_name or '')|lower }} {{ r.username|lower }} {{ r.full_name|lower }} {{ r.phone }}">
+                <td data-label="Shop / Partner Name">
                   <div style="font-weight:700; color:#ffffff;">{{ r.shop_name or r.full_name }}</div>
                   <div class="font-mono text-dim" style="font-size:11px;">{{ r.full_name }}</div>
                 </td>
-                <td class="font-mono text-cyan" style="font-weight:700;">{{ r.username }}</td>
-                <td class="font-mono text-dim">{{ r.phone or '—' }}</td>
-                <td>
+                <td data-label="Username" class="font-mono text-cyan" style="font-weight:700;">{{ r.username }}</td>
+                <td data-label="Contact Phone" class="font-mono text-dim">{{ r.phone or '—' }}</td>
+                <td data-label="Commission %">
                   <span class="badge-tag" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">
                     {{ "%.1f"|format(r.commission_rate) }}% Discount
                   </span>
                 </td>
-                <td>
+                <td data-label="Prepaid Wallet">
                   <div class="font-mono" style="font-weight:800; font-size:14px; color:{% if r.wallet_balance > 0 %}#34d399{% else %}#f87171{% endif %};">
                     {{ "%.2f"|format(r.wallet_balance) }} SAR
                   </div>
                 </td>
-                <td>
+                <td data-label="Subscribers">
                   <span class="font-mono" style="font-weight:700; color:#ffffff;">{{ r.active_customer_count }}</span>
                   <span class="text-dim" style="font-size:11px;">/ {{ r.customer_count }} Total</span>
                 </td>
-                <td class="font-mono text-emerald" style="font-weight:700;">
+                <td data-label="Month Sales" class="font-mono text-emerald" style="font-weight:700;">
                   {{ "%.2f"|format(r.month_sales) }} SAR
                 </td>
-                <td>
+                <td data-label="Status">
                   {% if r.is_active %}
                     <span class="badge-tag active">ACTIVE</span>
                   {% else %}
                     <span class="badge-tag suspended">DISABLED</span>
                   {% endif %}
                 </td>
-                <td style="text-align:right;">
+                <td data-label="Actions" style="text-align:right;">
                   <div style="display:inline-flex; align-items:center; gap:6px;">
                     <button type="button" class="btn-topup-sm" onclick="openTopupModal({{ r.id }}, '{{ r.shop_name or r.username }}', {{ r.wallet_balance }})">
                       <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -550,24 +660,24 @@
           </thead>
           <tbody>
             {% for m in managers %}
-            <tr>
-              <td style="font-weight:700; color:#ffffff;">{{ m.full_name }}</td>
-              <td class="font-mono text-cyan">{{ m.username }}</td>
-              <td>
+            <tr class="manager-row">
+              <td data-label="Full Name" style="font-weight:700; color:#ffffff;">{{ m.full_name }}</td>
+              <td data-label="Username" class="font-mono text-cyan">{{ m.username }}</td>
+              <td data-label="System Role">
                 <span class="badge-tag {% if m.role in ('admin', 'superadmin') %}active{% else %}suspended{% endif %}" style="{% if m.role == 'manager' %}background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);{% endif %}">
                   {{ m.role|upper }}
                 </span>
               </td>
-              <td class="font-mono text-dim">{{ m.phone or '—' }}</td>
-              <td class="font-mono text-dim" style="font-size:11.5px;">{{ m.last_login or 'Never' }}</td>
-              <td>
+              <td data-label="Phone" class="font-mono text-dim">{{ m.phone or '—' }}</td>
+              <td data-label="Last Active" class="font-mono text-dim" style="font-size:11.5px;">{{ m.last_login or 'Never' }}</td>
+              <td data-label="Status">
                 {% if m.is_active %}
                   <span class="badge-tag active">ACTIVE</span>
                 {% else %}
                   <span class="badge-tag suspended">DISABLED</span>
                 {% endif %}
               </td>
-              <td style="text-align:right;">
+              <td data-label="Actions" style="text-align:right;">
                 <button type="button" class="btn-table-action" onclick="openEditManagerModal({{ m.id }}, '{{ m.username|escape }}', '{{ m.full_name|escape }}', '{{ (m.phone or '')|escape }}', '{{ m.role }}', {{ 1 if m.is_active else 0 }})" title="Edit Manager / Change Credentials">
                   <span>✏️ Edit</span>
                 </button>
@@ -610,27 +720,27 @@
             </tr>
             {% else %}
               {% for l in ledger %}
-              <tr>
-                <td class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_at }}</td>
-                <td>
+              <tr class="ledger-row">
+                <td data-label="Timestamp" class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_at }}</td>
+                <td data-label="Reseller / Partner">
                   <div style="font-weight:700; color:#ffffff;">{{ l.reseller_shop_name or l.reseller_username }}</div>
                   <div class="font-mono text-dim" style="font-size:11px;">@{{ l.reseller_username }}</div>
                 </td>
-                <td>
+                <td data-label="Type">
                   {% if l.type == 'topup' %}
                     <span class="badge-tag active">+ TOP-UP</span>
                   {% else %}
                     <span class="badge-tag suspended">- RECHARGE</span>
                   {% endif %}
                 </td>
-                <td class="font-mono" style="font-weight:800; color:{% if l.type == 'topup' %}#34d399{% else %}#f87171{% endif %};">
+                <td data-label="Amount" class="font-mono" style="font-weight:800; color:{% if l.type == 'topup' %}#34d399{% else %}#f87171{% endif %};">
                   {% if l.type == 'topup' %}+{% else %}-{% endif %}{{ "%.2f"|format(l.amount) }} SAR
                 </td>
-                <td class="font-mono text-dim" style="font-size:12px;">
+                <td data-label="Balance Result" class="font-mono text-dim" style="font-size:12px;">
                   {{ "%.2f"|format(l.balance_after) }} SAR
                 </td>
-                <td style="font-size:12px;">{{ l.description }}</td>
-                <td class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_by }}</td>
+                <td data-label="Details / Subscriber" style="font-size:12px;">{{ l.description }}</td>
+                <td data-label="Created By" class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_by }}</td>
               </tr>
               {% endfor %}
             {% endif %}
@@ -647,40 +757,40 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>🏪 Add New Reseller Partner</h3>
-      <button type="button" class="btn-close" onclick="closeModal('createResellerModal')">&times;</button>
+      <button type="button" class="btn-close" onclick="closeModal('createResellerModal')" aria-label="Close dialog">&times;</button>
     </div>
     <form id="createResellerForm" onsubmit="submitCreateReseller(event)">
       <div class="modal-body">
         <div class="form-group">
-          <label>Shop / Agency / Broker Name</label>
+          <label for="crShopName">Shop / Agency / Broker Name</label>
           <input type="text" class="form-input" id="crShopName" placeholder="e.g. Al-Madina Grocery &amp; Mobile" required>
         </div>
         <div class="form-group">
-          <label>Partner Contact Person (Full Name)</label>
+          <label for="crFullName">Partner Contact Person (Full Name)</label>
           <input type="text" class="form-input" id="crFullName" placeholder="e.g. Tariq Al-Otaibi" required>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-grid-pair">
           <div class="form-group">
-            <label>Partner Login Username</label>
+            <label for="crUsername">Partner Login Username</label>
             <input type="text" class="form-input font-mono" id="crUsername" placeholder="e.g. shop_madina" required>
           </div>
           <div class="form-group">
-            <label>Login Password</label>
+            <label for="crPassword">Login Password</label>
             <input type="password" class="form-input" id="crPassword" placeholder="Min. 6 chars" required>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-grid-pair">
           <div class="form-group">
-            <label>Phone / WhatsApp</label>
+            <label for="crPhone">Phone / WhatsApp</label>
             <input type="text" class="form-input font-mono" id="crPhone" placeholder="05xxxxxxxx">
           </div>
           <div class="form-group">
-            <label>Commission Discount %</label>
+            <label for="crCommission">Commission Discount %</label>
             <input type="number" step="0.5" class="form-input font-mono" id="crCommission" value="10.0" min="0" max="100" required>
           </div>
         </div>
         <div class="form-group">
-          <label>Initial Wallet Balance (SAR)</label>
+          <label for="crInitialWallet">Initial Wallet Balance (SAR)</label>
           <input type="number" step="0.01" class="form-input font-mono" id="crInitialWallet" value="0.00" min="0">
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
@@ -697,7 +807,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>⚡ Credit Partner Prepaid Wallet</h3>
-      <button type="button" class="btn-close" onclick="closeModal('topupWalletModal')">&times;</button>
+      <button type="button" class="btn-close" onclick="closeModal('topupWalletModal')" aria-label="Close dialog">&times;</button>
     </div>
     <form id="topupWalletForm" onsubmit="submitTopup(event)">
       <input type="hidden" id="topupResellerId">
@@ -711,11 +821,11 @@
         </div>
 
         <div class="form-group">
-          <label>Credit Top-up Amount Received (SAR)</label>
+          <label for="topupAmount">Credit Top-up Amount Received (SAR)</label>
           <input type="number" step="0.01" class="form-input font-mono" id="topupAmount" placeholder="e.g. 500.00" required min="1">
         </div>
         <div class="form-group">
-          <label>Payment / Deposit Notes</label>
+          <label for="topupNotes">Payment / Deposit Notes</label>
           <input type="text" class="form-input" id="topupNotes" placeholder="e.g. Cash collected by Owner / Bank Transfer">
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
@@ -732,26 +842,26 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>👔 Add Operations Manager</h3>
-      <button type="button" class="btn-close" onclick="closeModal('createManagerModal')">&times;</button>
+      <button type="button" class="btn-close" onclick="closeModal('createManagerModal')" aria-label="Close dialog">&times;</button>
     </div>
     <form id="createManagerForm" onsubmit="submitCreateManager(event)">
       <div class="modal-body">
         <div class="form-group">
-          <label>Manager Full Name</label>
+          <label for="cmFullName">Manager Full Name</label>
           <input type="text" class="form-input" id="cmFullName" placeholder="e.g. Mohammed Salem" required>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-grid-pair">
           <div class="form-group">
-            <label>Username</label>
+            <label for="cmUsername">Username</label>
             <input type="text" class="form-input font-mono" id="cmUsername" placeholder="e.g. mohammed_mgr" required>
           </div>
           <div class="form-group">
-            <label>Password</label>
+            <label for="cmPassword">Password</label>
             <input type="password" class="form-input" id="cmPassword" placeholder="Min. 6 chars" required>
           </div>
         </div>
         <div class="form-group">
-          <label>Contact Phone</label>
+          <label for="cmPhone">Contact Phone</label>
           <input type="text" class="form-input font-mono" id="cmPhone" placeholder="05xxxxxxxx">
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
@@ -768,31 +878,31 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>✏️ Edit Partner Agency Settings</h3>
-      <button type="button" class="btn-close" onclick="closeModal('editResellerModal')">&times;</button>
+      <button type="button" class="btn-close" onclick="closeModal('editResellerModal')" aria-label="Close dialog">&times;</button>
     </div>
     <form id="editResellerForm" onsubmit="submitEditReseller(event)">
       <input type="hidden" id="erId">
       <div class="modal-body">
         <div class="form-group">
-          <label>Shop / Agency Name</label>
+          <label for="erShopName">Shop / Agency Name</label>
           <input type="text" class="form-input" id="erShopName" required>
         </div>
         <div class="form-group">
-          <label>Contact Person (Full Name)</label>
+          <label for="erFullName">Contact Person (Full Name)</label>
           <input type="text" class="form-input" id="erFullName" required>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-grid-pair">
           <div class="form-group">
-            <label>Contact Phone</label>
+            <label for="erPhone">Contact Phone</label>
             <input type="text" class="form-input font-mono" id="erPhone">
           </div>
           <div class="form-group">
-            <label>Commission Discount %</label>
+            <label for="erCommission">Commission Discount %</label>
             <input type="number" step="0.5" class="form-input font-mono" id="erCommission" required min="0" max="100">
           </div>
         </div>
         <div class="form-group">
-          <label>Partner Account Status</label>
+          <label for="erStatus">Partner Account Status</label>
           <select class="form-input" id="erStatus">
             <option value="1">Active (Can Recharge Subscribers)</option>
             <option value="0">Suspended / Disabled</option>
@@ -812,28 +922,28 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>✏️ Edit Manager / Admin Account</h3>
-      <button type="button" class="btn-close" onclick="closeModal('editManagerModal')">&times;</button>
+      <button type="button" class="btn-close" onclick="closeModal('editManagerModal')" aria-label="Close dialog">&times;</button>
     </div>
     <form id="editManagerForm" onsubmit="submitEditManager(event)">
       <input type="hidden" id="emId">
       <div class="modal-body">
         <div class="form-group">
-          <label>Full Name</label>
+          <label for="emFullName">Full Name</label>
           <input type="text" class="form-input" id="emFullName" required>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-grid-pair">
           <div class="form-group">
-            <label>Username</label>
+            <label for="emUsername">Username</label>
             <input type="text" class="form-input font-mono" id="emUsername" required minlength="3">
           </div>
           <div class="form-group">
-            <label>Contact Phone</label>
+            <label for="emPhone">Contact Phone</label>
             <input type="text" class="form-input font-mono" id="emPhone" placeholder="05xxxxxxxx">
           </div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div class="form-grid-pair">
           <div class="form-group">
-            <label>System Role</label>
+            <label for="emRole">System Role</label>
             <select class="form-input" id="emRole">
               <option value="manager">Manager (Operations)</option>
               <option value="admin">Admin</option>
@@ -841,7 +951,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Account Status</label>
+            <label for="emStatus">Account Status</label>
             <select class="form-input" id="emStatus">
               <option value="1">Active (Can Login)</option>
               <option value="0">Suspended / Disabled</option>
@@ -849,7 +959,7 @@
           </div>
         </div>
         <div class="form-group" style="margin-top:4px;">
-          <label>Reset Password (Optional)</label>
+          <label for="emPassword">Reset Password (Optional)</label>
           <input type="password" class="form-input" id="emPassword" placeholder="Leave blank to keep current password" minlength="6">
           <small style="color:var(--text-dim); font-size:11px; margin-top:4px; display:block;">Enter a new password if you want to reset this user's password (min 6 characters).</small>
         </div>

@@ -314,6 +314,8 @@
       color: #000 !important;
       padding: 20px;
     }
+  }
+
   /* MOBILE RESPONSIVE OPTIMIZATION */
   @media (max-width: 768px) {
     .reseller-hero-card {
@@ -324,9 +326,96 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
+    .pos-body {
+      padding: 14px;
+      gap: 14px;
+    }
+    .subscriber-picker-box, .pos-calc-box {
+      padding: 14px;
+    }
     .clean-table th, .clean-table td {
       padding: 5px 6px;
       font-size: 11px;
+    }
+
+    /* Tables Card Deck */
+    #customersPanel .clean-table thead,
+    #ledgerPanel .clean-table thead {
+      display: none;
+    }
+    #customersPanel .clean-table, #customersPanel .clean-table tbody, #customersPanel .clean-table tr,
+    #ledgerPanel .clean-table, #ledgerPanel .clean-table tbody, #ledgerPanel .clean-table tr {
+      display: block;
+      width: 100%;
+    }
+    #customersPanel .clean-table tr.cust-row,
+    #ledgerPanel .clean-table tr.ledger-row {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    #customersPanel .clean-table tr.cust-row td,
+    #ledgerPanel .clean-table tr.ledger-row td {
+      border: none !important;
+      padding: 2px 0 !important;
+      font-size: 12px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    #customersPanel .clean-table tr.cust-row td::before,
+    #ledgerPanel .clean-table tr.ledger-row td::before {
+      content: attr(data-label);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 1px;
+    }
+    #customersPanel .clean-table tr.cust-row td[data-label="Subscriber"] {
+      grid-column: 1 / -1;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 2px !important;
+    }
+    #customersPanel .clean-table tr.cust-row td[data-label="Action"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 6px !important;
+      margin-top: 2px !important;
+      align-items: flex-end;
+    }
+    #customersPanel .clean-table tr.cust-row td[data-label="Action"] button {
+      min-height: 38px;
+      padding: 6px 14px;
+      font-size: 12px;
+    }
+
+    #ledgerPanel .clean-table tr.ledger-row td[data-label="Details / Subscriber"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 4px !important;
+      margin-top: 2px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-input, .search-suggest-input {
+      font-size: 16px !important;
+    }
+    .btn-pos-recharge {
+      min-height: 48px !important;
+      font-size: 14px !important;
+    }
+    .btn-primary-action, .btn-secondary-action {
+      min-height: 42px !important;
+      font-size: 13px !important;
     }
   }
 </style>
@@ -520,14 +609,14 @@
           </tr>
           {% else %}
             {% for c in customers %}
-            <tr>
-              <td>
+            <tr class="cust-row">
+              <td data-label="Subscriber">
                 <div style="font-weight:700; color:#fff;">{{ c.name }}</div>
                 <div class="font-mono text-dim" style="font-size:11px;">{{ c.phone }}</div>
               </td>
-              <td>{{ c.package_name }}</td>
-              <td class="font-mono text-cyan">{{ "%.2f"|format(c.monthly_fee) }} SAR</td>
-              <td>
+              <td data-label="Package">{{ c.package_name }}</td>
+              <td data-label="Monthly Fee" class="font-mono text-cyan">{{ "%.2f"|format(c.monthly_fee) }} SAR</td>
+              <td data-label="Expiry / Due Date">
                 <div class="font-mono" style="font-weight:600; color:#fff;">{{ c.expiry_date or c.due_date or '—' }}</div>
                 {% if c.days_remaining is not none %}
                   <div style="font-size:11px; color:{% if c.days_remaining < 0 %}#f87171{% elif c.days_remaining <= 3 %}#fbbf24{% else %}var(--text-dim){% endif %};">
@@ -535,7 +624,7 @@
                   </div>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="Status">
                 {% if c.is_expired or c.status == 'suspended' %}
                   <span class="badge-tier expired">EXPIRED</span>
                 {% elif c.days_remaining is not none and c.days_remaining <= 3 %}
@@ -544,7 +633,7 @@
                   <span class="badge-tier active">ACTIVE</span>
                 {% endif %}
               </td>
-              <td style="text-align:right;">
+              <td data-label="Action" style="text-align:right;">
                 <button type="button" class="btn-topup-sm" onclick="selectPosCustomer({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}', '{{ c.package_name }}', {{ c.monthly_fee }}, '{{ c.expiry_date or c.due_date or '' }}'); document.getElementById('rechargePanel').scrollIntoView({behavior:'smooth'});">
                   <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                   <span>Recharge</span>
@@ -587,20 +676,20 @@
           </tr>
           {% else %}
             {% for l in ledger %}
-            <tr>
-              <td class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_at }}</td>
-              <td>
+            <tr class="ledger-row">
+              <td data-label="Timestamp" class="font-mono text-dim" style="font-size:11.5px;">{{ l.created_at }}</td>
+              <td data-label="Type">
                 {% if l.type == 'topup' %}
                   <span class="badge-tier active">+ TOP-UP</span>
                 {% else %}
                   <span class="badge-tier expired">- DEDUCTION</span>
                 {% endif %}
               </td>
-              <td class="font-mono" style="font-weight:800; color:{% if l.type == 'topup' %}#34d399{% else %}#f87171{% endif %};">
+              <td data-label="Amount" class="font-mono" style="font-weight:800; color:{% if l.type == 'topup' %}#34d399{% else %}#f87171{% endif %};">
                 {% if l.type == 'topup' %}+{% else %}-{% endif %}{{ "%.2f"|format(l.amount) }} SAR
               </td>
-              <td class="font-mono text-dim" style="font-size:12px;">{{ "%.2f"|format(l.balance_after) }} SAR</td>
-              <td style="font-size:12px;">{{ l.description }}</td>
+              <td data-label="Resulting Balance" class="font-mono text-dim" style="font-size:12px;">{{ "%.2f"|format(l.balance_after) }} SAR</td>
+              <td data-label="Details / Subscriber" style="font-size:12px;">{{ l.description }}</td>
             </tr>
             {% endfor %}
           {% endif %}
@@ -616,20 +705,20 @@
   <div class="modal-box">
     <div class="modal-header">
       <h3>👥 Register New Subscriber</h3>
-      <button type="button" class="btn-close" onclick="closeModal('registerCustomerModal')">&times;</button>
+      <button type="button" class="btn-close" onclick="closeModal('registerCustomerModal')" aria-label="Close dialog">&times;</button>
     </div>
     <form id="registerCustomerForm" onsubmit="submitRegisterCustomer(event)">
       <div class="modal-body">
         <div class="form-group">
-          <label>Subscriber Full Name</label>
+          <label for="regName">Subscriber Full Name</label>
           <input type="text" class="form-input" id="regName" placeholder="e.g. Ahmed Al-Harbi" required>
         </div>
         <div class="form-group">
-          <label>Phone Number (Mobile)</label>
+          <label for="regPhone">Phone Number (Mobile)</label>
           <input type="text" class="form-input font-mono" id="regPhone" placeholder="05xxxxxxxx" required>
         </div>
         <div class="form-group">
-          <label>Bandwidth Package</label>
+          <label for="regPackage">Bandwidth Package</label>
           <select class="form-input" id="regPackage" required onchange="handleRegPkgChange(this)">
             {% for p in packages %}
             <option value="{{ p.name }}" data-price="{{ p.default_price or p.price or 30.0 }}">{{ p.name }} ({{ "%.2f"|format(p.default_price or p.price or 30.0) }} SAR)</option>
@@ -637,11 +726,11 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Monthly Fee (SAR)</label>
+          <label for="regFee">Monthly Fee (SAR)</label>
           <input type="number" step="0.01" class="form-input font-mono" id="regFee" value="30.00" required>
         </div>
         <div class="form-group">
-          <label>Device MAC Address (Optional - Physical Hardware)</label>
+          <label for="regMac">Device MAC Address (Optional - Physical Hardware)</label>
           <input type="text" class="form-input font-mono" id="regMac" placeholder="XX:XX:XX:XX:XX:XX">
           <div id="regMacFeedback" style="display:none; font-size:11.5px; margin-top:5px; font-weight:600;"></div>
         </div>

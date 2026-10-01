@@ -421,6 +421,22 @@
   }
   .form-control:focus { border-color: #38bdf8; }
 
+  .router-form-grid-2-1 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 10px;
+  }
+  .router-form-grid-1-1 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .router-form-grid-1-15 {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 10px;
+  }
+
   /* MOBILE RESPONSIVE OPTIMIZATION */
   @media (max-width: 768px) {
     .fleet-banner-card {
@@ -444,6 +460,88 @@
     .clean-table th, .clean-table td {
       padding: 5px 6px;
       font-size: 11px;
+    }
+
+    /* Gateway Hosts Table Card Transformation */
+    .gateway-hosts-table thead {
+      display: none;
+    }
+    .gateway-hosts-table, 
+    .gateway-hosts-table tbody, 
+    .gateway-hosts-table tr {
+      display: block;
+      width: 100%;
+    }
+    .gateway-hosts-table tr.host-row {
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    .gateway-hosts-table tr.host-row td {
+      border: none !important;
+      padding: 2px 0 !important;
+      font-size: 12px !important;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .gateway-hosts-table tr.host-row td::before {
+      content: attr(data-label);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 1px;
+    }
+    .gateway-hosts-table tr.host-row td[data-label="MAC Address"] {
+      grid-column: 1;
+    }
+    .gateway-hosts-table tr.host-row td[data-label="Assigned IP"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    .gateway-hosts-table tr.host-row td[data-label="Bridge / Interface"] {
+      grid-column: 1;
+    }
+    .gateway-hosts-table tr.host-row td[data-label="Type"] {
+      grid-column: 2;
+      align-items: flex-end;
+    }
+    .gateway-hosts-table tr.host-row td[data-label="Speed Limit"] {
+      grid-column: 1;
+    }
+    .gateway-hosts-table tr.host-row td[data-label="Comment / Subscriber"] {
+      grid-column: 1 / -1;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 4px !important;
+      margin-top: 2px !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .router-form-grid-2-1,
+    .router-form-grid-1-1,
+    .router-form-grid-1-15 {
+      grid-template-columns: 1fr !important;
+      gap: 8px;
+    }
+    .form-control {
+      font-size: 16px !important;
+    }
+    .btn-action-pill {
+      min-height: 40px !important;
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+    }
+    .btn-primary-add {
+      min-height: 44px !important;
+      font-size: 13px !important;
     }
   }
 </style>
@@ -695,7 +793,7 @@
     </div>
 
     <div style="overflow-x: auto;">
-      <table class="clean-table">
+      <table class="clean-table gateway-hosts-table">
         <thead>
           <tr>
             <th>MAC Address</th>
@@ -715,19 +813,19 @@
           </tr>
           {% else %}
             {% for h in router.hosts %}
-            <tr>
-              <td class="font-mono" style="font-weight: 700; color: #38bdf8;">{{ h.mac }}</td>
-              <td class="font-mono text-emerald">{{ h.address }}</td>
-              <td class="font-mono text-dim" style="font-size: 11.5px;">{{ h.interface or 'bridge-lan' }}</td>
-              <td>
+            <tr class="host-row">
+              <td data-label="MAC Address" class="font-mono" style="font-weight: 700; color: #38bdf8;">{{ h.mac }}</td>
+              <td data-label="Assigned IP" class="font-mono text-emerald">{{ h.address }}</td>
+              <td data-label="Bridge / Interface" class="font-mono text-dim" style="font-size: 11.5px;">{{ h.interface or 'bridge-lan' }}</td>
+              <td data-label="Type">
                 {% if h.bypassed %}
                   <span class="badge-status running" style="font-size: 10px;">BYPASS (ROAMING ACTIVE)</span>
                 {% else %}
                   <span class="badge-status" style="font-size: 10px; background:rgba(245,158,11,0.15); color:#fbbf24;">UNAUTHENTICATED</span>
                 {% endif %}
               </td>
-              <td class="font-mono text-cyan">{{ h.rate_limit or 'Unlimited' }}</td>
-              <td class="text-dim" style="font-size: 12px;">{{ h.comment or 'Subscriber Device' }}</td>
+              <td data-label="Speed Limit" class="font-mono text-cyan">{{ h.rate_limit or 'Unlimited' }}</td>
+              <td data-label="Comment / Subscriber" class="text-dim" style="font-size: 12px;">{{ h.comment or 'Subscriber Device' }}</td>
             </tr>
             {% endfor %}
           {% endif %}
@@ -743,50 +841,50 @@
   <div class="modal-container">
     <div class="modal-header">
       <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">➕ Add MikroTik Router to Fleet</h3>
-      <button type="button" onclick="closeAddRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+      <button type="button" onclick="closeAddRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <form onsubmit="submitAddRouter(event)">
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Router Friendly Name</label>
+          <label class="form-label" for="add_name">Router Friendly Name</label>
           <input type="text" id="add_name" class="form-control" required placeholder="e.g. MikroTik 2 - RB760iGS (Zain 2 - VLAN 20)">
         </div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+        <div class="router-form-grid-2-1">
           <div class="form-group">
-            <label class="form-label">IP Address / Host</label>
+            <label class="form-label" for="add_host">IP Address / Host</label>
             <input type="text" id="add_host" class="form-control font-mono" required placeholder="e.g. 10.20.20.1">
           </div>
           <div class="form-group">
-            <label class="form-label">API Port</label>
+            <label class="form-label" for="add_port">API Port</label>
             <input type="number" id="add_port" class="form-control font-mono" value="8728" required>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="router-form-grid-1-1">
           <div class="form-group">
-            <label class="form-label">API Username</label>
+            <label class="form-label" for="add_user">API Username</label>
             <input type="text" id="add_user" class="form-control font-mono" value="admin" required>
           </div>
           <div class="form-group">
-            <label class="form-label">API Password</label>
+            <label class="form-label" for="add_pass">API Password</label>
             <input type="password" id="add_pass" class="form-control font-mono" placeholder="Password">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
+        <div class="router-form-grid-1-15">
           <div class="form-group">
-            <label class="form-label">Assigned VLAN ID</label>
+            <label class="form-label" for="add_vlan">Assigned VLAN ID</label>
             <input type="number" id="add_vlan" class="form-control font-mono" value="20" required placeholder="e.g. 20">
           </div>
           <div class="form-group">
-            <label class="form-label">Broadcasted SSID</label>
+            <label class="form-label" for="add_ssid">Broadcasted SSID</label>
             <input type="text" id="add_ssid" class="form-control font-mono" value="CyberNet-Line2" placeholder="e.g. CyberNet-Line2">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Uplink Source / Notes</label>
+          <label class="form-label" for="add_uplink">Uplink Source / Notes</label>
           <input type="text" id="add_uplink" class="form-control" placeholder="e.g. Zain 5G SIM #2 (High Speed Backup)">
         </div>
 
@@ -812,51 +910,51 @@
   <div class="modal-container">
     <div class="modal-header">
       <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Edit MikroTik Router Settings</h3>
-      <button type="button" onclick="closeEditRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
+      <button type="button" onclick="closeEditRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <form onsubmit="submitEditRouter(event)">
       <div class="modal-body">
         <input type="hidden" id="edit_id">
         <div class="form-group">
-          <label class="form-label">Router Friendly Name</label>
+          <label class="form-label" for="edit_name">Router Friendly Name</label>
           <input type="text" id="edit_name" class="form-control" required>
         </div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+        <div class="router-form-grid-2-1">
           <div class="form-group">
-            <label class="form-label">IP Address / Host</label>
+            <label class="form-label" for="edit_host">IP Address / Host</label>
             <input type="text" id="edit_host" class="form-control font-mono" required>
           </div>
           <div class="form-group">
-            <label class="form-label">API Port</label>
+            <label class="form-label" for="edit_port">API Port</label>
             <input type="number" id="edit_port" class="form-control font-mono" required>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="router-form-grid-1-1">
           <div class="form-group">
-            <label class="form-label">API Username</label>
+            <label class="form-label" for="edit_user">API Username</label>
             <input type="text" id="edit_user" class="form-control font-mono" required>
           </div>
           <div class="form-group">
-            <label class="form-label">API Password (leave blank to keep)</label>
+            <label class="form-label" for="edit_pass">API Password (leave blank to keep)</label>
             <input type="password" id="edit_pass" class="form-control font-mono" placeholder="••••••••">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
+        <div class="router-form-grid-1-15">
           <div class="form-group">
-            <label class="form-label">Assigned VLAN ID</label>
+            <label class="form-label" for="edit_vlan">Assigned VLAN ID</label>
             <input type="number" id="edit_vlan" class="form-control font-mono" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Broadcasted SSID</label>
+            <label class="form-label" for="edit_ssid">Broadcasted SSID</label>
             <input type="text" id="edit_ssid" class="form-control font-mono">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Uplink Source / Notes</label>
+          <label class="form-label" for="edit_uplink">Uplink Source / Notes</label>
           <input type="text" id="edit_uplink" class="form-control">
         </div>
 
