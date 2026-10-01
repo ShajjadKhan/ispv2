@@ -3830,12 +3830,13 @@
     if (raw.length < 35 && !raw.includes('Mozilla/') && !raw.includes('AppleWebKit/')) return raw;
     if (/iPhone/i.test(raw)) return 'Apple iPhone';
     if (/iPad/i.test(raw)) return 'Apple iPad';
-    const redmi = raw.match(/24090RA29[A-Z]|24094RAD4[A-Z]|24090RA28[A-Z]|24116RN10[A-Z]|24108PCE4[A-Z]|Redmi\s*Note\s*14/i);
+    const redmi = raw.match(/24090RA29[A-Z]|24094RAD4[A-Z]|24115RA8E[A-Z]|24090RA28[A-Z]|24116RN10[A-Z]|24108PCE4[A-Z]|Redmi\s*Note\s*14/i);
     if (redmi) return 'Redmi Note 14';
     const redmiGen = raw.match(/Redmi[^\s;)]*/i);
     if (redmiGen) return redmiGen[0];
     const poco = raw.match(/POCO[^\s;)]*/i);
     if (poco) return poco[0];
+    if (/Xiaomi/i.test(raw)) return 'Xiaomi Phone';
     const sm = raw.match(/SM-[A-Z0-9]+/i);
     if (sm) return `Samsung (${sm[0]})`;
     if (/Samsung/i.test(raw)) return 'Samsung Galaxy';

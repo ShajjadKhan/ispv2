@@ -815,8 +815,16 @@ def parse_clean_device_model(raw: Optional[str]) -> str:
         return "Apple iPhone"
     if "iPad" in ua:
         return "Apple iPad"
-    if "Redmi Note 14" in ua or "23129RAA4G" in ua:
+    if any(k in ua for k in ["Redmi Note 14", "24090RA29", "24094RAD4", "24115RA8E", "24116RN10", "24090RA28", "24108PCE4"]):
         return "Redmi Note 14"
+    if "Redmi" in ua:
+        m = re.search(r"Redmi[^\s;)]*", ua)
+        return m.group(0) if m else "Xiaomi Redmi"
+    if "POCO" in ua:
+        m = re.search(r"POCO[^\s;)]*", ua)
+        return m.group(0) if m else "Xiaomi POCO"
+    if "Xiaomi" in ua:
+        return "Xiaomi Phone"
     if "SM-S928" in ua:
         return "Samsung Galaxy S24 Ultra"
     if "SM-" in ua:
