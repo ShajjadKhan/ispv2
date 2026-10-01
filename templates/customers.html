@@ -501,11 +501,15 @@
     background: #090e1a;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     transition: all 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   .cust-mobile-card:hover {
     border-color: rgba(56, 189, 248, 0.35);
@@ -515,24 +519,27 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 10px;
-    padding-bottom: 12px;
+    gap: 8px;
+    padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    width: 100%;
+    box-sizing: border-box;
   }
   .mobile-card-user {
     display: flex;
     align-items: center;
     gap: 10px;
     min-width: 0;
+    flex: 1;
   }
   .mobile-cust-avatar {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border-radius: 10px;
     background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
     color: #ffffff;
     font-weight: 800;
-    font-size: 16px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -543,104 +550,196 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1;
   }
   .mobile-cust-name {
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 700;
     color: #ffffff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    line-height: 1.25;
   }
   .mobile-cust-sub {
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--text-dim);
     font-family: var(--font-mono);
     margin-top: 2px;
+    word-break: break-word;
   }
   .mobile-card-badges {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
   }
 
   .mobile-card-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 10px;
-    padding: 12px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
   }
   .mobile-grid-item {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
   .mobile-grid-item .m-lbl {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
     color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
   }
   .mobile-grid-item .m-val {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
     color: #ffffff;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    line-height: 1.3;
   }
   .mobile-grid-item .m-sub {
     font-size: 10.5px;
     font-weight: 600;
     margin-top: 1px;
+    word-break: break-word;
   }
 
-  .mobile-card-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    padding-top: 4px;
+  /* MOBILE MAC LIST FORMATTING */
+  .mobile-mac-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-top: 4px;
   }
-  .btn-m-edit, .btn-m-usage, .btn-m-manage {
-    justify-content: center;
-    padding: 8px 6px !important;
+  .mobile-mac-list .cust-mac-item {
+    display: flex !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px 6px !important;
+    padding: 5px 8px !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    border: 1px solid rgba(148, 163, 184, 0.15) !important;
+    border-radius: 7px !important;
+  }
+  .mobile-mac-list .mac-left-info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    flex-wrap: wrap !important;
+  }
+  .mobile-mac-list .cust-mac-addr {
     font-size: 11.5px !important;
-    white-space: nowrap;
+    font-weight: 700 !important;
+    color: #38bdf8 !important;
+    word-break: break-all !important;
+  }
+  .mobile-mac-list .cust-mac-name {
+    font-size: 10.5px !important;
+    color: #cbd5e1 !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+    max-width: 110px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* MOBILE CARD MULTI-TIER ACTIONS */
+  .mobile-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    margin-top: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .m-action-row {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .m-action-row > * {
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 7px 6px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    line-height: 1.15;
+  }
+  .btn-m-collect {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.02em;
+    flex: 1.2 !important;
+    gap: 6px !important;
+  }
+  .btn-m-manage {
+    background: rgba(56, 189, 248, 0.14) !important;
+    color: #38bdf8 !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    font-weight: 700 !important;
+    flex: 1 !important;
+    gap: 6px !important;
+  }
+  .btn-m-edit {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    flex: 1 !important;
+    gap: 5px !important;
   }
   .btn-m-usage {
     background: rgba(168, 85, 247, 0.12) !important;
-    border-color: rgba(168, 85, 247, 0.3) !important;
+    border: 1px solid rgba(168, 85, 247, 0.3) !important;
     color: #c084fc !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    flex: 1 !important;
+    gap: 5px !important;
   }
-  .btn-m-manage {
-    background: rgba(255, 255, 255, 0.07) !important;
-    color: #ffffff !important;
-    justify-content: center;
-    padding: 8px 6px !important;
-    font-size: 11.5px !important;
-  }
-  .btn-m-toggle {
-    grid-column: span 2;
-    justify-content: center;
-    padding: 8px 6px !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
+  .btn-m-extend {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    color: #fbbf24 !important;
+    flex: 1 !important;
+    gap: 5px !important;
   }
   .btn-m-delete {
-    grid-column: span 1;
-    justify-content: center;
-    padding: 8px 6px !important;
-    font-size: 11.5px !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.28) !important;
+    color: #f87171 !important;
+    gap: 5px !important;
   }
 
   /* LIVE DEVICE TELEMETRY & MAC STYLING */
@@ -829,16 +928,32 @@
     }
     .mobile-customer-deck {
       display: flex !important;
+      flex-direction: column !important;
+      padding: 10px !important;
+      gap: 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .cust-mobile-card {
+      padding: 12px 14px !important;
+      gap: 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      border-radius: 12px !important;
+      overflow-x: hidden !important;
     }
     .toolbar-card {
-      padding: 14px !important;
+      padding: 12px !important;
       flex-direction: column !important;
       align-items: stretch !important;
       gap: 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .search-wrapper {
       max-width: 100% !important;
       width: 100% !important;
+      box-sizing: border-box !important;
     }
     .filter-group {
       width: 100% !important;
@@ -846,20 +961,63 @@
       white-space: nowrap !important;
       flex-wrap: nowrap !important;
       -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
       padding-bottom: 4px !important;
       gap: 6px !important;
     }
+    .filter-group::-webkit-scrollbar {
+      display: none !important;
+    }
+    .toolbar-actions-wrap {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .toolbar-actions-wrap select,
+    .toolbar-actions-wrap button,
     .btn-add-customer {
       width: 100% !important;
       justify-content: center !important;
-      padding: 11px !important;
+      padding: 10px 12px !important;
+      box-sizing: border-box !important;
     }
     .stats-row {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 10px !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .stat-card {
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
     }
     .stat-card:nth-child(5) {
-      grid-column: span 2 !important;
+      grid-column: 1 / -1 !important;
+    }
+    .stat-filter-hint {
+      display: none !important;
+    }
+    .panel-card {
+      border-radius: 12px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+    .panel-header {
+      padding: 12px 14px !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 4px !important;
+    }
+    .mobile-card-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px 10px !important;
+      padding: 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .modal-grid-2, .modal-grid-3 {
       grid-template-columns: 1fr !important;
@@ -876,6 +1034,8 @@
       max-width: 95vw !important;
       width: 95vw !important;
       max-height: 90vh !important;
+      margin: 10px auto !important;
+      box-sizing: border-box !important;
     }
     .custom-pay-grid {
       grid-template-columns: 1fr !important;
@@ -889,22 +1049,33 @@
 
   @media (max-width: 440px) {
     .stats-row {
-      grid-template-columns: repeat(2, 1fr) !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       gap: 6px !important;
     }
     .stat-card:nth-child(5) {
-      grid-column: span 1 !important;
+      grid-column: 1 / -1 !important;
+    }
+    .stat-card {
+      padding: 6px 8px !important;
+    }
+    .stat-icon {
+      width: 28px !important;
+      height: 28px !important;
+    }
+    .stat-data .num {
+      font-size: 15px !important;
+    }
+    .stat-data .lbl {
+      font-size: 9.5px !important;
     }
     .mobile-card-grid {
-      grid-template-columns: 1fr !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
     }
-    .mobile-card-actions {
-      grid-template-columns: repeat(3, 1fr) !important;
-      gap: 5px !important;
-    }
-    .mobile-card-actions a, .mobile-card-actions button {
+    .m-action-row > * {
       padding: 7px 4px !important;
       font-size: 11px !important;
+      min-height: 36px !important;
     }
   }
 </style>
@@ -989,9 +1160,11 @@
       <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid</button>
       <button type="button" class="filter-btn" id="filterCredit" onclick="setBillingFilter('credit')">Credit Held</button>
       <button type="button" class="filter-btn" id="filterSuspended" onclick="setBillingFilter('suspended')">Suspended</button>
+    </div>
 
+    <div class="toolbar-actions-wrap" style="display:flex; align-items:center; gap:8px;">
       <!-- Partner / Reseller Filter -->
-      <select id="filterReseller" class="filter-btn" onchange="filterCustomerTable()" style="background:#090e1a; border:1px solid var(--border-subtle); color:var(--text-muted); cursor:pointer; outline:none; height:34px; padding:0 10px;">
+      <select id="filterReseller" class="filter-btn" onchange="filterCustomerTable()" style="background:#090e1a; border:1px solid var(--border-subtle); color:var(--text-muted); cursor:pointer; outline:none; height:36px; padding:0 10px;">
         <option value="all">🏪 All Partners &amp; Direct</option>
         <option value="direct">🏢 Direct ISP Only</option>
         {% for r in resellers %}
@@ -1251,9 +1424,9 @@
             </div>
             <div class="mobile-grid-item">
               <span class="m-lbl">Monthly Rate</span>
-              <span class="m-val font-mono" style="color:#38bdf8;">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
+              <span class="m-val font-mono text-cyan">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
               {% if c.credit_balance and c.credit_balance > 0 %}
-                <span class="m-sub font-mono" style="color:#34d399;">+{{ "%.2f"|format(c.credit_balance) }} Credit</span>
+                <span class="m-sub font-mono text-emerald" style="color:#34d399;">+{{ "%.2f"|format(c.credit_balance) }} Credit</span>
               {% endif %}
             </div>
             <div class="mobile-grid-item">
@@ -1273,8 +1446,8 @@
                 {% endif %}
               {% endif %}
             </div>
-            <div class="mobile-grid-item" style="grid-column: span 2;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <div class="mobile-grid-item" style="grid-column: 1 / -1;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
                 <span class="m-lbl" style="margin-bottom:0;">Devices &amp; Live MACs</span>
                 <span class="dev-conn-badge {% if (c.online_devices_count or 0) > 0 %}is-online{% elif c.devices|length > 0 %}is-offline{% else %}is-empty{% endif %}" style="padding:1.5px 6.5px; font-size:10px;">
                   <span class="live-dot-pulse {% if (c.online_devices_count or 0) > 0 %}dot-online{% else %}dot-offline{% endif %}"></span>
@@ -1291,9 +1464,13 @@
                 <div class="cust-mac-list mobile-mac-list">
                   {% for d in c.devices %}
                     <div class="cust-mac-item" data-mac="{{ d.mac_address }}" title="{{ d.status_label }}{% if d.detail %} &bull; {{ d.detail }}{% endif %}{% if d.live_ip %} &bull; IP: {{ d.live_ip }}{% endif %} &bull; Click to copy MAC" onclick="copyMac('{{ d.mac_address }}', event)">
-                      <span class="dev-status-indicator {{ d.state }}" title="{{ d.status_label }}"></span>
-                      <span class="font-mono cust-mac-addr" style="font-size:11px;">{{ d.mac_address }}</span>
-                      <span class="cust-mac-name" style="max-width:85px;">{{ d.friendly_name }}</span>
+                      <div class="mac-left-info">
+                        <span class="dev-status-indicator {{ d.state }}" title="{{ d.status_label }}"></span>
+                        <span class="font-mono cust-mac-addr">{{ d.mac_address }}</span>
+                        {% if d.friendly_name %}
+                          <span class="cust-mac-name" title="{{ d.device_name or '' }}">{{ d.friendly_name }}</span>
+                        {% endif %}
+                      </div>
                       {% if d.state == 'online' %}
                         <span class="cust-mac-pill online">ONLINE</span>
                       {% elif d.state == 'recent' %}
@@ -1311,35 +1488,50 @@
           </div>
 
           <div class="mobile-card-actions">
-            <a href="/customers/{{ c.id }}/edit" class="btn-action-sm btn-m-edit" style="text-decoration:none;">
-              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-              <span>Edit</span>
-            </a>
-            <a href="/customers/{{ c.id }}/usage" class="btn-action-sm" style="color:#a855f7; background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.25); text-decoration:none;" title="Usage History">
-              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
-              <span>Usage</span>
-            </a>
-            <button type="button" class="btn-action-sm btn-m-manage" onclick="openProfileModal({{ c.id }})">
-              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-              <span>Manage</span>
-            </button>
-            <button type="button" class="btn-action-sm btn-m-manage" onclick="openPromiseModal({{ c.id }}, '{{ c.name|escape }}', {{ c.monthly_fee or 30 }})" style="color:#fbbf24 !important; background:rgba(245,158,11,0.12) !important; border-color:rgba(245,158,11,0.3) !important;" title="Extend Grace / Promise">
-              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-              <span>Extend</span>
-            </button>
-            {% if c.status == 'active' %}
-              <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="toggleStatus({{ c.id }})" style="padding:8px 6px !important; font-size:11.5px !important; font-weight:700;">
-                Suspend
+            <!-- Row 1: High-Priority Daily Actions -->
+            <div class="m-action-row">
+              <button type="button" class="btn-action-sm btn-m-collect" onclick="openCollectModal({{ c.id }}, '{{ c.name|escape }}')" title="Collect Payment &amp; Settle Unpaid Month(s)">
+                <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                <span>Collect Bill</span>
               </button>
-            {% else %}
-              <button type="button" class="btn-action-sm btn-toggle-activate" onclick="toggleStatus({{ c.id }})" style="padding:8px 6px !important; font-size:11.5px !important; font-weight:700;">
-                Activate
+              <button type="button" class="btn-action-sm btn-m-manage" onclick="openProfileModal({{ c.id }})" title="Manage Customer &amp; Devices">
+                <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                <span>Manage</span>
               </button>
-            {% endif %}
-            <button type="button" class="btn-action-sm btn-m-delete" onclick="quickDeleteCustomer({{ c.id }}, '{{ c.name|escape }}')" style="color:#f87171; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.25);">
-              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-              <span>Delete</span>
-            </button>
+            </div>
+
+            <!-- Row 2: Secondary Quick Actions -->
+            <div class="m-action-row">
+              <a href="/customers/{{ c.id }}/edit" class="btn-action-sm btn-m-edit" style="text-decoration:none;" title="Edit Customer Details">
+                <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                <span>Edit</span>
+              </a>
+              <a href="/customers/{{ c.id }}/usage" class="btn-action-sm btn-m-usage" style="text-decoration:none;" title="90-Day Traffic &amp; Dispute Proof">
+                <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+                <span>Usage</span>
+              </a>
+              <button type="button" class="btn-action-sm btn-m-extend" onclick="openPromiseModal({{ c.id }}, '{{ c.name|escape }}', {{ c.monthly_fee or 30 }})" title="Extend Grace / Promise">
+                <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                <span>Extend</span>
+              </button>
+            </div>
+
+            <!-- Row 3: Status Toggle & Delete -->
+            <div class="m-action-row">
+              {% if c.status == 'active' %}
+                <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="toggleStatus({{ c.id }})" style="flex:1.8; font-weight:700;">
+                  <span>Suspend Access</span>
+                </button>
+              {% else %}
+                <button type="button" class="btn-action-sm btn-toggle-activate" onclick="toggleStatus({{ c.id }})" style="flex:1.8; font-weight:700;">
+                  <span>Activate Access</span>
+                </button>
+              {% endif %}
+              <button type="button" class="btn-action-sm btn-m-delete" onclick="quickDeleteCustomer({{ c.id }}, '{{ c.name|escape }}')" style="flex:1;">
+                <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         </div>
         {% endfor %}
@@ -2174,6 +2366,18 @@
     const f = params.get('filter');
     if (f) {
       setBillingFilter(f);
+    }
+    const manageId = params.get('manage');
+    if (manageId) {
+      setTimeout(() => {
+        if (typeof openProfileModal === 'function') openProfileModal(parseInt(manageId));
+      }, 150);
+    }
+    const collectId = params.get('collect');
+    if (collectId) {
+      setTimeout(() => {
+        if (typeof openCollectModal === 'function') openCollectModal(parseInt(collectId));
+      }, 150);
     }
   });
 
