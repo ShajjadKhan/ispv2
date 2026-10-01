@@ -192,8 +192,8 @@
     gap: 8px;
   }
 
-  .table-responsive { width: 100%; overflow-x: auto; }
-  .clean-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12.5px; }
+  .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .clean-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12.5px; table-layout: auto; }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
@@ -205,9 +205,12 @@
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table td {
-    padding: 5px 10px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-main);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
   }
   .clean-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
@@ -215,9 +218,69 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    max-width: 170px;
+    min-width: 120px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
-  .cust-name { font-weight: 700; color: #ffffff; }
+  .cust-name {
+    font-weight: 700;
+    color: #ffffff;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
   .cust-meta { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+
+  .cust-package-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 150px;
+    min-width: 110px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .cust-duedate-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 130px;
+    min-width: 105px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .table-actions-cell {
+    text-align: right;
+    white-space: normal !important;
+    width: 180px;
+    min-width: 160px;
+    max-width: 195px;
+    padding: 6px 8px !important;
+  }
+  .table-actions-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+    align-items: center;
+    max-width: 185px;
+    margin-left: auto;
+  }
+  .table-actions-wrap .btn-action-sm {
+    padding: 3.5px 7px !important;
+    font-size: 11px !important;
+    font-weight: 600;
+    border-radius: 6px;
+    gap: 3.5px;
+    line-height: 1.15;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .table-actions-wrap .btn-action-sm svg {
+    width: 10px;
+    height: 10px;
+  }
 
   .badge-plan {
     display: inline-flex;
@@ -760,7 +823,7 @@
   }
 
   /* MEDIA QUERIES FOR CUSTOMER DIRECTORY */
-  @media (max-width: 768px) {
+  @media (max-width: 940px) {
     .desktop-table-view {
       display: none !important;
     }
@@ -964,9 +1027,9 @@
               <th>Package</th>
               <th>Monthly Fee</th>
               <th>Due / Expiry Date</th>
-              <th style="min-width:210px;">Devices &amp; Live MACs</th>
+              <th style="min-width:160px; max-width:210px;">Devices &amp; Live MACs</th>
               <th>Status</th>
-              <th style="text-align:right;">Actions</th>
+              <th style="text-align:right; width:180px;">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -990,7 +1053,7 @@
                     </div>
                   </div>
                 </td>
-                <td class="font-mono text-white" style="font-weight:600;">{{ c.phone }}</td>
+                <td class="font-mono text-white" style="font-weight:600; white-space:nowrap;">{{ c.phone }}</td>
                 <td>
                   {% if c.billing_type == 'prepaid' %}
                     <span class="badge-plan prepaid">PREPAID</span>
@@ -999,7 +1062,7 @@
                   {% endif %}
                 </td>
                 <td>
-                  <div style="display:flex; flex-direction:column; gap:2px;">
+                  <div class="cust-package-cell">
                     <span style="font-weight:600; color:#ffffff;">{{ c.package_name }}</span>
                     <span class="font-mono text-cyan" style="font-size:11px; font-weight:700;">
                       ⚡ {{ c.effective_speed }}
@@ -1009,7 +1072,7 @@
                     </span>
                   </div>
                 </td>
-                <td class="font-mono">
+                <td class="font-mono" style="white-space:nowrap;">
                   <div style="font-weight:700; color:#38bdf8;">{{ "%.2f"|format(c.monthly_fee) }} SAR</div>
                   {% if c.credit_balance and c.credit_balance > 0 %}
                     <div style="font-size:10.5px; font-weight:700; color:#34d399; margin-top:3px; display:inline-flex; align-items:center; gap:3px; background:rgba(52,211,153,0.12); padding:1px 6px; border-radius:4px; border:1px solid rgba(52,211,153,0.25);">
@@ -1018,8 +1081,8 @@
                   {% endif %}
                 </td>
                 <td>
-                  <div style="display:flex; flex-direction:column; gap:2px;">
-                    <span class="font-mono text-white" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
+                  <div class="cust-duedate-cell">
+                    <span class="font-mono text-white" style="font-size:12px; white-space:nowrap;">{{ c.due_date or c.expiry_date or '—' }}</span>
                     {% if c.is_grace_held or c.suspension_held_until %}
                       <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
                         🤝 Grace: {{ c.suspension_held_until }}
@@ -1071,32 +1134,32 @@
                     {% endif %}
                   </div>
                 </td>
-                <td>
+                <td style="white-space:nowrap;">
                   {% if c.status == 'active' %}
                     <span class="badge-status running">ACTIVE</span>
                   {% else %}
                     <span class="badge-status disabled">SUSPENDED</span>
                   {% endif %}
                 </td>
-                <td style="text-align:right;">
-                  <div style="display:inline-flex; gap:6px;">
+                <td class="table-actions-cell">
+                  <div class="table-actions-wrap">
                     <a href="/customers/{{ c.id }}/edit" class="btn-action-sm" title="Edit Customer & Bandwidth Policy" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25); text-decoration:none;">
-                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                      <svg style="width:10px; height:10px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                       <span>Edit</span>
                     </a>
 
                     <a href="/customers/{{ c.id }}/usage" class="btn-action-sm" title="90-Day Internet Usage History & WhatsApp Dispute Proof" style="color:#a855f7; background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.25); text-decoration:none;">
-                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+                      <svg style="width:10px; height:10px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
                       <span>Usage</span>
                     </a>
 
-                    <button type="button" class="btn-action-sm" onclick="openProfileModal({{ c.id }})">
-                      <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                    <button type="button" class="btn-action-sm" onclick="openProfileModal({{ c.id }})" title="Manage Account & Settings">
+                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                       <span>Manage</span>
                     </button>
 
                     <button type="button" class="btn-action-sm btn-extend-grace" onclick="openPromiseModal({{ c.id }}, '{{ c.name|escape }}', {{ c.monthly_fee or 30 }})" title="Extend Suspension (Grace Hold &amp; Daily Debt)" style="color:#fbbf24; background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.3);">
-                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                      <svg style="width:10px; height:10px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                       <span>Extend</span>
                     </button>
                     
@@ -1111,7 +1174,7 @@
                     {% endif %}
 
                     <button type="button" class="btn-action-sm" onclick="quickDeleteCustomer({{ c.id }}, '{{ c.name|escape }}')" title="Permanently Delete Subscriber" style="color:#f87171; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.25);">
-                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                      <svg style="width:10px; height:10px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                       <span>Delete</span>
                     </button>
                   </div>
