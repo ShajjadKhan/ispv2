@@ -2232,27 +2232,40 @@ def settle_customer_cycles(
                 if waived > 0.05:
                     desc += f" ({waived:.2f} SAR waived discount)"
             else:
-                is_settled_val = 1 if total_month_paid >= (expected_fee - 0.05) else 0
+                if total_month_paid >= (expected_fee - 0.05):
+                    is_settled_val = 1
+                    settled_months_list.append(month)
+                    desc = f"Fully paid {month}: {amt:.2f} SAR"
+                else:
+                    is_settled_val = 0
+                    rem_pending = max(0.0, expected_fee - total_month_paid)
+                    desc = f"Partial payment for {month}: {amt:.2f} SAR ({rem_pending:.2f} SAR remaining pending)"
                 waived = 0.0
-                desc = f"Partial payment for {month}: {amt:.2f} SAR"
 
             if notes and notes.strip():
                 desc += f" - {notes.strip()}"
 
-            cursor.execute("""
-                INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, collected_by, month, is_settled_val, waived))
+            # Only record if money was collected or a settlement occurred
+            if amt > 0 or (should_settle and (waived > 0.01 or prev_paid > 0 or is_settled_val == 1)):
+                cursor.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, collected_by, month, is_settled_val, waived))
 
-            recorded_records.append({
-                "month": month,
-                "amount": amt,
-                "is_settled": is_settled_val,
-                "waived": waived,
-                "note": desc
-            })
+                recorded_records.append({
+                    "month": month,
+                    "amount": amt,
+                    "is_settled": is_settled_val,
+                    "waived": waived,
+                    "note": desc
+                })
             total_collected += amt
             total_waived += waived
+
+        # Restore customer status and devices if any payment was collected
+        if total_collected > 0:
+            cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+            cursor.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer_id))
 
         # If any months were settled, fulfill any pending promises and advance due date
         if settled_months_list:
@@ -2274,7 +2287,17 @@ def settle_customer_cycles(
                     nm = 1
                     ny += 1
                 dim = calendar.monthrange(ny, nm)[1]
-                due_day = min(int(cust.get("due_day") or 1), dim)
+
+                # Preserve original due day (e.g. 30th for 30-day cycle)
+                old_due_date = cust.get("due_date") or cust.get("expiry_date")
+                if old_due_date:
+                    orig_day = int(old_due_date.split("-")[2])
+                elif cust.get("billing_start_date"):
+                    orig_day = int(cust["billing_start_date"].split("-")[2])
+                else:
+                    orig_day = int(cust.get("due_day") or 1)
+
+                due_day = min(orig_day, dim)
                 new_due_date = f"{ny:04d}-{nm:02d}-{due_day:02d}"
             except Exception:
                 new_due_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")

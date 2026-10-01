@@ -1789,7 +1789,10 @@
             <span style="font-size:13.5px; color:#ffffff;">Total to collect: <strong class="mono" id="totalAmt" style="font-size:18px; color:#34d399; font-weight:800;">0.00</strong> SAR</span>
           </div>
           <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:12px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:3px 8px; border-radius:6px;">
-            <span id="collWaivedVal">0.00</span> SAR Waived Discount
+            ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
+          </div>
+          <div id="collPendingNote" style="display:none; color:#38bdf8; font-size:12px; font-weight:700; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:3px 8px; border-radius:6px;">
+            ⏱ <span id="collPendingVal">0.00</span> SAR Remains Pending
           </div>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px;">
@@ -2509,23 +2512,27 @@
         const btnRec = document.getElementById('btnRecordPayment');
         if (btnRec) btnRec.style.display = 'inline-flex';
 
-        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:150px;">Amount Collected (SAR)</th></tr></thead><tbody>';
+        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:150px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
 
         data.forEach((m) => {
           const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
           const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
-          html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+          const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
+
+          html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
             <td style="padding:10px 8px; text-align:center;">
-              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" class="month-cb" checked onchange="updateTotal()" title="Check to settle this month" style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
+              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
             </td>
-            <td style="padding:10px 8px; font-weight:700; color:#ffffff;">
-              <strong>${mLabel}</strong>${graceBadge}
+            <td style="padding:10px 8px;">
+              <div style="font-weight:700; color:#ffffff;">${mLabel}${graceBadge}</div>
+              ${paidBadge}
+              <div class="row-status-note" id="collRowNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
             </td>
             <td style="padding:10px 8px;">
               <span class="badge badge-red mono" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
             </td>
-            <td style="padding:10px 8px;">
-              <input type="number" name="amounts[]" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:#090e1a; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:6px 10px;" oninput="updateTotal()">
+            <td style="padding:10px 8px; text-align:right;">
+              <input type="number" name="amounts[]" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:#090e1a; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:6px 10px; text-align:right;" oninput="updateTotal()">
             </td>
           </tr>`;
         });
@@ -2548,20 +2555,52 @@
   function updateTotal() {
     let total = 0.0;
     let totalWaived = 0.0;
-    let hasWaived = false;
+    let totalPending = 0.0;
 
     document.querySelectorAll('.amt-input').forEach(inp => {
       const row = inp.closest('tr');
       const cb = row ? row.querySelector('.month-cb') : null;
+      const month = inp.getAttribute('data-month');
       const due = parseFloat(inp.getAttribute('data-due') || 0.0);
       const amt = Math.max(0, parseFloat(inp.value) || 0.0);
       const isChecked = cb ? cb.checked : true;
+      const noteEl = document.getElementById('collRowNote-' + month);
+
+      // Always add collected amount
+      total += amt;
 
       if (isChecked) {
-        total += amt;
         if (amt < due - 0.01) {
-          totalWaived += (due - amt);
-          hasWaived = true;
+          const waived = due - amt;
+          totalWaived += waived;
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#fbbf24;">✓ Settle Checked: ${waived.toFixed(2)} SAR will be waived as discount (month solved)</span>`;
+          }
+        } else if (amt > due + 0.01) {
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle with surplus (+${(amt - due).toFixed(2)} SAR)</span>`;
+          }
+        } else {
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle (month solved)</span>`;
+          }
+        }
+      } else {
+        // Settle UNCHECKED
+        if (amt < due - 0.01) {
+          const rem = due - amt;
+          totalPending += rem;
+          if (noteEl) {
+            if (amt === 0) {
+              noteEl.innerHTML = `<span style="color:var(--text-dim);">— Untouched (0 SAR collected, full ${due.toFixed(2)} SAR remains pending)</span>`;
+            } else {
+              noteEl.innerHTML = `<span style="color:#38bdf8;">⏱ Settle Unchecked: Partial payment (${rem.toFixed(2)} SAR remains pending and collectable)</span>`;
+            }
+          }
+        } else {
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full payment (${amt.toFixed(2)} SAR paid)</span>`;
+          }
         }
       }
     });
@@ -2569,14 +2608,25 @@
     const totEl = document.getElementById('totalAmt');
     if (totEl) totEl.textContent = total.toFixed(2);
 
-    const noteEl = document.getElementById('collWaivedNote');
-    const valEl = document.getElementById('collWaivedVal');
-    if (noteEl && valEl) {
-      if (hasWaived && totalWaived > 0.05) {
-        noteEl.style.display = 'inline-block';
-        valEl.textContent = totalWaived.toFixed(2);
+    const waivedBox = document.getElementById('collWaivedNote');
+    const waivedVal = document.getElementById('collWaivedVal');
+    if (waivedBox && waivedVal) {
+      if (totalWaived > 0.05) {
+        waivedBox.style.display = 'inline-block';
+        waivedVal.textContent = totalWaived.toFixed(2);
       } else {
-        noteEl.style.display = 'none';
+        waivedBox.style.display = 'none';
+      }
+    }
+
+    const pendingBox = document.getElementById('collPendingNote');
+    const pendingVal = document.getElementById('collPendingVal');
+    if (pendingBox && pendingVal) {
+      if (totalPending > 0.05) {
+        pendingBox.style.display = 'inline-block';
+        pendingVal.textContent = totalPending.toFixed(2);
+      } else {
+        pendingBox.style.display = 'none';
       }
     }
   }

@@ -1907,7 +1907,7 @@
               </td>
               <td data-label="Actions" class="sub-actions-cell" style="text-align: right;">
                 <div style="display: inline-flex; align-items: center; gap: 5px;">
-                  <button type="button" class="btn-quick-collect" onclick="openQuickCollectModal({{ c.id }}, '{{ c.name }}', '{{ c.phone }}', {{ c.monthly_fee }}, {{ c.credit_balance }})" title="Quick Collect Bill">
+                  <button type="button" class="btn-quick-collect" onclick="openCollectModal({{ c.id }}, '{{ c.name|escape }}')" title="Collect Payment &amp; Settle Unpaid Month(s)">
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                     <span>Collect</span>
                   </button>
@@ -2050,74 +2050,68 @@
 
 </div>
 
-<!-- QUICK COLLECT MODAL -->
-<div id="quickCollectModal" class="modal-overlay">
-  <div class="modal-container" style="max-width:560px;">
+<!-- COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder) -->
+<div class="modal-overlay" id="collectModal">
+  <div class="modal-container" style="max-width: 680px; width: 95%;">
     <div class="modal-header">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:18px;">⚡</span>
-        <h3 style="margin:0;">Quick Collect Due Bill</h3>
+        <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        <h3 style="margin:0;">Collect Payment &amp; Settle</h3>
       </div>
-      <button type="button" class="btn-modal-close" onclick="closeQuickCollectModal()">&times;</button>
+      <button type="button" class="btn-modal-close" onclick="closeCollectModal()">&times;</button>
     </div>
-    <form id="quickCollectForm" onsubmit="submitQuickCollect(event)">
-      <div class="modal-body" style="gap:16px;">
-        <input type="hidden" id="qcCustomerId" name="customer_id">
+    <form id="collectForm" onsubmit="event.preventDefault(); submitCollectForm();">
+      <div class="modal-body" style="gap:14px; padding: 20px;">
+        <input type="hidden" id="coll_cid">
 
-        <!-- Customer Card -->
-        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+        <!-- Customer Summary Header Banner -->
+        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div style="font-size: 15px; font-weight: 800; color: #ffffff;" id="qcCustomerName">—</div>
-            <div class="font-mono text-cyan" style="font-size: 12px; margin-top:2px;" id="qcCustomerPhone">—</div>
+            <div style="font-size: 14.5px; font-weight: 800; color: #ffffff;" id="coll_name">Loading customer…</div>
+            <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
+              <span style="color:#38bdf8; font-weight:700;">Left Checkbox [✓]</span> = Settle &amp; Close month (waives any discount). <span style="color:#fbbf24; font-weight:700;">Unchecked [ ]</span> = Partial payment (remains pending).
+            </div>
           </div>
-          <div style="text-align: right;">
-            <div class="font-mono text-emerald" style="font-size: 16px; font-weight: 800;" id="qcMonthlyFee">— SAR/mo</div>
-            <div class="font-mono" style="font-size: 11.5px; color:#c084fc; font-weight:700;" id="qcCreditBal">Credit: 0.00 SAR</div>
-          </div>
+          <div style="text-align: right;" id="coll_badges"></div>
         </div>
 
-        <!-- Amount Received with Presets -->
-        <div class="form-group">
-          <label style="font-size:11.5px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Amount Received (SAR)</label>
-          <input type="number" step="0.01" class="form-input font-mono" id="qcAmount" name="amount" required oninput="previewAdvanceCalculation()" style="height:44px; font-size:16px; font-weight:800; color:#34d399;">
-          
-          <div class="qc-presets-row">
-            <button type="button" class="qc-preset-btn preset-exact" onclick="setQcAmount('exact')">Exact Due</button>
-            <button type="button" class="qc-preset-btn" onclick="setQcAmount(50)">50</button>
-            <button type="button" class="qc-preset-btn" onclick="setQcAmount(75)">75</button>
-            <button type="button" class="qc-preset-btn" onclick="setQcAmount(100)">100</button>
-            <button type="button" class="qc-preset-btn" onclick="setQcAmount(150)">150</button>
-          </div>
-        </div>
+        <!-- Unpaid Bills Month-by-Month List -->
+        <div id="unpaidList"></div>
 
-        <!-- Payment Method with Quick Chips -->
-        <div class="form-group">
-          <label style="font-size:11.5px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Method &amp; Notes</label>
-          <input type="text" class="form-input" id="qcNotes" name="notes" value="Cash Payment" style="height:40px; font-size:13px;">
-          
-          <div class="qc-methods-row">
-            <button type="button" class="qc-method-chip active" onclick="setQcPayMethod(this, 'Cash Payment')">💵 Cash</button>
-            <button type="button" class="qc-method-chip" onclick="setQcPayMethod(this, 'STC Pay Transfer')">📱 STC Pay</button>
-            <button type="button" class="qc-method-chip" onclick="setQcPayMethod(this, 'Bank Transfer')">🏦 Bank</button>
-            <button type="button" class="qc-method-chip" onclick="setQcPayMethod(this, 'Card POS')">💳 Card</button>
+        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin: 6px 0;">
+
+        <!-- Total Calculation & Summary Bar -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg style="width:22px; height:22px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700; letter-spacing:0.5px;">Total to Collect</div>
+              <div style="font-size:22px; color:#34d399; font-weight:900; font-family:monospace;"><span id="totalAmt">0.00</span> <span style="font-size:13px; color:#ffffff;">SAR</span></div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:11.5px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:5px 10px; border-radius:8px;">
+              ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
+            </div>
+            <div id="collPendingNote" style="display:none; color:#38bdf8; font-size:11.5px; font-weight:700; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:5px 10px; border-radius:8px;">
+              ⏱ <span id="collPendingVal">0.00</span> SAR Remains Pending
+            </div>
           </div>
         </div>
 
-        <!-- Real-time Advance Calculation Callout -->
-        <div id="qcAdvanceNotice" style="display:none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px; font-size: 12px; color: #34d399; line-height:1.4;">
-          <!-- Dynamically populated -->
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
-          <button type="button" class="btn-table-manage" onclick="closeQuickCollectModal()">Cancel</button>
-          <button type="submit" class="btn-quick-collect" id="qcSubmitBtn" style="padding: 10px 22px; font-size: 13.5px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
-            <span>Record Payment &amp; Activate</span>
+        <!-- Action Buttons -->
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+          <button type="button" class="btn-table-manage" onclick="closeCollectModal()" style="padding:10px 18px; font-size:13px;">Cancel</button>
+          <button type="submit" id="btnRecordPayment" class="btn-quick-collect" style="padding:10px 24px; font-size:13.5px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
+            <span>Record Payment</span>
           </button>
         </div>
       </div>
     </form>
   </div>
 </div>
+<!-- Legacy modal ID alias -->
+<div id="quickCollectModal" style="display:none;"></div>
 
 <!-- DASHBOARD RECEIPT MODAL -->
 <div class="modal-overlay" id="dashboardReceiptModal">
@@ -2681,120 +2675,231 @@
     applySubscribersFilter();
   }
 
-  // Quick Collect Modal Logic
-  function openQuickCollectModal(id, name, phone, fee, credit) {
-    currentActiveCustomer = { id, name, phone, fee, credit };
-    document.getElementById('qcCustomerId').value = id;
-    document.getElementById('qcCustomerName').textContent = name;
-    document.getElementById('qcCustomerPhone').textContent = phone;
-    document.getElementById('qcMonthlyFee').textContent = parseFloat(fee).toFixed(2) + ' SAR/mo';
-    document.getElementById('qcCreditBal').textContent = 'Credit: ' + parseFloat(credit).toFixed(2) + ' SAR';
-    document.getElementById('qcAmount').value = parseFloat(fee).toFixed(2);
-    document.getElementById('qcNotes').value = 'Direct Cycle Bill Collection';
-
-    previewAdvanceCalculation();
-    document.getElementById('quickCollectModal').classList.add('open');
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
-  function closeQuickCollectModal() {
-    document.getElementById('quickCollectModal').classList.remove('open');
-    currentActiveCustomer = null;
+  // Month-by-Month Collect & Settle Controller (Matching Billing Reminder)
+  let activeCollCustId = null;
+
+  function openCollectModal(cid, name) {
+    activeCollCustId = cid;
+    const modal = document.getElementById('collectModal');
+    if (modal) modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    document.getElementById('coll_cid').value = cid;
+    document.getElementById('coll_name').textContent = 'Customer: ' + (name || 'ID #' + cid);
+    document.getElementById('unpaidList').innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;"><svg style="width:18px; height:18px; animation:spin 1s linear infinite; vertical-align:middle; margin-right:6px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c-4.41 0-8-3.59-8-8H2c0 5.52 4.48 10 10 10v-2z"/></svg> Loading unpaid cycles…</div>';
+
+    fetch('/api/customers/' + cid + '/unpaid')
+      .then(r => r.json())
+      .then(data => {
+        if (!data || !data.length) {
+          document.getElementById('unpaidList').innerHTML = '<div style="padding:14px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:#34d399; font-weight:700;"><svg style="width:16px; height:16px; vertical-align:text-bottom; margin-right:6px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> All bills are paid for this customer!</div>';
+          document.getElementById('totalAmt').textContent = '0.00';
+          const waivedNote = document.getElementById('collWaivedNote');
+          if (waivedNote) waivedNote.style.display = 'none';
+          const pendingNote = document.getElementById('collPendingNote');
+          if (pendingNote) pendingNote.style.display = 'none';
+          const btnRec = document.getElementById('btnRecordPayment');
+          if (btnRec) btnRec.style.display = 'none';
+          return;
+        }
+
+        const btnRec = document.getElementById('btnRecordPayment');
+        if (btnRec) btnRec.style.display = 'inline-flex';
+
+        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:160px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
+
+        data.forEach((m) => {
+          const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
+          const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
+          const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
+
+          html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
+            <td style="padding:10px 8px; text-align:center;">
+              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
+            </td>
+            <td style="padding:10px 8px;">
+              <div style="font-weight:700; color:#ffffff;">${mLabel}${graceBadge}</div>
+              ${paidBadge}
+              <div class="row-status-note" id="dashNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
+            </td>
+            <td style="padding:10px 8px;">
+              <span class="badge-tier overdue font-mono" style="font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
+            </td>
+            <td style="padding:10px 8px; text-align:right;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <input type="number" name="amounts[]" class="form-input amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; height:36px; font-weight:800; font-size:13.5px; color:#38bdf8; text-align:right; padding:5px 8px;" oninput="updateTotal()">
+              </div>
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('unpaidList').innerHTML = html;
+        updateTotal();
+      })
+      .catch(err => {
+        document.getElementById('unpaidList').innerHTML = `<div style="padding:12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:8px;">Error loading bills: ${err.message}</div>`;
+      });
   }
 
-  function setQcAmount(val) {
-    const amtInput = document.getElementById('qcAmount');
-    if (!amtInput) return;
-    if (val === 'exact') {
-      if (currentActiveCustomer) {
-        const fee = parseFloat(currentActiveCustomer.fee || 0);
-        const credit = parseFloat(currentActiveCustomer.credit || 0);
-        const netDue = Math.max(0, fee - credit);
-        amtInput.value = (netDue > 0 ? netDue : fee).toFixed(2);
+  function closeCollectModal() {
+    const modal = document.getElementById('collectModal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+    activeCollCustId = null;
+  }
+
+  function updateTotal() {
+    let total = 0.0;
+    let totalWaived = 0.0;
+    let totalPending = 0.0;
+
+    document.querySelectorAll('.amt-input').forEach(inp => {
+      const row = inp.closest('tr');
+      const cb = row ? row.querySelector('.month-cb') : null;
+      const month = inp.getAttribute('data-month');
+      const due = parseFloat(inp.getAttribute('data-due') || 0.0);
+      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
+      const isChecked = cb ? cb.checked : true;
+      const noteEl = document.getElementById('dashNote-' + month);
+
+      // Always sum collected amounts
+      total += amt;
+
+      if (isChecked) {
+        if (amt < due - 0.01) {
+          const waived = due - amt;
+          totalWaived += waived;
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#fbbf24;">✓ Settle Checked: ${waived.toFixed(2)} SAR will be waived as discount (month solved)</span>`;
+          }
+        } else if (amt > due + 0.01) {
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle with surplus (+${(amt - due).toFixed(2)} SAR)</span>`;
+          }
+        } else {
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle (month solved)</span>`;
+          }
+        }
+      } else {
+        // Settle UNCHECKED
+        if (amt < due - 0.01) {
+          const rem = due - amt;
+          totalPending += rem;
+          if (noteEl) {
+            if (amt === 0) {
+              noteEl.innerHTML = `<span style="color:var(--text-dim);">— Untouched (0 SAR collected, full ${due.toFixed(2)} SAR remains pending)</span>`;
+            } else {
+              noteEl.innerHTML = `<span style="color:#38bdf8;">⏱ Settle Unchecked: Partial payment (${rem.toFixed(2)} SAR remains pending and collectable)</span>`;
+            }
+          }
+        } else {
+          if (noteEl) {
+            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full payment (${amt.toFixed(2)} SAR paid)</span>`;
+          }
+        }
       }
-    } else {
-      amtInput.value = parseFloat(val).toFixed(2);
+    });
+
+    const totEl = document.getElementById('totalAmt');
+    if (totEl) totEl.textContent = total.toFixed(2);
+
+    const waivedBox = document.getElementById('collWaivedNote');
+    const waivedVal = document.getElementById('collWaivedVal');
+    if (waivedBox && waivedVal) {
+      if (totalWaived > 0.05) {
+        waivedBox.style.display = 'inline-block';
+        waivedVal.textContent = totalWaived.toFixed(2);
+      } else {
+        waivedBox.style.display = 'none';
+      }
     }
-    previewAdvanceCalculation();
-  }
 
-  function setQcPayMethod(btn, method) {
-    document.querySelectorAll('.qc-method-chip').forEach(c => c.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    const notesInput = document.getElementById('qcNotes');
-    if (notesInput) notesInput.value = method;
-  }
-
-  function printDashboardReceipt(custName, phone, amount, time, collector) {
-    document.getElementById('dashRecTime').textContent = time || '—';
-    document.getElementById('dashRecCustName').textContent = custName || '—';
-    document.getElementById('dashRecPhone').textContent = phone || '—';
-    document.getElementById('dashRecAmount').textContent = parseFloat(amount || 0).toFixed(2) + ' SAR';
-    document.getElementById('dashRecNotes').textContent = 'Direct Cycle Renewal';
-    document.getElementById('dashRecCollector').textContent = collector || 'Admin';
-    document.getElementById('dashboardReceiptModal').classList.add('open');
-  }
-
-  function closeDashboardReceiptModal() {
-    document.getElementById('dashboardReceiptModal').classList.remove('open');
-  }
-
-  function previewAdvanceCalculation() {
-    if (!currentActiveCustomer) return;
-    const fee = currentActiveCustomer.fee;
-    const amt = parseFloat(document.getElementById('qcAmount').value || 0);
-    const box = document.getElementById('qcAdvanceNotice');
-
-    if (fee > 0 && amt > fee) {
-      const months = Math.floor(amt / fee);
-      const surplus = (amt - (months * fee)).toFixed(2);
-      box.style.display = 'block';
-      box.innerHTML = `<strong>⚡ Advance Payment Detected:</strong> ${amt.toFixed(2)} SAR covers <strong>${months} month(s)</strong> (${months * 30} days). Surplus of <strong>+${surplus} SAR</strong> will be automatically credited to customer balance and account will switch to <strong>PREPAID</strong>.`;
-    } else if (amt > 0 && amt < fee) {
-      const comb = (amt + currentActiveCustomer.credit).toFixed(2);
-      box.style.display = 'block';
-      box.innerHTML = `<strong>Partial Payment:</strong> ${amt.toFixed(2)} SAR will be credited to balance. Total Credit: <strong>${comb} / ${fee.toFixed(2)} SAR</strong>.`;
-    } else {
-      box.style.display = 'none';
+    const pendingBox = document.getElementById('collPendingNote');
+    const pendingVal = document.getElementById('collPendingVal');
+    if (pendingBox && pendingVal) {
+      if (totalPending > 0.05) {
+        pendingBox.style.display = 'inline-block';
+        pendingVal.textContent = totalPending.toFixed(2);
+      } else {
+        pendingBox.style.display = 'none';
+      }
     }
   }
 
-  async function submitQuickCollect(e) {
-    e.preventDefault();
-    if (!currentActiveCustomer) return;
-    const id = currentActiveCustomer.id;
-    const amount = parseFloat(document.getElementById('qcAmount').value);
-    const notes = document.getElementById('qcNotes').value;
-    const btn = document.getElementById('qcSubmitBtn');
+  async function submitCollectForm() {
+    const cid = document.getElementById('coll_cid')?.value;
+    if (!cid) return;
 
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
+    const items = [];
+    document.querySelectorAll('.amt-input').forEach(inp => {
+      const row = inp.closest('tr');
+      const cb = row ? row.querySelector('.month-cb') : null;
+      const month = inp.getAttribute('data-month');
+      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
+      const isChecked = cb ? cb.checked : true;
+
+      items.push({
+        month: month,
+        amount: amt,
+        settle: isChecked
+      });
+    });
+
+    if (items.length === 0) {
+      cyberToast('No cycles to collect.');
+      return;
+    }
+
+    const btn = document.getElementById('btnRecordPayment');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Processing...</span>';
+    }
 
     try {
-      const res = await fetch(`/api/customers/${id}/quick-collect`, {
+      const resp = await fetch(`/api/customers/${cid}/settle-cycles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: amount,
-          notes: notes,
-          extend_days: 30,
-          advance_mode: 'credit'
-        })
+        body: JSON.stringify({ items: items, notes: 'Direct Collection & Settlement', send_whatsapp: true })
       });
-      const data = await res.json();
-      if (data.success) {
-        closeQuickCollectModal();
-        // Refresh page to update all KPIs and table
-        window.location.reload();
+      const res = await resp.json();
+      if (res.success) {
+        cyberToast(res.message || 'Payment recorded successfully!');
+        closeCollectModal();
+        setTimeout(() => window.location.reload(), 1000);
       } else {
-        cyberToast('Collection failed: ' + (data.error || 'Unknown error'));
-        btn.disabled = false;
-        btn.textContent = 'Record Payment & Activate';
+        cyberToast('Payment failed: ' + (res.message || res.error || 'Server error'));
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Record Payment</span>';
+        }
       }
-    } catch (err) {
-      cyberToast('Error recording payment: ' + err.message);
-      btn.disabled = false;
-      btn.textContent = 'Record Payment & Activate';
+    } catch (e) {
+      cyberToast('Error: ' + e.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Record Payment</span>';
+      }
     }
+  }
+
+  // Backwards compatibility alias
+  function openQuickCollectModal(id, name) {
+    openCollectModal(id, name);
+  }
+  function closeQuickCollectModal() {
+    closeCollectModal();
   }
 
   // Date Range Report Modal
@@ -3336,9 +3441,9 @@
         <!-- Modal Action Footer -->
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; padding-top:12px; border-top:1px solid var(--border-subtle); flex-wrap:wrap;">
           <div style="display:flex; gap:8px;">
-            <button type="button" class="btn-quick-collect" onclick="closeCustomerDetailsModal(); openQuickCollectModal(${c.id}, '${c.name}', '${c.phone}', ${c.monthly_fee || 0}, ${c.credit_balance || 0});">
+            <button type="button" class="btn-quick-collect" onclick="closeCustomerDetailsModal(); openCollectModal(${c.id}, '${c.name.replace(/'/g, &quot;\\'&quot;)}');">
               <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
-              <span>Quick Collect</span>
+              <span>Collect Bill</span>
             </button>
             <button type="button" class="${c.status === 'active' ? 'btn-reject' : 'btn-approve'}" onclick="toggleCustomerStatusFromModal(${c.id}, '${c.status}');">
               <span>${c.status === 'active' ? 'Suspend Account' : 'Activate Account'}</span>
