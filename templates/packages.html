@@ -421,7 +421,11 @@
     color: var(--text-dim);
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 6px 10px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -714,6 +718,11 @@
     }
     .mobile-packages-deck {
       display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      padding: 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .panel-card {
       border-radius: 12px !important;
@@ -798,6 +807,22 @@
     .modal-body-scroll {
       padding: 14px !important;
     }
+    .btn-preset {
+      min-height: 40px !important;
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+      flex: 1 1 auto !important;
+    }
+    .form-control, .search-input {
+      font-size: 16px !important;
+    }
+    .btn-action-sm {
+      min-height: 38px !important;
+    }
+    .pkg-m-actions > * {
+      min-height: 42px !important;
+      font-size: 12.5px !important;
+    }
   }
 
   @media (max-width: 440px) {
@@ -816,9 +841,9 @@
       gap: 6px 8px !important;
     }
     .pkg-m-actions > * {
-      padding: 7px 5px !important;
-      font-size: 11px !important;
-      min-height: 36px !important;
+      padding: 8px 6px !important;
+      font-size: 12px !important;
+      min-height: 40px !important;
     }
   }
 </style>
@@ -1127,11 +1152,11 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Package Name *</label>
+            <label for="cPkgName">Package Name *</label>
             <input type="text" class="form-control" id="cPkgName" placeholder="e.g. VIP Ultra 20M" required oninput="autoFillSlug('create')">
           </div>
           <div class="form-group">
-            <label>Service Type *</label>
+            <label for="cPkgType">Service Type *</label>
             <select class="form-control" id="cPkgType" required>
               <option value="hotspot" selected>Hotspot (Captive WiFi)</option>
               <option value="pppoe">PPPoE (Broadband / Fiber)</option>
@@ -1141,18 +1166,18 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Retail Price (SAR) *</label>
+            <label for="cPkgPrice">Retail Price (SAR) *</label>
             <input type="number" step="0.5" class="form-control font-mono" id="cPkgPrice" placeholder="75.00" required>
           </div>
           <div class="form-group">
-            <label>Wholesale / Cost Price (SAR)</label>
+            <label for="cPkgCost">Wholesale / Cost Price (SAR)</label>
             <input type="number" step="0.5" class="form-control font-mono" id="cPkgCost" placeholder="0.00" value="0.00">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Validity Period (Days) *</label>
+            <label for="cPkgValidity">Validity Period (Days) *</label>
             <input type="number" class="form-control font-mono" id="cPkgValidity" value="30" min="1" required>
             <div class="preset-row">
               <button type="button" class="btn-preset" onclick="setVal('create', 1)">1 Day</button>
@@ -1163,7 +1188,7 @@
           </div>
 
           <div class="form-group">
-            <label>Bandwidth Speed Rate Limit (Rx/Tx)</label>
+            <label for="cPkgRate">Bandwidth Speed Rate Limit (Rx/Tx)</label>
             <input type="text" class="form-control font-mono" id="cPkgRate" placeholder="0 for Unlimited, or e.g. 20M/20M" value="0">
             <div class="preset-row">
               <button type="button" class="btn-preset unlimited-preset" onclick="setRate('create', '0')">⚡ 0 (Unlimited / No Limit)</button>
@@ -1180,7 +1205,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Max Concurrent Devices (Shared Users)</label>
+            <label for="cPkgShared">Max Concurrent Devices (Shared Users)</label>
             <select class="form-control font-mono" id="cPkgShared">
               <option value="1">1 Device (Single Client)</option>
               <option value="2">2 Devices</option>
@@ -1192,14 +1217,14 @@
           </div>
 
           <div class="form-group">
-            <label>MikroTik RouterOS Profile Name</label>
+            <label for="cPkgProfile">MikroTik RouterOS Profile Name</label>
             <input type="text" class="form-control font-mono" id="cPkgProfile" placeholder="e.g. vip-ultra-20m">
             <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Name configured in /ip/hotspot/user/profile</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Description &amp; Feature Notes</label>
+          <label for="cPkgDesc">Description &amp; Feature Notes</label>
           <input type="text" class="form-control" id="cPkgDesc" placeholder="e.g. High-speed 4K streaming and low-latency gaming">
         </div>
 
@@ -1240,11 +1265,11 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Package Name *</label>
+            <label for="ePkgName">Package Name *</label>
             <input type="text" class="form-control" id="ePkgName" required>
           </div>
           <div class="form-group">
-            <label>Service Type *</label>
+            <label for="ePkgType">Service Type *</label>
             <select class="form-control" id="ePkgType" required>
               <option value="hotspot">Hotspot (Captive WiFi)</option>
               <option value="pppoe">PPPoE (Broadband / Fiber)</option>
@@ -1254,18 +1279,18 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Retail Price (SAR) *</label>
+            <label for="ePkgPrice">Retail Price (SAR) *</label>
             <input type="number" step="0.5" class="form-control font-mono" id="ePkgPrice" required>
           </div>
           <div class="form-group">
-            <label>Wholesale / Cost Price (SAR)</label>
+            <label for="ePkgCost">Wholesale / Cost Price (SAR)</label>
             <input type="number" step="0.5" class="form-control font-mono" id="ePkgCost">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Validity Period (Days) *</label>
+            <label for="ePkgValidity">Validity Period (Days) *</label>
             <input type="number" class="form-control font-mono" id="ePkgValidity" min="1" required>
             <div class="preset-row">
               <button type="button" class="btn-preset" onclick="setVal('edit', 1)">1 Day</button>
@@ -1276,7 +1301,7 @@
           </div>
 
           <div class="form-group">
-            <label>Bandwidth Speed Rate Limit (Rx/Tx)</label>
+            <label for="ePkgRate">Bandwidth Speed Rate Limit (Rx/Tx)</label>
             <input type="text" class="form-control font-mono" id="ePkgRate">
             <div class="preset-row">
               <button type="button" class="btn-preset unlimited-preset" onclick="setRate('edit', '0')">⚡ 0 (Unlimited / No Limit)</button>
@@ -1293,7 +1318,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Max Concurrent Devices (Shared Users)</label>
+            <label for="ePkgShared">Max Concurrent Devices (Shared Users)</label>
             <select class="form-control font-mono" id="ePkgShared">
               <option value="1">1 Device (Single Client)</option>
               <option value="2">2 Devices</option>
@@ -1305,18 +1330,18 @@
           </div>
 
           <div class="form-group">
-            <label>MikroTik RouterOS Profile Name</label>
+            <label for="ePkgProfile">MikroTik RouterOS Profile Name</label>
             <input type="text" class="form-control font-mono" id="ePkgProfile">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Description &amp; Feature Notes</label>
+            <label for="ePkgDesc">Description &amp; Feature Notes</label>
             <input type="text" class="form-control" id="ePkgDesc">
           </div>
           <div class="form-group">
-            <label>Status</label>
+            <label for="ePkgActive">Status</label>
             <select class="form-control" id="ePkgActive">
               <option value="1">Active (Available for Sale)</option>
               <option value="0">Disabled (Hidden from Customer Signups)</option>

@@ -814,8 +814,9 @@
     background: #ffffff;
     color: #111827;
     width: 100%;
-    max-width: 380px;
-    padding: 26px 24px;
+    max-width: 350px;
+    box-sizing: border-box;
+    padding: 22px 18px;
     border-radius: 14px;
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
     display: flex;
@@ -997,6 +998,104 @@
     }
   }
 
+  @media (max-width: 768px) {
+    .pos-inputs-grid {
+      grid-template-columns: 1fr;
+    }
+    .pos-search-input,
+    #posAmountInput,
+    #posNotesInput,
+    #ledgerSearchInput {
+      font-size: 16px !important;
+    }
+    .receipt-slip-box {
+      max-width: calc(100vw - 24px) !important;
+      padding: 16px 14px !important;
+    }
+
+    /* Transform #collectionsTable to responsive cards */
+    #collectionsTable,
+    #collectionsTable thead,
+    #collectionsTable tbody,
+    #collectionsTable th,
+    #collectionsTable td,
+    #collectionsTable tr {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    #collectionsTable thead {
+      display: none !important;
+    }
+    #collectionsTable tbody {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      padding: 10px !important;
+    }
+    #collectionsTable tr.ledger-row {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      gap: 4px 8px !important;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(20, 30, 55, 0.95) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 10px !important;
+      padding: 10px 12px !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+    }
+    #collectionsTable tr.ledger-row td {
+      border: none !important;
+      padding: 0 !important;
+      font-size: 12px !important;
+      white-space: normal !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Receipt #"] {
+      grid-column: 1;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Amount"] {
+      grid-column: 2;
+      justify-self: end;
+      font-size: 14.5px !important;
+      font-weight: 800 !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Customer"] {
+      grid-column: 1;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Date & Time"] {
+      grid-column: 2;
+      justify-self: end;
+      font-size: 11px !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Phone"] {
+      grid-column: 1;
+      font-size: 11.5px !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Notes"] {
+      grid-column: 1 / -1;
+      font-size: 11.5px !important;
+      color: var(--text-dim) !important;
+      padding: 4px 0 !important;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      margin-top: 2px !important;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Collector"] {
+      grid-column: 1;
+      align-self: center;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Voucher"] {
+      grid-column: 2;
+      justify-self: end;
+    }
+    #collectionsTable tr.ledger-row td[data-label="Voucher"] button {
+      min-height: 38px !important;
+      padding: 6px 14px !important;
+    }
+  }
+
   @media (max-width: 640px) {
     .col-top-bar {
       padding: 8px 10px;
@@ -1049,10 +1148,6 @@
     .queue-user-info {
       min-width: 0;
       width: 100%;
-    }
-    .clean-table th, .clean-table td {
-      padding: 5px 6px;
-      font-size: 11px;
     }
   }
 
@@ -1224,7 +1319,7 @@
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="pos-terminal-tag">READY FOR TRANSACTION</span>
-        <span style="font-size:11.5px; color:var(--text-dim); display:none; @media(min-width:768px){display:inline;}">Auto-extends validity on MikroTik router</span>
+        <span class="desktop-only" style="font-size:11.5px; color:var(--text-dim);">Auto-extends validity on MikroTik router</span>
       </div>
     </div>
 
@@ -1266,7 +1361,7 @@
         <!-- 1. Search Subscriber -->
         <div class="form-group pos-search-group" style="margin-bottom:0;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label style="margin-bottom:0; font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim);">Find Subscriber</label>
+            <label for="posCustomerSearchInput" style="margin-bottom:0; font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim);">Find Subscriber</label>
             <span id="posSelectionStatus" style="font-size:11px; font-weight:700; color:#10b981; display:none;">✓ Selected</span>
           </div>
 
@@ -1304,8 +1399,8 @@
 
         <!-- 2. Amount Collected (SAR) with Quick Preset Chips -->
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim); margin-bottom:6px;">Amount (SAR)</label>
-          <input type="number" step="0.01" class="form-input font-mono" id="posAmountInput" placeholder="0.00" required style="height:46px; font-size:16px; font-weight:800; color:#34d399; background:#090e1a; border-radius:11px; border:1px solid rgba(255,255,255,0.12); padding:0 14px;">
+          <label for="posAmountInput" style="font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim); margin-bottom:6px;">Amount (SAR)</label>
+          <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="posAmountInput" placeholder="0.00" required style="height:46px; font-size:16px; font-weight:800; color:#34d399; background:#090e1a; border-radius:11px; border:1px solid rgba(255,255,255,0.12); padding:0 14px;">
           
           <div class="amount-presets-row" id="amountPresetsRow">
             <button type="button" class="btn-amt-preset preset-exact" onclick="setPosAmount('exact')">Exact Due</button>
@@ -1318,8 +1413,8 @@
 
         <!-- 3. Payment Method & Notes with Quick Chips -->
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim); margin-bottom:6px;">Method &amp; Notes</label>
-          <input type="text" class="form-input" id="posNotesInput" placeholder="Cash, STC Pay, Transfer..." value="Cash Payment" style="height:46px; font-size:13px; background:#090e1a; border-radius:11px; border:1px solid rgba(255,255,255,0.12); padding:0 14px; color:#ffffff;">
+          <label for="posNotesInput" style="font-size:11.5px; text-transform:uppercase; font-weight:700; color:var(--text-dim); margin-bottom:6px;">Method &amp; Notes</label>
+          <input type="text" class="form-input" id="posNotesInput" placeholder="Cash, STC Pay, Transfer..." value="Cash Payment" style="height:46px; font-size:16px; background:#090e1a; border-radius:11px; border:1px solid rgba(255,255,255,0.12); padding:0 14px; color:#ffffff;">
           
           <div class="pay-method-chips">
             <button type="button" class="pay-method-chip active" onclick="setPayMethod(this, 'Cash Payment')">💵 Cash</button>
@@ -1509,24 +1604,24 @@
           {% if ledger %}
             {% for tx in ledger %}
             <tr class="ledger-row" data-search="{{ (tx.customer_name or '')|lower }} {{ tx.customer_phone or '' }} {{ (tx.notes or '')|lower }} col-{{ tx.id }}">
-              <td class="font-mono text-cyan" style="font-weight:800;">#COL-{{ tx.id }}</td>
-              <td class="font-mono text-dim" style="font-size:12px;">{{ tx.collected_at }}</td>
-              <td>
+              <td data-label="Receipt #" class="font-mono text-cyan" style="font-weight:800;">#COL-{{ tx.id }}</td>
+              <td data-label="Date & Time" class="font-mono text-dim" style="font-size:12px;">{{ tx.collected_at }}</td>
+              <td data-label="Customer">
                 <a href="/customers/{{ tx.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" class="hover-underline">
                   {{ tx.customer_name or 'Account #' ~ tx.customer_id }}
                 </a>
               </td>
-              <td class="font-mono text-white">{{ tx.customer_phone or '—' }}</td>
-              <td class="font-mono" style="font-weight:800; color:{% if tx.amount > 0 %}#34d399{% else %}#94a3b8{% endif %}; font-size:14px;">
+              <td data-label="Phone" class="font-mono text-white">{{ tx.customer_phone or '—' }}</td>
+              <td data-label="Amount" class="font-mono" style="font-weight:800; color:{% if tx.amount > 0 %}#34d399{% else %}#94a3b8{% endif %}; font-size:14px;">
                 +{{ "%.2f"|format(tx.amount) }} SAR
               </td>
-              <td style="font-size:12.5px; color:var(--text-muted);">{{ tx.notes or 'Payment entry' }}</td>
-              <td class="font-mono text-dim" style="font-size:11.5px;">
+              <td data-label="Notes" style="font-size:12.5px; color:var(--text-muted);">{{ tx.notes or 'Payment entry' }}</td>
+              <td data-label="Collector" class="font-mono text-dim" style="font-size:11.5px;">
                 <span class="badge" style="background:rgba(255,255,255,0.06); color:#cbd5e1; font-size:10.5px; padding:2px 7px;">
                   {{ tx.collected_by or 'Admin' }}
                 </span>
               </td>
-              <td style="text-align:right;">
+              <td data-label="Voucher" style="text-align:right;">
                 <button type="button" class="btn-action-sm" onclick="printReceiptSlip({{ tx.id }}, '{{ tx.customer_name|escape }}', '{{ tx.customer_phone }}', '{{ tx.amount }}', '{{ tx.collected_at }}', '{{ tx.notes|escape }}', '{{ tx.collected_by }}')" title="Print or view receipt slip" style="padding:6px 12px; font-size:12px; font-weight:700; background:rgba(56,189,248,0.12); color:#38bdf8; border-color:rgba(56,189,248,0.3);">
                   <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
                   <span>Receipt</span>
