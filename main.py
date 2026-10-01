@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from fastapi import FastAPI, Request, HTTPException, Query, Form
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
 import qrcode
@@ -3368,6 +3368,55 @@ async def trigger_ping():
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "CyberNet OS v2", "port": 9911}
+
+
+@app.get("/downloads/audit-pdf")
+async def download_audit_pdf():
+    pdf_path = Path("/home/tserver/isp_v2/UI_UX_ACCESSIBILITY_AUDIT_REPORT.pdf")
+    if not pdf_path.exists():
+        pdf_path = Path("UI_UX_ACCESSIBILITY_AUDIT_REPORT.pdf")
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Audit PDF not found")
+    return FileResponse(
+        str(pdf_path),
+        media_type="application/pdf",
+        filename="CyberNet_OS_v2_UI_UX_Audit_Report.pdf"
+    )
+
+
+@app.get("/downloads/audit-md")
+async def download_audit_md():
+    md_path = Path("/home/tserver/isp_v2/UI_UX_ACCESSIBILITY_AUDIT_REPORT.md")
+    if not md_path.exists():
+        md_path = Path("UI_UX_ACCESSIBILITY_AUDIT_REPORT.md")
+    if not md_path.exists():
+        raise HTTPException(status_code=404, detail="Audit MD not found")
+    return FileResponse(
+        str(md_path),
+        media_type="text/markdown",
+        filename="CyberNet_OS_v2_UI_UX_Audit_Report.md"
+    )
+
+
+@app.get("/downloads/{filename}")
+async def download_any_file(filename: str):
+    file_path = Path("/home/tserver/isp_v2") / filename
+    if not file_path.exists():
+        file_path = Path(filename)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    mimetype = "application/octet-stream"
+    if filename.endswith(".pdf"):
+        mimetype = "application/pdf"
+    elif filename.endswith(".md"):
+        mimetype = "text/markdown"
+    elif filename.endswith(".txt"):
+        mimetype = "text/plain"
+    return FileResponse(
+        str(file_path),
+        media_type=mimetype,
+        filename=filename
+    )
 
 
 if __name__ == "__main__":
