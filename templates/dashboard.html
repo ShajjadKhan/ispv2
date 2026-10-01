@@ -1119,7 +1119,11 @@
     }
 
     /* 1. NEW JOIN REQUESTS TABLE TO COMPACT 5-ROW MOBILE CARDS */
-    .pending-table-container {
+    #pendingRequestsSection .table-responsive,
+    #pendingSection .table-responsive,
+    .pending-table-container,
+    .pending-table-container .table-responsive,
+    .table-responsive:has(#pendingTable) {
       overflow-x: hidden !important;
       width: 100% !important;
       max-width: 100% !important;
@@ -1169,12 +1173,12 @@
     #pendingTable tr[id^="req-row-"],
     .req-table-row {
       display: grid !important;
-      grid-template-columns: 1fr auto !important;
+      grid-template-columns: minmax(0, 1fr) minmax(0, auto) !important;
       grid-template-areas:
         "phone   type"
         "mac     mac"
-        "ip      device"
-        "time    time"
+        "ip      time"
+        "device  device"
         "actions actions" !important;
       align-items: center !important;
       gap: 6px 10px !important;
@@ -1306,7 +1310,7 @@
     }
     #pendingTable tr[id^="req-row-"] td.td-ip::before,
     .req-table-row td.td-ip::before {
-      content: "IP: " !important;
+      content: "🌐 IP: " !important;
       color: #64748b !important;
       font-size: 11px !important;
       font-weight: 600 !important;
@@ -1314,48 +1318,52 @@
       display: inline-block !important;
     }
 
-    /* 5. Device Model (Row 3 Right) */
-    #pendingTable tr[id^="req-row-"] td.td-device,
-    .req-table-row td.td-device {
-      grid-area: device !important;
+    /* 5. Requested Time (Row 3 Right) */
+    #pendingTable tr[id^="req-row-"] td.td-time,
+    .req-table-row td.td-time {
+      grid-area: time !important;
       justify-self: end !important;
       text-align: right !important;
-      font-size: 11.5px !important;
-      color: #cbd5e1 !important;
+      font-size: 11px !important;
+      color: #64748b !important;
       display: flex !important;
       align-items: center !important;
       gap: 3px !important;
       min-width: 0 !important;
-      max-width: 100% !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
       white-space: nowrap !important;
     }
-    #pendingTable tr[id^="req-row-"] td.td-device::before,
-    .req-table-row td.td-device::before {
-      content: "📱 " !important;
+    #pendingTable tr[id^="req-row-"] td.td-time::before,
+    .req-table-row td.td-time::before {
+      content: "⏱ " !important;
       font-size: 11px !important;
       display: inline-block !important;
     }
 
-    /* 6. Requested Time (Row 4 Full Width) */
-    #pendingTable tr[id^="req-row-"] td.td-time,
-    .req-table-row td.td-time {
-      grid-area: time !important;
-      font-size: 10.5px !important;
-      color: #64748b !important;
-      display: flex !important;
-      align-items: center !important;
-      gap: 4px !important;
-      min-width: 0 !important;
+    /* 6. Device Model (Row 4 Full Width Bar) */
+    #pendingTable tr[id^="req-row-"] td.td-device,
+    .req-table-row td.td-device {
+      grid-area: device !important;
+      font-size: 11.5px !important;
+      color: #cbd5e1 !important;
       width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+      border-radius: 6px !important;
+      padding: 4px 8px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      display: block !important;
     }
-    #pendingTable tr[id^="req-row-"] td.td-time::before,
-    .req-table-row td.td-time::before {
-      content: "⏱ Requested: " !important;
-      display: inline-block !important;
-      color: #64748b !important;
-      font-weight: 500 !important;
+    #pendingTable tr[id^="req-row-"] td.td-device::before,
+    .req-table-row td.td-device::before {
+      content: "📱 Device: " !important;
+      font-weight: 600 !important;
+      color: #94a3b8 !important;
+      font-size: 11px !important;
     }
 
     /* 7. Action Buttons (Row 5 Full Width) */
@@ -1409,6 +1417,7 @@
     #emptyPendingRow td {
       display: block !important;
       width: 100% !important;
+      max-width: 100% !important;
       box-sizing: border-box !important;
       padding: 24px 12px !important;
     }
@@ -3816,6 +3825,28 @@
     }
   }
 
+  function formatDeviceModel(raw) {
+    if (!raw) return 'Mobile Client';
+    if (raw.length < 35 && !raw.includes('Mozilla/') && !raw.includes('AppleWebKit/')) return raw;
+    if (/iPhone/i.test(raw)) return 'Apple iPhone';
+    if (/iPad/i.test(raw)) return 'Apple iPad';
+    const redmi = raw.match(/24090RA29[A-Z]|24094RAD4[A-Z]|24090RA28[A-Z]|24116RN10[A-Z]|24108PCE4[A-Z]|Redmi\s*Note\s*14/i);
+    if (redmi) return 'Redmi Note 14';
+    const redmiGen = raw.match(/Redmi[^\s;)]*/i);
+    if (redmiGen) return redmiGen[0];
+    const poco = raw.match(/POCO[^\s;)]*/i);
+    if (poco) return poco[0];
+    const sm = raw.match(/SM-[A-Z0-9]+/i);
+    if (sm) return `Samsung (${sm[0]})`;
+    if (/Samsung/i.test(raw)) return 'Samsung Galaxy';
+    const mBuild = raw.match(/;\s*([^;]+?)\s*Build\//i);
+    if (mBuild && !mBuild[1].toLowerCase().startsWith('android')) return mBuild[1].trim().substring(0, 30);
+    if (/Android/i.test(raw)) return 'Android Phone';
+    if (/Windows/i.test(raw)) return 'Windows PC';
+    if (/Macintosh|Mac OS/i.test(raw)) return 'Apple Mac';
+    return raw.substring(0, 30);
+  }
+
   // Refresh Pending Requests
   async function refreshPendingRequests() {
     try {
@@ -3906,7 +3937,7 @@
               </td>
               <td data-label="IP Address" class="font-mono text-dim td-ip">${req.ip_address || '—'}</td>
               <td data-label="Account Type" class="td-type">${typeCol}</td>
-              <td data-label="Device Model" class="text-dim td-device" style="font-size:12px;">${req.device_model || 'Mobile Client'}</td>
+              <td data-label="Device Model" class="text-dim td-device" style="font-size:12px;">${formatDeviceModel(req.device_model)}</td>
               <td data-label="Requested Time" class="font-mono text-dim td-time" style="font-size:12px;">${req.created_at || '—'}</td>
               <td data-label="Actions" class="td-actions" style="text-align:right;">
                 <div class="pending-actions-wrap" style="display:inline-flex; gap:8px;">${actionBtns}</div>

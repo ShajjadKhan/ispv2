@@ -404,6 +404,11 @@
     flex-direction: column;
     gap: 14px;
   }
+  .modal-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
 
   .modal-footer {
     padding: 18px 24px;
@@ -454,6 +459,15 @@
     }
 
     /* 1. PENDING TABLE TO MOBILE CARDS */
+    #pendingSection .table-responsive,
+    .table-responsive:has(#pendingTable) {
+      overflow-x: hidden !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      padding: 0 !important;
+    }
+
     #pendingTable, 
     #pendingTable thead, 
     #pendingTable tbody, 
@@ -462,6 +476,7 @@
     #pendingTable tr {
       display: block !important;
       width: 100% !important;
+      max-width: 100% !important;
       box-sizing: border-box !important;
     }
 
@@ -472,104 +487,259 @@
     #pendingTable tbody {
       display: flex !important;
       flex-direction: column !important;
-      gap: 6px !important;
-      padding: 2px 0 !important;
+      gap: 10px !important;
+      padding: 10px !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
     }
 
-    #pendingTable tr[id^="req-row-"] {
+    #pendingTable tr[id^="req-row-"],
+    .req-table-row {
       display: grid !important;
-      grid-template-columns: 1fr auto !important;
+      grid-template-columns: minmax(0, 1fr) minmax(0, auto) !important;
+      grid-template-areas:
+        "phone   type"
+        "mac     mac"
+        "ip      time"
+        "device  device"
+        "actions actions" !important;
       align-items: center !important;
-      gap: 4px 8px !important;
+      gap: 6px 10px !important;
       background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(24, 34, 60, 0.95) 100%) !important;
       border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      border-left: 3px solid #10b981 !important;
-      border-radius: 10px !important;
-      padding: 8px 12px !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      border-left: 4px solid #10b981 !important;
+      border-radius: 12px !important;
+      padding: 12px 14px !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
       margin-bottom: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
     }
 
-    #pendingTable tr[id^="req-row-"][style*="239, 68, 68"] {
-      border-left: 3px solid #ef4444 !important;
+    #pendingTable tr[id^="req-row-"][style*="239, 68, 68"],
+    #pendingTable tr[id^="req-row-"].random-mac-card {
+      border-left: 4px solid #ef4444 !important;
       background: linear-gradient(135deg, rgba(35, 15, 20, 0.98) 0%, rgba(24, 18, 30, 0.95) 100%) !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td {
+    #pendingTable tr[id^="req-row-"] td,
+    .req-table-row td {
       border: none !important;
       padding: 0 !important;
       font-size: 12px !important;
       white-space: normal !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td::before {
+    #pendingTable tr[id^="req-row-"] td::before,
+    .req-table-row td::before {
       display: none !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-phone {
-      grid-column: 1;
-      font-size: 13.5px !important;
+    /* 1. Phone number (Row 1 Left) */
+    #pendingTable tr[id^="req-row-"] td.td-phone,
+    .req-table-row td.td-phone {
+      grid-area: phone !important;
+      font-size: 14.5px !important;
       font-weight: 800 !important;
       color: #38bdf8 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      min-width: 0 !important;
+      word-break: break-all !important;
+      line-height: 1.2 !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-phone::before,
+    .req-table-row td.td-phone::before {
+      content: "📱" !important;
+      display: inline-block !important;
+      font-size: 13px !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-type {
-      grid-column: 2;
-      justify-self: end;
+    /* 2. Account Type (Row 1 Right) */
+    #pendingTable tr[id^="req-row-"] td.td-type,
+    .req-table-row td.td-type {
+      grid-area: type !important;
+      justify-self: end !important;
+      text-align: right !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      gap: 2px !important;
+      min-width: 0 !important;
     }
-
-    #pendingTable tr[id^="req-row-"] td.td-mac {
-      grid-column: 1;
-      font-size: 11px !important;
-    }
-
-    #pendingTable tr[id^="req-row-"] td.td-time {
-      grid-column: 2;
-      justify-self: end;
+    #pendingTable tr[id^="req-row-"] td.td-type .tag-device-type,
+    .req-table-row td.td-type .tag-device-type {
       font-size: 10.5px !important;
-      color: var(--text-dim) !important;
+      padding: 2px 7px !important;
+      border-radius: 4px !important;
+      white-space: nowrap !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-device {
-      grid-column: 1 / -1;
+    /* 3. MAC address bar + Real/Random Badge (Row 2 Full Width) */
+    #pendingTable tr[id^="req-row-"] td.td-mac,
+    .req-table-row td.td-mac {
+      grid-area: mac !important;
+      width: 100% !important;
+      background: rgba(15, 23, 42, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 8px !important;
+      padding: 6px 10px !important;
+      box-sizing: border-box !important;
+      margin: 2px 0 !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-mac > div,
+    .req-table-row td.td-mac > div {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      width: 100% !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-mac span.text-cyan,
+    .req-table-row td.td-mac span.text-cyan {
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.5px !important;
+      word-break: break-all !important;
+      color: #38bdf8 !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-mac .tag-mac-ok,
+    .req-table-row td.td-mac .tag-mac-ok,
+    #pendingTable tr[id^="req-row-"] td.td-mac .tag-mac-warn,
+    .req-table-row td.td-mac .tag-mac-warn {
+      font-size: 10px !important;
+      padding: 2px 6px !important;
+      font-weight: 700 !important;
+      border-radius: 4px !important;
+      white-space: nowrap !important;
+    }
+
+    /* 4. IP Address (Row 3 Left) */
+    #pendingTable tr[id^="req-row-"] td.td-ip,
+    .req-table-row td.td-ip {
+      grid-area: ip !important;
+      display: flex !important;
+      align-items: center !important;
+      font-size: 11.5px !important;
+      color: #94a3b8 !important;
+      min-width: 0 !important;
+      word-break: break-all !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-ip::before,
+    .req-table-row td.td-ip::before {
+      content: "🌐 IP: " !important;
+      color: #64748b !important;
       font-size: 11px !important;
-      color: var(--text-muted) !important;
+      font-weight: 600 !important;
+      margin-right: 3px !important;
+      display: inline-block !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-ip {
-      display: none !important;
+    /* 5. Requested Time (Row 3 Right) */
+    #pendingTable tr[id^="req-row-"] td.td-time,
+    .req-table-row td.td-time {
+      grid-area: time !important;
+      justify-self: end !important;
+      text-align: right !important;
+      font-size: 11px !important;
+      color: #64748b !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 3px !important;
+      min-width: 0 !important;
+      white-space: nowrap !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-time::before,
+    .req-table-row td.td-time::before {
+      content: "⏱ " !important;
+      font-size: 11px !important;
+      display: inline-block !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-actions {
-      grid-column: 1 / -1;
-      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-      padding-top: 6px !important;
-      margin-top: 2px !important;
+    /* 6. Device Model (Row 4 Full Width Bar) */
+    #pendingTable tr[id^="req-row-"] td.td-device,
+    .req-table-row td.td-device {
+      grid-area: device !important;
+      font-size: 11.5px !important;
+      color: #cbd5e1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+      border-radius: 6px !important;
+      padding: 4px 8px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
       display: block !important;
     }
+    #pendingTable tr[id^="req-row-"] td.td-device::before,
+    .req-table-row td.td-device::before {
+      content: "📱 Device: " !important;
+      font-weight: 600 !important;
+      color: #94a3b8 !important;
+      font-size: 11px !important;
+    }
 
-    #pendingTable tr[id^="req-row-"] td.td-actions > div {
+    /* 7. Action Buttons (Row 5 Full Width) */
+    #pendingTable tr[id^="req-row-"] td.td-actions,
+    .req-table-row td.td-actions {
+      grid-area: actions !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding-top: 8px !important;
+      margin-top: 4px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-actions > div,
+    .req-table-row td.td-actions > div,
+    .pending-actions-wrap {
       display: flex !important;
       width: 100% !important;
+      gap: 8px !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-approve,
+    .req-table-row td.td-actions button.btn-approve {
+      flex: 2 !important;
+      padding: 9px 12px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      border-radius: 8px !important;
+      justify-content: center !important;
+      min-height: 40px !important;
+      display: inline-flex !important;
+      align-items: center !important;
       gap: 6px !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-approve {
-      flex: 2 !important;
-      padding: 6px 10px !important;
-      font-size: 12px !important;
-      font-weight: 700 !important;
-      border-radius: 7px !important;
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject,
+    .req-table-row td.td-actions button.btn-reject {
+      flex: 1 !important;
+      padding: 9px 10px !important;
+      font-size: 12.5px !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
       justify-content: center !important;
+      min-height: 40px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
     }
 
-    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject {
-      flex: 1 !important;
-      padding: 6px 8px !important;
-      font-size: 11.5px !important;
-      font-weight: 600 !important;
-      border-radius: 7px !important;
-      justify-content: center !important;
+    .modal-grid-2 {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
     }
 
     /* 2. APPROVED DEVICES TABLE TO COMPACT MOBILE CARDS */
@@ -1052,7 +1222,7 @@
             <span>Prepaid Payment &amp; Expiry Date</span>
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="modal-grid-2">
             <div class="form-group">
               <label>Amount Collected Today (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputCollectedToday" name="collected_today" required value="75.00" placeholder="e.g. 75.00">
@@ -1077,7 +1247,7 @@
             <span>Postpaid Regular Cycle &amp; Advance Credit</span>
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="modal-grid-2">
             <div class="form-group">
               <label>Monthly Collectable Fee (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidMonthly" name="monthly_fee_postpaid" value="75.00" placeholder="e.g. 75.00" oninput="calculatePostpaidAdvance()">
@@ -1113,7 +1283,7 @@
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="modal-grid-2">
             <div class="form-group">
               <label>Payment Due Date (Manual Entry)</label>
               <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date" style="color:#ffffff;">

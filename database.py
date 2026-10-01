@@ -804,6 +804,42 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str) -> Dict[str, Any]:
         }
 
 
+def parse_clean_device_model(raw: Optional[str]) -> str:
+    if not raw or not raw.strip():
+        return "Mobile Client"
+    raw_str = raw.strip()
+    if not ("Mozilla/" in raw_str or "AppleWebKit" in raw_str or "Version/" in raw_str):
+        return raw_str[:35]
+    ua = raw_str
+    if "iPhone" in ua:
+        return "Apple iPhone"
+    if "iPad" in ua:
+        return "Apple iPad"
+    if "Redmi Note 14" in ua or "23129RAA4G" in ua:
+        return "Redmi Note 14"
+    if "SM-S928" in ua:
+        return "Samsung Galaxy S24 Ultra"
+    if "SM-" in ua:
+        m = re.search(r"SM-[A-Z0-9]+", ua)
+        if m:
+            return f"Samsung ({m.group(0)})"
+        return "Samsung Galaxy"
+    if "Android" in ua:
+        m = re.search(r";\s*([^;]+?)\s*Build/", ua)
+        if m:
+            model = m.group(1).strip()
+            if not model.lower().startswith("android"):
+                return model[:30]
+        return "Android Phone"
+    if "Windows" in ua:
+        return "Windows PC"
+    if "Macintosh" in ua or "Mac OS" in ua:
+        return "Apple Mac"
+    if "Linux" in ua:
+        return "Linux Device"
+    return "Mobile Client"
+
+
 def get_pending_requests() -> List[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.cursor()
@@ -819,6 +855,7 @@ def get_pending_requests() -> List[Dict[str, Any]]:
         rows = [dict(row) for row in cursor.fetchall()]
         for r in rows:
             r["is_random_mac"] = is_randomized_mac(r.get("mac_address", ""))
+            r["device_model"] = parse_clean_device_model(r.get("device_model", ""))
         return rows
 
 
