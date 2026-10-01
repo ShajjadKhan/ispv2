@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 
 import database
+import pyotp
 
 logger = logging.getLogger("cybernet_auth")
 
@@ -27,6 +28,7 @@ COOKIE_NAME = "cybernet_session"
 
 # Pre-auth CSRF tokens cache (token -> expiry timestamp)
 _LOGIN_CSRF_TOKENS: Dict[str, float] = {}
+_TOTP_PENDING_LOGINS: Dict[str, Dict[str, Any]] = {}
 
 
 def hash_password(password: str) -> Tuple[str, str]:
@@ -143,6 +145,18 @@ def init_auth_schema():
             pass
         try:
             cursor.execute("ALTER TABLE admin_users ADD COLUMN phone TEXT")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN totp_secret TEXT")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE admin_users ADD COLUMN totp_confirmed_at TEXT")
         except Exception:
             pass
 
@@ -268,6 +282,117 @@ def validate_login_csrf_token(token: str) -> bool:
     if exp and exp > time.time():
         return True
     return False
+
+
+def create_totp_pending_login(user: Dict[str, Any], client_ip: str, user_agent: str, remember_me: bool, next_url: str) -> str:
+    """Creates a short-lived pre-auth token after password success but before TOTP success."""
+    token = secrets.token_urlsafe(32)
+    now = time.time()
+    for key, payload in list(_TOTP_PENDING_LOGINS.items()):
+        if payload.get("expires_at", 0) < now:
+            _TOTP_PENDING_LOGINS.pop(key, None)
+    _TOTP_PENDING_LOGINS[token] = {
+        "user_id": user["id"],
+        "username": user["username"],
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+        "remember_me": remember_me,
+        "next_url": next_url,
+        "expires_at": now + 300,
+    }
+    log_audit_event(user.get("username"), client_ip, "totp_required", "Password accepted; waiting for authenticator code", user_agent)
+    return token
+
+
+def consume_totp_pending_login(token: str, code: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:
+    """Validates a pending login token and TOTP code, consuming the token on success."""
+    payload = _TOTP_PENDING_LOGINS.get(token or "")
+    if not payload or payload.get("expires_at", 0) < time.time():
+        _TOTP_PENDING_LOGINS.pop(token or "", None)
+        return False, None, "Two-factor login expired. Please sign in again."
+
+    user = get_user_by_id(payload["user_id"])
+    if not user or not user.get("totp_enabled") or not user.get("totp_secret"):
+        _TOTP_PENDING_LOGINS.pop(token, None)
+        return False, None, "Two-factor setup is not active for this account."
+
+    if not verify_totp_code(user["totp_secret"], code):
+        log_audit_event(user.get("username"), payload.get("client_ip"), "totp_failure", "Invalid authenticator code", payload.get("user_agent"))
+        return False, None, "Invalid authenticator code."
+
+    _TOTP_PENDING_LOGINS.pop(token, None)
+    user.update(payload)
+    log_audit_event(user.get("username"), payload.get("client_ip"), "totp_success", "Authenticator code accepted", payload.get("user_agent"))
+    return True, user, "Success"
+
+
+def generate_totp_secret() -> str:
+    return pyotp.random_base32()
+
+
+def build_totp_uri(username: str, secret: str) -> str:
+    return pyotp.totp.TOTP(secret).provisioning_uri(name=username, issuer_name="CyberNet OS")
+
+
+def verify_totp_code(secret: str, code: str) -> bool:
+    clean = "".join(ch for ch in str(code or "") if ch.isdigit())
+    if len(clean) != 6:
+        return False
+    return pyotp.TOTP(secret).verify(clean, valid_window=1)
+
+
+def ensure_totp_secret(user_id: int) -> Tuple[bool, Optional[str], str]:
+    """Creates or returns an existing TOTP secret for setup. Does not enable 2FA."""
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, totp_secret FROM admin_users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, None, "User not found."
+        secret = dict(row).get("totp_secret") or generate_totp_secret()
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE admin_users SET totp_secret = ?, updated_at = ? WHERE id = ?", (secret, now_str, user_id))
+        conn.commit()
+        return True, secret, "Authenticator setup secret ready."
+
+
+def enable_totp(user_id: int, code: str, client_ip: str = "127.0.0.1") -> Tuple[bool, str]:
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM admin_users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "User not found."
+        user = dict(row)
+        secret = user.get("totp_secret")
+        if not secret:
+            return False, "Authenticator setup has not been started."
+        if not verify_totp_code(secret, code):
+            return False, "Invalid authenticator code."
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE admin_users SET totp_enabled = 1, totp_confirmed_at = ?, updated_at = ? WHERE id = ?", (now_str, now_str, user_id))
+        conn.commit()
+        log_audit_event(user.get("username"), client_ip, "totp_enabled", "Google Authenticator style 2FA enabled", None)
+        return True, "Two-factor authentication enabled."
+
+
+def disable_totp(user_id: int, current_password: str, code: str, client_ip: str = "127.0.0.1") -> Tuple[bool, str]:
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM admin_users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "User not found."
+        user = dict(row)
+        if not verify_password(current_password, user["password_hash"], user["salt"]):
+            return False, "Current password is incorrect."
+        if user.get("totp_enabled") and not verify_totp_code(user.get("totp_secret") or "", code):
+            return False, "Invalid authenticator code."
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("UPDATE admin_users SET totp_enabled = 0, totp_secret = NULL, totp_confirmed_at = NULL, updated_at = ? WHERE id = ?", (now_str, user_id))
+        conn.commit()
+        log_audit_event(user.get("username"), client_ip, "totp_disabled", "Two-factor authentication disabled", None)
+        return True, "Two-factor authentication disabled."
 
 
 def authenticate_user(
@@ -426,7 +551,7 @@ def validate_session(session_id: str) -> Optional[Dict[str, Any]]:
             SELECT 
                 s.session_id, s.csrf_token, s.expires_at, s.is_active as session_active,
                 u.id as user_id, u.username, u.full_name, u.role, u.is_active as user_active,
-                u.is_default_password, u.last_login,
+                u.is_default_password, u.last_login, COALESCE(u.totp_enabled, 0) as totp_enabled, u.totp_confirmed_at,
                 COALESCE(u.wallet_balance, 0.0) as wallet_balance,
                 COALESCE(u.commission_rate, 0.0) as commission_rate,
                 u.shop_name, u.phone
@@ -551,7 +676,8 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, username, full_name, role, is_active, is_default_password,
-                   wallet_balance, commission_rate, shop_name, phone, last_login, created_at
+                   wallet_balance, commission_rate, shop_name, phone, last_login, created_at,
+                   COALESCE(totp_enabled, 0) as totp_enabled, totp_secret, totp_confirmed_at
             FROM admin_users WHERE id = ?
         """, (user_id,))
         row = cursor.fetchone()
@@ -906,4 +1032,3 @@ def admin_update_manager(
             None
         )
         return True, "Manager account updated successfully.", updated_user
-
