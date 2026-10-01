@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CyberNet Wi-Fi | Device MAC Verification &amp; Login</title>
   
   <!-- Fonts -->
@@ -255,6 +255,7 @@
     .guide-tab-btn {
       flex: 1;
       padding: 10px 8px;
+      min-height: 42px;
       background: transparent;
       border: none;
       color: var(--text-dim);
@@ -313,7 +314,7 @@
       border-radius: 12px;
       padding: 0 16px;
       color: #ffffff;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
@@ -407,6 +408,83 @@
       line-height: 1.5;
     }
 
+    /* Universal Accessible Focus Indicator */
+    :focus-visible {
+      outline: 2px solid #38bdf8 !important;
+      outline-offset: 2px !important;
+    }
+    button:focus-visible, 
+    a:focus-visible, 
+    input:focus-visible, 
+    select:focus-visible {
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35) !important;
+    }
+
+    /* Bilingual Language Switcher Header */
+    .lang-switch-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .lang-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 9999px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      min-height: 36px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+    .lang-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Mobile Enhancements */
+    @media (max-width: 768px) {
+      input[type="text"],
+      input[type="tel"],
+      .form-input {
+        font-size: 16px !important;
+      }
+    }
+
+    /* RTL Arabic Layout Overrides */
+    [dir="rtl"] {
+      text-align: right;
+    }
+    [dir="rtl"] .brand-header,
+    [dir="rtl"] .portal-footer {
+      text-align: center;
+    }
+    [dir="rtl"] .form-group,
+    [dir="rtl"] .lockout-alert-box,
+    [dir="rtl"] .blocked-desc {
+      text-align: right;
+    }
+    [dir="rtl"] .lockout-alert-box {
+      border-left: none;
+      border-right: 3px solid #ef4444;
+    }
+    [dir="rtl"] .guide-content ol {
+      margin-left: 0;
+      margin-right: 18px;
+    }
+
     /* Security Note Footer */
     .portal-footer {
       text-align: center;
@@ -427,12 +505,18 @@
     
     <!-- BRAND -->
     <div class="brand-header">
+      <!-- Language Switcher Bar -->
+      <div class="lang-switch-bar">
+        <button type="button" id="langBtnEn" class="lang-btn active" onclick="setPortalLang('en')">🇬🇧 English</button>
+        <button type="button" id="langBtnAr" class="lang-btn" onclick="setPortalLang('ar')">🇸🇦 العربية</button>
+      </div>
+
       <div class="brand-badge">
         <div class="pulse-dot"></div>
-        <span style="font-size:11.5px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em;">High-Speed Wi-Fi Portal</span>
+        <span style="font-size:11.5px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em;" data-i18n="brand_badge">High-Speed Wi-Fi Portal</span>
       </div>
-      <h1 class="brand-title">CyberNet Access</h1>
-      <p class="brand-subtitle">Connect your smartphone or device to high-speed internet</p>
+      <h1 class="brand-title" data-i18n="brand_title">CyberNet Access</h1>
+      <p class="brand-subtitle" data-i18n="brand_subtitle">Connect your smartphone or device to high-speed internet</p>
     </div>
 
     <!-- MAIN PORTAL CARD -->
@@ -444,34 +528,34 @@
       <input type="hidden" id="linkLoginOnly" value="{{ link_login_only or '' }}">
 
       <!-- 1. RANDOM MAC IN-PORTAL NOTIFICATION & INSTRUCTIONS -->
-      <div id="randomMacBanner" class="blocked-banner" style="display: {% if is_random_mac %}flex{% else %}none{% endif %};">
+      <div id="randomMacBanner" role="alert" aria-live="assertive" class="blocked-banner" style="display: {% if is_random_mac %}flex{% else %}none{% endif %};">
         <div class="lockout-pill">
           <div class="dot"></div>
-          <span>⚠️ Please Change Your MAC Type</span>
+          <span data-i18n="rand_pill">⚠️ Please Change Your MAC Type</span>
         </div>
 
         <div class="blocked-header">
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-          <span>Please Change Your MAC Type to Device MAC</span>
+          <span data-i18n="rand_header">Please Change Your MAC Type to Device MAC</span>
         </div>
 
         <div class="lockout-alert-box" id="lockoutAlertBox">
-          <div style="font-weight: 800; font-size: 13.5px; color: #ffffff; margin-bottom: 4px;">
+          <div style="font-weight: 800; font-size: 13.5px; color: #ffffff; margin-bottom: 4px;" data-i18n="rand_box_title">
             ⚠️ Connection Prohibited: Randomized MAC Detected
           </div>
-          <div id="lockoutAlertMsg">
+          <div id="lockoutAlertMsg" data-i18n="rand_box_desc">
             You cannot connect or submit credentials while your device is using a <strong>Randomized or Private MAC address</strong>. Please change your MAC type to <strong>"Device MAC"</strong> (or turn OFF "Private Wi-Fi Address") using the instructions below.
           </div>
         </div>
 
         <div class="mac-badge-display">
-          <span style="color:#f87171; font-weight:700;">DETECTED:</span>
+          <span style="color:#f87171; font-weight:700;" data-i18n="rand_detected">DETECTED:</span>
           <span id="blockedMacAddress" style="color:#ffffff; font-weight:800;">{{ mac or '--:--:--:--:--:--' }}</span>
-          <span style="color:#f87171; font-size:11px; font-weight:800; background:rgba(239,68,68,0.25); padding:3px 8px; border-radius:5px;">PLEASE CHANGE</span>
+          <span style="color:#f87171; font-size:11px; font-weight:800; background:rgba(239,68,68,0.25); padding:3px 8px; border-radius:5px;" data-i18n="rand_badge">PLEASE CHANGE</span>
         </div>
 
         <div style="font-size: 13px; font-weight: 800; color: #f8fafc; margin-top: 6px; display: flex; align-items: center; gap: 6px;">
-          <span>📖 How to Change Your MAC Type:</span>
+          <span data-i18n="rand_guide_title">📖 How to Change Your MAC Type:</span>
         </div>
 
         <!-- How to fix accordion -->
@@ -481,7 +565,8 @@
             <button type="button" id="tabBtn-android" class="guide-tab-btn" onclick="switchGuide('android')">🤖 Android</button>
             <button type="button" id="tabBtn-windows" class="guide-tab-btn" onclick="switchGuide('windows')">💻 Windows</button>
           </div>
-          <div id="guide-ios" class="guide-content">
+          <!-- iOS English -->
+          <div id="guide-ios-en" class="guide-content">
             <ol>
               <li>Open <strong>Settings</strong> &rarr; tap <strong>Wi-Fi</strong>.</li>
               <li>Tap the blue <strong>ⓘ (Info)</strong> icon next to this Wi-Fi network.</li>
@@ -489,7 +574,18 @@
               <li>Disconnect and reconnect to this Wi-Fi network.</li>
             </ol>
           </div>
-          <div id="guide-android" class="guide-content">
+          <!-- iOS Arabic -->
+          <div id="guide-ios-ar" class="guide-content" style="display:none;">
+            <ol>
+              <li>افتح <strong>الإعدادات (Settings)</strong> &larr; اضغط على <strong>Wi-Fi</strong>.</li>
+              <li>اضغط على رمز <strong>ⓘ (المعلومات)</strong> بجانب اسم هذه الشبكة.</li>
+              <li>قم <strong>بإيقاف تشغيل</strong> <strong>"عنوان Wi-Fi الخاص"</strong> (Private Wi-Fi Address).</li>
+              <li>اقطع الاتصال وأعد التوصيل بهذه الشبكة.</li>
+            </ol>
+          </div>
+
+          <!-- Android English -->
+          <div id="guide-android-en" class="guide-content">
             <ol>
               <li>Open <strong>Settings</strong> &rarr; tap <strong>Wi-Fi / Connections</strong>.</li>
               <li>Tap the <strong>⚙️ Gear</strong> icon next to this Wi-Fi network.</li>
@@ -498,18 +594,38 @@
               <li>Disconnect and reconnect to this Wi-Fi network.</li>
             </ol>
           </div>
-          <div id="guide-windows" class="guide-content">
+          <!-- Android Arabic -->
+          <div id="guide-android-ar" class="guide-content" style="display:none;">
+            <ol>
+              <li>افتح <strong>الإعدادات (Settings)</strong> &larr; اضغط على <strong>الاتصالات / Wi-Fi</strong>.</li>
+              <li>اضغط على رمز <strong>الترس (⚙️)</strong> بجانب اسم هذه الشبكة.</li>
+              <li>اضغط على <strong>خيارات متقدمة</strong> &larr; <strong>نوع عنوان MAC</strong>.</li>
+              <li>اختر <strong>"استخدام عنوان MAC الخاص بالجهاز"</strong> (Device MAC).</li>
+              <li>اقطع الاتصال وأعد التوصيل بالشبكة.</li>
+            </ol>
+          </div>
+
+          <!-- Windows English -->
+          <div id="guide-windows-en" class="guide-content">
             <ol>
               <li>Open <strong>Settings</strong> &rarr; <strong>Network &amp; Internet</strong> &rarr; <strong>Wi-Fi</strong>.</li>
               <li>Turn <strong>OFF</strong> <strong>"Random hardware addresses"</strong>.</li>
               <li>Disconnect and reconnect to Wi-Fi.</li>
             </ol>
           </div>
+          <!-- Windows Arabic -->
+          <div id="guide-windows-ar" class="guide-content" style="display:none;">
+            <ol>
+              <li>افتح <strong>الإعدادات (Settings)</strong> &larr; <strong>الشبكة والإنترنت</strong> &larr; <strong>Wi-Fi</strong>.</li>
+              <li>قم <strong>بإيقاف تشغيل</strong> <strong>"عناوين الأجهزة العشوائية"</strong> (Random hardware addresses).</li>
+              <li>اقطع الاتصال وأعد التوصيل بالشبكة.</li>
+            </ol>
+          </div>
         </div>
 
         <button type="button" class="btn-recheck" onclick="location.reload()">
           <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-          <span>I Switched to Device MAC &mdash; Recheck Connection</span>
+          <span data-i18n="rand_btn_recheck">I Switched to Device MAC &mdash; Recheck Connection</span>
         </button>
       </div>
 
@@ -517,7 +633,7 @@
       <div id="verifiedMacBanner" class="verified-banner" style="display: {% if mac and not is_random_mac %}flex{% else %}none{% endif %};">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <div>
-          <div class="verified-title">Device MAC Verified</div>
+          <div class="verified-title" data-i18n="verified_title">Device MAC Verified</div>
           <div class="verified-sub" id="verifiedMacText">{{ mac or '--:--:--:--:--:--' }} (Physical Hardware Address)</div>
         </div>
       </div>
@@ -526,22 +642,22 @@
       {% if not is_random_mac %}
       <form id="hotspotForm" onsubmit="handlePortalSubmit(event)">
         <div class="form-group">
-          <label class="form-label" for="phoneInput">Mobile Phone Number</label>
-          <input type="tel" id="phoneInput" class="form-input font-mono" placeholder="e.g. 05XXXXXXXX" required>
+          <label class="form-label" for="phoneInput" data-i18n="phone_label">Mobile Phone Number</label>
+          <input type="tel" id="phoneInput" class="form-input font-mono" inputmode="tel" autocomplete="tel" pattern="[0-9]*" placeholder="e.g. 05XXXXXXXX" required>
         </div>
 
         <button type="submit" id="btnSubmit" class="btn-submit">
-          <span>Connect to High-Speed Wi-Fi</span>
+          <span data-i18n="btn_submit">Connect to High-Speed Wi-Fi</span>
           <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
         </button>
       </form>
       {% endif %}
 
       <!-- 4. PENDING / APPROVED LIVE STATUS -->
-      <div id="statusSection" class="status-card">
+      <div id="statusSection" role="status" aria-live="polite" class="status-card">
         <div id="statusSpinner" class="spinner"></div>
-        <div id="statusTitle" class="status-title">Waiting for Approval...</div>
-        <div id="statusMsg" class="status-msg">
+        <div id="statusTitle" class="status-title" data-i18n="status_waiting_title">Waiting for Approval...</div>
+        <div id="statusMsg" class="status-msg" data-i18n="status_waiting_msg">
           Your connection request has been sent to the network administrator. Your device will connect automatically once approved.
         </div>
       </div>
@@ -549,7 +665,7 @@
     </div>
 
     <!-- FOOTER -->
-    <div class="portal-footer">
+    <div class="portal-footer" data-i18n="portal_footer">
       Powered by CyberNet OS v2 &bull; Secure MikroTik Hotspot Gateways
     </div>
 
@@ -573,13 +689,92 @@
       return 'android';
     }
 
+    let currentGuideOS = 'ios';
     function switchGuide(os) {
+      if (os) currentGuideOS = os;
+      const isAr = (currentLang === 'ar');
       document.querySelectorAll('.guide-tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.guide-content').forEach(c => c.classList.remove('active'));
-      const btn = document.getElementById('tabBtn-' + os);
+      document.querySelectorAll('.guide-content').forEach(c => c.style.display = 'none');
+      const btn = document.getElementById('tabBtn-' + currentGuideOS);
       if (btn) btn.classList.add('active');
-      const el = document.getElementById('guide-' + os);
-      if (el) el.classList.add('active');
+      const el = document.getElementById('guide-' + currentGuideOS + (isAr ? '-ar' : '-en'));
+      if (el) el.style.display = 'block';
+    }
+
+    // Bilingual i18n Translation Dictionary
+    let currentLang = 'en';
+    const translations = {
+      en: {
+        brand_badge: "High-Speed Wi-Fi Portal",
+        brand_title: "CyberNet Access",
+        brand_subtitle: "Connect your smartphone or device to high-speed internet",
+        rand_pill: "⚠️ Please Change Your MAC Type",
+        rand_header: "Please Change Your MAC Type to Device MAC",
+        rand_box_title: "⚠️ Connection Prohibited: Randomized MAC Detected",
+        rand_box_desc: "You cannot connect or submit credentials while your device is using a <strong>Randomized or Private MAC address</strong>. Please change your MAC type to <strong>\"Device MAC\"</strong> (or turn OFF \"Private Wi-Fi Address\") using the instructions below.",
+        rand_detected: "DETECTED:",
+        rand_badge: "PLEASE CHANGE",
+        rand_guide_title: "📖 How to Change Your MAC Type:",
+        rand_btn_recheck: "I Switched to Device MAC — Recheck Connection",
+        verified_title: "Device MAC Verified",
+        phone_label: "Mobile Phone Number",
+        btn_submit: "Connect to High-Speed Wi-Fi",
+        status_waiting_title: "Waiting for Approval...",
+        status_waiting_msg: "Your connection request has been sent to the network administrator. Your device will connect automatically once approved.",
+        status_approved_title: "Internet Access Granted!",
+        status_approved_msg: "You are now connected to high-speed internet.",
+        status_rejected_title: "Connection Rejected",
+        status_rejected_msg: "Your request was rejected by the administrator.",
+        portal_footer: "Powered by CyberNet OS v2 • Secure MikroTik Hotspot Gateways"
+      },
+      ar: {
+        brand_badge: "بوابة واي فاي فائقة السرعة",
+        brand_title: "بوابة وصول سايبرنت",
+        brand_subtitle: "قم بتوصيل هاتفك الذكي أو جهازك بالإنترنت فائق السرعة",
+        rand_pill: "⚠️ يرجى تغيير نوع الماك",
+        rand_header: "يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي",
+        rand_box_title: "⚠️ الاتصال محظور: تم اكتشاف عنوان MAC عشوائي",
+        rand_box_desc: "لا يمكنك الاتصال أو إرسال البيانات أثناء استخدام جهازك لـ <strong>عنوان MAC عشوائي أو خاص</strong>. يرجى تغيير الإعداد إلى <strong>\"ماك الجهاز (Device MAC)\"</strong> (أو إيقاف \"عنوان Wi-Fi الخاص\") باتباع التعليمات أدناه.",
+        rand_detected: "العنوان المكتشف:",
+        rand_badge: "يرجى التغيير",
+        rand_guide_title: "📖 طريقة تغيير الماك حسب نوع جهازك:",
+        rand_btn_recheck: "قمت بالتبديل إلى ماك الجهاز — إعادة الفحص",
+        verified_title: "تم التحقق من ماك الجهاز الفيزيائي",
+        phone_label: "رقم الهاتف الجوال",
+        btn_submit: "الاتصال بالإنترنت فائق السرعة",
+        status_waiting_title: "في انتظار الموافقة...",
+        status_waiting_msg: "تم إرسال طلب الاتصال إلى مسؤول الشبكة. سيتصل جهازك تلقائياً فور الاعتماد.",
+        status_approved_title: "تم منح صلاحية الوصول للإنترنت!",
+        status_approved_msg: "أنت الآن متصل بالإنترنت فائق السرعة.",
+        status_rejected_title: "تم رفض الطلب",
+        status_rejected_msg: "تم رفض طلب الاتصال بواسطة مسؤول الشبكة.",
+        portal_footer: "مدعوم بنظام CyberNet OS v2 • بوابات مايكروتك الآمنة"
+      }
+    };
+
+    function setPortalLang(lang) {
+      if (lang !== 'en' && lang !== 'ar') lang = 'en';
+      currentLang = lang;
+      try { localStorage.setItem('cybernet_portal_lang', lang); } catch(e){}
+
+      const isAr = (lang === 'ar');
+      document.documentElement.setAttribute('dir', isAr ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('lang', lang);
+
+      const btnEn = document.getElementById('langBtnEn');
+      const btnAr = document.getElementById('langBtnAr');
+      if (btnEn) btnEn.classList.toggle('active', !isAr);
+      if (btnAr) btnAr.classList.toggle('active', isAr);
+
+      const dict = translations[lang] || translations.en;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+          el.innerHTML = dict[key];
+        }
+      });
+
+      switchGuide(currentGuideOS);
     }
 
     function showMacTypeNotification(mac, customMsg) {
@@ -607,8 +802,15 @@
     let detectedIp = "";
     let pollInterval = null;
 
-    // Initialize MAC inspection on page load
+    // Initialize MAC inspection and language on page load
     window.addEventListener('DOMContentLoaded', () => {
+      // Auto-detect & restore language
+      let savedLang = 'en';
+      try {
+        savedLang = localStorage.getItem('cybernet_portal_lang') || (/^ar\b/i.test(navigator.language) ? 'ar' : 'en');
+      } catch(e){}
+      setPortalLang(savedLang);
+
       // Auto-detect OS guide tab
       switchGuide(detectUserOS());
 
@@ -730,15 +932,16 @@
           return;
         }
 
+        const dict = translations[currentLang] || translations.en;
         if (res.status === 'approved') {
           if (pollInterval) clearInterval(pollInterval);
-          showApprovedState(res.message || 'Connection Approved! Internet is ready.');
+          showApprovedState(res.message || dict.status_approved_msg);
         } else if (res.status === 'rejected') {
           if (pollInterval) clearInterval(pollInterval);
           document.getElementById('statusSpinner').style.display = 'none';
-          document.getElementById('statusTitle').innerText = 'Connection Rejected';
+          document.getElementById('statusTitle').innerText = dict.status_rejected_title;
           document.getElementById('statusTitle').style.color = '#f87171';
-          document.getElementById('statusMsg').innerText = res.message || 'Your request was rejected by the administrator.';
+          document.getElementById('statusMsg').innerText = res.message || dict.status_rejected_msg;
         }
       } catch (err) {
         console.warn('Status poll retry:', err);
@@ -746,12 +949,13 @@
     }
 
     function showApprovedState(msg) {
+      const dict = translations[currentLang] || translations.en;
       document.getElementById('hotspotForm').style.display = 'none';
       document.getElementById('statusSection').style.display = 'block';
       document.getElementById('statusSpinner').style.borderTopColor = '#34d399';
-      document.getElementById('statusTitle').innerText = 'Internet Access Granted!';
+      document.getElementById('statusTitle').innerText = dict.status_approved_title;
       document.getElementById('statusTitle').style.color = '#34d399';
-      document.getElementById('statusMsg').innerText = msg || 'You are now connected to high-speed internet.';
+      document.getElementById('statusMsg').innerText = msg || dict.status_approved_msg;
 
       const redirectLink = document.getElementById('linkLoginOnly').value;
       if (redirectLink && redirectLink.startsWith('http')) {

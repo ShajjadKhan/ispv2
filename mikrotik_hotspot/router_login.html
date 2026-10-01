@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CyberNet Hotspot WiFi | High-Speed Internet</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -120,7 +120,7 @@
       border-radius: 12px;
       padding: 12px 14px 12px 42px;
       color: #ffffff;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 600;
       font-family: inherit;
       outline: none;
@@ -336,25 +336,30 @@
       display: flex;
       gap: 4px;
       background: rgba(0, 0, 0, 0.35);
-      padding: 3px;
-      border-radius: 8px;
+      padding: 4px;
+      border-radius: 10px;
       margin-bottom: 8px;
     }
     .mac-guide-tab-btn {
       flex: 1;
-      padding: 6px 2px;
-      font-size: 11px;
+      padding: 10px 4px;
+      min-height: 42px;
+      font-size: 12px;
       font-weight: 700;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       background: transparent;
       color: #94a3b8;
       cursor: pointer;
       transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .mac-guide-tab-btn.active {
       background: #3b82f6;
       color: #ffffff;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
     }
     .mac-guide-body {
       background: rgba(0, 0, 0, 0.3);
@@ -375,6 +380,7 @@
       width: 100%;
       margin-top: 12px;
       padding: 12px;
+      min-height: 44px;
       border-radius: 10px;
       border: none;
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
@@ -393,6 +399,152 @@
     .btn-reload-recheck:hover {
       background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     }
+
+    /* Universal Accessible Focus Indicator */
+    :focus-visible {
+      outline: 2px solid #38bdf8 !important;
+      outline-offset: 2px !important;
+    }
+    button:focus-visible, 
+    a:focus-visible, 
+    input:focus-visible, 
+    select:focus-visible {
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35) !important;
+    }
+
+    /* Bilingual Language Switcher Header */
+    .lang-switch-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .lang-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 9999px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      min-height: 36px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+    .lang-btn.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+      color: #60a5fa;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Responsive Navigation Tabs (2x2 on <=380px) */
+    .portal-nav-grid {
+      display: flex;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 4px;
+      margin: 16px 0 16px;
+      gap: 4px;
+    }
+    .portal-nav-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 42px;
+      padding: 8px 6px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .portal-nav-item svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    .portal-nav-item:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .portal-nav-item.active {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+
+    /* Mobile Enhancements */
+    @media (max-width: 768px) {
+      input[type="text"],
+      input[type="tel"],
+      input[type="password"],
+      .form-input {
+        font-size: 16px !important;
+      }
+      .btn-submit {
+        min-height: 48px !important;
+      }
+      .btn-secondary {
+        min-height: 44px !important;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .portal-nav-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 6px !important;
+      }
+      .portal-nav-item {
+        padding: 8px 4px !important;
+        font-size: 11.5px !important;
+        min-height: 42px !important;
+      }
+    }
+
+    /* RTL Arabic Layout Overrides */
+    [dir="rtl"] {
+      text-align: right;
+    }
+    [dir="rtl"] .form-group {
+      text-align: right;
+    }
+    [dir="rtl"] .form-input {
+      padding: 12px 42px 12px 14px;
+    }
+    [dir="rtl"] .input-icon {
+      left: auto;
+      right: 14px;
+    }
+    [dir="rtl"] .random-mac-box,
+    [dir="rtl"] .perks-card,
+    [dir="rtl"] .alert-banner,
+    [dir="rtl"] #lookupResultCard {
+      text-align: right;
+    }
+    [dir="rtl"] .mac-guide-body ol {
+      margin-left: 0;
+      margin-right: 18px;
+    }
+
     .d-none { display: none !important; }
   </style>
 </head>
@@ -400,6 +552,12 @@
 
 <div class="portal-card">
   
+  <!-- Bilingual Language Switcher -->
+  <div class="lang-switch-bar">
+    <button type="button" id="langBtnEn" class="lang-btn active" onclick="setPortalLang('en')">🇬🇧 English</button>
+    <button type="button" id="langBtnAr" class="lang-btn" onclick="setPortalLang('ar')">🇸🇦 العربية</button>
+  </div>
+
   <!-- WiFi Brand Header -->
   <div style="text-align: center;">
     <div class="brand-icon-wrapper">
@@ -408,7 +566,7 @@
       </svg>
     </div>
     <div>
-      <span class="brand-badge">CYBERNET HIGH-SPEED HOTSPOT</span>
+      <span class="brand-badge" data-i18n="brand_badge">CYBERNET HIGH-SPEED HOTSPOT</span>
     </div>
   </div>
 
@@ -424,24 +582,24 @@
     <div class="random-mac-header">
       <span class="random-mac-icon">⚠️</span>
       <div>
-        <div class="random-mac-title">Please Change Your MAC Type</div>
-        <div class="random-mac-title-ar">يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي</div>
+        <div class="random-mac-title" data-i18n="rand_title">Please Change Your MAC Type</div>
+        <div class="random-mac-title-ar" data-i18n="rand_title_ar">يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي</div>
       </div>
     </div>
 
-    <p class="random-mac-desc">
+    <p class="random-mac-desc" data-i18n="rand_desc">
       Randomized / Private MAC address is strictly prohibited on CyberNet Wi-Fi. You must switch your Wi-Fi settings to <strong>"Use Device MAC"</strong> (or turn OFF <strong>"Private Wi-Fi Address"</strong>) to connect.
     </p>
 
     <div class="random-mac-chip">
       <div style="display:flex; flex-direction:column; gap:2px;">
-        <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:700;">Detected MAC Address:</span>
+        <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:700;" data-i18n="rand_detected_label">Detected MAC Address:</span>
         <span id="randMacDisplay" class="mac-val">$(mac)</span>
       </div>
-      <span class="badge-rand-tag">RANDOMIZED MAC</span>
+      <span class="badge-rand-tag" data-i18n="rand_badge_tag">RANDOMIZED MAC</span>
     </div>
 
-    <div class="mac-guide-title">
+    <div class="mac-guide-title" data-i18n="rand_guide_title">
       Step-by-Step Device Instructions:
     </div>
 
@@ -451,8 +609,8 @@
       <button type="button" id="macTabHuawei" class="mac-guide-tab-btn" onclick="switchMacGuide('huawei')">Huawei / Honor</button>
     </div>
 
-    <!-- iPhone / iPad Instructions -->
-    <div id="guideIos" class="mac-guide-body">
+    <!-- iPhone / iPad Instructions (English) -->
+    <div id="guideIosEn" class="mac-guide-body">
       <ol>
         <li>Open <strong>Settings</strong> &rarr; Tap <strong>Wi-Fi</strong>.</li>
         <li>Tap the blue <strong>(i)</strong> info icon next to this network.</li>
@@ -460,9 +618,18 @@
         <li>Tap <strong>Rejoin</strong> or disconnect and reconnect to Wi-Fi.</li>
       </ol>
     </div>
+    <!-- iPhone / iPad Instructions (Arabic) -->
+    <div id="guideIosAr" class="mac-guide-body d-none">
+      <ol>
+        <li>افتح <strong>الإعدادات (Settings)</strong> &larr; اضغط على <strong>Wi-Fi</strong>.</li>
+        <li>اضغط على علامة <strong>(i)</strong> الزرقاء بجانب اسم الشبكة.</li>
+        <li>قم <strong>بإيقاف</strong> خيار <em>عنوان Wi-Fi الخاص (Private Wi-Fi Address)</em>.</li>
+        <li>اضغط على <strong>إعادة الاتصال</strong> أو اقطع الاتصال وأعد توصيله.</li>
+      </ol>
+    </div>
 
-    <!-- Android Instructions -->
-    <div id="guideAndroid" class="mac-guide-body d-none">
+    <!-- Android Instructions (English) -->
+    <div id="guideAndroidEn" class="mac-guide-body d-none">
       <ol>
         <li>Open <strong>Settings</strong> &rarr; Tap <strong>Connections / Wi-Fi</strong>.</li>
         <li>Tap the <strong>Gear (⚙️)</strong> icon next to this network name.</li>
@@ -471,9 +638,19 @@
         <li>Reconnect to Wi-Fi.</li>
       </ol>
     </div>
+    <!-- Android Instructions (Arabic) -->
+    <div id="guideAndroidAr" class="mac-guide-body d-none">
+      <ol>
+        <li>افتح <strong>الإعدادات (Settings)</strong> &larr; اضغط على <strong>الاتصالات / Wi-Fi</strong>.</li>
+        <li>اضغط على رمز <strong>الترس (⚙️)</strong> بجانب اسم هذه الشبكة.</li>
+        <li>اضغط على <strong>عرض المزيد (View more)</strong> أو <strong>خيارات متقدمة</strong>.</li>
+        <li>ابحث عن <strong>نوع عنوان MAC</strong> &larr; قم بتغييره إلى <strong>ماك الهاتف / ماك الجهاز (Device MAC)</strong>.</li>
+        <li>أعد الاتصال بالشبكة.</li>
+      </ol>
+    </div>
 
-    <!-- Huawei / Honor Instructions -->
-    <div id="guideHuawei" class="mac-guide-body d-none">
+    <!-- Huawei / Honor Instructions (English) -->
+    <div id="guideHuaweiEn" class="mac-guide-body d-none">
       <ol>
         <li>Go to <strong>Settings</strong> &rarr; <strong>Wi-Fi</strong>.</li>
         <li>Long-press or tap gear on this Wi-Fi &rarr; <strong>Modify network</strong>.</li>
@@ -482,76 +659,98 @@
         <li>Save and reconnect to Wi-Fi.</li>
       </ol>
     </div>
+    <!-- Huawei / Honor Instructions (Arabic) -->
+    <div id="guideHuaweiAr" class="mac-guide-body d-none">
+      <ol>
+        <li>انتقل إلى <strong>الإعدادات</strong> &larr; <strong>Wi-Fi</strong>.</li>
+        <li>اضغط مطولاً على اسم الشبكة &larr; <strong>تعديل الشبكة (Modify network)</strong>.</li>
+        <li>اختر <strong>خيارات متقدمة</strong> &larr; <strong>الخصوصية (Privacy)</strong>.</li>
+        <li>غيّر الإعداد إلى <strong>استخدام عنوان MAC الخاص بالجهاز (Device MAC)</strong>.</li>
+        <li>احفظ وأعد الاتصال بالشبكة.</li>
+      </ol>
+    </div>
 
     <button type="button" class="btn-reload-recheck" onclick="location.reload()">
       <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-      <span>I Changed to Device MAC — Recheck Connection</span>
+      <span data-i18n="rand_btn_recheck">I Changed to Device MAC — Recheck Connection</span>
     </button>
   </div>
 
-  <!-- Navigation Tabs -->
-  <div style="display:flex; background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:3px; margin:16px 0 14px; gap:2px;">
-    <button type="button" id="tabBtnPhone" onclick="switchTab('phone')" style="flex:1; padding:7px 2px; font-size:11px; font-weight:700; border:none; border-radius:8px; background:#3b82f6; color:#ffffff; cursor:pointer;">Mobile Connect</button>
-    <button type="button" id="tabBtnMember" onclick="switchTab('member')" style="flex:1; padding:7px 2px; font-size:11px; font-weight:700; border:none; border-radius:8px; background:transparent; color:#94a3b8; cursor:pointer;">Member Login</button>
-    <button type="button" id="tabBtnVoucher" onclick="switchTab('voucher')" style="flex:1; padding:7px 2px; font-size:11px; font-weight:700; border:none; border-radius:8px; background:transparent; color:#94a3b8; cursor:pointer;">Voucher PIN</button>
-    <button type="button" id="tabBtnLookup" onclick="switchTab('lookup')" style="flex:1; padding:7px 2px; font-size:11px; font-weight:700; border:none; border-radius:8px; background:transparent; color:#94a3b8; cursor:pointer;">My Plan</button>
+  <!-- Navigation Tabs (Accessible & Responsive 2x2 Grid) -->
+  <div class="portal-nav-grid" role="tablist" aria-label="Connection Methods">
+    <button type="button" id="tabBtnPhone" class="portal-nav-item active" onclick="switchTab('phone')" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+      <span data-i18n="tab_phone">Mobile Connect</span>
+    </button>
+    <button type="button" id="tabBtnMember" class="portal-nav-item" onclick="switchTab('member')" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <span data-i18n="tab_member">Member Login</span>
+    </button>
+    <button type="button" id="tabBtnVoucher" class="portal-nav-item" onclick="switchTab('voucher')" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      <span data-i18n="tab_voucher">Voucher PIN</span>
+    </button>
+    <button type="button" id="tabBtnLookup" class="portal-nav-item" onclick="switchTab('lookup')" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      <span data-i18n="tab_lookup">My Plan</span>
+    </button>
   </div>
 
-  <div id="clientErrorAlert" class="alert-banner alert-danger d-none"></div>
+  <div id="clientErrorAlert" role="alert" aria-live="assertive" class="alert-banner alert-danger d-none"></div>
 
   <!-- ===================================================== -->
   <!-- TAB 1: MOBILE NUMBER CONNECT (AUTO-ACTIVATION)        -->
   <!-- ===================================================== -->
   <div id="viewPhone">
-    <h1>Connect to WiFi</h1>
-    <p class="subtitle">Enter your registered mobile number to activate or resume high-speed access.</p>
+    <h1 data-i18n="phone_h1">Connect to WiFi</h1>
+    <p class="subtitle" data-i18n="phone_subtitle">Enter your registered mobile number to activate or resume high-speed access.</p>
 
     <!-- Blocked notice when Random MAC is detected -->
     <div id="phoneBlockedNotice" class="alert-banner alert-danger d-none" style="margin-bottom: 14px;">
       <strong style="display:flex; align-items:center; gap:6px;">
-        <span>🚫</span> Phone Submission Disabled
+        <span>🚫</span> <span data-i18n="rand_blocked_phone_title">Phone Submission Disabled</span>
       </strong>
-      <span style="font-size:12px; margin-top:4px; display:block;">
+      <span style="font-size:12px; margin-top:4px; display:block;" data-i18n="rand_blocked_phone_desc">
         Your device is currently using a <strong>Randomized / Private MAC address</strong>. New connections and mobile submissions are strictly prohibited with randomized MACs. Follow the step-by-step instructions above to change to your Device MAC, then tap <em>Recheck Connection</em>.
       </span>
     </div>
 
     <form id="phoneForm" onsubmit="handlePhoneSubmit(event)">
       <div class="form-group">
-        <label class="form-label">
-          <span>Mobile Number / رقم الجوال</span>
+        <label class="form-label" for="userPhone">
+          <span data-i18n="phone_label">Mobile Number / رقم الجوال</span>
           <span style="color:#60a5fa;">05xxxxxxxx</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24">
             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
           </svg>
-          <input type="tel" id="userPhone" class="form-input" placeholder="0597595059" inputmode="numeric" required autofocus>
+          <input type="tel" id="userPhone" class="form-input" placeholder="0597595059" inputmode="tel" autocomplete="tel" pattern="[0-9]*" required autofocus>
         </div>
       </div>
 
       <button type="submit" id="btnSubmitPhone" class="btn-submit">
-        <span>Connect to Internet</span>
+        <span data-i18n="phone_btn_submit">Connect to Internet</span>
         <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/></svg>
       </button>
     </form>
 
-    <div id="boxWaitingApproval" class="d-none mt-3">
+    <div id="boxWaitingApproval" role="status" aria-live="polite" class="d-none mt-3">
       <div class="alert-banner alert-warning">
-        <strong id="waitingTitle">Request Submitted!</strong><br>
-        <span id="waitingSubtitle">Waiting for administrator approval. Your connection will start automatically once approved.</span>
+        <strong id="waitingTitle" data-i18n="phone_waiting_title">Request Submitted!</strong><br>
+        <span id="waitingSubtitle" data-i18n="phone_waiting_sub">Waiting for administrator approval. Your connection will start automatically once approved.</span>
       </div>
       <div class="spinner-ring"></div>
-      <p style="font-size:12px; color:#94a3b8;">Checking activation status...</p>
-      <button type="button" class="btn-secondary" onclick="checkStatusNow()">Check Status Now</button>
+      <p style="font-size:12px; color:#94a3b8;" data-i18n="phone_checking">Checking activation status...</p>
+      <button type="button" class="btn-secondary" onclick="checkStatusNow()" data-i18n="phone_btn_check_now">Check Status Now</button>
     </div>
 
-    <div id="boxApprovedOnline" class="d-none mt-3">
+    <div id="boxApprovedOnline" role="status" aria-live="polite" class="d-none mt-3">
       <div class="alert-banner alert-success">
-        <strong id="approvedTitle">Internet Activated!</strong><br>
-        <span id="approvedSubtitle">Your plan is ready and device is connected.</span>
+        <strong id="approvedTitle" data-i18n="phone_approved_title">Internet Activated!</strong><br>
+        <span id="approvedSubtitle" data-i18n="phone_approved_sub">Your plan is ready and device is connected.</span>
       </div>
-      <button type="button" class="btn-submit" style="background:#10b981;" onclick="finishLogin()">Start Browsing</button>
+      <button type="button" class="btn-submit" style="background:#10b981;" onclick="finishLogin()" data-i18n="phone_btn_browse">Start Browsing</button>
     </div>
   </div>
 
@@ -559,12 +758,12 @@
   <!-- TAB 2: NATIVE MIKROTIK MEMBER LOGIN (USER & PASS)     -->
   <!-- ===================================================== -->
   <div id="viewMember" class="d-none">
-    <h1>Member Login</h1>
-    <p class="subtitle">Enter your assigned username and password to log in directly through MikroTik.</p>
+    <h1 data-i18n="member_h1">Member Login</h1>
+    <p class="subtitle" data-i18n="member_subtitle">Enter your assigned username and password to log in directly through MikroTik.</p>
 
     <!-- Member warning if random MAC -->
     <div id="memberMacNotice" class="alert-banner alert-danger d-none" style="margin-bottom: 14px;">
-      <strong>⚠️ Device MAC Required:</strong> Member login is disabled while using a randomized MAC address. Please switch to Device MAC first.
+      <strong data-i18n="rand_member_notice">⚠️ Device MAC Required: Member login is disabled while using a randomized MAC address. Please switch to Device MAC first.</strong>
     </div>
 
     <form name="login" action="$(link-login-only)" method="post">
@@ -572,27 +771,27 @@
       <input type="hidden" name="popup" value="true">
 
       <div class="form-group">
-        <label class="form-label">
-          <span>Username / اسم المستخدم</span>
+        <label class="form-label" for="memberUsername">
+          <span data-i18n="member_user_label">Username / اسم المستخدم</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-          <input type="text" name="username" class="form-input" placeholder="e.g. user01 or phone" value="$(username)" required>
+          <input type="text" id="memberUsername" name="username" class="form-input" placeholder="e.g. user01 or phone" autocomplete="username" value="$(username)" required>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">
-          <span>Password / كلمة المرور</span>
+        <label class="form-label" for="memberPassword">
+          <span data-i18n="member_pass_label">Password / كلمة المرور</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          <input type="password" name="password" class="form-input" placeholder="Enter password" required>
+          <input type="password" id="memberPassword" name="password" class="form-input" placeholder="Enter password" autocomplete="current-password" required>
         </div>
       </div>
 
       <button type="submit" class="btn-submit">
-        <span>Log In to Internet</span>
+        <span data-i18n="member_btn_submit">Log In to Internet</span>
         <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/></svg>
       </button>
     </form>
@@ -602,58 +801,58 @@
   <!-- TAB 3: VOUCHER PIN REDEMPTION                         -->
   <!-- ===================================================== -->
   <div id="viewVoucher" class="d-none">
-    <h1>Recharge Voucher PIN</h1>
-    <p class="subtitle">Enter your prepaid card scratch PIN to recharge or unlock your internet instantly.</p>
+    <h1 data-i18n="voucher_h1">Recharge Voucher PIN</h1>
+    <p class="subtitle" data-i18n="voucher_subtitle">Enter your prepaid card scratch PIN to recharge or unlock your internet instantly.</p>
 
     <form id="voucherForm" onsubmit="handleVoucherSubmit(event)">
       <div class="form-group">
-        <label class="form-label">
-          <span>Voucher Card PIN *</span>
+        <label class="form-label" for="voucherPin">
+          <span data-i18n="voucher_pin_label">Voucher Card PIN *</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-          <input type="text" id="voucherPin" class="form-input" placeholder="e.g. 74829104" required>
+          <input type="text" id="voucherPin" class="form-input" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="e.g. 74829104" required>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">
-          <span>Mobile Number (Optional)</span>
+        <label class="form-label" for="voucherPhone">
+          <span data-i18n="voucher_phone_label">Mobile Number (Optional)</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-          <input type="tel" id="voucherPhone" class="form-input" placeholder="05xxxxxxxx">
+          <input type="tel" id="voucherPhone" class="form-input" inputmode="tel" autocomplete="tel" pattern="[0-9]*" placeholder="05xxxxxxxx">
         </div>
       </div>
 
       <button type="submit" id="btnSubmitVoucher" class="btn-submit">
-        <span>Recharge &amp; Unlock</span>
+        <span data-i18n="voucher_btn_submit">Recharge &amp; Unlock</span>
         <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-7.85-1.42 1.42L16.86 11H5v2z"/></svg>
       </button>
     </form>
-    <div id="voucherSuccessBox" class="alert-banner alert-success d-none mt-3"></div>
+    <div id="voucherSuccessBox" role="status" aria-live="polite" class="alert-banner alert-success d-none mt-3"></div>
   </div>
 
   <!-- ===================================================== -->
   <!-- TAB 4: ACCOUNT STATUS LOOKUP                          -->
   <!-- ===================================================== -->
   <div id="viewLookup" class="d-none">
-    <h1>Check My Plan</h1>
-    <p class="subtitle">Check your current subscription status, validity, and room details.</p>
+    <h1 data-i18n="lookup_h1">Check My Plan</h1>
+    <p class="subtitle" data-i18n="lookup_subtitle">Check your current subscription status, validity, and room details.</p>
 
     <form id="lookupForm" onsubmit="handleLookupSubmit(event)">
       <div class="form-group">
-        <label class="form-label">
-          <span>Mobile Number / رقم الجوال</span>
+        <label class="form-label" for="lookupPhone">
+          <span data-i18n="lookup_phone_label">Mobile Number / رقم الجوال</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-          <input type="tel" id="lookupPhone" class="form-input" placeholder="05xxxxxxxx" required>
+          <input type="tel" id="lookupPhone" class="form-input" inputmode="tel" autocomplete="tel" pattern="[0-9]*" placeholder="05xxxxxxxx" required>
         </div>
       </div>
 
       <button type="submit" id="btnSubmitLookup" class="btn-submit">
-        <span>Lookup Account</span>
+        <span data-i18n="lookup_btn_submit">Lookup Account</span>
       </button>
     </form>
 
@@ -662,25 +861,25 @@
         <strong id="resName" style="color:#ffffff; font-size:13px;">Customer Name</strong>
         <span id="resStatusBadge" style="padding:2px 8px; border-radius:6px; font-weight:700;">ACTIVE</span>
       </div>
-      <div style="color:#94a3b8; margin-bottom:4px;">Plan: <strong id="resPackage" style="color:#ffffff;">Standard</strong></div>
-      <div style="color:#94a3b8; margin-bottom:4px;">Expiry: <strong id="resExpiry" style="color:#34d399;">2026-10-15</strong></div>
-      <div style="color:#94a3b8;">Location: <strong id="resLocation" style="color:#ffffff;">Room 102</strong></div>
+      <div style="color:#94a3b8; margin-bottom:4px;"><span data-i18n="lookup_plan">Plan:</span> <strong id="resPackage" style="color:#ffffff;">Standard</strong></div>
+      <div style="color:#94a3b8; margin-bottom:4px;"><span data-i18n="lookup_expiry">Expiry:</span> <strong id="resExpiry" style="color:#34d399;">2026-10-15</strong></div>
+      <div style="color:#94a3b8;"><span data-i18n="lookup_location">Location:</span> <strong id="resLocation" style="color:#ffffff;">Room 102</strong></div>
     </div>
   </div>
 
   <!-- Free Local Entertainment Perks (Free even before login!) -->
   <div class="perks-card">
     <div class="perks-header">
-      <span>⚡ FREE LOCAL PERKS (NO LOGIN NEEDED)</span>
+      <span data-i18n="perks_header">⚡ FREE LOCAL PERKS (NO LOGIN NEEDED)</span>
     </div>
     <div class="perks-grid">
       <a href="http://10.20.30.40:8086" target="_blank" class="perk-btn">
         <span style="font-size:16px;">⚽</span>
-        <span>Football Live</span>
+        <span data-i18n="perks_football">Football Live</span>
       </a>
       <a href="http://10.12.14.16:8082" target="_blank" class="perk-btn">
         <span style="font-size:16px;">🎬</span>
-        <span>Movie Server</span>
+        <span data-i18n="perks_movies">Movie Server</span>
       </a>
     </div>
   </div>
@@ -796,21 +995,160 @@
     }
   }
 
+  var currentMacPlatform = 'ios';
   function switchMacGuide(platform) {
+    if (platform) currentMacPlatform = platform;
+    var isAr = (currentLang === 'ar');
     ['ios', 'android', 'huawei'].forEach(function(p) {
       var tabBtn = document.getElementById('macTab' + p.charAt(0).toUpperCase() + p.slice(1));
-      var guideEl = document.getElementById('guide' + p.charAt(0).toUpperCase() + p.slice(1));
-      if (tabBtn && guideEl) {
-        if (p === platform) {
+      var guideEn = document.getElementById('guide' + p.charAt(0).toUpperCase() + p.slice(1) + 'En');
+      var guideAr = document.getElementById('guide' + p.charAt(0).toUpperCase() + p.slice(1) + 'Ar');
+      if (tabBtn) {
+        if (p === currentMacPlatform) {
           tabBtn.classList.add('active');
-          guideEl.classList.remove('d-none');
+          if (guideEn) guideEn.classList.toggle('d-none', isAr);
+          if (guideAr) guideAr.classList.toggle('d-none', !isAr);
         } else {
           tabBtn.classList.remove('active');
-          guideEl.classList.add('d-none');
+          if (guideEn) guideEn.classList.add('d-none');
+          if (guideAr) guideAr.classList.add('d-none');
         }
       }
     });
   }
+
+  // Bilingual i18n Translation Dictionary
+  var currentLang = 'en';
+  var translations = {
+    en: {
+      brand_badge: "CYBERNET HIGH-SPEED HOTSPOT",
+      tab_phone: "Mobile Connect",
+      tab_member: "Member Login",
+      tab_voucher: "Voucher PIN",
+      tab_lookup: "My Plan",
+      rand_title: "Please Change Your MAC Type",
+      rand_title_ar: "يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي",
+      rand_desc: "Randomized / Private MAC address is strictly prohibited on CyberNet Wi-Fi. You must switch your Wi-Fi settings to <strong>\"Use Device MAC\"</strong> (or turn OFF <strong>\"Private Wi-Fi Address\"</strong>) to connect.",
+      rand_detected_label: "Detected MAC Address:",
+      rand_badge_tag: "RANDOMIZED MAC",
+      rand_guide_title: "Step-by-Step Device Instructions:",
+      rand_btn_recheck: "I Changed to Device MAC — Recheck Connection",
+      rand_blocked_phone_title: "Phone Submission Disabled",
+      rand_blocked_phone_desc: "Your device is currently using a <strong>Randomized / Private MAC address</strong>. New connections and mobile submissions are strictly prohibited with randomized MACs. Follow the step-by-step instructions above to change to your Device MAC, then tap <em>Recheck Connection</em>.",
+      rand_member_notice: "⚠️ Device MAC Required: Member login is disabled while using a randomized MAC address. Please switch to Device MAC first.",
+      phone_h1: "Connect to WiFi",
+      phone_subtitle: "Enter your registered mobile number to activate or resume high-speed access.",
+      phone_label: "Mobile Number / رقم الجوال",
+      phone_btn_submit: "Connect to Internet",
+      phone_waiting_title: "Request Submitted!",
+      phone_waiting_sub: "Waiting for administrator approval. Your connection will start automatically once approved.",
+      phone_checking: "Checking activation status...",
+      phone_btn_check_now: "Check Status Now",
+      phone_approved_title: "Internet Activated!",
+      phone_approved_sub: "Your plan is ready and device is connected.",
+      phone_btn_browse: "Start Browsing",
+      member_h1: "Member Login",
+      member_subtitle: "Enter your assigned username and password to log in directly through MikroTik.",
+      member_user_label: "Username / اسم المستخدم",
+      member_pass_label: "Password / كلمة المرور",
+      member_btn_submit: "Log In to Internet",
+      voucher_h1: "Recharge Voucher PIN",
+      voucher_subtitle: "Enter your prepaid card scratch PIN to recharge or unlock your internet instantly.",
+      voucher_pin_label: "Voucher Card PIN *",
+      voucher_phone_label: "Mobile Number (Optional)",
+      voucher_btn_submit: "Recharge & Unlock",
+      lookup_h1: "Check My Plan",
+      lookup_subtitle: "Check your current subscription status, validity, and room details.",
+      lookup_phone_label: "Mobile Number / رقم الجوال",
+      lookup_btn_submit: "Lookup Account",
+      lookup_plan: "Plan:",
+      lookup_expiry: "Expiry:",
+      lookup_location: "Location:",
+      perks_header: "⚡ FREE LOCAL PERKS (NO LOGIN NEEDED)",
+      perks_football: "Football Live",
+      perks_movies: "Movie Server"
+    },
+    ar: {
+      brand_badge: "شبكة سايبرنت فائقة السرعة",
+      tab_phone: "الدخول بالجوال",
+      tab_member: "دخول المشتركين",
+      tab_voucher: "كرت الشحن",
+      tab_lookup: "بيانات اشتراكي",
+      rand_title: "يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي",
+      rand_title_ar: "Please Change Your MAC Type to Device MAC",
+      rand_desc: "عنوان MAC العشوائي أو الخاص محظور تماماً على شبكة سايبرنت. يجب عليك ضبط إعدادات الواي فاي إلى <strong>\"استخدام ماك الجهاز\"</strong> (أو إيقاف <strong>\"عنوان Wi-Fi الخاص\"</strong>) للاتصال.",
+      rand_detected_label: "عنوان الماك المكتشف:",
+      rand_badge_tag: "ماك عشوائي محظور",
+      rand_guide_title: "خطوات تغيير الماك للأجهزة:",
+      rand_btn_recheck: "قمت بتغيير الماك إلى ماك الجهاز — إعادة الفحص",
+      rand_blocked_phone_title: "تم تعطيل إدخال رقم الجوال",
+      rand_blocked_phone_desc: "جهازك يستخدم حالياً <strong>عنوان ماك عشوائي / خاص</strong>. لا يُسمح بإرسال الأرقام أو الاتصال باستخدام الماك العشوائي. اتبع التعليمات الموضحة بالأعلى لتغييره إلى ماك الجهاز، ثم اضغط <em>إعادة الفحص</em>.",
+      rand_member_notice: "⚠️ تنبيه: تسجيل المشتركين غير متاح أثناء استخدام الماك العشوائي. يرجى التبديل لماك الجهاز أولاً.",
+      phone_h1: "الاتصال بالإنترنت",
+      phone_subtitle: "أدخل رقم هاتفك المسجل لتفعيل أو استئناف اتصال الإنترنت فائق السرعة.",
+      phone_label: "رقم الجوال",
+      phone_btn_submit: "اتصال بالإنترنت",
+      phone_waiting_title: "تم تقديم الطلب بنجاح!",
+      phone_waiting_sub: "في انتظار موافقة المسؤول. سيبدأ اتصالك بالإنترنت تلقائياً فور الاعتماد.",
+      phone_checking: "جاري فحص حالة التفعيل...",
+      phone_btn_check_now: "فحص الحالة الآن",
+      phone_approved_title: "تم تفعيل الإنترنت!",
+      phone_approved_sub: "اشتراكك نشط والجهاز متصل الآن.",
+      phone_btn_browse: "بدء التصفح",
+      member_h1: "تسجيل دخول المشتركين",
+      member_subtitle: "أدخل اسم المستخدم وكلمة المرور المخصصة لك للدخول مباشرة.",
+      member_user_label: "اسم المستخدم",
+      member_pass_label: "كلمة المرور",
+      member_btn_submit: "تسجيل الدخول إلى الإنترنت",
+      voucher_h1: "شحن كرت الإنترنت",
+      voucher_subtitle: "أدخل كود الكرت المطبوع لشحن وتجديد اشتراكك فوراً.",
+      voucher_pin_label: "كود كرت الشحن *",
+      voucher_phone_label: "رقم الجوال (اختياري)",
+      voucher_btn_submit: "شحن الكرت وتفعيل النت",
+      lookup_h1: "الاستعلام عن اشتراكي",
+      lookup_subtitle: "استعلم عن تفاصيل اشتراكك، الصلاحية، ورقم الغرفة.",
+      lookup_phone_label: "رقم الجوال",
+      lookup_btn_submit: "الاستعلام عن الحساب",
+      lookup_plan: "الباقة:",
+      lookup_expiry: "تاريخ الانتهاء:",
+      lookup_location: "الموقع:",
+      perks_header: "⚡ خدمات ومحتوى محلي مجاني (بدون تسجيل)",
+      perks_football: "مباريات مباشر",
+      perks_movies: "سيرفر الأفلام"
+    }
+  };
+
+  function setPortalLang(lang) {
+    if (lang !== 'en' && lang !== 'ar') lang = 'en';
+    currentLang = lang;
+    try { localStorage.setItem('cybernet_portal_lang', lang); } catch(e){}
+
+    var isAr = (lang === 'ar');
+    document.documentElement.setAttribute('dir', isAr ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('lang', lang);
+
+    var btnEn = document.getElementById('langBtnEn');
+    var btnAr = document.getElementById('langBtnAr');
+    if (btnEn) btnEn.classList.toggle('active', !isAr);
+    if (btnAr) btnAr.classList.toggle('active', isAr);
+
+    var dict = translations[lang] || translations.en;
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+      var key = el.getAttribute('data-i18n');
+      if (dict[key]) {
+        el.innerHTML = dict[key];
+      }
+    });
+
+    switchMacGuide();
+  }
+
+  // Restore saved language or detect browser preference
+  var initialLang = 'en';
+  try {
+    initialLang = localStorage.getItem('cybernet_portal_lang') || (/^ar\b/i.test(navigator.language) ? 'ar' : 'en');
+  } catch(e){}
+  setPortalLang(initialLang);
 
   // Initial evaluate
   evaluateMacPolicy();
@@ -830,12 +1168,12 @@
       var view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
       if (btn && view) {
         if (t === tab) {
-          btn.style.background = '#3b82f6';
-          btn.style.color = '#ffffff';
+          btn.classList.add('active');
+          btn.setAttribute('aria-selected', 'true');
           view.classList.remove('d-none');
         } else {
-          btn.style.background = 'transparent';
-          btn.style.color = '#94a3b8';
+          btn.classList.remove('active');
+          btn.setAttribute('aria-selected', 'false');
           view.classList.add('d-none');
         }
       }
