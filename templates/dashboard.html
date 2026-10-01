@@ -951,6 +951,37 @@
     grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
   }
+  .date-range-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  @media (max-width: 640px) {
+    .date-range-filter-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .date-range-filter-grid .btn-quick-collect {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+  }
+  .report-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 768px) {
+    .report-kpi-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+  @media (max-width: 440px) {
+    .report-kpi-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
   .preset-wrap {
     display: flex;
     gap: 8px;
@@ -2744,13 +2775,13 @@
     </div>
     <div class="modal-body">
       <!-- Filter Inputs -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: flex-end;">
+      <div class="date-range-filter-grid">
         <div class="form-group">
-          <label>From Date</label>
+          <label for="reportStartDate">From Date</label>
           <input type="date" class="form-input font-mono" id="reportStartDate">
         </div>
         <div class="form-group">
-          <label>To Date</label>
+          <label for="reportEndDate">To Date</label>
           <input type="date" class="form-input font-mono" id="reportEndDate">
         </div>
         <div>
@@ -2776,7 +2807,7 @@
         </div>
 
         <!-- 4 KPI Summary Cards for Report -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;">
+        <div class="report-kpi-grid">
           <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px;">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Total Revenue</div>
             <div style="font-size: 18px; font-weight: 800; color: #34d399; font-family: var(--font-mono);" id="rptTotalSar">0.00 SAR</div>
@@ -2851,13 +2882,13 @@
 
         <!-- Customer Full Name -->
         <div class="form-group">
-          <label>Subscriber Full Name</label>
+          <label for="custName">Subscriber Full Name</label>
           <input type="text" class="form-input" id="custName" name="name" required placeholder="e.g. John Doe">
         </div>
 
         <!-- Package Selection -->
         <div class="form-group">
-          <label>Internet Service Package</label>
+          <label for="pkgSelect">Internet Service Package</label>
           <select class="form-select" id="pkgSelect" name="package_name" onchange="onPackageChanged()">
             {% for pkg in packages %}
             <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-shared="{{ pkg.shared_users }}" data-rate="{{ pkg.rate_limit or '' }}">
@@ -2870,22 +2901,26 @@
         <!-- Speed & Device Limits -->
         <div class="modal-grid-2">
           <div class="form-group">
-            <label>Speed Limit</label>
-            <input type="text" class="form-input font-mono" id="approvalCustSpeed" name="speed_limit" value="Unlimited">
-            <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('5M/5M')">5M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('10M/10M')">10M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('20M/20M')">20M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('Unlimited')">Max</button>
+            <label for="approvalCustSpeed">Speed Limit</label>
+            <div class="preset-wrap">
+              <input type="text" class="form-input font-mono" id="approvalCustSpeed" name="speed_limit" value="Unlimited">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('5M/5M')">5M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('10M/10M')">10M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('20M/20M')">20M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('Unlimited')">Max</button>
+              </div>
             </div>
           </div>
           <div class="form-group">
-            <label>Max Allowed Devices</label>
-            <input type="number" min="1" max="10" class="form-input font-mono" id="inputMaxDevices" name="max_devices" value="1">
-            <div style="display:flex; gap:4px; margin-top:4px;">
-              <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Dev</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Dev</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Dev</button>
+            <label for="inputMaxDevices">Max Allowed Devices</label>
+            <div class="preset-wrap">
+              <input type="number" min="1" max="10" class="form-input font-mono" id="inputMaxDevices" name="max_devices" value="1">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Dev</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Dev</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Dev</button>
+              </div>
             </div>
           </div>
         </div>
@@ -2909,16 +2944,16 @@
         <div id="prepaidFieldsBox" class="conditional-box">
           <div class="modal-grid-2">
             <div class="form-group">
-              <label>Amount Collected (SAR)</label>
+              <label for="inputCollectedToday">Amount Collected (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputCollectedToday" name="collected_today" value="75.00" required>
             </div>
             <div class="form-group">
-              <label>Monthly Fee (SAR)</label>
+              <label for="inputPrepaidMonthly">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPrepaidMonthly" name="prepaid_monthly_fee" value="75.00" required>
             </div>
           </div>
           <div class="form-group">
-            <label>Validity Due Date</label>
+            <label for="inputPrepaidDueDate">Validity Due Date</label>
             <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date">
           </div>
         </div>
@@ -2927,11 +2962,11 @@
         <div id="postpaidFieldsBox" class="conditional-box" style="display:none;">
           <div class="modal-grid-2">
             <div class="form-group">
-              <label>Monthly Fee (SAR)</label>
+              <label for="inputPostpaidMonthly">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidMonthly" name="postpaid_monthly_fee" value="75.00">
             </div>
             <div class="form-group">
-              <label>Advance Payment (SAR)</label>
+              <label for="inputPostpaidCollected">Advance Payment (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidCollected" name="postpaid_collected" value="0.00" oninput="calculatePostpaidAdvance()">
             </div>
           </div>
@@ -2941,11 +2976,11 @@
           </div>
           <div class="modal-grid-2">
             <div class="form-group">
-              <label>Due Date</label>
+              <label for="inputPostpaidDueDate">Due Date</label>
               <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date">
             </div>
             <div class="form-group">
-              <label>Due Day of Month</label>
+              <label for="inputDueDay">Due Day of Month</label>
               <input type="number" min="1" max="31" class="form-input font-mono" id="inputDueDay" name="due_day" value="10">
             </div>
           </div>
@@ -3013,11 +3048,11 @@
           </div>
           <div class="modal-grid-2">
             <div class="form-group" style="margin-bottom:0;">
-              <label>Customer Full Name</label>
+              <label for="editCustName">Customer Full Name</label>
               <input type="text" class="form-input" id="editCustName" required>
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label>Primary Phone Number</label>
+              <label for="editCustPhone">Primary Phone Number</label>
               <input type="text" class="form-input font-mono" id="editCustPhone" required>
             </div>
           </div>
@@ -3046,7 +3081,7 @@
           </div>
 
           <div class="form-group" style="margin-bottom:0;">
-            <label>Speed Package</label>
+            <label for="editCustPkg">Speed Package</label>
             <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
               {% for pkg in packages %}
               <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
@@ -3056,7 +3091,7 @@
 
           <div class="form-group" style="margin-bottom:0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label style="margin-bottom:0;">Allocated Speed Limit (Upload / Download)</label>
+              <label for="editCustSpeed" style="margin-bottom:0;">Allocated Speed Limit (Upload / Download)</label>
               <span style="font-size:11px; color:#38bdf8; font-weight:600;">Live MikroTik Queue</span>
             </div>
             <div class="preset-wrap">
@@ -3083,15 +3118,15 @@
 
           <div class="modal-grid-3">
             <div class="form-group" style="margin-bottom:0;">
-              <label>Monthly Fee (SAR)</label>
+              <label for="editCustFee">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label>Payment Due Date</label>
+              <label for="editCustDueDate">Payment Due Date</label>
               <input type="date" class="form-input font-mono" id="editCustDueDate" required style="color:#ffffff;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label>Credit Balance (SAR)</label>
+              <label for="editCustCredit">Credit Balance (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
             </div>
           </div>
@@ -3105,7 +3140,7 @@
           </div>
 
           <div class="form-group" style="margin-bottom:0;">
-            <label style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
+            <label for="editCustMaxDevices" style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
             <div class="preset-wrap">
               <input type="number" min="1" max="100" class="form-input font-mono" id="editCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
               <div style="display:flex; gap:4px; flex-wrap:wrap;">

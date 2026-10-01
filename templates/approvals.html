@@ -337,13 +337,23 @@
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   }
 
+  .preset-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
   .btn-preset {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-subtle);
     color: var(--text-dim);
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 6px 10px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -353,6 +363,7 @@
     color: #38bdf8;
     border-color: rgba(56, 189, 248, 0.3);
   }
+
 
   /* BILLING TYPE SELECTOR CARDS */
   .billing-type-grid {
@@ -855,6 +866,24 @@
       max-width: 95vw !important;
       width: 95vw !important;
     }
+
+    .preset-wrap {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+
+    .preset-wrap > div {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+
+    .btn-preset {
+      min-height: 40px !important;
+      padding: 8px 12px !important;
+      font-size: 12px !important;
+      flex: 1 1 auto !important;
+    }
   }
 </style>
 {% endblock %}
@@ -1132,7 +1161,7 @@
 
         <!-- Customer Name -->
         <div class="form-group">
-          <label>Customer Full Name</label>
+          <label for="custName">Customer Full Name</label>
           <input type="text" class="form-input" id="custName" name="name" required placeholder="e.g. Shajjad Khan">
         </div>
 
@@ -1161,7 +1190,7 @@
 
         <!-- Package Selection -->
         <div class="form-group">
-          <label>Speed Package</label>
+          <label for="pkgSelect">Speed Package</label>
           <select class="form-select" id="pkgSelect" name="package_name" onchange="onPackageChanged()">
             {% for pkg in packages %}
             <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-shared="{{ pkg.shared_users or 1 }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} — {{ pkg.rate_limit }} ({{ pkg.default_price }} SAR)</option>
@@ -1172,10 +1201,10 @@
         <!-- SPEED LIMIT (MANUAL ENTRY) -->
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label style="margin:0;">Speed that Customer Will Get (Speed Limit)</label>
+            <label for="approvalCustSpeed" style="margin:0;">Speed that Customer Will Get (Speed Limit)</label>
             <span class="font-mono text-cyan" style="font-size:11px; font-weight:700;">Live MikroTik Queue</span>
           </div>
-          <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+          <div class="preset-wrap" style="margin-top:6px;">
             <input type="text" class="form-input font-mono" id="approvalCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
             <div style="display:flex; gap:4px; flex-wrap:wrap;">
               <button type="button" class="btn-preset" onclick="setApprovalSpeed('5M/5M')">5M</button>
@@ -1195,20 +1224,19 @@
         <!-- ALLOWED DEVICES (MANUAL ENTRY) -->
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label style="margin:0;">How Many Devices Can Connect? (Device Limit) *</label>
+            <label for="inputMaxDevices" style="margin:0;">How Many Devices Can Connect? (Device Limit) *</label>
             <span class="font-mono text-cyan" id="dispDevLimitBadge" style="font-size:11px; font-weight:700;">Manual Limit</span>
           </div>
-          <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+          <div class="preset-wrap" style="margin-top:6px;">
             <input type="number" min="1" max="100" class="form-input font-mono" id="inputMaxDevices" name="max_devices" value="1" required style="width:110px; font-weight:800; font-size:15px; color:#38bdf8; text-align:center;">
-            <span style="font-size:12px; color:var(--text-dim);">simultaneous device(s) allowed for this customer</span>
-          </div>
-          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
-            <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Device</button>
-            <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Devices</button>
-            <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Devices</button>
-            <button type="button" class="btn-preset" onclick="setDevLimit(5)">5 Devices</button>
-            <button type="button" class="btn-preset" onclick="setDevLimit(8)">8 Devices</button>
-            <button type="button" class="btn-preset" onclick="setDevLimit(10)">10 Devices</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Device</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Devices</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Devices</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(5)">5 Devices</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(8)">8 Devices</button>
+              <button type="button" class="btn-preset" onclick="setDevLimit(10)">10 Devices</button>
+            </div>
           </div>
           <span style="font-size:11px; color:var(--text-dim); margin-top:4px;">
             Select a quick preset above or type any custom number directly into the box.
@@ -1224,17 +1252,17 @@
 
           <div class="modal-grid-2">
             <div class="form-group">
-              <label>Amount Collected Today (SAR)</label>
+              <label for="inputCollectedToday">Amount Collected Today (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputCollectedToday" name="collected_today" required value="75.00" placeholder="e.g. 75.00">
             </div>
             <div class="form-group">
-              <label>Monthly Rate (SAR)</label>
+              <label for="inputPrepaidMonthly">Monthly Rate (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPrepaidMonthly" name="monthly_fee_prepaid" required value="75.00" placeholder="e.g. 75.00">
             </div>
           </div>
 
           <div class="form-group">
-            <label>Payment Due Date / Expiry (Manual Entry)</label>
+            <label for="inputPrepaidDueDate">Payment Due Date / Expiry (Manual Entry)</label>
             <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date" required style="color:#ffffff;">
             <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually choose or enter the exact expiration / recharge due date.</span>
           </div>
@@ -1249,11 +1277,11 @@
 
           <div class="modal-grid-2">
             <div class="form-group">
-              <label>Monthly Collectable Fee (SAR)</label>
+              <label for="inputPostpaidMonthly">Monthly Collectable Fee (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidMonthly" name="monthly_fee_postpaid" value="75.00" placeholder="e.g. 75.00" oninput="calculatePostpaidAdvance()">
             </div>
             <div class="form-group">
-              <label>Payment Collected Today / Advance (SAR)</label>
+              <label for="inputPostpaidCollected">Payment Collected Today / Advance (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidCollected" name="collected_today_postpaid" value="0.00" placeholder="e.g. 100.00" oninput="calculatePostpaidAdvance()">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0 if paying later, or enter full advance amount (e.g. 100 SAR).</span>
             </div>
@@ -1285,12 +1313,12 @@
 
           <div class="modal-grid-2">
             <div class="form-group">
-              <label>Payment Due Date (Manual Entry)</label>
+              <label for="inputPostpaidDueDate">Payment Due Date (Manual Entry)</label>
               <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date" style="color:#ffffff;">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually select statement payment due date.</span>
             </div>
             <div class="form-group">
-              <label>Due Day of Month (1 - 31)</label>
+              <label for="inputDueDay">Due Day of Month (1 - 31)</label>
               <input type="number" min="1" max="31" class="form-input font-mono" id="inputDueDay" name="due_day" value="10" placeholder="e.g. 10">
             </div>
           </div>
