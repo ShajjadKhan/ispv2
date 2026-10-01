@@ -11,22 +11,22 @@
   .grid-layout {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding-bottom: 40px;
+    gap: 10px;
+    padding-bottom: 20px;
   }
 
   /* FLEET MANAGEMENT SECTION */
   .fleet-banner-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    padding: 22px 26px;
+    border-radius: 12px;
+    padding: 10px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    gap: 10px;
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
   }
@@ -40,18 +40,18 @@
 
   .fleet-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
   }
 
   .fleet-card {
     background: #090e1a;
     border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 14px;
-    padding: 18px 20px;
+    border-radius: 10px;
+    padding: 10px 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     transition: all 0.2s ease;
     cursor: pointer;
     position: relative;
@@ -59,7 +59,7 @@
   .fleet-card:hover {
     border-color: rgba(56, 189, 248, 0.4);
     background: #0d1527;
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
   .fleet-card.active-router {
     border-color: #38bdf8;
@@ -133,11 +133,11 @@
   .hero-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    padding: 24px 28px;
+    border-radius: 12px;
+    padding: 12px 16px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.4);
   }
   .hero-card::before {
     content: '';
@@ -155,18 +155,18 @@
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 10px;
+    margin-bottom: 10px;
   }
   .hero-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
   }
   .router-avatar {
-    width: 54px;
-    height: 54px;
-    border-radius: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     background: rgba(56, 189, 248, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.25);
     display: flex;
@@ -174,15 +174,15 @@
     justify-content: center;
     flex-shrink: 0;
   }
-  .router-avatar svg { width: 30px; height: 30px; fill: #38bdf8; }
+  .router-avatar svg { width: 20px; height: 20px; fill: #38bdf8; }
 
   .status-badge-hero {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
+    gap: 6px;
+    padding: 4px 10px;
     border-radius: 9999px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     background: rgba(16, 185, 129, 0.12);
     color: #34d399;
@@ -196,25 +196,25 @@
 
   .hero-details-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    padding-top: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
   .detail-box {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
   }
   .detail-box .label {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   .detail-box .value {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #ffffff;
     font-family: var(--font-mono);
@@ -224,31 +224,31 @@
   .section-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
   }
   .section-card-header {
-    padding: 16px 20px;
+    padding: 10px 16px;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
   }
 
   .ports-board {
-    padding: 20px;
+    padding: 10px;
     background: #090e1a;
-    border-radius: 12px;
-    margin: 16px;
+    border-radius: 10px;
+    margin: 10px;
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
   .ports-rack {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    gap: 10px;
   }
   @media (max-width: 860px) {
     .ports-rack { grid-template-columns: repeat(2, 1fr); }
@@ -257,11 +257,11 @@
   .port-box {
     background: #111a2e;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 14px;
+    border-radius: 8px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   .port-box.is-active {
     border-color: rgba(56, 189, 248, 0.35);
@@ -272,20 +272,20 @@
   .clean-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
     text-align: left;
   }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 600;
-    padding: 12px 18px;
+    padding: 6px 10px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.05em;
   }
   .clean-table td {
-    padding: 12px 18px;
+    padding: 5px 10px;
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table tr:last-child td { border-bottom: none; }
@@ -384,6 +384,32 @@
     outline: none;
   }
   .form-control:focus { border-color: #38bdf8; }
+
+  /* MOBILE RESPONSIVE OPTIMIZATION */
+  @media (max-width: 768px) {
+    .fleet-banner-card {
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .fleet-grid {
+      grid-template-columns: 1fr;
+    }
+    .hero-card {
+      padding: 10px 12px;
+    }
+    .hero-details-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .ports-rack {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .clean-table th, .clean-table td {
+      padding: 5px 6px;
+      font-size: 11px;
+    }
+  }
 </style>
 {% endblock %}
 

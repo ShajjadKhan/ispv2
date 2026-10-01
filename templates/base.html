@@ -36,8 +36,8 @@
       --warning: #f59e0b;
       --danger: #ef4444;
       
-      --sidebar-width: 250px;
-      --topbar-height: 64px;
+      --sidebar-width: 224px;
+      --topbar-height: 48px;
     }
 
     body {
@@ -70,35 +70,35 @@
       height: var(--topbar-height);
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 0 20px;
+      gap: 10px;
+      padding: 0 16px;
       border-bottom: 1px solid var(--border-subtle);
     }
 
     .brand-logo-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
     }
     .brand-logo-icon svg {
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
       fill: #ffffff;
     }
 
     .brand-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: #ffffff;
     }
     .brand-subtitle {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-dim);
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -106,29 +106,29 @@
     }
 
     .nav-section-title {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--text-dim);
-      padding: 24px 20px 8px 20px;
+      padding: 12px 14px 4px 14px;
     }
 
     .nav-links {
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      padding: 0 12px;
+      gap: 2px;
+      padding: 0 8px;
       flex-grow: 1;
     }
 
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-size: 13.5px;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--text-muted);
       text-decoration: none;
@@ -137,8 +137,8 @@
       border: 1px solid transparent;
     }
     .nav-item svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       fill: currentColor;
       flex-shrink: 0;
     }
@@ -205,42 +205,42 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 28px;
+      padding: 0 16px;
     }
 
     .top-bar-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .page-heading {
-      font-size: 17px;
+      font-size: 14.5px;
       font-weight: 700;
       color: #ffffff;
       letter-spacing: -0.01em;
     }
     .breadcrumb-tag {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-dim);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
 
     .top-bar-right {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 10px;
     }
 
     /* STATUS PILL */
     .status-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
+      gap: 6px;
+      padding: 3px 10px;
       border-radius: 9999px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       background: rgba(16, 185, 129, 0.12);
       color: #34d399;
@@ -254,8 +254,8 @@
     }
 
     .pulse-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background-color: #10b981;
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
@@ -276,13 +276,13 @@
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-subtle);
       color: var(--text-main);
-      padding: 7px 14px;
-      border-radius: 8px;
-      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-size: 11.5px;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
@@ -291,17 +291,16 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
     .btn-refresh svg {
-      width: 14px;
-      height: 14px;
+      width: 13px;
+      height: 13px;
       fill: currentColor;
     }
 
     /* CONTENT WRAPPER */
-    /* CONTENT WRAPPER */
     .content-container {
-      padding: 28px;
+      padding: 10px 14px;
       flex-grow: 1;
-      max-width: 1680px;
+      max-width: 1720px;
       width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
@@ -539,35 +538,35 @@
         gap: 8px !important;
       }
       .section-card-header {
-        padding: 14px 16px !important;
+        padding: 8px 12px !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 10px !important;
+        gap: 8px !important;
       }
       .clean-table th, .clean-table td {
-        padding: 10px 12px !important;
-        font-size: 12.5px !important;
+        padding: 6px 8px !important;
+        font-size: 11.5px !important;
         white-space: nowrap !important;
       }
       .modal-container, .modal-box, .modal-box-lg {
         max-width: 95vw !important;
         width: 95vw !important;
-        padding: 16px !important;
-        border-radius: 14px !important;
+        padding: 12px !important;
+        border-radius: 12px !important;
       }
     }
 
     /* Standard Phones (<= 640px) */
     @media (max-width: 640px) {
       .top-bar {
-        padding: 0 12px;
-        height: 56px;
+        padding: 0 10px;
+        height: 44px;
       }
       .top-bar-left {
         gap: 8px;
       }
       .page-heading {
-        font-size: 14.5px;
+        font-size: 13.5px;
       }
       .breadcrumb-tag {
         display: none;
@@ -576,31 +575,32 @@
         gap: 6px;
       }
       .status-pill {
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: 2px 7px;
+        font-size: 10px;
       }
       .btn-refresh {
-        padding: 6px 9px;
+        padding: 4px 8px;
       }
       .btn-refresh span {
         display: none;
       }
       .content-container {
-        padding: 14px 10px;
+        padding: 8px 8px;
       }
     }
 
     /* Ultra-Compact Phones (<= 440px) */
     @media (max-width: 440px) {
-      .stats-row, .kpi-deck-grid {
-        grid-template-columns: 1fr !important;
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
       }
       .top-bar {
         padding: 0 8px;
       }
       .page-heading {
-        font-size: 13.5px;
-        max-width: 125px;
+        font-size: 13px;
+        max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1228,6 +1228,47 @@
           </div>
         </div>
 
+        <!-- Two-Factor Authentication Section -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:16px; margin-top:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+            <div>
+              <span style="font-size:11px; font-weight:700; color:#34d399; text-transform:uppercase; letter-spacing:0.5px;">Two-Factor Authentication</span>
+              <div style="font-size:11px; color:var(--text-dim); margin-top:3px;">Google Authenticator / Authy compatible 6-digit codes</div>
+            </div>
+            <span id="totpStatusBadge" class="badge-status {% if request.state and request.state.user and request.state.user.totp_enabled %}running{% else %}stopped{% endif %}" style="font-size:10px;">
+              {% if request.state and request.state.user and request.state.user.totp_enabled %}ENABLED{% else %}OFF{% endif %}
+            </span>
+          </div>
+
+          <div id="totpSetupPanel" style="display:none; background:#090e1a; border:1px solid rgba(52,211,153,0.24); border-radius:12px; padding:14px; margin-bottom:12px;">
+            <div style="display:grid; grid-template-columns:120px 1fr; gap:14px; align-items:center;">
+              <img id="totpQrImg" alt="Authenticator QR Code" style="width:120px; height:120px; border-radius:10px; background:#fff; padding:6px;">
+              <div>
+                <div style="font-size:12px; color:#cbd5e1; line-height:1.5;">Scan this QR code in Google Authenticator, then enter the 6-digit code below.</div>
+                <div id="totpSecretText" style="margin-top:8px; font-family:var(--font-mono); font-size:11px; color:#38bdf8; overflow-wrap:anywhere;"></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <input type="text" id="totpEnableCode" inputmode="numeric" maxlength="6" placeholder="123456" style="flex:1; background:rgba(11,17,32,0.85); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px 12px; color:#fff; font-family:var(--font-mono); font-weight:800; letter-spacing:0.18em;">
+              <button type="button" onclick="enableTotp()" style="background:linear-gradient(135deg,#059669,#34d399); border:none; color:#052e1b; padding:9px 14px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">Enable</button>
+            </div>
+          </div>
+
+          <div id="totpDisablePanel" style="display:none; background:#090e1a; border:1px solid rgba(239,68,68,0.24); border-radius:12px; padding:14px; margin-bottom:12px;">
+            <div style="font-size:12px; color:#cbd5e1; margin-bottom:10px;">To disable 2FA, confirm your current password and current authenticator code.</div>
+            <div style="display:grid; grid-template-columns:1fr 120px auto; gap:8px;">
+              <input type="password" id="totpDisablePassword" placeholder="Current password" style="background:rgba(11,17,32,0.85); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px 12px; color:#fff;">
+              <input type="text" id="totpDisableCode" inputmode="numeric" maxlength="6" placeholder="123456" style="background:rgba(11,17,32,0.85); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px 12px; color:#fff; font-family:var(--font-mono); font-weight:800;">
+              <button type="button" onclick="disableTotp()" style="background:rgba(239,68,68,0.16); border:1px solid rgba(239,68,68,0.35); color:#f87171; padding:9px 14px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">Disable</button>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" id="btnStartTotp" onclick="startTotpSetup()" style="background:rgba(52,211,153,0.14); border:1px solid rgba(52,211,153,0.32); color:#34d399; padding:8px 12px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">Set Up Authenticator</button>
+            <button type="button" id="btnShowTotpDisable" onclick="toggleTotpDisablePanel()" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.28); color:#f87171; padding:8px 12px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">Disable 2FA</button>
+          </div>
+        </div>
+
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);">
           <button type="button" onclick="closeSelfProfileModal()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); color:var(--text-muted); padding:9px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">Cancel</button>
           <button type="submit" id="btnSaveSelfProfile" style="background:linear-gradient(135deg, #0284c7, #38bdf8); border:none; color:#fff; padding:9px 20px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">Save Changes</button>
@@ -1255,6 +1296,7 @@
               if (data.user.username) document.getElementById('selfUsername').value = data.user.username;
               if (data.user.full_name) document.getElementById('selfFullName').value = data.user.full_name;
               if (data.user.phone) document.getElementById('selfPhone').value = data.user.phone;
+              updateTotpUi(!!data.user.totp_enabled);
             }
           })
           .catch(() => {});
@@ -1276,6 +1318,88 @@
 
     function closeChangePasswordModal() {
       closeSelfProfileModal();
+    }
+
+    function updateTotpUi(enabled) {
+      const badge = document.getElementById('totpStatusBadge');
+      const setupPanel = document.getElementById('totpSetupPanel');
+      const disablePanel = document.getElementById('totpDisablePanel');
+      const startBtn = document.getElementById('btnStartTotp');
+      const disableBtn = document.getElementById('btnShowTotpDisable');
+      if (badge) {
+        badge.textContent = enabled ? 'ENABLED' : 'OFF';
+        badge.className = `badge-status ${enabled ? 'running' : 'stopped'}`;
+        badge.style.fontSize = '10px';
+      }
+      if (setupPanel && enabled) setupPanel.style.display = 'none';
+      if (disablePanel) disablePanel.style.display = 'none';
+      if (startBtn) startBtn.style.display = enabled ? 'none' : 'inline-flex';
+      if (disableBtn) disableBtn.style.display = enabled ? 'inline-flex' : 'none';
+    }
+
+    async function startTotpSetup() {
+      try {
+        const res = await fetch('/api/auth/2fa/setup');
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Could not start authenticator setup.');
+        document.getElementById('totpQrImg').src = data.qr_data;
+        document.getElementById('totpSecretText').textContent = `Manual key: ${data.secret}`;
+        document.getElementById('totpSetupPanel').style.display = 'block';
+        document.getElementById('totpEnableCode').focus();
+      } catch (err) {
+        cyberToast(err.message, 'error');
+      }
+    }
+
+    async function enableTotp() {
+      const code = document.getElementById('totpEnableCode').value.trim();
+      if (!/^\d{6}$/.test(code)) {
+        cyberToast('Enter the 6-digit authenticator code.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/2fa/enable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Could not enable 2FA.');
+        cyberToast(data.message || 'Two-factor authentication enabled.', 'success');
+        updateTotpUi(true);
+      } catch (err) {
+        cyberToast(err.message, 'error');
+      }
+    }
+
+    function toggleTotpDisablePanel() {
+      const panel = document.getElementById('totpDisablePanel');
+      if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function disableTotp() {
+      const current_password = document.getElementById('totpDisablePassword').value;
+      const code = document.getElementById('totpDisableCode').value.trim();
+      if (!current_password || !/^\d{6}$/.test(code)) {
+        cyberToast('Enter your current password and 6-digit authenticator code.', 'warning');
+        return;
+      }
+      if (!(await cyberConfirm('Disable two-factor authentication for this account?', { title: 'Disable 2FA', okText: 'Disable 2FA', danger: true }))) return;
+      try {
+        const res = await fetch('/api/auth/2fa/disable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_password, code })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Could not disable 2FA.');
+        cyberToast(data.message || 'Two-factor authentication disabled.', 'success');
+        document.getElementById('totpDisablePassword').value = '';
+        document.getElementById('totpDisableCode').value = '';
+        updateTotpUi(false);
+      } catch (err) {
+        cyberToast(err.message, 'error');
+      }
     }
 
     async function submitSelfProfile(e) {

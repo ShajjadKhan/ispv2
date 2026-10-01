@@ -213,6 +213,27 @@ class EditCustomerPayload(BaseModel):
     status: Optional[str] = None
     credit_balance: Optional[float] = None
     reseller_id: Optional[int] = -1
+    billing_start_date: Optional[str] = None
+    suspension_held_until: Optional[str] = -1
+    suspension_hold_reason: Optional[str] = -1
+
+
+class RecordPromisePayload(BaseModel):
+    days: Optional[int] = 0
+    promise_date: Optional[str] = None
+    note: Optional[str] = ""
+
+
+class SettleCycleItem(BaseModel):
+    month: str
+    amount: float = 0.0
+    settle: bool = True
+
+
+class SettleCyclesPayload(BaseModel):
+    items: List[SettleCycleItem]
+    notes: Optional[str] = ""
+    send_whatsapp: Optional[bool] = False
 
 
 class CreateResellerPayload(BaseModel):
@@ -2248,7 +2269,10 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             max_devices=payload.max_devices,
             status=payload.status,
             credit_balance=payload.credit_balance,
-            reseller_id=payload.reseller_id
+            reseller_id=payload.reseller_id,
+            billing_start_date=payload.billing_start_date,
+            suspension_held_until=payload.suspension_held_until,
+            suspension_hold_reason=payload.suspension_hold_reason
         )
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "message": "Customer not found."})
@@ -2563,6 +2587,144 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
     except Exception as e:
         logger.exception(f"Error recording quick collect for customer #{customer_id}: {e}")
         return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+# =========================================================
+# Grace Period, Daily Accrual & Month Settlement API Endpoints
+# =========================================================
+
+@app.get("/api/customers/{customer_id}/billing-breakdown")
+async def get_customer_billing_breakdown_endpoint(customer_id: int):
+    """
+    Returns complete month-by-month billing breakdown, unpaid cycles,
+    active suspension hold (grace period) accrual, and settled history.
+    """
+    try:
+        breakdown = database.get_customer_billing_breakdown(customer_id)
+        return {"success": True, "breakdown": breakdown}
+    except Exception as e:
+        logger.exception(f"Error fetching billing breakdown for #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
+
+
+@app.post("/api/customers/{customer_id}/promise")
+async def record_customer_promise_endpoint(customer_id: int, payload: RecordPromisePayload, request: Request):
+    """
+    Records a suspension grace hold.
+    Prevents MikroTik auto-suspension while daily debt accrues continuously.
+    """
+    try:
+        session_id = request.cookies.get(auth_service.COOKIE_NAME)
+        user = auth_service.validate_session(session_id) if session_id else None
+        session_user = user.get("username", "Admin") if user else "Admin"
+        res = database.record_customer_promise(
+            customer_id=customer_id,
+            days=payload.days or 0,
+            promise_date=payload.promise_date,
+            note=payload.note or "",
+            created_by=session_user
+        )
+
+        # Unblock and re-bind customer devices on MikroTik to guarantee active service
+        cust = database.get_customer_profile(customer_id)
+        if cust and cust.get("devices"):
+            for dev in cust["devices"]:
+                mac = dev.get("mac_address")
+                if mac:
+                    try:
+                        router_client.bind_device(
+                            mac_address=mac,
+                            ip_address=dev.get("ip_address"),
+                            comment=f"CyberNet: {cust.get('phone')} ({cust.get('name')}) [Grace Hold]",
+                            rate_limit=cust.get("effective_speed")
+                        )
+                    except Exception as me:
+                        logger.warning(f"Could not bind MAC {mac} for grace customer #{customer_id}: {me}")
+
+        return JSONResponse(content={
+            "success": True,
+            "message": f"Suspension hold active until {res['promise_date']}. Daily debt will continue accruing.",
+            "data": res
+        })
+    except Exception as e:
+        logger.exception(f"Error recording promise for customer #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
+
+
+@app.post("/api/customers/{customer_id}/promise/cancel")
+async def cancel_customer_promise_endpoint(customer_id: int):
+    """
+    Cancels an active suspension hold / promise.
+    Reverts customer to normal due/expiry date status.
+    """
+    try:
+        res = database.cancel_customer_promise(customer_id)
+        return JSONResponse(content={"success": True, "message": "Suspension hold cancelled successfully."})
+    except Exception as e:
+        logger.exception(f"Error cancelling promise for customer #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
+
+
+@app.post("/api/customers/{customer_id}/settle-cycles")
+async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCyclesPayload, request: Request):
+    """
+    Records month-by-month settlement.
+    When a month is marked settle=True, the remaining difference is waived as a discount
+    and that month is permanently marked is_settled=1 (solved).
+    """
+    try:
+        session_id = request.cookies.get(auth_service.COOKIE_NAME)
+        user = auth_service.validate_session(session_id) if session_id else None
+        session_user = user.get("username", "Admin") if user else "Admin"
+        items_dicts = [item.dict() for item in payload.items]
+
+        res = database.settle_customer_cycles(
+            customer_id=customer_id,
+            settlement_items=items_dicts,
+            collected_by=session_user,
+            notes=payload.notes or ""
+        )
+
+        # Restore/ensure active bindings on MikroTik
+        cust = database.get_customer_profile(customer_id)
+        if cust and cust.get("devices"):
+            for dev in cust["devices"]:
+                mac = dev.get("mac_address")
+                if mac:
+                    try:
+                        router_client.bind_device(
+                            mac_address=mac,
+                            ip_address=dev.get("ip_address"),
+                            comment=f"CyberNet: {cust.get('phone')} ({cust.get('name')})",
+                            rate_limit=cust.get("effective_speed")
+                        )
+                    except Exception as me:
+                        logger.warning(f"Could not bind MAC {mac} after settlement: {me}")
+
+        # Dispatch WhatsApp receipt if requested
+        if payload.send_whatsapp and cust and cust.get("phone"):
+            try:
+                wa_text = f"✅ *PAYMENT RECEIPT*\n\n"
+                wa_text += f"Customer: {cust['name']}\n"
+                wa_text += f"Collected Amount: {res['total_collected']:.2f} SAR\n"
+                if res['total_waived'] > 0:
+                    wa_text += f"Waived Discount: {res['total_waived']:.2f} SAR\n"
+                if res.get("settled_months"):
+                    wa_text += f"Settled Period(s): {', '.join(res['settled_months'])}\n"
+                wa_text += f"Status: Active (Due: {cust.get('due_date') or 'Settled'})\n\n"
+                wa_text += "Thank you for your business!"
+                whatsapp_service.send_whatsapp_raw(cust["phone"], wa_text)
+            except Exception as we:
+                logger.warning(f"WhatsApp receipt failed: {we}")
+
+        return JSONResponse(content={
+            "success": True,
+            "message": f"Settlement recorded: {res['total_collected']:.2f} SAR collected, {res['total_waived']:.2f} SAR waived.",
+            "data": res
+        })
+    except Exception as e:
+        logger.exception(f"Error settling cycles for customer #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
 
 
 # =========================================================

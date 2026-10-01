@@ -8,37 +8,37 @@
   .resellers-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    padding-bottom: 40px;
+    gap: 10px;
+    padding-bottom: 20px;
   }
 
   /* TOP KPI STATS */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
   }
 
   .stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 18px 20px;
+    border-radius: 10px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
   }
   .stat-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: rgba(56, 189, 248, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   }
 
   .stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -48,16 +48,16 @@
   .stat-icon.emerald-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
   .stat-icon.cyan-icon { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
   .stat-icon.amber-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-  .stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+  .stat-icon svg { width: 18px; height: 18px; fill: currentColor; }
 
   .stat-data .num {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     font-family: var(--font-mono);
     line-height: 1.1;
   }
   .stat-data .lbl {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -69,23 +69,23 @@
   .panel-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
   }
 
   .panel-header {
-    padding: 18px 22px;
+    padding: 10px 16px;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 10px;
   }
 
   .panel-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #ffffff;
     display: flex;
@@ -97,20 +97,20 @@
     background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
     color: #ffffff;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
   }
   .btn-primary-action:hover {
     background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
-    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.35);
     transform: translateY(-1px);
   }
 
@@ -118,9 +118,9 @@
     background: rgba(255, 255, 255, 0.06);
     color: var(--text-main);
     border: 1px solid var(--border-subtle);
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
@@ -137,14 +137,14 @@
     background: rgba(16, 185, 129, 0.15);
     color: #34d399;
     border: 1px solid rgba(16, 185, 129, 0.3);
-    padding: 5px 10px;
+    padding: 4px 8px;
     border-radius: 6px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     transition: all 0.15s;
   }
   .btn-topup-sm:hover {
@@ -156,9 +156,9 @@
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-dim);
     border: 1px solid var(--border-subtle);
-    padding: 5px 9px;
+    padding: 4px 8px;
     border-radius: 6px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
@@ -175,9 +175,9 @@
   .badge-tag {
     display: inline-flex;
     align-items: center;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -196,21 +196,21 @@
   .clean-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
     text-align: left;
   }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 700;
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 12px 18px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table td {
-    padding: 14px 18px;
+    padding: 5px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     color: var(--text-main);
   }
@@ -331,6 +331,40 @@
   .tab-btn.active {
     color: #38bdf8;
     border-bottom-color: #38bdf8;
+  }
+
+  /* MOBILE RESPONSIVE OPTIMIZATION */
+  @media (max-width: 768px) {
+    .stats-row {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .stat-card {
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .stat-icon {
+      width: 28px;
+      height: 28px;
+    }
+    .stat-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+    .stat-data .num {
+      font-size: 17px;
+    }
+    .panel-header {
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .clean-table th, .clean-table td {
+      padding: 5px 6px;
+      font-size: 11px;
+    }
+    .search-box {
+      width: 100%;
+    }
   }
 </style>
 {% endblock %}

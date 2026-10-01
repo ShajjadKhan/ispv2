@@ -12,6 +12,7 @@ Manages customers, devices, connection requests, and billing records using SQLit
 import sqlite3
 import os
 import re
+import calendar
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 
@@ -120,6 +121,28 @@ def init_db():
         except Exception:
             pass
 
+        # Migration: Suspension grace period & daily billing accrual
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN billing_start_date TEXT")
+        except Exception:
+            pass
+
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN suspension_held_until TEXT")
+        except Exception:
+            pass
+
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN suspension_hold_reason TEXT")
+        except Exception:
+            pass
+
+        # Backfill billing_start_date for existing customers
+        try:
+            cursor.execute("UPDATE customers SET billing_start_date = substr(created_at, 1, 10) WHERE billing_start_date IS NULL")
+        except Exception:
+            pass
+
         # 2. Customer Devices Table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS customer_devices (
@@ -161,6 +184,41 @@ def init_db():
             notes TEXT,
             collected_at TEXT NOT NULL,
             collected_by TEXT NOT NULL DEFAULT 'Admin',
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        )
+        """)
+
+        # Migration check for collections table
+        collection_new_cols = [
+            ("month_year", "TEXT"),
+            ("is_settled", "INTEGER NOT NULL DEFAULT 0"),
+            ("waived_amount", "REAL NOT NULL DEFAULT 0.0")
+        ]
+        for col_name, col_type in collection_new_cols:
+            try:
+                cursor.execute(f"ALTER TABLE collections ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+
+        # Backfill month_year for existing collection records
+        try:
+            cursor.execute("UPDATE collections SET month_year = substr(collected_at, 1, 7) WHERE month_year IS NULL AND collected_at IS NOT NULL")
+        except Exception:
+            pass
+
+        # 4c. Customer Promises & Suspension Hold Ledger Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS customer_promises (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            month_year TEXT,
+            days INTEGER NOT NULL DEFAULT 0,
+            promise_date TEXT NOT NULL,
+            note TEXT,
+            status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'fulfilled', 'cancelled', 'expired'
+            created_by TEXT NOT NULL DEFAULT 'Admin',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
         )
         """)
@@ -1084,6 +1142,16 @@ def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]
             item["is_speed_custom"] = bool(item.get("speed_limit"))
             item["credit_balance"] = round(float(item.get("credit_balance") or 0.0), 2)
 
+            # Grace hold / suspension hold check
+            susp_until = item.get("suspension_held_until")
+            if susp_until and susp_until >= today_str:
+                item["is_grace_held"] = True
+                item["grace_until"] = susp_until
+                item["tier_badge"] = "grace"
+                item["tier_label"] = f"Grace Hold ({susp_until})"
+            else:
+                item["is_grace_held"] = False
+
             customers.append(item)
         return customers
 
@@ -1147,6 +1215,17 @@ def get_customer_profile(customer_id: int) -> Optional[Dict[str, Any]]:
             cust["days_remaining"] = None
             cust["is_expired"] = False
             cust["is_due"] = True
+        # Grace hold resolution
+        today_str = now.strftime("%Y-%m-%d")
+        susp_until = cust.get("suspension_held_until")
+        if susp_until and susp_until >= today_str:
+            cust["is_grace_held"] = True
+            cust["grace_until"] = susp_until
+            cust["tier_badge"] = "grace"
+            cust["tier_label"] = f"Grace Hold ({susp_until})"
+        else:
+            cust["is_grace_held"] = False
+
         # Payment history
         cursor.execute("""
             SELECT * FROM collections 
@@ -1276,11 +1355,15 @@ def update_customer_details(
     max_devices: Optional[int] = None,
     status: Optional[str] = None,
     credit_balance: Optional[float] = None,
-    reseller_id: Optional[int] = -1
+    reseller_id: Optional[int] = -1,
+    billing_start_date: Optional[str] = None,
+    suspension_held_until: Optional[str] = -1,
+    suspension_hold_reason: Optional[str] = -1
 ) -> Optional[Dict[str, Any]]:
     """
     Updates any customer fields: monthly rate, payment due date, custom speed limit,
-    billing type, device limit, package name, name, phone, status, credit balance, and reseller attribution.
+    billing type, device limit, package name, name, phone, status, credit balance, reseller attribution,
+    billing start date, and suspension grace hold.
     Automatically keeps prepaid expiry_date and due_day in sync.
     """
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1302,6 +1385,11 @@ def update_customer_details(
         new_max_devices = max(1, int(max_devices)) if max_devices is not None else int(current.get("max_devices") or 1)
         new_credit = round(max(0.0, float(credit_balance)), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
         final_reseller_id = current.get("reseller_id") if reseller_id == -1 else reseller_id
+
+        # Billing start date & suspension hold
+        new_bstart = billing_start_date.strip() if billing_start_date and billing_start_date.strip() else current.get("billing_start_date")
+        new_susp_held = current.get("suspension_held_until") if suspension_held_until == -1 else suspension_held_until
+        new_susp_reason = current.get("suspension_hold_reason") if suspension_hold_reason == -1 else suspension_hold_reason
 
         # Speed limit: if explicitly passed, update it (empty string or "0" or "unlimited" means cleared/unlimited)
         if speed_limit is not None:
@@ -1326,12 +1414,16 @@ def update_customer_details(
             UPDATE customers
             SET name = ?, phone = ?, billing_type = ?, package_name = ?,
                 monthly_fee = ?, due_date = ?, due_day = ?, expiry_date = ?,
-                speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, reseller_id = ?, updated_at = ?
+                speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, reseller_id = ?,
+                billing_start_date = ?, suspension_held_until = ?, suspension_hold_reason = ?,
+                updated_at = ?
             WHERE id = ?
         """, (
             new_name, new_phone, new_btype, new_pkg,
             new_fee, new_due_date, new_due_day, new_expiry_date,
-            new_speed, new_max_devices, new_status, new_credit, final_reseller_id, now_str,
+            new_speed, new_max_devices, new_status, new_credit, final_reseller_id,
+            new_bstart, new_susp_held, new_susp_reason,
+            now_str,
             customer_id
         ))
         conn.commit()
@@ -1692,6 +1784,475 @@ def apply_customer_credit(
 
 
 # =========================================================
+# Grace Period, Daily Accrual & Month Settlement Engine
+# (Suspension Hold & Month-by-Month is_settled Waiver)
+# =========================================================
+
+def record_customer_promise(
+    customer_id: int,
+    days: int = 0,
+    promise_date: Optional[str] = None,
+    note: str = "",
+    created_by: str = "Admin"
+) -> Dict[str, Any]:
+    """
+    Holds customer suspension on MikroTik while allowing daily billing debt to accrue.
+    Sets suspension_held_until in customers table and logs to customer_promises.
+    Unblocks devices on MikroTik so customer remains active.
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    today = now.date()
+
+    if promise_date and promise_date.strip():
+        target_date_str = promise_date.strip()[:10]
+        try:
+            target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
+            calc_days = max(1, (target_date - today).days)
+        except Exception:
+            calc_days = max(1, days or 20)
+            target_date_str = (now + timedelta(days=calc_days)).strftime("%Y-%m-%d")
+    else:
+        calc_days = max(1, days or 20)
+        target_date_str = (now + timedelta(days=calc_days)).strftime("%Y-%m-%d")
+
+    target_month_year = target_date_str[:7]
+    hold_reason = note.strip() if note and note.strip() else f"Suspension hold requested ({calc_days} days grace)"
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, phone, monthly_fee, status FROM customers WHERE id = ?", (customer_id,))
+        cust = cursor.fetchone()
+        if not cust:
+            raise ValueError(f"Customer #{customer_id} not found.")
+
+        # 1. Cancel previous pending promises for this customer
+        cursor.execute("""
+            UPDATE customer_promises
+            SET status = 'cancelled', updated_at = ?
+            WHERE customer_id = ? AND status = 'pending'
+        """, (now_str, customer_id))
+
+        # 2. Insert new promise record
+        cursor.execute("""
+            INSERT INTO customer_promises (customer_id, month_year, days, promise_date, note, status, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+        """, (customer_id, target_month_year, calc_days, target_date_str, hold_reason, created_by, now_str, now_str))
+        promise_id = cursor.lastrowid
+
+        # 3. Update customer table: hold suspension and ensure status is active
+        cursor.execute("""
+            UPDATE customers
+            SET suspension_held_until = ?, suspension_hold_reason = ?, status = 'active', updated_at = ?
+            WHERE id = ?
+        """, (target_date_str, hold_reason, now_str, customer_id))
+
+        # 4. Unblock any blocked devices in DB
+        cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+        conn.commit()
+
+    return {
+        "success": True,
+        "promise_id": promise_id,
+        "customer_id": customer_id,
+        "days": calc_days,
+        "promise_date": target_date_str,
+        "note": hold_reason,
+        "created_at": now_str
+    }
+
+
+def cancel_customer_promise(customer_id: int, reason: str = "Cancelled by admin") -> Dict[str, Any]:
+    """
+    Cancels any active grace / suspension hold for the customer.
+    Reverts suspension_held_until to NULL.
+    """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE customer_promises
+            SET status = 'cancelled', updated_at = ?
+            WHERE customer_id = ? AND status = 'pending'
+        """, (now_str, customer_id))
+        cursor.execute("""
+            UPDATE customers
+            SET suspension_held_until = NULL, suspension_hold_reason = NULL, updated_at = ?
+            WHERE id = ?
+        """, (now_str, customer_id))
+        conn.commit()
+
+    return {"success": True, "customer_id": customer_id, "message": "Suspension hold cancelled"}
+
+
+def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
+    """
+    Calculates detailed month-by-month billing cycles, unpaid debt,
+    accrued daily grace amounts, settled months, and waiver history.
+    Follows the exact accounting model of billing_reminder:
+    - Monthly rate divided by 30 gives daily rate.
+    - Each elapsed cycle owes expected monthly fee.
+    - Active grace hold accrues elapsed days up to promise date.
+    - Settled months (is_settled=1) permanently close cycle debt.
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    today = now.date()
+    today_str = today.strftime("%Y-%m-%d")
+    current_month_str = today.strftime("%Y-%m")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, name, phone, billing_type, package_name, monthly_fee, due_day, due_date,
+                   expiry_date, status, credit_balance, created_at,
+                   billing_start_date, suspension_held_until, suspension_hold_reason
+            FROM customers WHERE id = ?
+        """, (customer_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise ValueError(f"Customer #{customer_id} not found.")
+        cust = dict(row)
+
+        # Preload active promise if any
+        cursor.execute("""
+            SELECT id, month_year, days, promise_date, note, status, created_at
+            FROM customer_promises
+            WHERE customer_id = ? AND status = 'pending'
+            ORDER BY id DESC LIMIT 1
+        """, (customer_id,))
+        promise_row = cursor.fetchone()
+        promise_data = dict(promise_row) if promise_row else None
+
+        # Collections by month
+        cursor.execute("""
+            SELECT id, month_year, amount, is_settled, waived_amount, notes, collected_at, collected_by
+            FROM collections
+            WHERE customer_id = ?
+            ORDER BY month_year ASC, id ASC
+        """, (customer_id,))
+        col_rows = cursor.fetchall()
+
+    monthly_fee = float(cust.get("monthly_fee") or 30.0)
+    if monthly_fee <= 0:
+        monthly_fee = 30.0
+    daily_rate = round(monthly_fee / 30.0, 4)
+
+    # Collections map
+    colls_by_month: Dict[str, Dict[str, Any]] = {}
+    total_cash_collected = 0.0
+    for cr in col_rows:
+        amt = float(cr["amount"] or 0.0)
+        settled = int(cr["is_settled"] or 0)
+        waived = float(cr["waived_amount"] or 0.0)
+        my = cr["month_year"] or (cr["collected_at"][:7] if cr["collected_at"] else current_month_str)
+        if my not in colls_by_month:
+            colls_by_month[my] = {"total": 0.0, "settled": 0, "waived": 0.0, "records": []}
+        colls_by_month[my]["total"] += amt
+        if settled == 1:
+            colls_by_month[my]["settled"] = 1
+        colls_by_month[my]["waived"] += waived
+        colls_by_month[my]["records"].append(dict(cr))
+        if amt > 0:
+            total_cash_collected += amt
+
+    # Determine start date
+    start_str = cust.get("billing_start_date")
+    if not start_str:
+        start_str = cust.get("created_at")[:10] if cust.get("created_at") else today_str
+    try:
+        start_date = datetime.strptime(start_str[:10], "%Y-%m-%d").date()
+    except Exception:
+        start_date = today
+
+    # Active grace hold info
+    susp_until = cust.get("suspension_held_until")
+    has_active_promise = bool(susp_until and susp_until >= today_str)
+    promise_date_str = susp_until if has_active_promise else (promise_data.get("promise_date") if promise_data else None)
+
+    # Determine target end month: up to current month, or promise month if future
+    max_month_date = today
+    if promise_date_str:
+        try:
+            p_dt = datetime.strptime(promise_date_str[:10], "%Y-%m-%d").date()
+            if p_dt > max_month_date:
+                max_month_date = p_dt
+        except Exception:
+            pass
+
+    # Build sequence of months from start_date to max_month_date
+    months_seq: List[str] = []
+    curr_iter = datetime(start_date.year, start_date.month, 1).date()
+    end_iter = datetime(max_month_date.year, max_month_date.month, 1).date()
+
+    iter_count = 0
+    while curr_iter <= end_iter and iter_count < 60:
+        iter_count += 1
+        months_seq.append(curr_iter.strftime("%Y-%m"))
+        # Advance 1 month
+        ny = curr_iter.year
+        nm = curr_iter.month + 1
+        if nm > 12:
+            nm = 1
+            ny += 1
+        curr_iter = datetime(ny, nm, 1).date()
+
+    # Also include any months present in collections that might not be in sequence
+    for my in colls_by_month.keys():
+        if my not in months_seq:
+            months_seq.append(my)
+    months_seq.sort()
+
+    unpaid_cycles = []
+    settled_cycles = []
+    total_owed = 0.0
+
+    for m in months_seq:
+        try:
+            m_dt = datetime.strptime(m + "-01", "%Y-%m-%d").date()
+            m_label = m_dt.strftime("%B %Y")
+        except Exception:
+            m_label = m
+
+        dim = calendar.monthrange(m_dt.year, m_dt.month)[1]
+        p = colls_by_month.get(m, {"total": 0.0, "settled": 0, "waived": 0.0, "records": []})
+        paid = round(p["total"], 2)
+        is_settled = (p["settled"] == 1)
+
+        # Expected fee calculation:
+        is_grace_month = False
+        grace_days = 0
+        expected_fee = monthly_fee
+
+        if has_active_promise and promise_date_str and promise_date_str.startswith(m):
+            # Target promise day in this month
+            try:
+                p_day = int(promise_date_str.split("-")[2])
+                grace_days = min(p_day, 30)
+                expected_fee = round(grace_days * daily_rate, 2)
+                is_grace_month = True
+            except Exception:
+                expected_fee = monthly_fee
+        elif m > current_month_str:
+            # Future month not covered by promise
+            expected_fee = monthly_fee
+
+        # If already marked settled in ledger, the cycle is solved!
+        if is_settled:
+            settled_cycles.append({
+                "month": m,
+                "label": m_label,
+                "expected_fee": expected_fee,
+                "paid": paid,
+                "waived": round(p["waived"], 2),
+                "rem_due": 0.0,
+                "is_settled": True,
+                "is_grace": is_grace_month,
+                "status": "Settled & Closed"
+            })
+        else:
+            rem_due = max(0.0, round(expected_fee - paid, 2))
+            if rem_due > 0.05:
+                total_owed += rem_due
+                unpaid_cycles.append({
+                    "month": m,
+                    "label": m_label,
+                    "expected_fee": expected_fee,
+                    "paid": paid,
+                    "waived": 0.0,
+                    "rem_due": rem_due,
+                    "is_settled": False,
+                    "is_grace": is_grace_month,
+                    "grace_days": grace_days,
+                    "status": "Unpaid" if paid == 0 else "Partially Paid"
+                })
+            else:
+                # Paid up in full even without explicit settle flag
+                settled_cycles.append({
+                    "month": m,
+                    "label": m_label,
+                    "expected_fee": expected_fee,
+                    "paid": paid,
+                    "waived": 0.0,
+                    "rem_due": 0.0,
+                    "is_settled": True,
+                    "is_grace": is_grace_month,
+                    "status": "Fully Paid"
+                })
+
+    # Summary Promise object
+    promise_info = None
+    if has_active_promise or promise_data:
+        p_date = promise_date_str or (promise_data.get("promise_date") if promise_data else "")
+        delta_d = 0
+        if p_date:
+            try:
+                delta_d = (datetime.strptime(p_date[:10], "%Y-%m-%d").date() - today).days
+            except Exception:
+                pass
+        promise_info = {
+            "active": has_active_promise,
+            "promise_date": p_date,
+            "days_remaining": delta_d,
+            "note": cust.get("suspension_hold_reason") or (promise_data.get("note") if promise_data else ""),
+            "accrued_daily_rate": round(daily_rate, 2),
+            "id": promise_data.get("id") if promise_data else None
+        }
+
+    return {
+        "customer_id": customer_id,
+        "customer_name": cust["name"],
+        "phone": cust["phone"],
+        "monthly_fee": monthly_fee,
+        "daily_rate": round(daily_rate, 2),
+        "billing_start_date": start_str,
+        "credit_balance": round(float(cust.get("credit_balance") or 0.0), 2),
+        "total_due": round(total_owed, 2),
+        "total_paid_lifetime": round(total_cash_collected, 2),
+        "has_active_promise": has_active_promise,
+        "promise": promise_info,
+        "unpaid_cycles": unpaid_cycles,
+        "settled_cycles": settled_cycles
+    }
+
+
+def settle_customer_cycles(
+    customer_id: int,
+    settlement_items: List[Dict[str, Any]],
+    collected_by: str = "Admin",
+    notes: str = ""
+) -> Dict[str, Any]:
+    """
+    Processes month-by-month settlement with partial or zero payments.
+    When settle=True, the month is permanently marked is_settled=1 and the
+    remainder difference is recorded as waived discount.
+    Advances customer due/expiry date and fulfills any pending promises.
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+        cust_row = cursor.fetchone()
+        if not cust_row:
+            raise ValueError(f"Customer #{customer_id} not found.")
+        cust = dict(cust_row)
+
+        monthly_fee = float(cust.get("monthly_fee") or 30.0)
+        daily_rate = round(monthly_fee / 30.0, 4)
+
+        recorded_records = []
+        total_collected = 0.0
+        total_waived = 0.0
+        settled_months_list = []
+
+        for item in settlement_items:
+            month = item.get("month", "").strip()[:7]
+            if not month:
+                continue
+            amt = round(max(0.0, float(item.get("amount") or 0.0)), 2)
+            should_settle = bool(item.get("settle", True))
+
+            # Prior payments for this month
+            cursor.execute("""
+                SELECT COALESCE(SUM(amount), 0.0) as paid_sum
+                FROM collections
+                WHERE customer_id = ? AND month_year = ?
+            """, (customer_id, month))
+            prev_paid = float(cursor.fetchone()["paid_sum"] or 0.0)
+            total_month_paid = prev_paid + amt
+
+            # Check if this was a grace hold month
+            expected_fee = monthly_fee
+            susp_until = cust.get("suspension_held_until")
+            if susp_until and susp_until.startswith(month):
+                try:
+                    p_day = int(susp_until.split("-")[2])
+                    expected_fee = round(min(p_day, 30) * daily_rate, 2)
+                except Exception:
+                    expected_fee = monthly_fee
+
+            # Settlement logic
+            if should_settle:
+                is_settled_val = 1
+                waived = max(0.0, round(expected_fee - total_month_paid, 2))
+                settled_months_list.append(month)
+                desc = f"Settled {month}: {amt:.2f} SAR collected"
+                if waived > 0.05:
+                    desc += f" ({waived:.2f} SAR waived discount)"
+            else:
+                is_settled_val = 1 if total_month_paid >= (expected_fee - 0.05) else 0
+                waived = 0.0
+                desc = f"Partial payment for {month}: {amt:.2f} SAR"
+
+            if notes and notes.strip():
+                desc += f" - {notes.strip()}"
+
+            cursor.execute("""
+                INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, collected_by, month, is_settled_val, waived))
+
+            recorded_records.append({
+                "month": month,
+                "amount": amt,
+                "is_settled": is_settled_val,
+                "waived": waived,
+                "note": desc
+            })
+            total_collected += amt
+            total_waived += waived
+
+        # If any months were settled, fulfill any pending promises and advance due date
+        if settled_months_list:
+            cursor.execute("""
+                UPDATE customer_promises
+                SET status = 'fulfilled', updated_at = ?
+                WHERE customer_id = ? AND status = 'pending'
+            """, (now_str, customer_id))
+
+            # Compute new expiry/due date:
+            # Sort settled months and take the latest month + 1 month
+            last_settled = sorted(settled_months_list)[-1]
+            try:
+                ly, lm = int(last_settled[:4]), int(last_settled[5:7])
+                # Advance 1 month
+                nm = lm + 1
+                ny = ly
+                if nm > 12:
+                    nm = 1
+                    ny += 1
+                dim = calendar.monthrange(ny, nm)[1]
+                due_day = min(int(cust.get("due_day") or 1), dim)
+                new_due_date = f"{ny:04d}-{nm:02d}-{due_day:02d}"
+            except Exception:
+                new_due_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")
+
+            cursor.execute("""
+                UPDATE customers
+                SET due_date = ?, expiry_date = ?, status = 'active',
+                    suspension_held_until = NULL, suspension_hold_reason = NULL,
+                    updated_at = ?
+                WHERE id = ?
+            """, (new_due_date, new_due_date, now_str, customer_id))
+
+            # Unblock customer devices
+            cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+
+        conn.commit()
+
+    return {
+        "success": True,
+        "customer_id": customer_id,
+        "total_collected": round(total_collected, 2),
+        "total_waived": round(total_waived, 2),
+        "settled_months": settled_months_list,
+        "records": recorded_records
+    }
+
+
+# =========================================================
 # Step 4: Packages & Limits Operations
 # =========================================================
 
@@ -1966,7 +2527,16 @@ def get_dashboard_metrics(
             tier_badge = "active"
             tier_label = "Active"
 
-            if c.get("status") == "suspended":
+            today_str = now.strftime("%Y-%m-%d")
+            susp_until = c.get("suspension_held_until")
+            if susp_until and susp_until >= today_str:
+                tier = "grace"
+                tier_badge = "grace"
+                tier_label = f"Grace Hold ({susp_until})"
+                is_due = True
+                c["is_grace_held"] = True
+                c["grace_until"] = susp_until
+            elif c.get("status") == "suspended":
                 tier = "overdue"
                 tier_badge = "suspended"
                 tier_label = "SUSPENDED"
@@ -2946,26 +3516,38 @@ def get_collections_hub_data(
         for c in all_customers:
             days_rem = c.get("days_remaining")
             status = c.get("status", "active")
-            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended")
+            is_grace = bool(c.get("is_grace_held"))
+            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace
             if is_due:
                 fee = float(c.get("monthly_fee") or 0.0)
                 wallet_credit = float(c.get("credit_balance") or 0.0)
                 net_needed = max(0.0, round(fee - wallet_credit, 2))
                 c_copy = dict(c)
+                if is_grace:
+                    daily_r = round(fee / 30.0, 4)
+                    try:
+                        p_day = int(str(c.get("suspension_held_until", "")).split("-")[2])
+                        accrued_amt = round(min(p_day, 30) * daily_r, 2)
+                    except Exception:
+                        accrued_amt = fee
+                    net_needed = max(0.0, round((fee + accrued_amt) - wallet_credit, 2))
+                    c_copy["accrued_grace_amount"] = accrued_amt
                 c_copy["net_due_amount"] = net_needed
                 c_copy["can_settle_from_credit"] = (wallet_credit >= fee and fee > 0)
                 due_customers_queue.append(c_copy)
 
         def due_sort_key(item):
-            # Suspended first (0), expired (1), due today (2), due soon (3)
+            # Grace hold (0), Suspended (1), expired (2), due today (3), due soon (4)
+            if item.get("is_grace_held"):
+                return (0, 0)
             if item.get("status") == "suspended":
-                return (0, item.get("days_remaining") or 0)
+                return (1, item.get("days_remaining") or 0)
             d = item.get("days_remaining")
             if d is not None and d < 0:
-                return (1, d)
+                return (2, d)
             if d == 0:
-                return (2, 0)
-            return (3, d or 999)
+                return (3, 0)
+            return (4, d or 999)
 
         due_customers_queue.sort(key=due_sort_key)
         outstanding_receivable = round(sum(item["net_due_amount"] for item in due_customers_queue), 2)
@@ -3024,7 +3606,9 @@ def get_collections_hub_data(
                 "credit_balance": float(c.get("credit_balance") or 0.0),
                 "due_date": c.get("due_date") or c.get("expiry_date") or "",
                 "days_remaining": c.get("days_remaining"),
-                "status": c.get("status", "active")
+                "status": c.get("status", "active"),
+                "is_grace_held": c.get("is_grace_held", False),
+                "suspension_held_until": c.get("suspension_held_until")
             }
             for c in all_customers
         ]

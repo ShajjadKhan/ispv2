@@ -11,19 +11,19 @@
   .olt-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding-bottom: 40px;
+    gap: 10px;
+    padding-bottom: 20px;
   }
 
   /* CHASSIS STATUS BANNER */
   .olt-chassis-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(19, 29, 54, 0.95) 100%);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    padding: 24px 28px;
+    border-radius: 12px;
+    padding: 12px 16px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
   }
 
   .olt-chassis-card::before {
@@ -39,14 +39,14 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 10px;
+    margin-bottom: 10px;
   }
 
   .chassis-avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     background: rgba(56, 189, 248, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.25);
     display: flex;
@@ -55,33 +55,33 @@
     flex-shrink: 0;
   }
   .chassis-avatar svg {
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     fill: #38bdf8;
   }
 
   .telemetry-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    padding-top: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .tele-box {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
   }
   .tele-box .label {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   .tele-box .value {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #ffffff;
     font-family: var(--font-mono);
@@ -237,21 +237,21 @@
   .clean-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
     text-align: left;
   }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 600;
-    padding: 12px 18px;
+    padding: 6px 10px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table td {
-    padding: 13px 18px;
+    padding: 5px 10px;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-main);
   }
@@ -352,6 +352,21 @@
     width: 100%;
   }
   .form-input:focus { border-color: #38bdf8; }
+
+  /* MOBILE RESPONSIVE OPTIMIZATION */
+  @media (max-width: 768px) {
+    .olt-chassis-card {
+      padding: 10px 12px;
+    }
+    .telemetry-row {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .clean-table th, .clean-table td {
+      padding: 5px 6px;
+      font-size: 11px;
+    }
+  }
 </style>
 {% endblock %}
 

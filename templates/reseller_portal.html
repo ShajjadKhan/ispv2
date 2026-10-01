@@ -8,52 +8,52 @@
   .portal-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding-bottom: 40px;
+    gap: 10px;
+    padding-bottom: 20px;
   }
 
   /* TOP RESELLER HERO & WALLET CARD */
   .reseller-hero-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(20, 30, 58, 0.95) 100%);
     border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 18px;
-    padding: 24px 28px;
+    border-radius: 12px;
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    gap: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
   }
 
   .agency-info-title {
-    font-size: 22px;
+    font-size: 16px;
     font-weight: 800;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   .agency-info-sub {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-dim);
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   .wallet-chip-box {
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.35);
-    border-radius: 14px;
-    padding: 16px 24px;
+    border-radius: 10px;
+    padding: 8px 14px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+    gap: 10px;
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.15);
   }
 
   .wallet-chip-val {
-    font-size: 30px;
+    font-size: 20px;
     font-weight: 800;
     font-family: var(--font-mono);
     color: #34d399;
@@ -61,7 +61,7 @@
   }
 
   .wallet-chip-lbl {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -71,40 +71,40 @@
   /* 3-CARD STAT DECK */
   .portal-stats-deck {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
   }
 
   .portal-stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 18px 20px;
+    border-radius: 10px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
   }
 
   .portal-stat-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .portal-stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+  .portal-stat-icon svg { width: 18px; height: 18px; fill: currentColor; }
 
   /* RECHARGE POS CARD */
   .pos-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
   }
 
   .pos-header {
-    padding: 18px 24px;
+    padding: 10px 16px;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
@@ -216,21 +216,21 @@
   .clean-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
     text-align: left;
   }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 700;
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 12px 18px;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table td {
-    padding: 14px 18px;
+    padding: 5px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     color: var(--text-main);
   }
@@ -313,6 +313,20 @@
       background: #fff !important;
       color: #000 !important;
       padding: 20px;
+    }
+  /* MOBILE RESPONSIVE OPTIMIZATION */
+  @media (max-width: 768px) {
+    .reseller-hero-card {
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    .portal-stats-deck {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .clean-table th, .clean-table td {
+      padding: 5px 6px;
+      font-size: 11px;
     }
   }
 </style>

@@ -8,42 +8,42 @@
   .approvals-grid {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 10px;
   }
 
   /* SUMMARY STATS */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
   }
 
   .stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 18px 20px;
+    border-radius: 10px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     cursor: pointer;
-    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
   }
   .stat-card:hover {
     transform: translateY(-2px);
     border-color: rgba(56, 189, 248, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
   .stat-card.active-app-filter {
     border-color: #38bdf8;
     background: rgba(56, 189, 248, 0.08);
-    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
   }
 
   .stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -53,16 +53,16 @@
   .stat-icon.approved-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
   .stat-icon.prepaid-icon { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
   .stat-icon.postpaid-icon { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-  .stat-icon svg { width: 22px; height: 22px; fill: currentColor; }
+  .stat-icon svg { width: 16px; height: 16px; fill: currentColor; }
 
   .stat-data .num {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 800;
     font-family: var(--font-mono);
     line-height: 1.1;
   }
   .stat-data .lbl {
-    font-size: 11.5px;
+    font-size: 10.5px;
     font-weight: 600;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -73,34 +73,34 @@
   .panel-card {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
   }
 
   .panel-header {
-    padding: 18px 24px;
+    padding: 8px 14px;
     background: var(--bg-card-header);
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
 
   .panel-title {
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 700;
     color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   .badge-count {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 1px 7px;
     border-radius: 9999px;
   }
   .badge-count.orange {
@@ -124,22 +124,22 @@
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 13px;
+    font-size: 12.5px;
   }
 
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 600;
-    padding: 12px 20px;
+    padding: 6px 10px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border-subtle);
   }
 
   .clean-table td {
-    padding: 14px 20px;
+    padding: 5px 10px;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-main);
   }
@@ -443,6 +443,249 @@
   .btn-confirm-approve:hover {
     filter: brightness(1.1);
   }
+
+  /* =========================================================
+     MOBILE RESPONSIVE CARDS FOR APPROVALS PAGE
+     ========================================================= */
+  @media (max-width: 768px) {
+    .stats-row {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
+    }
+
+    /* 1. PENDING TABLE TO MOBILE CARDS */
+    #pendingTable, 
+    #pendingTable thead, 
+    #pendingTable tbody, 
+    #pendingTable th, 
+    #pendingTable td, 
+    #pendingTable tr {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #pendingTable thead {
+      display: none !important;
+    }
+
+    #pendingTable tbody {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+      padding: 2px 0 !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      align-items: center !important;
+      gap: 4px 8px !important;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(24, 34, 60, 0.95) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-left: 3px solid #10b981 !important;
+      border-radius: 10px !important;
+      padding: 8px 12px !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      margin-bottom: 0 !important;
+    }
+
+    #pendingTable tr[id^="req-row-"][style*="239, 68, 68"] {
+      border-left: 3px solid #ef4444 !important;
+      background: linear-gradient(135deg, rgba(35, 15, 20, 0.98) 0%, rgba(24, 18, 30, 0.95) 100%) !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td {
+      border: none !important;
+      padding: 0 !important;
+      font-size: 12px !important;
+      white-space: normal !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td::before {
+      display: none !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-phone {
+      grid-column: 1;
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
+      color: #38bdf8 !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-type {
+      grid-column: 2;
+      justify-self: end;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-mac {
+      grid-column: 1;
+      font-size: 11px !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-time {
+      grid-column: 2;
+      justify-self: end;
+      font-size: 10.5px !important;
+      color: var(--text-dim) !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-device {
+      grid-column: 1 / -1;
+      font-size: 11px !important;
+      color: var(--text-muted) !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-ip {
+      display: none !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-actions {
+      grid-column: 1 / -1;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding-top: 6px !important;
+      margin-top: 2px !important;
+      display: block !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-actions > div {
+      display: flex !important;
+      width: 100% !important;
+      gap: 6px !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-approve {
+      flex: 2 !important;
+      padding: 6px 10px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      border-radius: 7px !important;
+      justify-content: center !important;
+    }
+
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject {
+      flex: 1 !important;
+      padding: 6px 8px !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      border-radius: 7px !important;
+      justify-content: center !important;
+    }
+
+    /* 2. APPROVED DEVICES TABLE TO COMPACT MOBILE CARDS */
+    #approvedDevicesSection table,
+    #approvedDevicesSection thead,
+    #approvedDevicesSection tbody,
+    #approvedDevicesSection th,
+    #approvedDevicesSection td,
+    #approvedDevicesSection tr {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #approvedDevicesSection thead {
+      display: none !important;
+    }
+
+    #approvedDevicesSection tbody {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+      padding: 2px 0 !important;
+    }
+
+    #approvedDevicesSection tr.approved-dev-row {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      align-items: center !important;
+      gap: 3px 8px !important;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(20, 30, 55, 0.95) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.09) !important;
+      border-radius: 10px !important;
+      padding: 8px 12px !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      margin-bottom: 0 !important;
+    }
+
+    #approvedDevicesSection tr.approved-dev-row td {
+      border: none !important;
+      padding: 0 !important;
+      font-size: 12px !important;
+      white-space: normal !important;
+    }
+
+    #approvedDevicesSection tr.approved-dev-row td::before {
+      display: none !important;
+    }
+
+    /* Line 1 Left: Customer Name */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Customer Name"],
+    #approvedDevicesSection tr.approved-dev-row td:first-child {
+      grid-column: 1;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      color: #ffffff !important;
+    }
+
+    /* Line 1 Right: Status / Expiry */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Status / Expiry"] {
+      grid-column: 2;
+      justify-self: end;
+    }
+
+    /* Line 2 Left: Phone & MAC */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="MAC Address"] {
+      grid-column: 1;
+      font-size: 11px !important;
+    }
+
+    /* Line 2 Right: Monthly Fee */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Monthly Fee"] {
+      grid-column: 2;
+      justify-self: end;
+      font-weight: 700 !important;
+      color: #38bdf8 !important;
+    }
+
+    /* Line 3 Left: Package */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Package"] {
+      grid-column: 1;
+      font-size: 11px !important;
+      color: var(--text-dim) !important;
+    }
+
+    /* Redundant tag */
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Billing Type"] {
+      display: none !important;
+    }
+    #approvedDevicesSection tr.approved-dev-row td[data-label="Phone"] {
+      display: none !important;
+    }
+
+    /* Line 4: Action Button */
+    #approvedDevicesSection tr.approved-dev-row td:last-child {
+      grid-column: 1 / -1;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding-top: 5px !important;
+      margin-top: 2px !important;
+      display: block !important;
+    }
+
+    #approvedDevicesSection tr.approved-dev-row td:last-child button {
+      width: 100% !important;
+      padding: 5px 8px !important;
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      border-radius: 6px !important;
+      justify-content: center !important;
+    }
+
+    .modal-box {
+      max-width: 95vw !important;
+      width: 95vw !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -524,9 +767,9 @@
         <tbody id="pendingTableBody">
           {% if pending_requests %}
             {% for req in pending_requests %}
-            <tr id="req-row-{{ req.id }}" {% if req.is_random_mac %}style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"{% endif %}>
-              <td class="font-mono text-white" style="font-weight:700;">{{ req.phone }}</td>
-              <td class="font-mono">
+            <tr id="req-row-{{ req.id }}" class="req-table-row" {% if req.is_random_mac %}style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"{% endif %}>
+              <td data-label="Phone Number" class="font-mono text-white td-phone" style="font-weight:700;">{{ req.phone }}</td>
+              <td data-label="Device MAC" class="font-mono td-mac">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span class="text-cyan" style="font-weight:700;">{{ req.mac_address }}</span>
                   {% if req.is_random_mac %}
@@ -540,8 +783,8 @@
                   {% endif %}
                 </div>
               </td>
-              <td class="font-mono text-dim">{{ req.ip_address or '—' }}</td>
-              <td>
+              <td data-label="IP Address" class="font-mono text-dim td-ip">{{ req.ip_address or '—' }}</td>
+              <td data-label="Type" class="td-type">
                 {% if req.is_secondary %}
                   <div style="display:flex; flex-direction:column; gap:3px;">
                     <span class="tag-device-type secondary" title="Existing customer: {{ req.existing_customer_name }}">
@@ -559,11 +802,11 @@
                   <span class="tag-device-type new">New Customer</span>
                 {% endif %}
               </td>
-              <td class="text-dim" style="font-size:12px; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              <td data-label="Device Info" class="text-dim td-device" style="font-size:12px; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                 {{ req.device_model or 'Mobile Client' }}
               </td>
-              <td class="font-mono text-dim" style="font-size:12px;">{{ req.created_at }}</td>
-              <td style="text-align:right;">
+              <td data-label="Requested At" class="font-mono text-dim td-time" style="font-size:12px;">{{ req.created_at }}</td>
+              <td data-label="Actions" class="td-actions" style="text-align:right;">
                 <div style="display:inline-flex; gap:8px;">
                   {% if req.is_random_mac %}
                     <button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
@@ -631,9 +874,9 @@
           {% if approved_devices %}
             {% for dev in approved_devices %}
             <tr class="approved-dev-row" data-billing="{{ dev.billing_type }}">
-              <td style="font-weight:700; color:#ffffff;">{{ dev.customer_name }}</td>
-              <td class="font-mono text-dim">{{ dev.phone }}</td>
-              <td class="font-mono">
+              <td data-label="Customer Name" style="font-weight:700; color:#ffffff;">{{ dev.customer_name }}</td>
+              <td data-label="Phone" class="font-mono text-dim">{{ dev.phone }}</td>
+              <td data-label="MAC Address" class="font-mono">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span class="text-cyan">{{ dev.mac_address }}</span>
                   {% if dev.is_random_mac %}
@@ -647,23 +890,23 @@
                   {% endif %}
                 </div>
               </td>
-              <td>
+              <td data-label="Billing Type">
                 {% if dev.billing_type == 'prepaid' %}
                   <span class="tag-device-type" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3);">PREPAID</span>
                 {% else %}
                   <span class="tag-device-type" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">POSTPAID</span>
                 {% endif %}
               </td>
-              <td>{{ dev.package_name }}</td>
-              <td class="font-mono text-white">{{ dev.monthly_fee }} SAR</td>
-              <td>
+              <td data-label="Package">{{ dev.package_name }}</td>
+              <td data-label="Monthly Fee" class="font-mono text-white">{{ dev.monthly_fee }} SAR</td>
+              <td data-label="Status / Expiry">
                 {% if dev.billing_type == 'prepaid' %}
                   <span class="font-mono text-dim" style="font-size:11.5px;">Exp: {{ dev.expiry_date or '30 days' }}</span>
                 {% else %}
                   <span class="badge-status running">ACTIVE</span>
                 {% endif %}
               </td>
-              <td style="text-align:right;">
+              <td data-label="Actions" style="text-align:right;">
                 <button type="button" class="btn-reject" onclick="revokeDevice('{{ dev.mac_address }}')" title="Revoke MikroTik access">
                   Revoke
                 </button>

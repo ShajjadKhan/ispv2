@@ -1020,7 +1020,11 @@
                 <td>
                   <div style="display:flex; flex-direction:column; gap:2px;">
                     <span class="font-mono text-white" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
-                    {% if c.days_remaining is not none %}
+                    {% if c.is_grace_held or c.suspension_held_until %}
+                      <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                        🤝 Grace: {{ c.suspension_held_until }}
+                      </span>
+                    {% elif c.days_remaining is not none %}
                       {% if c.days_remaining < 0 %}
                         <span class="badge-status disabled" style="font-size:10px; width:fit-content;">EXPIRED</span>
                       {% elif c.days_remaining <= 3 %}
@@ -1089,6 +1093,11 @@
                     <button type="button" class="btn-action-sm" onclick="openProfileModal({{ c.id }})">
                       <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                       <span>Manage</span>
+                    </button>
+
+                    <button type="button" class="btn-action-sm btn-extend-grace" onclick="openPromiseModal({{ c.id }}, '{{ c.name|escape }}', {{ c.monthly_fee or 30 }})" title="Extend Suspension (Grace Hold &amp; Daily Debt)" style="color:#fbbf24; background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.3);">
+                      <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                      <span>Extend</span>
                     </button>
                     
                     {% if c.status == 'active' %}
@@ -1182,7 +1191,11 @@
             <div class="mobile-grid-item">
               <span class="m-lbl">Due / Expiry Date</span>
               <span class="m-val font-mono" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
-              {% if c.days_remaining is not none %}
+              {% if c.is_grace_held or c.suspension_held_until %}
+                <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700; width:fit-content; margin-top:2px;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                  🤝 Grace: {{ c.suspension_held_until }}
+                </span>
+              {% elif c.days_remaining is not none %}
                 {% if c.days_remaining < 0 %}
                   <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; margin-top:2px;">EXPIRED</span>
                 {% elif c.days_remaining <= 3 %}
@@ -1242,12 +1255,16 @@
               <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
               <span>Manage</span>
             </button>
+            <button type="button" class="btn-action-sm btn-m-manage" onclick="openPromiseModal({{ c.id }}, '{{ c.name|escape }}', {{ c.monthly_fee or 30 }})" style="color:#fbbf24 !important; background:rgba(245,158,11,0.12) !important; border-color:rgba(245,158,11,0.3) !important;" title="Extend Grace / Promise">
+              <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              <span>Extend</span>
+            </button>
             {% if c.status == 'active' %}
-              <button type="button" class="btn-action-sm btn-toggle-suspend btn-m-toggle" onclick="toggleStatus({{ c.id }})">
+              <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="toggleStatus({{ c.id }})" style="padding:8px 6px !important; font-size:11.5px !important; font-weight:700;">
                 Suspend
               </button>
             {% else %}
-              <button type="button" class="btn-action-sm btn-toggle-activate btn-m-toggle" onclick="toggleStatus({{ c.id }})">
+              <button type="button" class="btn-action-sm btn-toggle-activate" onclick="toggleStatus({{ c.id }})" style="padding:8px 6px !important; font-size:11.5px !important; font-weight:700;">
                 Activate
               </button>
             {% endif %}
@@ -1829,6 +1846,122 @@
     </form>
   </div>
 </div>
+
+<!-- =========================================================
+     SUSPENSION GRACE HOLD / PROMISE MODAL
+     ========================================================= -->
+<div class="modal-overlay" id="promiseModal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:36px; height:36px; border-radius:10px; background:rgba(245,158,11,0.18); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        </div>
+        <div>
+          <h3 style="margin:0; font-size:16.5px; color:#ffffff;">Extend Suspension (Grace Hold)</h3>
+          <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-dim);">Hold MikroTik cut-off while daily debt continues accruing</p>
+        </div>
+      </div>
+      <button type="button" class="btn-close-modal" onclick="closePromiseModal()">&times;</button>
+    </div>
+
+    <form id="promiseForm" onsubmit="submitPromise(event)">
+      <input type="hidden" id="promiseCustId">
+      <input type="hidden" id="promiseCustFee" value="30">
+      <input type="hidden" id="promiseDailyRate" value="1.0">
+
+      <div class="modal-body-scroll" style="padding:16px 20px; display:flex; flex-direction:column; gap:14px;">
+        
+        <!-- Active Promise Alert -->
+        <div id="promiseActiveAlert" style="display:none; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:10px; padding:12px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div>
+              <strong style="color:#fbbf24; display:block; margin-bottom:2px;">🤝 Current Suspension Hold Active</strong>
+              <span id="promiseActiveAlertText" style="color:#fde68a;">Protected until 2026-10-20</span>
+            </div>
+            <button type="button" class="btn-action-sm" onclick="cancelCurrentPromise()" style="background:rgba(239,68,68,0.15); color:#f87171; border-color:rgba(239,68,68,0.3); font-size:11px; padding:3px 8px; white-space:nowrap;">
+              Cancel Hold
+            </button>
+          </div>
+        </div>
+
+        <!-- Customer Summary Header -->
+        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="font-size:14px; font-weight:800; color:#ffffff;" id="promiseCustName">—</div>
+            <div style="font-size:11.5px; color:var(--text-dim); font-family:var(--font-mono);" id="promiseCustPhone">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Rate Per Day</div>
+            <div style="font-size:14px; font-weight:800; color:#38bdf8; font-family:var(--font-mono);" id="promiseDailyRateText">1.00 SAR/d</div>
+          </div>
+        </div>
+
+        <!-- Extension Presets & Input -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
+            Extension Days / Grace Period
+          </label>
+          <div class="preset-wrap" style="display:flex; gap:8px; align-items:center;">
+            <input type="number" min="1" max="90" class="form-input font-mono" id="promiseDaysInput" value="20" style="font-size:15px; font-weight:800; color:#fbbf24; width:100px; padding:8px 12px;" oninput="onPromiseDaysChanged()">
+            <div style="display:flex; gap:5px; flex-wrap:wrap; flex:1;">
+              <button type="button" class="btn-preset" onclick="setPromiseDays(7)">+7d</button>
+              <button type="button" class="btn-preset" onclick="setPromiseDays(15)">+15d</button>
+              <button type="button" class="btn-preset active" id="btnPreset20" onclick="setPromiseDays(20)">+20d</button>
+              <button type="button" class="btn-preset" onclick="setPromiseDays(30)">+30d</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Date Picker -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
+            Target Promise / Due Date
+          </label>
+          <input type="date" class="form-input font-mono" id="promiseDatePicker" style="font-size:13px; color:#ffffff; padding:8px 12px;" onchange="onPromiseDateChanged()">
+        </div>
+
+        <!-- Live Accrual Preview Card -->
+        <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:12px 14px;">
+          <div style="font-size:10.5px; font-weight:700; color:#38bdf8; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            <span>Live Accrued Debt Preview</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px;">
+            <div>
+              <span style="color:var(--text-dim); display:block; font-size:10.5px;">Past Due Balance:</span>
+              <strong class="font-mono text-white" id="previewPastDue">30.00 SAR</strong>
+            </div>
+            <div>
+              <span style="color:var(--text-dim); display:block; font-size:10.5px;">Grace Accrual:</span>
+              <strong class="font-mono" style="color:#fbbf24;" id="previewGraceAccrual">+20.00 SAR</strong>
+            </div>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:8px; padding-top:8px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:12px; font-weight:700; color:#ffffff;">Total Due on Promise Date:</span>
+            <span class="font-mono" style="font-size:17px; font-weight:900; color:#34d399;" id="previewTotalDue">50.00 SAR</span>
+          </div>
+        </div>
+
+        <!-- Optional Reason Note -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
+            Promise Note / Reason (Optional)
+          </label>
+          <input type="text" class="form-input" id="promiseNoteInput" placeholder="e.g. Customer promised to pay on the 20th" style="font-size:12.5px; padding:8px 12px;">
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="btn-cancel" onclick="closePromiseModal()">Cancel</button>
+        <button type="submit" class="btn-approve" id="btnPromiseSubmit" style="background:#f59e0b; color:#000000; font-weight:800; border:none; padding:8px 18px; box-shadow:0 4px 14px rgba(245,158,11,0.35);">
+          <span>🤝 Save Suspension Hold</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -2008,8 +2141,386 @@
       }
     });
 
+    if (tabKey === 'billing' && activeCustomerId) {
+      loadBillingBreakdown(activeCustomerId);
+    }
     if (tabKey === 'usage' && activeCustomerId) {
       loadCustomerUsage(activeCustomerId);
+    }
+  }
+
+  // =========================================================
+  // SUSPENSION GRACE HOLD (PROMISE) CONTROLLER
+  // =========================================================
+  function openPromiseModal(custId, custName, monthlyFee) {
+    document.getElementById('promiseCustId').value = custId;
+    document.getElementById('promiseCustName').textContent = custName || `Customer #${custId}`;
+    const fee = Math.max(1, parseFloat(monthlyFee) || 30.0);
+    document.getElementById('promiseCustFee').value = fee;
+    const dailyRate = fee / 30.0;
+    document.getElementById('promiseDailyRate').value = dailyRate.toFixed(4);
+    document.getElementById('promiseDailyRateText').textContent = dailyRate.toFixed(2) + ' SAR/d';
+
+    // Default to +20 days (as per requirements)
+    setPromiseDays(20);
+
+    // Fetch customer to see if already has active promise and phone
+    fetch(`/api/customers/${custId}/billing-breakdown`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.breakdown) {
+          const b = d.breakdown;
+          document.getElementById('promiseCustPhone').textContent = b.phone || '—';
+          document.getElementById('previewPastDue').textContent = b.total_due.toFixed(2) + ' SAR';
+
+          const alertBox = document.getElementById('promiseActiveAlert');
+          if (b.has_active_promise && b.promise) {
+            alertBox.style.display = 'block';
+            document.getElementById('promiseActiveAlertText').textContent = `Hold active until ${b.promise.promise_date} (${b.promise.days_remaining}d left). ${b.promise.note ? `Note: "${b.promise.note}"` : ''}`;
+          } else {
+            alertBox.style.display = 'none';
+          }
+          calculatePromiseDebt();
+        }
+      })
+      .catch(() => calculatePromiseDebt());
+
+    document.getElementById('promiseModal').classList.add('open');
+  }
+
+  function closePromiseModal() {
+    document.getElementById('promiseModal').classList.remove('open');
+  }
+
+  function setPromiseDays(days) {
+    document.getElementById('promiseDaysInput').value = days;
+    const d = new Date();
+    d.setDate(d.getDate() + parseInt(days));
+    document.getElementById('promiseDatePicker').value = d.toISOString().split('T')[0];
+    calculatePromiseDebt();
+  }
+
+  function onPromiseDaysChanged() {
+    const days = parseInt(document.getElementById('promiseDaysInput').value) || 1;
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    document.getElementById('promiseDatePicker').value = d.toISOString().split('T')[0];
+    calculatePromiseDebt();
+  }
+
+  function onPromiseDateChanged() {
+    const val = document.getElementById('promiseDatePicker').value;
+    if (!val) return;
+    const target = new Date(val);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = target - today;
+    const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    document.getElementById('promiseDaysInput').value = diffDays;
+    calculatePromiseDebt();
+  }
+
+  function calculatePromiseDebt() {
+    const days = parseInt(document.getElementById('promiseDaysInput').value) || 0;
+    const dailyRate = parseFloat(document.getElementById('promiseDailyRate').value) || 1.0;
+    const pastDueText = document.getElementById('previewPastDue').textContent.replace(/[^\d.]/g, '');
+    const pastDue = parseFloat(pastDueText) || 0.0;
+
+    const graceAccrual = days * dailyRate;
+    document.getElementById('previewGraceAccrual').textContent = '+' + graceAccrual.toFixed(2) + ' SAR';
+    const totalDue = pastDue + graceAccrual;
+    document.getElementById('previewTotalDue').textContent = totalDue.toFixed(2) + ' SAR';
+  }
+
+  async function submitPromise(e) {
+    e.preventDefault();
+    const custId = document.getElementById('promiseCustId').value;
+    const days = parseInt(document.getElementById('promiseDaysInput').value) || 20;
+    const promiseDate = document.getElementById('promiseDatePicker').value;
+    const note = document.getElementById('promiseNoteInput').value;
+
+    const btn = document.getElementById('btnPromiseSubmit');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Hold...';
+
+    try {
+      const resp = await fetch(`/api/customers/${custId}/promise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: days, promise_date: promiseDate, note: note })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        cyberToast(res.message || 'Suspension hold active!');
+        closePromiseModal();
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        cyberToast('Failed: ' + (res.message || res.error));
+        btn.disabled = false;
+        btn.innerHTML = '<span>🤝 Save Suspension Hold</span>';
+      }
+    } catch (err) {
+      cyberToast('Error: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>🤝 Save Suspension Hold</span>';
+    }
+  }
+
+  async function cancelCurrentPromise(custId = null) {
+    const cid = custId || document.getElementById('promiseCustId').value || activeCustomerId;
+    if (!cid) return;
+    const confirmed = await cyberConfirm('Are you sure you want to cancel the suspension hold? Customer will revert to normal due status.', { title: 'Cancel Suspension Hold', danger: true });
+    if (!confirmed) return;
+
+    try {
+      const resp = await fetch(`/api/customers/${cid}/promise/cancel`, { method: 'POST' });
+      const res = await resp.json();
+      if (res.success) {
+        cyberToast('Suspension hold cancelled.');
+        closePromiseModal();
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        cyberToast('Cancel failed: ' + (res.message || res.error));
+      }
+    } catch (err) {
+      cyberToast('Error: ' + err.message);
+    }
+  }
+
+  // =========================================================
+  // MONTH-BY-MONTH CYCLE SETTLEMENT & WAIVER ENGINE
+  // =========================================================
+  async function loadBillingBreakdown(custId) {
+    const eligBox = document.getElementById('billingEligibilityContainer');
+    if (!eligBox) return;
+    eligBox.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim);"><i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i> Loading billing cycles &amp; accruals...</div>';
+
+    try {
+      const resp = await fetch(`/api/customers/${custId}/billing-breakdown`);
+      const data = await resp.json();
+      if (!data.success) {
+        eligBox.innerHTML = `<div class="alert alert-danger">Failed to load billing breakdown: ${data.message}</div>`;
+        return;
+      }
+
+      const b = data.breakdown;
+      const unpaid = b.unpaid_cycles || [];
+      const hasGrace = b.has_active_promise;
+      const promise = b.promise;
+
+      let html = '';
+
+      // 1. Active Grace Hold Banner
+      if (hasGrace && promise) {
+        html += `
+          <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.4); border-radius:12px; padding:14px 16px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" style="background:#f59e0b; color:#000000; font-weight:800; font-size:11px; padding:2px 8px; border-radius:5px;">
+                    🤝 ACTIVE SUSPENSION HOLD
+                  </span>
+                  <span class="font-mono text-white" style="font-size:13px; font-weight:700;">Until ${promise.promise_date} (${promise.days_remaining}d left)</span>
+                </div>
+                <div style="margin-top:6px; font-size:12px; color:#fde68a;">
+                  ${promise.note ? `Note: "${promise.note}" • ` : ''}Daily debt accrual running at <strong>${promise.accrued_daily_rate.toFixed(2)} SAR/day</strong>.
+                </div>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn-action-sm" onclick="openPromiseModal(${custId}, '${b.customer_name}', ${b.monthly_fee})" style="background:rgba(245,158,11,0.2); color:#fbbf24; border-color:rgba(245,158,11,0.4); font-size:11px; padding:4px 10px;">
+                  Update Hold
+                </button>
+                <button type="button" class="btn-action-sm" onclick="cancelCurrentPromise(${custId})" style="background:rgba(239,68,68,0.15); color:#f87171; border-color:rgba(239,68,68,0.3); font-size:11px; padding:4px 10px;">
+                  Cancel Hold
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. Month-by-Month Cycle Settlement Table
+      html += `
+        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;">
+          <div style="padding:12px 14px; background:#0d1527; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:12.5px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:6px;">
+              <svg style="width:15px; height:15px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              <span>Cycle Settlement &amp; Waiver Breakdown</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="btn-action-sm" onclick="openPromiseModal(${custId}, '${b.customer_name}', ${b.monthly_fee})" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3); font-size:11px; padding:4px 10px;">
+                🤝 Extend Grace Period
+              </button>
+            </div>
+          </div>
+      `;
+
+      if (unpaid.length === 0) {
+        html += `
+          <div style="padding:24px; text-align:center;">
+            <div style="color:#34d399; font-size:14px; font-weight:800; margin-bottom:4px;">✅ All Billing Cycles Settled!</div>
+            <div style="color:var(--text-dim); font-size:12px;">This customer has zero outstanding past dues. Service is active.</div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead style="background:#090e1a; color:var(--text-dim); border-bottom:1px solid rgba(255,255,255,0.06);">
+                <tr>
+                  <th style="padding:8px 12px; width:75px; text-align:center;">✓ Settle</th>
+                  <th style="padding:8px 12px;">Cycle Period</th>
+                  <th style="padding:8px 12px;">Expected Fee</th>
+                  <th style="padding:8px 12px;">Paid</th>
+                  <th style="padding:8px 12px;">Due</th>
+                  <th style="padding:8px 12px; width:140px;">Amount to Collect</th>
+                </tr>
+              </thead>
+              <tbody id="settlementTbody">
+        `;
+
+        unpaid.forEach((u, idx) => {
+          const isGrace = u.is_grace;
+          const cycleLabel = isGrace ? `${u.label} <span class="badge" style="background:#f59e0b; color:#000; font-size:9.5px; padding:1px 5px; border-radius:4px; font-weight:700;">Grace (${u.grace_days}d)</span>` : u.label;
+          html += `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:8px 12px; text-align:center;">
+                <input type="checkbox" class="settle-cb" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" checked onchange="updateSettlementTotals()" title="Check to mark this month settled (solves cycle, waives remainder)">
+              </td>
+              <td style="padding:8px 12px; font-weight:700; color:#ffffff;">
+                ${cycleLabel}
+              </td>
+              <td style="padding:8px 12px; font-family:var(--font-mono); color:var(--text-dim);">
+                ${u.expected_fee.toFixed(2)} SAR
+              </td>
+              <td style="padding:8px 12px; font-family:var(--font-mono); color:#94a3b8;">
+                ${u.paid.toFixed(2)} SAR
+              </td>
+              <td style="padding:8px 12px; font-family:var(--font-mono);">
+                <span class="badge-status stopped" style="font-size:11px; font-weight:700;">${u.rem_due.toFixed(2)} SAR</span>
+              </td>
+              <td style="padding:8px 12px;">
+                <input type="number" step="0.5" min="0" class="form-input font-mono settle-amt-input" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" value="${u.rem_due.toFixed(2)}" style="padding:6px 10px; font-size:12.5px; width:110px; font-weight:700; color:#38bdf8;" oninput="updateSettlementTotals()">
+              </td>
+            </tr>
+          `;
+        });
+
+        html += `
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:12px 16px; background:#0d1527; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
+              <div>
+                <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; display:block;">Total to Collect:</span>
+                <strong class="font-mono text-emerald" style="font-size:18px;" id="settleTotalAmt">0.00 SAR</strong>
+              </div>
+              <div id="settleWaivedWrap" style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
+                <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; display:block;">Waived Discount:</span>
+                <strong class="font-mono" style="font-size:16px; color:#fbbf24;" id="settleWaivedAmt">0.00 SAR</strong>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="btn-approve" onclick="submitCycleSettlement()" id="btnSubmitSettlement" style="padding:9px 18px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow:0 4px 14px rgba(16,185,129,0.35);">
+                ✓ Record Settlement &amp; Solve Month(s)
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+      eligBox.innerHTML = html;
+      updateSettlementTotals();
+
+    } catch (e) {
+      eligBox.innerHTML = `<div class="alert alert-danger">Error fetching billing breakdown: ${e.message}</div>`;
+    }
+  }
+
+  function updateSettlementTotals() {
+    let totalCollect = 0.0;
+    let totalWaived = 0.0;
+
+    const rows = document.querySelectorAll('#settlementTbody tr');
+    rows.forEach(r => {
+      const cb = r.querySelector('.settle-cb');
+      const inp = r.querySelector('.settle-amt-input');
+      if (!inp) return;
+      const amtVal = Math.max(0, parseFloat(inp.value) || 0.0);
+      const expected = parseFloat(inp.getAttribute('data-expected') || 0.0);
+      const paid = parseFloat(inp.getAttribute('data-paid') || 0.0);
+      const isChecked = cb ? cb.checked : true;
+
+      totalCollect += amtVal;
+
+      if (isChecked) {
+        // If checked, remainder is waived!
+        const rem = Math.max(0, expected - (paid + amtVal));
+        totalWaived += rem;
+      }
+    });
+
+    const totEl = document.getElementById('settleTotalAmt');
+    if (totEl) totEl.textContent = totalCollect.toFixed(2) + ' SAR';
+    const waivEl = document.getElementById('settleWaivedAmt');
+    if (waivEl) waivEl.textContent = totalWaived.toFixed(2) + ' SAR';
+  }
+
+  async function submitCycleSettlement() {
+    if (!activeCustomerId) return;
+    const items = [];
+    const rows = document.querySelectorAll('#settlementTbody tr');
+    rows.forEach(r => {
+      const cb = r.querySelector('.settle-cb');
+      const inp = r.querySelector('.settle-amt-input');
+      if (!inp) return;
+      const month = inp.getAttribute('data-month');
+      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
+      const shouldSettle = cb ? cb.checked : true;
+      items.push({
+        month: month,
+        amount: amt,
+        settle: shouldSettle
+      });
+    });
+
+    if (items.length === 0) {
+      cyberToast('No cycles to settle.');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmitSettlement');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+    }
+
+    try {
+      const resp = await fetch(`/api/customers/${activeCustomerId}/settle-cycles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: items, notes: 'Month Settlement & Waiver', send_whatsapp: true })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        cyberToast(res.message || 'Settlement recorded successfully!');
+        await loadBillingBreakdown(activeCustomerId);
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        cyberToast('Settlement failed: ' + (res.message || res.error));
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '✓ Record Settlement &amp; Solve Month(s)';
+        }
+      }
+    } catch (e) {
+      cyberToast('Error: ' + e.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '✓ Record Settlement &amp; Solve Month(s)';
+      }
     }
   }
 
@@ -2049,7 +2560,11 @@
       document.getElementById('profBillingType').innerHTML = btypeBadge;
       document.getElementById('profSpeedLimit').textContent = c.effective_speed || 'Unlimited';
       document.getElementById('profMonthlyFee').textContent = parseFloat(c.monthly_fee).toFixed(2) + ' SAR';
-      document.getElementById('profDueDate').textContent = c.due_date || c.expiry_date || '—';
+      if (c.suspension_held_until) {
+        document.getElementById('profDueDate').innerHTML = `${c.due_date || c.expiry_date || '—'} <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:1px 5px; border-radius:4px; font-weight:700; margin-left:4px;">🤝 Grace: ${c.suspension_held_until}</span>`;
+      } else {
+        document.getElementById('profDueDate').textContent = c.due_date || c.expiry_date || '—';
+      }
       const mDev = c.max_devices || 1;
       document.getElementById('profMaxDevices').textContent = mDev + ' Device' + (mDev !== 1 ? 's' : '');
 
@@ -2071,118 +2586,10 @@
 
       const fee = parseFloat(c.monthly_fee || 0.0);
       const credit = parseFloat(c.credit_balance || 0.0);
-      const isDue = Boolean(c.is_due);
-      const isDueSoon = Boolean(c.is_due_soon);
-      const isSuspended = (c.status === 'suspended');
-      const daysRem = c.days_remaining;
 
-      // 1. Render Dynamic Billing & Eligibility Status Card
-      const eligBox = document.getElementById('billingEligibilityContainer');
-      if (eligBox) {
-        if (isDue || isDueSoon || isSuspended) {
-          // ELIGIBLE FOR COLLECTION
-          let dueTitle = '⚠️ PAYMENT DUE / ELIGIBLE FOR COLLECTION';
-          let badgeBg = 'rgba(239,68,68,0.2)';
-          let badgeColor = '#f87171';
-          let badgeBorder = 'rgba(239,68,68,0.4)';
+      // 1. Render Dynamic Billing & Month-by-Month Settlement Breakdown
+      loadBillingBreakdown(custId);
 
-          if (isSuspended) {
-            dueTitle = '⛔ SERVICE SUSPENDED — PAYMENT REQUIRED';
-          } else if (daysRem !== null && daysRem < 0) {
-            dueTitle = `⚠️ OVERDUE BY ${Math.abs(daysRem)} DAY${Math.abs(daysRem) > 1 ? 'S' : ''}`;
-          } else if (daysRem === 0) {
-            dueTitle = '⚠️ BILL DUE TODAY';
-          } else if (isDueSoon) {
-            dueTitle = `⏰ BILL DUE IN ${daysRem} DAY${daysRem > 1 ? 'S' : ''}`;
-            badgeBg = 'rgba(234,179,8,0.2)';
-            badgeColor = '#facc15';
-            badgeBorder = 'rgba(234,179,8,0.4)';
-          }
-
-          let creditNotice = '';
-          let btnHtml = '';
-          if (credit > 0) {
-            if (credit >= fee && fee > 0) {
-              creditNotice = `<div style="font-size:12px; color:#34d399; margin-top:4px;">💡 Customer has <strong>${credit.toFixed(2)} SAR</strong> in Credit Wallet (covers full cycle).</div>`;
-              btnHtml = `
-                <button type="button" class="btn-approve" onclick="quickSettleDueFromCredit()" style="background:#059669; padding:10px 18px; font-size:13px; font-weight:800; justify-content:center; box-shadow:0 4px 15px rgba(5,150,105,0.35);">
-                  ⚡ Settle Bill from Credit (-${fee.toFixed(2)} SAR)
-                </button>
-              `;
-            } else {
-              const netCash = fee - credit;
-              creditNotice = `<div style="font-size:12px; color:#38bdf8; margin-top:4px;">💳 Wallet Credit available: <strong>${credit.toFixed(2)} SAR</strong>. Net cash required: <strong>${netCash.toFixed(2)} SAR</strong>.</div>`;
-              btnHtml = `
-                <button type="button" class="btn-approve" onclick="quickCollectDueBill(${netCash})" style="background:#ef4444; border-color:#dc2626; padding:10px 18px; font-size:13px; font-weight:800; justify-content:center; box-shadow:0 4px 15px rgba(239,68,68,0.35);">
-                  ⚡ Collect Net ${netCash.toFixed(2)} SAR (+ Apply Credit)
-                </button>
-              `;
-            }
-          } else {
-            btnHtml = `
-              <button type="button" class="btn-approve" onclick="quickCollectDueBill(${fee})" style="background:#ef4444; border-color:#dc2626; padding:10px 18px; font-size:13px; font-weight:800; justify-content:center; box-shadow:0 4px 15px rgba(239,68,68,0.35);">
-                ⚡ Collect Due Bill (${fee.toFixed(2)} SAR)
-              </button>
-            `;
-          }
-
-          eligBox.innerHTML = `
-            <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.35); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
-                <div>
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="badge" style="background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeBorder}; font-size:11px; font-weight:800; padding:3px 10px; border-radius:6px;">
-                      ${dueTitle}
-                    </span>
-                  </div>
-                  <div style="margin-top:8px; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
-                    <div>
-                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; display:block;">Amount Due</span>
-                      <span style="font-size:24px; font-weight:800; color:#f87171; font-family:var(--font-mono);">${fee.toFixed(2)} SAR</span>
-                    </div>
-                    <div style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
-                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; display:block;">Payment Due Date</span>
-                      <span class="font-mono text-white" style="font-size:14px; font-weight:700;">${c.due_date || c.expiry_date || '—'}</span>
-                    </div>
-                    <div style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
-                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; display:block;">Assigned Plan</span>
-                      <span style="font-size:13px; color:#cbd5e1; font-weight:600;">${c.package_name || 'Standard'}</span>
-                    </div>
-                  </div>
-                  ${creditNotice}
-                </div>
-
-                <div style="display:flex; flex-direction:column; gap:6px; min-width:220px;">
-                  ${btnHtml}
-                  <div style="font-size:10.5px; color:var(--text-dim); text-align:center;">1-click renewal (+30 days) &amp; ledger entry</div>
-                </div>
-              </div>
-            </div>
-          `;
-        } else {
-          // NOT ELIGIBLE / ALL DUES SETTLED
-          eligBox.innerHTML = `
-            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:14px; padding:16px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                <div>
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="badge" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); font-size:11px; font-weight:800; padding:3px 10px; border-radius:6px;">
-                      ✅ ALL BILLS SETTLED / ACTIVE
-                    </span>
-                  </div>
-                  <div style="margin-top:6px; font-size:13px; color:#e2e8f0;">
-                    Current cycle is fully paid. Service is active until <strong class="font-mono text-emerald" style="font-size:14px;">${c.due_date || c.expiry_date || '—'}</strong> (${daysRem !== null ? daysRem : '—'} days remaining).
-                  </div>
-                </div>
-                <div style="text-align:right;">
-                  <div style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase;">Monthly Rate</div>
-                  <div class="font-mono" style="font-weight:800; color:#34d399; font-size:17px;">${fee.toFixed(2)} SAR</div>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-      }
 
       // 2. Customer Credit Wallet Box
       const creditBox = document.getElementById('creditWalletApplyBox');

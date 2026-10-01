@@ -11,22 +11,22 @@
   .wa-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding-bottom: 40px;
+    gap: 10px;
+    padding-bottom: 20px;
   }
 
   /* GATEWAY & SAFETY CARD */
   .wa-hero-card {
     background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(13, 31, 26, 0.95) 100%);
     border: 1px solid rgba(37, 211, 102, 0.25);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
   }
 
   .wa-hero-card::before {
@@ -42,13 +42,13 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 10px;
   }
 
   .wa-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     background: rgba(37, 211, 102, 0.15);
     border: 1px solid rgba(37, 211, 102, 0.3);
     display: flex;
@@ -56,14 +56,14 @@
     justify-content: center;
     color: #25d366;
   }
-  .wa-avatar svg { width: 28px; height: 28px; fill: currentColor; }
+  .wa-avatar svg { width: 20px; height: 20px; fill: currentColor; }
 
   /* TELEMETRY ROW */
   .telemetry-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    padding-top: 14px;
+    gap: 8px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
   @media (max-width: 900px) {
@@ -73,10 +73,10 @@
   .tele-box {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
   }
   .tele-box .label {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -84,7 +84,7 @@
   }
   .tele-box .value {
     font-family: var(--font-mono);
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     color: #ffffff;
   }
@@ -93,13 +93,13 @@
   .night-shield-card {
     background: rgba(15, 23, 42, 0.8);
     border: 1px solid rgba(245, 158, 11, 0.35);
-    border-radius: 12px;
-    padding: 14px 18px;
+    border-radius: 10px;
+    padding: 8px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
   .night-shield-card.daytime {
     border-color: rgba(37, 211, 102, 0.3);
@@ -109,7 +109,7 @@
   .composer-grid {
     display: grid;
     grid-template-columns: 1.25fr 0.95fr;
-    gap: 20px;
+    gap: 10px;
   }
   @media (max-width: 1050px) {
     .composer-grid { grid-template-columns: 1fr; }
@@ -292,20 +292,20 @@
   .clean-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
     text-align: left;
   }
   .clean-table th {
     background: rgba(255, 255, 255, 0.02);
     color: var(--text-dim);
     font-weight: 600;
-    padding: 12px 18px;
+    padding: 6px 10px;
     text-transform: uppercase;
-    font-size: 11px;
+    font-size: 10.5px;
     letter-spacing: 0.05em;
   }
   .clean-table td {
-    padding: 14px 18px;
+    padding: 5px 10px;
     border-bottom: 1px solid var(--border-subtle);
   }
   .clean-table tr:last-child td { border-bottom: none; }
@@ -380,6 +380,21 @@
     flex-direction: column;
     gap: 14px;
     overflow-y: auto;
+  }
+
+  /* MOBILE RESPONSIVE OPTIMIZATION */
+  @media (max-width: 768px) {
+    .wa-hero-card {
+      padding: 10px 12px;
+    }
+    .telemetry-row {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .clean-table th, .clean-table td {
+      padding: 5px 6px;
+      font-size: 11px;
+    }
   }
 </style>
 {% endblock %}
