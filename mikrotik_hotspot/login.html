@@ -412,40 +412,6 @@
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35) !important;
     }
 
-    /* Bilingual Language Switcher Header */
-    .lang-switch-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-    .lang-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 9999px;
-      color: #cbd5e1;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 14px;
-      min-height: 36px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .lang-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-    .lang-btn.active {
-      background: rgba(59, 130, 246, 0.2);
-      border-color: #3b82f6;
-      color: #60a5fa;
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-    }
-
     /* Responsive Navigation Tabs (2x2 on <=380px) */
     .portal-nav-grid {
       display: flex;
@@ -520,31 +486,6 @@
       }
     }
 
-    /* RTL Arabic Layout Overrides */
-    [dir="rtl"] {
-      text-align: right;
-    }
-    [dir="rtl"] .form-group {
-      text-align: right;
-    }
-    [dir="rtl"] .form-input {
-      padding: 12px 42px 12px 14px;
-    }
-    [dir="rtl"] .input-icon {
-      left: auto;
-      right: 14px;
-    }
-    [dir="rtl"] .random-mac-box,
-    [dir="rtl"] .perks-card,
-    [dir="rtl"] .alert-banner,
-    [dir="rtl"] #lookupResultCard {
-      text-align: right;
-    }
-    [dir="rtl"] .mac-guide-body ol {
-      margin-left: 0;
-      margin-right: 18px;
-    }
-
     .d-none { display: none !important; }
   </style>
 </head>
@@ -552,12 +493,6 @@
 
 <div class="portal-card">
   
-  <!-- Bilingual Language Switcher -->
-  <div class="lang-switch-bar">
-    <button type="button" id="langBtnEn" class="lang-btn active" onclick="setPortalLang('en')">🇬🇧 English</button>
-    <button type="button" id="langBtnAr" class="lang-btn" onclick="setPortalLang('ar')">🇸🇦 العربية</button>
-  </div>
-
   <!-- WiFi Brand Header -->
   <div style="text-align: center;">
     <div class="brand-icon-wrapper">
@@ -566,7 +501,7 @@
       </svg>
     </div>
     <div>
-      <span class="brand-badge" data-i18n="brand_badge">CYBERNET HIGH-SPEED HOTSPOT</span>
+      <span class="brand-badge">CYBERNET HIGH-SPEED HOTSPOT</span>
     </div>
   </div>
 
@@ -582,24 +517,23 @@
     <div class="random-mac-header">
       <span class="random-mac-icon">⚠️</span>
       <div>
-        <div class="random-mac-title" data-i18n="rand_title">Please Change Your MAC Type</div>
-        <div class="random-mac-title-ar" data-i18n="rand_title_ar">يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي</div>
+        <div class="random-mac-title">Please Change Your MAC Type</div>
       </div>
     </div>
 
-    <p class="random-mac-desc" data-i18n="rand_desc">
+    <p class="random-mac-desc">
       Randomized / Private MAC address is strictly prohibited on CyberNet Wi-Fi. You must switch your Wi-Fi settings to <strong>"Use Device MAC"</strong> (or turn OFF <strong>"Private Wi-Fi Address"</strong>) to connect.
     </p>
 
     <div class="random-mac-chip">
       <div style="display:flex; flex-direction:column; gap:2px;">
-        <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:700;" data-i18n="rand_detected_label">Detected MAC Address:</span>
+        <span style="font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:700;">Detected MAC Address:</span>
         <span id="randMacDisplay" class="mac-val">$(mac)</span>
       </div>
-      <span class="badge-rand-tag" data-i18n="rand_badge_tag">RANDOMIZED MAC</span>
+      <span class="badge-rand-tag">RANDOMIZED MAC</span>
     </div>
 
-    <div class="mac-guide-title" data-i18n="rand_guide_title">
+    <div class="mac-guide-title">
       Step-by-Step Device Instructions:
     </div>
 
@@ -609,8 +543,8 @@
       <button type="button" id="macTabHuawei" class="mac-guide-tab-btn" onclick="switchMacGuide('huawei')">Huawei / Honor</button>
     </div>
 
-    <!-- iPhone / iPad Instructions (English) -->
-    <div id="guideIosEn" class="mac-guide-body">
+    <!-- iPhone / iPad Instructions -->
+    <div id="guideIos" class="mac-guide-body">
       <ol>
         <li>Open <strong>Settings</strong> &rarr; Tap <strong>Wi-Fi</strong>.</li>
         <li>Tap the blue <strong>(i)</strong> info icon next to this network.</li>
@@ -618,18 +552,9 @@
         <li>Tap <strong>Rejoin</strong> or disconnect and reconnect to Wi-Fi.</li>
       </ol>
     </div>
-    <!-- iPhone / iPad Instructions (Arabic) -->
-    <div id="guideIosAr" class="mac-guide-body d-none">
-      <ol>
-        <li>افتح <strong>الإعدادات (Settings)</strong> &larr; اضغط على <strong>Wi-Fi</strong>.</li>
-        <li>اضغط على علامة <strong>(i)</strong> الزرقاء بجانب اسم الشبكة.</li>
-        <li>قم <strong>بإيقاف</strong> خيار <em>عنوان Wi-Fi الخاص (Private Wi-Fi Address)</em>.</li>
-        <li>اضغط على <strong>إعادة الاتصال</strong> أو اقطع الاتصال وأعد توصيله.</li>
-      </ol>
-    </div>
 
-    <!-- Android Instructions (English) -->
-    <div id="guideAndroidEn" class="mac-guide-body d-none">
+    <!-- Android Instructions -->
+    <div id="guideAndroid" class="mac-guide-body d-none">
       <ol>
         <li>Open <strong>Settings</strong> &rarr; Tap <strong>Connections / Wi-Fi</strong>.</li>
         <li>Tap the <strong>Gear (⚙️)</strong> icon next to this network name.</li>
@@ -638,35 +563,15 @@
         <li>Reconnect to Wi-Fi.</li>
       </ol>
     </div>
-    <!-- Android Instructions (Arabic) -->
-    <div id="guideAndroidAr" class="mac-guide-body d-none">
-      <ol>
-        <li>افتح <strong>الإعدادات (Settings)</strong> &larr; اضغط على <strong>الاتصالات / Wi-Fi</strong>.</li>
-        <li>اضغط على رمز <strong>الترس (⚙️)</strong> بجانب اسم هذه الشبكة.</li>
-        <li>اضغط على <strong>عرض المزيد (View more)</strong> أو <strong>خيارات متقدمة</strong>.</li>
-        <li>ابحث عن <strong>نوع عنوان MAC</strong> &larr; قم بتغييره إلى <strong>ماك الهاتف / ماك الجهاز (Device MAC)</strong>.</li>
-        <li>أعد الاتصال بالشبكة.</li>
-      </ol>
-    </div>
 
-    <!-- Huawei / Honor Instructions (English) -->
-    <div id="guideHuaweiEn" class="mac-guide-body d-none">
+    <!-- Huawei / Honor Instructions -->
+    <div id="guideHuawei" class="mac-guide-body d-none">
       <ol>
         <li>Go to <strong>Settings</strong> &rarr; <strong>Wi-Fi</strong>.</li>
         <li>Long-press or tap gear on this Wi-Fi &rarr; <strong>Modify network</strong>.</li>
         <li>Select <strong>Show advanced options</strong> &rarr; <strong>Privacy</strong>.</li>
         <li>Change to <strong>Use device MAC</strong>.</li>
         <li>Save and reconnect to Wi-Fi.</li>
-      </ol>
-    </div>
-    <!-- Huawei / Honor Instructions (Arabic) -->
-    <div id="guideHuaweiAr" class="mac-guide-body d-none">
-      <ol>
-        <li>انتقل إلى <strong>الإعدادات</strong> &larr; <strong>Wi-Fi</strong>.</li>
-        <li>اضغط مطولاً على اسم الشبكة &larr; <strong>تعديل الشبكة (Modify network)</strong>.</li>
-        <li>اختر <strong>خيارات متقدمة</strong> &larr; <strong>الخصوصية (Privacy)</strong>.</li>
-        <li>غيّر الإعداد إلى <strong>استخدام عنوان MAC الخاص بالجهاز (Device MAC)</strong>.</li>
-        <li>احفظ وأعد الاتصال بالشبكة.</li>
       </ol>
     </div>
 
@@ -718,7 +623,7 @@
     <form id="phoneForm" onsubmit="handlePhoneSubmit(event)">
       <div class="form-group">
         <label class="form-label" for="userPhone">
-          <span data-i18n="phone_label">Mobile Number / رقم الجوال</span>
+          <span data-i18n="phone_label">Mobile Number</span>
           <span style="color:#60a5fa;">05xxxxxxxx</span>
         </label>
         <div class="input-box">
@@ -772,7 +677,7 @@
 
       <div class="form-group">
         <label class="form-label" for="memberUsername">
-          <span data-i18n="member_user_label">Username / اسم المستخدم</span>
+          <span data-i18n="member_user_label">Username</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -782,7 +687,7 @@
 
       <div class="form-group">
         <label class="form-label" for="memberPassword">
-          <span data-i18n="member_pass_label">Password / كلمة المرور</span>
+          <span data-i18n="member_pass_label">Password</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
@@ -843,7 +748,7 @@
     <form id="lookupForm" onsubmit="handleLookupSubmit(event)">
       <div class="form-group">
         <label class="form-label" for="lookupPhone">
-          <span data-i18n="lookup_phone_label">Mobile Number / رقم الجوال</span>
+          <span data-i18n="lookup_phone_label">Mobile Number</span>
         </label>
         <div class="input-box">
           <svg class="input-icon" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
@@ -998,157 +903,20 @@
   var currentMacPlatform = 'ios';
   function switchMacGuide(platform) {
     if (platform) currentMacPlatform = platform;
-    var isAr = (currentLang === 'ar');
     ['ios', 'android', 'huawei'].forEach(function(p) {
       var tabBtn = document.getElementById('macTab' + p.charAt(0).toUpperCase() + p.slice(1));
-      var guideEn = document.getElementById('guide' + p.charAt(0).toUpperCase() + p.slice(1) + 'En');
-      var guideAr = document.getElementById('guide' + p.charAt(0).toUpperCase() + p.slice(1) + 'Ar');
+      var guide = document.getElementById('guide' + p.charAt(0).toUpperCase() + p.slice(1));
       if (tabBtn) {
         if (p === currentMacPlatform) {
           tabBtn.classList.add('active');
-          if (guideEn) guideEn.classList.toggle('d-none', isAr);
-          if (guideAr) guideAr.classList.toggle('d-none', !isAr);
+          if (guide) guide.classList.remove('d-none');
         } else {
           tabBtn.classList.remove('active');
-          if (guideEn) guideEn.classList.add('d-none');
-          if (guideAr) guideAr.classList.add('d-none');
+          if (guide) guide.classList.add('d-none');
         }
       }
     });
   }
-
-  // Bilingual i18n Translation Dictionary
-  var currentLang = 'en';
-  var translations = {
-    en: {
-      brand_badge: "CYBERNET HIGH-SPEED HOTSPOT",
-      tab_phone: "Mobile Connect",
-      tab_member: "Member Login",
-      tab_voucher: "Voucher PIN",
-      tab_lookup: "My Plan",
-      rand_title: "Please Change Your MAC Type",
-      rand_title_ar: "يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي",
-      rand_desc: "Randomized / Private MAC address is strictly prohibited on CyberNet Wi-Fi. You must switch your Wi-Fi settings to <strong>\"Use Device MAC\"</strong> (or turn OFF <strong>\"Private Wi-Fi Address\"</strong>) to connect.",
-      rand_detected_label: "Detected MAC Address:",
-      rand_badge_tag: "RANDOMIZED MAC",
-      rand_guide_title: "Step-by-Step Device Instructions:",
-      rand_btn_recheck: "I Changed to Device MAC — Recheck Connection",
-      rand_blocked_phone_title: "Phone Submission Disabled",
-      rand_blocked_phone_desc: "Your device is currently using a <strong>Randomized / Private MAC address</strong>. New connections and mobile submissions are strictly prohibited with randomized MACs. Follow the step-by-step instructions above to change to your Device MAC, then tap <em>Recheck Connection</em>.",
-      rand_member_notice: "⚠️ Device MAC Required: Member login is disabled while using a randomized MAC address. Please switch to Device MAC first.",
-      phone_h1: "Connect to WiFi",
-      phone_subtitle: "Enter your registered mobile number to activate or resume high-speed access.",
-      phone_label: "Mobile Number / رقم الجوال",
-      phone_btn_submit: "Connect to Internet",
-      phone_waiting_title: "Request Submitted!",
-      phone_waiting_sub: "Waiting for administrator approval. Your connection will start automatically once approved.",
-      phone_checking: "Checking activation status...",
-      phone_btn_check_now: "Check Status Now",
-      phone_approved_title: "Internet Activated!",
-      phone_approved_sub: "Your plan is ready and device is connected.",
-      phone_btn_browse: "Start Browsing",
-      member_h1: "Member Login",
-      member_subtitle: "Enter your assigned username and password to log in directly through MikroTik.",
-      member_user_label: "Username / اسم المستخدم",
-      member_pass_label: "Password / كلمة المرور",
-      member_btn_submit: "Log In to Internet",
-      voucher_h1: "Recharge Voucher PIN",
-      voucher_subtitle: "Enter your prepaid card scratch PIN to recharge or unlock your internet instantly.",
-      voucher_pin_label: "Voucher Card PIN *",
-      voucher_phone_label: "Mobile Number (Optional)",
-      voucher_btn_submit: "Recharge & Unlock",
-      lookup_h1: "Check My Plan",
-      lookup_subtitle: "Check your current subscription status, validity, and room details.",
-      lookup_phone_label: "Mobile Number / رقم الجوال",
-      lookup_btn_submit: "Lookup Account",
-      lookup_plan: "Plan:",
-      lookup_expiry: "Expiry:",
-      lookup_location: "Location:",
-      perks_header: "⚡ FREE LOCAL PERKS (NO LOGIN NEEDED)",
-      perks_football: "Football Live",
-      perks_movies: "Movie Server"
-    },
-    ar: {
-      brand_badge: "شبكة سايبرنت فائقة السرعة",
-      tab_phone: "الدخول بالجوال",
-      tab_member: "دخول المشتركين",
-      tab_voucher: "كرت الشحن",
-      tab_lookup: "بيانات اشتراكي",
-      rand_title: "يرجى تغيير نوع الماك إلى ماك الجهاز الأصلي",
-      rand_title_ar: "Please Change Your MAC Type to Device MAC",
-      rand_desc: "عنوان MAC العشوائي أو الخاص محظور تماماً على شبكة سايبرنت. يجب عليك ضبط إعدادات الواي فاي إلى <strong>\"استخدام ماك الجهاز\"</strong> (أو إيقاف <strong>\"عنوان Wi-Fi الخاص\"</strong>) للاتصال.",
-      rand_detected_label: "عنوان الماك المكتشف:",
-      rand_badge_tag: "ماك عشوائي محظور",
-      rand_guide_title: "خطوات تغيير الماك للأجهزة:",
-      rand_btn_recheck: "قمت بتغيير الماك إلى ماك الجهاز — إعادة الفحص",
-      rand_blocked_phone_title: "تم تعطيل إدخال رقم الجوال",
-      rand_blocked_phone_desc: "جهازك يستخدم حالياً <strong>عنوان ماك عشوائي / خاص</strong>. لا يُسمح بإرسال الأرقام أو الاتصال باستخدام الماك العشوائي. اتبع التعليمات الموضحة بالأعلى لتغييره إلى ماك الجهاز، ثم اضغط <em>إعادة الفحص</em>.",
-      rand_member_notice: "⚠️ تنبيه: تسجيل المشتركين غير متاح أثناء استخدام الماك العشوائي. يرجى التبديل لماك الجهاز أولاً.",
-      phone_h1: "الاتصال بالإنترنت",
-      phone_subtitle: "أدخل رقم هاتفك المسجل لتفعيل أو استئناف اتصال الإنترنت فائق السرعة.",
-      phone_label: "رقم الجوال",
-      phone_btn_submit: "اتصال بالإنترنت",
-      phone_waiting_title: "تم تقديم الطلب بنجاح!",
-      phone_waiting_sub: "في انتظار موافقة المسؤول. سيبدأ اتصالك بالإنترنت تلقائياً فور الاعتماد.",
-      phone_checking: "جاري فحص حالة التفعيل...",
-      phone_btn_check_now: "فحص الحالة الآن",
-      phone_approved_title: "تم تفعيل الإنترنت!",
-      phone_approved_sub: "اشتراكك نشط والجهاز متصل الآن.",
-      phone_btn_browse: "بدء التصفح",
-      member_h1: "تسجيل دخول المشتركين",
-      member_subtitle: "أدخل اسم المستخدم وكلمة المرور المخصصة لك للدخول مباشرة.",
-      member_user_label: "اسم المستخدم",
-      member_pass_label: "كلمة المرور",
-      member_btn_submit: "تسجيل الدخول إلى الإنترنت",
-      voucher_h1: "شحن كرت الإنترنت",
-      voucher_subtitle: "أدخل كود الكرت المطبوع لشحن وتجديد اشتراكك فوراً.",
-      voucher_pin_label: "كود كرت الشحن *",
-      voucher_phone_label: "رقم الجوال (اختياري)",
-      voucher_btn_submit: "شحن الكرت وتفعيل النت",
-      lookup_h1: "الاستعلام عن اشتراكي",
-      lookup_subtitle: "استعلم عن تفاصيل اشتراكك، الصلاحية، ورقم الغرفة.",
-      lookup_phone_label: "رقم الجوال",
-      lookup_btn_submit: "الاستعلام عن الحساب",
-      lookup_plan: "الباقة:",
-      lookup_expiry: "تاريخ الانتهاء:",
-      lookup_location: "الموقع:",
-      perks_header: "⚡ خدمات ومحتوى محلي مجاني (بدون تسجيل)",
-      perks_football: "مباريات مباشر",
-      perks_movies: "سيرفر الأفلام"
-    }
-  };
-
-  function setPortalLang(lang) {
-    if (lang !== 'en' && lang !== 'ar') lang = 'en';
-    currentLang = lang;
-    try { localStorage.setItem('cybernet_portal_lang', lang); } catch(e){}
-
-    var isAr = (lang === 'ar');
-    document.documentElement.setAttribute('dir', isAr ? 'rtl' : 'ltr');
-    document.documentElement.setAttribute('lang', lang);
-
-    var btnEn = document.getElementById('langBtnEn');
-    var btnAr = document.getElementById('langBtnAr');
-    if (btnEn) btnEn.classList.toggle('active', !isAr);
-    if (btnAr) btnAr.classList.toggle('active', isAr);
-
-    var dict = translations[lang] || translations.en;
-    document.querySelectorAll('[data-i18n]').forEach(function(el) {
-      var key = el.getAttribute('data-i18n');
-      if (dict[key]) {
-        el.innerHTML = dict[key];
-      }
-    });
-
-    switchMacGuide();
-  }
-
-  // Restore saved language or detect browser preference
-  var initialLang = 'en';
-  try {
-    initialLang = localStorage.getItem('cybernet_portal_lang') || (/^ar\b/i.test(navigator.language) ? 'ar' : 'en');
-  } catch(e){}
-  setPortalLang(initialLang);
 
   // Initial evaluate
   evaluateMacPolicy();
