@@ -13,6 +13,10 @@
     flex-direction: column;
     gap: 10px;
     padding-bottom: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   /* TOP ACTION BAR */
@@ -27,6 +31,9 @@
     flex-wrap: wrap;
     gap: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .header-info-title {
@@ -488,8 +495,10 @@
   /* FINANCIAL & AUDIT DECK */
   .audit-deck-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* QUICK PRESET CHIPS & PAYMENT METHODS */
@@ -977,30 +986,37 @@
   .btn-confirm-approve:hover {
     filter: brightness(1.1);
   }
-  @media (max-width: 640px) {
-    .modal-grid-2, .modal-grid-3 {
-      grid-template-columns: 1fr !important;
-      gap: 10px !important;
-    }
-    .preset-wrap {
-      flex-direction: column !important;
-      align-items: stretch !important;
-    }
-    .modal-box-lg {
-      max-width: 95vw !important;
-      width: 95vw !important;
-    }
+  /* Collect table desktop helper styles */
+  .collect-table .mob-cb-label,
+  .collect-table .mob-field-label {
+    display: none;
   }
 
   /* =========================================================
-     MOBILE RESPONSIVE TABLES -> NATIVE CARD DECK CONVERSION
+     COMPREHENSIVE MOBILE RESPONSIVE ENGINE (ZERO PAGE OVERFLOW)
      ========================================================= */
   @media (max-width: 768px) {
+    /* STRICT VIEWPORT CONTAINMENT - ZERO HORIZONTAL SCROLL */
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+    }
+    .app-main, .content-container, .dashboard-wrapper {
+      max-width: 100% !important;
+      width: 100% !important;
+      overflow-x: hidden !important;
+      box-sizing: border-box !important;
+    }
+
+    /* TOP ACTION BAR */
     .control-header-card {
       padding: 8px 12px !important;
       flex-direction: column !important;
       align-items: stretch !important;
       gap: 8px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .header-controls-group {
       width: 100% !important;
@@ -1011,40 +1027,91 @@
     .header-controls-group .btn-report-modal {
       flex: 1 !important;
       justify-content: center !important;
-      padding: 5px 8px !important;
+      padding: 6px 8px !important;
       font-size: 11.5px !important;
+      min-width: 0 !important;
     }
 
-    /* HORIZONTAL SWIPE RIBBON FOR KPIS ON MOBILE */
+    /* 2-COLUMN HIGH-DENSITY KPI GRID (ZERO HORIZONTAL SWIPING) */
     .kpi-deck-grid {
-      display: flex !important;
-      overflow-x: auto !important;
-      scroll-snap-type: x mandatory !important;
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
       gap: 8px !important;
-      padding-bottom: 6px !important;
-      -webkit-overflow-scrolling: touch !important;
       width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      padding-bottom: 0 !important;
     }
     .kpi-card {
-      min-width: 135px !important;
-      max-width: 155px !important;
-      flex-shrink: 0 !important;
-      scroll-snap-align: start !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      flex-shrink: 1 !important;
       padding: 8px 10px !important;
-      gap: 4px !important;
-      min-height: 70px !important;
+      gap: 3px !important;
+      min-height: 68px !important;
+      box-sizing: border-box !important;
+    }
+    .kpi-card:first-child {
+      grid-column: 1 / -1 !important;
+    }
+    .kpi-main-number {
+      font-size: 16px !important;
+    }
+    .kpi-label {
+      font-size: 9px !important;
+    }
+    .kpi-sub-text {
+      font-size: 9.5px !important;
     }
 
+    /* URGENT JOIN REQUESTS ALERT BANNER */
     .pending-alert-banner {
       flex-direction: column !important;
       align-items: stretch !important;
       gap: 8px !important;
       padding: 8px 12px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .pending-alert-banner button {
       width: 100% !important;
       justify-content: center !important;
       padding: 6px 12px !important;
+    }
+
+    /* PERFORMANCE METERS */
+    .meters-row {
+      grid-template-columns: 1fr !important;
+      gap: 8px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .meter-card {
+      width: 100% !important;
+      box-sizing: border-box !important;
+      padding: 10px 12px !important;
+    }
+    .meter-stats-row {
+      flex-wrap: wrap !important;
+      gap: 4px 8px !important;
+      font-size: 10.5px !important;
+    }
+
+    /* SECTION CARDS & HEADERS */
+    .section-card {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+    }
+    .section-card-header {
+      padding: 8px 12px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     /* 1. NEW JOIN REQUESTS TABLE TO COMPACT 3-LINE MOBILE CARDS */
@@ -1068,6 +1135,8 @@
       flex-direction: column !important;
       gap: 6px !important;
       padding: 2px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     #pendingTable tr[id^="req-row-"],
@@ -1083,6 +1152,9 @@
       padding: 8px 12px !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
       margin-bottom: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
     }
 
     #pendingTable tr[id^="req-row-"][style*="239, 68, 68"],
@@ -1097,6 +1169,7 @@
       padding: 0 !important;
       font-size: 12px !important;
       white-space: normal !important;
+      min-width: 0 !important;
     }
 
     #pendingTable tr[id^="req-row-"] td::before,
@@ -1110,18 +1183,21 @@
       font-size: 13.5px !important;
       font-weight: 800 !important;
       color: #38bdf8 !important;
+      word-break: break-all;
     }
 
     #pendingTable tr[id^="req-row-"] td.td-type,
     .req-table-row td.td-type {
       grid-column: 2;
       justify-self: end;
+      white-space: nowrap !important;
     }
 
     #pendingTable tr[id^="req-row-"] td.td-mac,
     .req-table-row td.td-mac {
       grid-column: 1;
       font-size: 11px !important;
+      word-break: break-all;
     }
 
     #pendingTable tr[id^="req-row-"] td.td-time,
@@ -1130,6 +1206,7 @@
       justify-self: end;
       font-size: 10.5px !important;
       color: var(--text-dim) !important;
+      white-space: nowrap !important;
     }
 
     #pendingTable tr[id^="req-row-"] td.td-device,
@@ -1150,6 +1227,8 @@
       border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
       padding-top: 6px !important;
       margin-top: 2px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     #pendingTable tr[id^="req-row-"] td.td-actions > div,
@@ -1183,9 +1262,69 @@
     #emptyPendingRow, #emptyPendingRow td {
       display: block !important;
       width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     /* 2. SUBSCRIBERS TABLE TO COMPACT 3-LINE MOBILE CARDS */
+    #subscribersSection .section-card-header > div:last-child {
+      display: flex !important;
+      width: 100% !important;
+      gap: 6px !important;
+    }
+    .search-input-box {
+      flex: 1 !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      padding: 5px 8px !important;
+    }
+
+    /* 2x2 Category Tabs Deck (No Horizontal Scrolling) */
+    .sub-tabs-deck {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 6px !important;
+      padding: 6px !important;
+      overflow-x: visible !important;
+      white-space: normal !important;
+      flex-wrap: wrap !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .sub-tab-btn {
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 7px 6px !important;
+      font-size: 11.5px !important;
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+    }
+
+    /* Wrapping Expiration Tier Filter Deck (No Horizontal Scrolling) */
+    .tier-filter-deck {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      padding: 6px 8px !important;
+      overflow-x: visible !important;
+      white-space: normal !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .tier-deck-title {
+      width: 100% !important;
+      margin-bottom: 2px !important;
+      font-size: 10px !important;
+    }
+    .tier-pill-btn {
+      flex: 1 1 calc(50% - 6px) !important;
+      justify-content: center !important;
+      padding: 6px 6px !important;
+      font-size: 10.5px !important;
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+    }
+
     #subscribersTable,
     #subscribersTable thead,
     #subscribersTable tbody,
@@ -1206,6 +1345,8 @@
       flex-direction: column !important;
       gap: 6px !important;
       padding: 2px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     #subscribersTable tr.cust-row {
@@ -1219,6 +1360,10 @@
       padding: 8px 12px !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
       margin-bottom: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
     }
 
     #subscribersTable tr.cust-row td {
@@ -1226,6 +1371,7 @@
       padding: 0 !important;
       font-size: 12px !important;
       white-space: normal !important;
+      min-width: 0 !important;
     }
 
     #subscribersTable tr.cust-row td::before {
@@ -1238,6 +1384,7 @@
       grid-column: 1;
       padding: 0 !important;
       border: none !important;
+      min-width: 0 !important;
     }
 
     /* Line 1 Right: Status Badge */
@@ -1246,6 +1393,7 @@
       justify-self: end;
       padding: 0 !important;
       border: none !important;
+      white-space: nowrap !important;
     }
 
     /* Line 2 Left: Package & Speed */
@@ -1254,6 +1402,7 @@
       font-size: 11.5px !important;
       padding: 0 !important;
       border: none !important;
+      min-width: 0 !important;
     }
 
     /* Line 2 Right: Due Date */
@@ -1263,6 +1412,7 @@
       text-align: right;
       padding: 0 !important;
       border: none !important;
+      white-space: nowrap !important;
     }
 
     /* Line 3 Left: Bound MAC */
@@ -1271,6 +1421,17 @@
       font-size: 11px !important;
       padding: 0 !important;
       border: none !important;
+      min-width: 0 !important;
+    }
+    #subscribersTable tr.cust-row td[data-label="Bound MAC"] > div {
+      min-width: 0 !important;
+    }
+    #subscribersTable tr.cust-row td[data-label="Bound MAC"] > div > div {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      gap: 4px !important;
+      min-width: 0 !important;
     }
 
     /* Line 3 Right: Credit Wallet */
@@ -1280,6 +1441,7 @@
       text-align: right;
       padding: 0 !important;
       border: none !important;
+      white-space: nowrap !important;
     }
 
     /* Redundant tag */
@@ -1292,54 +1454,312 @@
     #subscribersTable tr.cust-row td:last-child {
       grid-column: 1 / -1;
       border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-      padding-top: 5px !important;
-      margin-top: 2px !important;
+      padding-top: 6px !important;
+      margin-top: 4px !important;
       border-bottom: none !important;
       display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     #subscribersTable tr.cust-row td:last-child > div {
       display: grid !important;
-      grid-template-columns: 1fr 1fr 1fr !important;
+      grid-template-columns: 1.2fr 1fr 1fr !important;
       gap: 6px !important;
       width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     #subscribersTable tr.cust-row td:last-child button {
-      padding: 5px 4px !important;
+      padding: 6px 4px !important;
       font-size: 11px !important;
       font-weight: 700 !important;
       border-radius: 7px !important;
       justify-content: center !important;
       width: 100% !important;
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      white-space: nowrap !important;
     }
 
-    .search-input-box {
+    #emptyCustRow, #emptyCustRow td {
+      display: block !important;
       width: 100% !important;
-      min-width: 0 !important;
-      padding: 5px 8px !important;
+      box-sizing: border-box !important;
     }
-    .sub-tabs-deck {
-      overflow-x: auto !important;
-      white-space: nowrap !important;
-      flex-wrap: nowrap !important;
-      padding: 3px !important;
-      gap: 4px !important;
+
+    /* 3. FINANCIAL AUDIT & STAFF PERFORMANCE DECK RESPONSIVENESS */
+    .audit-deck-row {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
-    .sub-tab-btn {
-      padding: 4px 8px !important;
+
+    #staffPerfTable,
+    #staffPerfTable thead,
+    #staffPerfTable tbody,
+    #staffPerfTable tr,
+    #staffPerfTable th,
+    #staffPerfTable td,
+    #ledgerFeedTable,
+    #ledgerFeedTable thead,
+    #ledgerFeedTable tbody,
+    #ledgerFeedTable tr,
+    #ledgerFeedTable th,
+    #ledgerFeedTable td {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #staffPerfTable thead,
+    #ledgerFeedTable thead {
+      display: none !important;
+    }
+
+    #staffPerfTable tbody,
+    #ledgerFeedTable tbody {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      padding: 4px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #staffPerfTable tbody tr {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      align-items: center !important;
+      gap: 4px 8px !important;
+      background: rgba(15, 23, 42, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 9px !important;
+      padding: 8px 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #staffPerfTable td {
+      border: none !important;
+      padding: 0 !important;
+      white-space: normal !important;
+    }
+
+    #staffPerfTable td.td-staff-name {
+      grid-column: 1;
+    }
+
+    #staffPerfTable td.td-staff-amt {
+      grid-column: 2;
+      text-align: right;
+    }
+
+    #staffPerfTable td.td-staff-tx {
+      grid-column: 1;
       font-size: 11px !important;
     }
-    .tier-filter-deck {
-      overflow-x: auto !important;
-      white-space: nowrap !important;
-      flex-wrap: nowrap !important;
-      padding: 3px !important;
-      gap: 4px !important;
+
+    #staffPerfTable td.td-staff-avg {
+      display: none !important;
     }
-    .tier-pill-btn {
-      padding: 3px 6px !important;
-      font-size: 10px !important;
+
+    #staffPerfTable td.td-staff-share {
+      grid-column: 2;
+      justify-self: end;
+      width: 100px !important;
+    }
+
+    #ledgerFeedTable tbody tr {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      align-items: center !important;
+      gap: 4px 8px !important;
+      background: rgba(15, 23, 42, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 9px !important;
+      padding: 8px 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #ledgerFeedTable td {
+      border: none !important;
+      padding: 0 !important;
+      white-space: normal !important;
+    }
+
+    #ledgerFeedTable td.td-led-cust {
+      grid-column: 1;
+    }
+
+    #ledgerFeedTable td.td-led-amt {
+      grid-column: 2;
+      text-align: right;
+    }
+
+    #ledgerFeedTable td.td-led-date {
+      grid-column: 1;
+      font-size: 11px !important;
+      color: var(--text-dim) !important;
+    }
+
+    #ledgerFeedTable td.td-led-by {
+      display: none !important;
+    }
+
+    #ledgerFeedTable td.td-led-act {
+      grid-column: 2;
+      justify-self: end;
+    }
+
+    #ledgerFeedTable td.td-led-act button {
+      padding: 3px 8px !important;
+      font-size: 11px !important;
+    }
+  }
+
+  /* MODALS & SMARTPHONE SPECIFIC ADAPTATIONS (<= 640px) */
+  @media (max-width: 640px) {
+    .modal-container, .modal-box, .modal-box-lg {
+      max-width: 96vw !important;
+      width: 96vw !important;
+      margin: 8px auto !important;
+      box-sizing: border-box !important;
+      border-radius: 12px !important;
+    }
+    .modal-body {
+      padding: 12px 10px !important;
+      gap: 10px !important;
+      box-sizing: border-box !important;
+    }
+    .modal-grid-2, .modal-grid-3 {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+    .preset-wrap {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+
+    /* COLLECT MODAL 100% MOBILE RESPONSIVENESS */
+    #collectModal .modal-container {
+      max-height: 92vh !important;
+      overflow-y: auto !important;
+    }
+    .coll-cust-banner {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding: 10px 12px !important;
+    }
+    .collect-summary-bar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding: 10px 12px !important;
+    }
+    .collect-modal-actions {
+      display: flex !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .collect-modal-actions button {
+      flex: 1 !important;
+      justify-content: center !important;
+      padding: 8px 12px !important;
+    }
+    .collect-modal-actions #btnRecordPayment {
+      flex: 1.5 !important;
+    }
+
+    /* Collect Month Rows -> Native Mobile Cards */
+    .collect-table,
+    .collect-table thead,
+    .collect-table tbody,
+    .collect-table tr.collect-month-row,
+    .collect-table th,
+    .collect-table td {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .collect-table thead {
+      display: none !important;
+    }
+    .collect-table tr.collect-month-row {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      gap: 6px 10px !important;
+      align-items: center !important;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(20, 30, 55, 0.95) 100%) !important;
+      border: 1px solid rgba(56, 189, 248, 0.25) !important;
+      border-radius: 12px !important;
+      padding: 10px 12px !important;
+      margin-bottom: 10px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .collect-table tr.collect-month-row td {
+      padding: 0 !important;
+      border: none !important;
+      text-align: left !important;
+      min-width: 0 !important;
+    }
+    .collect-table td.col-month {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .collect-table td.col-due {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      white-space: nowrap !important;
+    }
+    .collect-table td.col-cb {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08) !important;
+      padding-top: 6px !important;
+      margin-top: 2px !important;
+    }
+    .collect-table .mob-cb-wrap {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+    .collect-table .mob-cb-label {
+      display: inline-block !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      color: #10b981 !important;
+    }
+    .collect-table td.col-amt {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08) !important;
+      padding-top: 6px !important;
+      margin-top: 2px !important;
+    }
+    .collect-table .amt-input-wrap {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .collect-table .mob-field-label {
+      display: inline-block !important;
+      font-size: 11.5px !important;
+      color: var(--text-dim) !important;
+      font-weight: 600 !important;
+    }
+    .collect-table .amt-input {
+      width: 120px !important;
+      height: 36px !important;
+      font-size: 14px !important;
+      flex-shrink: 0 !important;
     }
   }
 
@@ -1942,7 +2362,7 @@
         </a>
       </div>
       <div style="overflow-x: auto;">
-        <table class="clean-table">
+        <table class="clean-table" id="staffPerfTable">
           <thead>
             <tr>
               <th>Collector</th>
@@ -1962,18 +2382,18 @@
             {% else %}
               {% for s in metrics.staff_performance %}
               <tr>
-                <td>
+                <td class="td-staff-name">
                   <div style="display:flex; align-items:center; gap:8px;">
                     <div class="staff-avatar-mini">{{ s.collector_name[:1]|upper }}</div>
                     <span style="font-weight: 700; color: #ffffff;">{{ s.collector_name }}</span>
                   </div>
                 </td>
-                <td>
+                <td class="td-staff-tx">
                   <span class="font-mono text-cyan" style="font-weight:700; background:rgba(56,189,248,0.12); padding:2px 7px; border-radius:5px;">{{ s.tx_count }} tx</span>
                 </td>
-                <td class="font-mono text-emerald" style="font-weight: 800; font-size:13.5px;">+{{ "%.2f"|format(s.total_amount) }} SAR</td>
-                <td class="font-mono text-dim" style="font-size:12px;">{{ "%.2f"|format(s.avg_amount) }} SAR</td>
-                <td>
+                <td class="td-staff-amt font-mono text-emerald" style="font-weight: 800; font-size:13.5px;">+{{ "%.2f"|format(s.total_amount) }} SAR</td>
+                <td class="td-staff-avg font-mono text-dim" style="font-size:12px;">{{ "%.2f"|format(s.avg_amount) }} SAR</td>
+                <td class="td-staff-share">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="font-mono" style="font-size: 11px; width: 36px; font-weight:700;">{{ s.share_percent }}%</span>
                     <div style="flex-grow: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; min-width: 40px;">
@@ -2001,7 +2421,7 @@
         </a>
       </div>
       <div style="overflow-x: auto;">
-        <table class="clean-table">
+        <table class="clean-table" id="ledgerFeedTable">
           <thead>
             <tr>
               <th>Date / Time</th>
@@ -2021,20 +2441,18 @@
             {% else %}
               {% for col in metrics.recent_collections %}
               <tr>
-                <td class="font-mono text-dim" style="font-size: 11.5px;">{{ col.collected_at }}</td>
-                <td>
+                <td class="td-led-date font-mono text-dim" style="font-size: 11.5px;">{{ col.collected_at }}</td>
+                <td class="td-led-cust">
                   <div style="font-weight: 700; color: #ffffff;">{{ col.customer_name or ('Customer #' ~ col.customer_id) }}</div>
                   <div class="font-mono text-cyan" style="font-size: 11px;">{{ col.customer_phone }}</div>
                 </td>
-                <td>
-                  <span class="font-mono text-emerald" style="font-weight: 800; font-size:13.5px;">+{{ "%.2f"|format(col.amount) }} SAR</span>
-                </td>
-                <td>
+                <td class="td-led-amt font-mono text-emerald" style="font-weight: 800; font-size:13.5px;">+{{ "%.2f"|format(col.amount) }} SAR</td>
+                <td class="td-led-by">
                   <span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:10.5px; padding:2px 7px;">
                     {{ col.collected_by or 'Admin' }}
                   </span>
                 </td>
-                <td style="text-align:right;">
+                <td class="td-led-act" style="text-align:right;">
                   <button type="button" class="btn-table-manage" onclick="printDashboardReceipt('{{ (col.customer_name or ('Customer #' ~ col.customer_id))|escape }}', '{{ col.customer_phone }}', '{{ col.amount }}', '{{ col.collected_at }}', '{{ col.collected_by }}')" style="padding:3px 8px; font-size:11px;" title="Preview & Print Voucher">
                     <span>Receipt</span>
                   </button>
@@ -2065,7 +2483,7 @@
         <input type="hidden" id="coll_cid">
 
         <!-- Customer Summary Header Banner -->
-        <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="coll-cust-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
           <div>
             <div style="font-size: 14.5px; font-weight: 800; color: #ffffff;" id="coll_name">Loading customer…</div>
             <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
@@ -2081,7 +2499,7 @@
         <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin: 6px 0;">
 
         <!-- Total Calculation & Summary Bar -->
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div class="collect-summary-bar" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
           <div style="display:flex; align-items:center; gap:10px;">
             <svg style="width:22px; height:22px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
             <div>
@@ -2100,7 +2518,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+        <div class="collect-modal-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
           <button type="button" class="btn-table-manage" onclick="closeCollectModal()" style="padding:10px 18px; font-size:13px;">Cancel</button>
           <button type="submit" id="btnRecordPayment" class="btn-quick-collect" style="padding:10px 24px; font-size:13.5px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
             <span>Record Payment</span>
@@ -2202,7 +2620,7 @@
         </div>
 
         <!-- Ledger Table -->
-        <div style="max-height: 350px; overflow-y: auto;">
+        <div style="max-height: 350px; overflow-y: auto; overflow-x: auto; max-width: 100%;">
           <table class="clean-table" id="rptTable">
             <thead>
               <tr>
@@ -2721,27 +3139,31 @@
         const btnRec = document.getElementById('btnRecordPayment');
         if (btnRec) btnRec.style.display = 'inline-flex';
 
-        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:160px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
+        let html = '<div class="table-wrap"><table class="collect-table" style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:160px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
 
         data.forEach((m) => {
           const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
           const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
           const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
 
-          html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
-            <td style="padding:10px 8px; text-align:center;">
-              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
+          html += `<tr class="collect-month-row" style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
+            <td class="col-cb" style="padding:10px 8px; text-align:center;">
+              <label class="mob-cb-wrap" style="cursor:pointer;">
+                <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
+                <span class="mob-cb-label">Settle &amp; Close Month</span>
+              </label>
             </td>
-            <td style="padding:10px 8px;">
+            <td class="col-month" style="padding:10px 8px;">
               <div style="font-weight:700; color:#ffffff;">${mLabel}${graceBadge}</div>
               ${paidBadge}
               <div class="row-status-note" id="dashNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
             </td>
-            <td style="padding:10px 8px;">
+            <td class="col-due" style="padding:10px 8px;">
               <span class="badge-tier overdue font-mono" style="font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
             </td>
-            <td style="padding:10px 8px; text-align:right;">
-              <div style="display:inline-flex; align-items:center; gap:6px;">
+            <td class="col-amt" style="padding:10px 8px; text-align:right;">
+              <div class="amt-input-wrap">
+                <span class="mob-field-label">Amount to Collect:</span>
                 <input type="number" name="amounts[]" class="form-input amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; height:36px; font-weight:800; font-size:13.5px; color:#38bdf8; text-align:right; padding:5px 8px;" oninput="updateTotal()">
               </div>
             </td>
@@ -3415,7 +3837,7 @@
             <span>Authorized Hardware (${c.devices ? c.devices.length : 0} / ${c.max_devices || 1} devices)</span>
             <span class="font-mono text-dim" style="font-size:11px;">MikroTik Hotspot Bypassed</span>
           </div>
-          <div style="max-height:160px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:10px;">
+          <div style="max-height:160px; overflow-y:auto; overflow-x:auto; max-width:100%; border:1px solid var(--border-subtle); border-radius:10px;">
             <table class="clean-table" style="font-size:12px;">
               <thead>
                 <tr>
@@ -3434,7 +3856,7 @@
         <!-- Recent Payments -->
         <div>
           <div style="font-size:13px; font-weight:700; color:#ffffff; margin-bottom:8px;">Recent Collections Ledger</div>
-          <div style="max-height:140px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:10px;">
+          <div style="max-height:140px; overflow-y:auto; overflow-x:auto; max-width:100%; border:1px solid var(--border-subtle); border-radius:10px;">
             <table class="clean-table" style="font-size:12px;">
               <thead>
                 <tr>
