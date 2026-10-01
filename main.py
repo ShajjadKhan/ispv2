@@ -980,8 +980,8 @@ async def gateway_view(request: Request, router_id: Optional[int] = None):
             identity=selected_live_status.get("identity"),
             model=selected_live_status.get("model"),
             ros_version=selected_live_status.get("version"),
-            cpu_usage=selected_live_status.get("cpu_usage"),
-            memory_usage=selected_live_status.get("memory_usage"),
+            cpu_usage=selected_live_status.get("cpu_load", 0),
+            memory_usage=int(selected_live_status.get("memory_percent", 0)),
             uptime=selected_live_status.get("uptime"),
             last_status="online" if selected_live_status.get("connected") else "offline"
         )
@@ -990,6 +990,12 @@ async def gateway_view(request: Request, router_id: Optional[int] = None):
 
     # Refresh fleet list with cached or live indicators
     fleet_list = database.get_all_routers()
+    if selected_router_record and fleet_list:
+        for r in fleet_list:
+            if r["id"] == selected_router_record["id"]:
+                r["cpu_usage"] = selected_live_status.get("cpu_load", r.get("cpu_usage", 0))
+                r["uptime"] = selected_live_status.get("uptime", r.get("uptime"))
+                r["last_status"] = "online" if selected_live_status.get("connected") else "offline"
     pending_requests = database.get_pending_requests()
 
     return templates.TemplateResponse(

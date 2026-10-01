@@ -457,16 +457,20 @@
     <div>
       <h1 style="font-size: 19px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
         <span>MikroTik Multi-Gateway Fleet</span>
-        <span class="badge-vlan">VLAN 10, 20, 30 Roaming Engine</span>
+        <span class="badge-vlan">VLAN Roaming Engine</span>
       </h1>
       <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
-        Total: <strong style="color:#ffffff;">{{ routers | length }} Gateway Router(s) Configured</strong> &bull; Devices authorized on any router automatically roam with zero login interruption.
+        {% if routers | length > 1 %}
+          Total: <strong style="color:#ffffff;">{{ routers | length }} Gateway Routers Configured</strong> &bull; Select a router to inspect its live ports, metrics, and roaming leases.
+        {% else %}
+          Primary Gateway Active &bull; Devices authorized on this gateway automatically roam with zero login interruption.
+        {% endif %}
       </div>
     </div>
 
     <div style="display: flex; align-items: center; gap: 10px;">
       <button type="button" class="btn-action-pill" onclick="window.location.reload()">
-        🔄 Refresh Fleet
+        🔄 Refresh
       </button>
       <button type="button" class="btn-primary-add" onclick="openAddRouterModal()">
         <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -475,7 +479,8 @@
     </div>
   </div>
 
-  <!-- FLEET HARDWARE RACK CARDS (MULTI-ROUTER 1 BY 1) -->
+  {% if routers | length > 1 %}
+  <!-- FLEET HARDWARE RACK CARDS (MULTI-ROUTER SWITCHER) -->
   <div class="fleet-grid">
     {% for r in routers %}
     <div class="fleet-card {% if selected_router and selected_router.id == r.id %}active-router{% endif %}" onclick="selectRouter({{ r.id }})">
@@ -486,6 +491,9 @@
         <div>
           <div style="font-size: 14px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
             <span>{{ r.name }}</span>
+            {% if selected_router and selected_router.id == r.id %}
+              <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 1px 6px; border-radius: 4px; font-weight: 700;">SELECTED</span>
+            {% endif %}
           </div>
           <div class="font-mono text-cyan" style="font-size: 12px;">{{ r.host }}:{{ r.port }}</div>
         </div>
@@ -502,7 +510,7 @@
       <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-family: var(--font-mono); padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
         <div>
           <span class="text-dim">Status:</span>
-          {% if r.last_status == 'online' %}
+          {% if (selected_router and r.id == selected_router.id and router.connected) or r.last_status == 'online' %}
             <span style="color:#34d399; font-weight:700;">ONLINE ●</span>
           {% else %}
             <span style="color:#f87171; font-weight:700;">OFFLINE ○</span>
@@ -510,11 +518,11 @@
         </div>
         <div>
           <span class="text-dim">CPU:</span>
-          <span style="color:#ffffff;">{{ r.cpu_usage }}%</span>
+          <span style="color:#ffffff;">{% if selected_router and r.id == selected_router.id %}{{ router.cpu_load }}{% else %}{{ r.cpu_usage }}{% endif %}%</span>
         </div>
         <div>
           <span class="text-dim">Uptime:</span>
-          <span style="color:#38bdf8;">{{ r.uptime or 'N/A' }}</span>
+          <span style="color:#38bdf8;">{% if selected_router and r.id == selected_router.id %}{{ router.uptime }}{% else %}{{ r.uptime or 'N/A' }}{% endif %}</span>
         </div>
       </div>
 
@@ -535,6 +543,7 @@
     </div>
     {% endfor %}
   </div>
+  {% endif %}
 
   <!-- SELECTED ROUTER DETAILED TELEMETRY BANNER -->
   {% if selected_router %}
@@ -545,11 +554,11 @@
           <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
         </div>
         <div class="router-title-group">
-          <h1 id="heroIdentity" style="font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+          <h1 id="heroIdentity" style="font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <span>{{ selected_router.name }}</span>
             <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">({{ router.model }})</span>
           </h1>
-          <div class="subtitle" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+          <div class="subtitle" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap;">
             <span>Identity: <strong style="color:#ffffff;">{{ router.identity }}</strong></span>
             <span>&bull;</span>
             <span>RouterOS {{ router.version }}</span>
@@ -557,16 +566,35 @@
             <span class="font-mono text-cyan">{{ selected_router.host }}:{{ selected_router.port }}</span>
             <span>&bull;</span>
             <span class="badge-vlan">VLAN {{ selected_router.vlan_id }}</span>
+            {% if selected_router.ssid_name %}
+              <span class="badge-ssid">SSID: {{ selected_router.ssid_name }}</span>
+            {% endif %}
+            {% if selected_router.uplink_type %}
+              <span class="badge-sim">{{ selected_router.uplink_type }}</span>
+            {% endif %}
           </div>
         </div>
       </div>
 
-      <div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
         <div id="heroStatusBadge" class="status-badge-hero {% if not router.connected %}offline{% endif %}">
           <span class="pulse-dot"></span>
           <span id="heroStatusText">
             {% if router.connected %}GATEWAY ONLINE &amp; ACTIVE{% else %}GATEWAY OFFLINE{% endif %}
           </span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 5px 10px;" onclick="syncFleetRouter({{ selected_router.id }}, '{{ selected_router.name }}')" title="Provision all approved subscribers to this router">
+            ⚡ Sync Roaming
+          </button>
+          <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 5px 10px;" onclick="openEditRouterModal({{ selected_router.id }})">
+            ✏️ Edit Settings
+          </button>
+          {% if not selected_router.is_default and routers | length > 1 %}
+          <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 5px 10px; color:#f87171;" onclick="deleteRouter({{ selected_router.id }}, '{{ selected_router.name }}')">
+            🗑️ Remove
+          </button>
+          {% endif %}
         </div>
       </div>
     </div>
