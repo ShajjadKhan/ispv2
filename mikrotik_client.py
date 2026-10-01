@@ -436,6 +436,14 @@ class RouterClient:
                                     break
                         except Exception:
                             pass
+                    if not target_ip:
+                        try:
+                            for b in existing_bindings:
+                                if b.get('mac-address', '').upper() == mac_clean and b.get('address'):
+                                    target_ip = b.get('address')
+                                    break
+                        except Exception:
+                            pass
                     if target_ip:
                         if existing_q:
                             queue_res.set(id=existing_q[0]['id'], max_limit=norm_limit, target=target_ip)
@@ -847,6 +855,88 @@ class RouterClient:
                     success = False
         return success
 
+    def get_simple_queues(self) -> List[Dict[str, Any]]:
+        """
+        Fetches all simple queues (/queue/simple) configured on this MikroTik router.
+        Returns detailed list with name, target IP, max-limit (upload/download),
+        current rate, and total bytes transferred.
+        """
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            raw_queues = api.get_resource('/queue/simple').get()
+            queues = []
+            for q in raw_queues:
+                max_l = q.get('max-limit', '0/0')
+                up_str, down_str = '0', '0'
+                if '/' in max_l:
+                    parts = max_l.split('/')
+                    try:
+                        up_val = int(parts[0])
+                        down_val = int(parts[1])
+                        up_str = f"{up_val // 1000000}M" if up_val >= 1000000 else f"{up_val // 1000}k" if up_val > 0 else "Unlimited"
+                        down_str = f"{down_val // 1000000}M" if down_val >= 1000000 else f"{down_val // 1000}k" if down_val > 0 else "Unlimited"
+                    except Exception:
+                        up_str, down_str = parts[0], parts[1]
+
+                bytes_str = q.get('bytes', '0/0')
+                up_bytes, down_bytes = 0, 0
+                if '/' in bytes_str:
+                    try:
+                        b_parts = bytes_str.split('/')
+                        up_bytes = int(b_parts[0])
+                        down_bytes = int(b_parts[1])
+                    except Exception:
+                        pass
+
+                rate_str = q.get('rate', '0/0')
+                up_rate, down_rate = '0 bps', '0 bps'
+                if '/' in rate_str:
+                    try:
+                        r_parts = rate_str.split('/')
+                        r_up = int(r_parts[0])
+                        r_down = int(r_parts[1])
+                        up_rate = f"{r_up / 1000000:.1f} Mbps" if r_up >= 1000000 else f"{r_up / 1000:.0f} kbps" if r_up > 0 else "0 bps"
+                        down_rate = f"{r_down / 1000000:.1f} Mbps" if r_down >= 1000000 else f"{r_down / 1000:.0f} kbps" if r_down > 0 else "0 bps"
+                    except Exception:
+                        pass
+
+                queues.append({
+                    "id": q.get('id'),
+                    "name": q.get('name'),
+                    "target": q.get('target'),
+                    "max_limit_raw": max_l,
+                    "max_limit_formatted": f"▲ {up_str} / ▼ {down_str}",
+                    "upload_limit": up_str,
+                    "download_limit": down_str,
+                    "current_rate": f"▲ {up_rate} / ▼ {down_rate}",
+                    "upload_bytes": up_bytes,
+                    "download_bytes": down_bytes,
+                    "total_bytes_formatted": format_bytes(up_bytes + down_bytes),
+                    "dropped": q.get('dropped', '0/0'),
+                    "disabled": q.get('disabled') == 'true',
+                    "comment": q.get('comment', '')
+                })
+            return queues
+        except Exception as e:
+            logger.error(f"Failed to fetch simple queues from {self.host}: {e}")
+            return []
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
     def get_devices_usage(self, mac_addresses: List[str]) -> Dict[str, Dict[str, Any]]:
         """
         Fetches real-time internet session and traffic usage metrics for given MAC addresses
@@ -1225,6 +1315,7 @@ def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
 
 def broadcast_bind_device(
     mac_address: str,
+    ip_address: Optional[str] = None,
     comment: str = "",
     rate_limit: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -1237,7 +1328,12 @@ def broadcast_bind_device(
     results = {}
     for r in routers:
         client = get_client_for_router(r)
-        ok = client.bind_device(mac_address=mac_address, comment=comment, rate_limit=rate_limit)
+        ok = client.bind_device(
+            mac_address=mac_address,
+            ip_address=ip_address,
+            comment=comment,
+            rate_limit=rate_limit
+        )
         results[r["name"]] = ok
         logger.info(f"Fleet Bind: {mac_address} on {r['name']} ({r['host']}) -> {ok}")
     return results
@@ -1258,6 +1354,29 @@ def broadcast_unbind_device(
         ok = client.unbind_device(mac_address=mac_address, ip_address=ip_address)
         results[r["name"]] = ok
         logger.info(f"Fleet Unbind: {mac_address} on {r['name']} ({r['host']}) -> {ok}")
+    return results
+
+
+def broadcast_sync_customer_devices_speed(
+    devices: List[Dict[str, Any]],
+    rate_limit: Optional[str],
+    comment: str = ""
+) -> Dict[str, bool]:
+    """
+    Broadcasts and synchronizes speed limit queues across ALL active MikroTik routers in the fleet.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.sync_customer_devices_speed(
+            devices=devices,
+            rate_limit=rate_limit,
+            comment=comment
+        )
+        results[r["name"]] = ok
+        logger.info(f"Fleet Speed Sync: {len(devices)} device(s) on {r['name']} ({r['host']}) -> {ok}")
     return results
 
 
@@ -1324,15 +1443,21 @@ def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
         if ok:
             pkgs_synced += 1
 
-    # 2. Sync all approved customer devices
+    # 2. Sync all approved customer devices with static IP and effective speed queues
     approved_devices = database.get_approved_devices()
     devices_synced = 0
     for d in approved_devices:
         mac = d.get("mac_address")
+        ip = d.get("ip_address")
         cust_name = d.get("customer_name") or "Subscriber"
-        pkg_rate = d.get("package_rate_limit")
+        pkg_rate = d.get("effective_speed_limit") or d.get("speed_limit") or d.get("package_rate_limit")
         comm = f"Sub: {cust_name} ({d.get('package_name', '')})"
-        ok = client.bind_device(mac_address=mac, comment=comm, rate_limit=pkg_rate)
+        ok = client.bind_device(
+            mac_address=mac,
+            ip_address=ip,
+            comment=comm,
+            rate_limit=pkg_rate
+        )
         if ok:
             devices_synced += 1
 

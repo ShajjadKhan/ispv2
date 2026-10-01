@@ -871,9 +871,13 @@ def get_approved_devices() -> List[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT d.*, c.phone, c.name as customer_name, c.billing_type, c.package_name, c.monthly_fee, c.status as customer_status, c.expiry_date, c.max_devices
+            SELECT d.*, c.phone, c.name as customer_name, c.billing_type, c.package_name, c.monthly_fee,
+                   c.status as customer_status, c.expiry_date, c.max_devices, c.speed_limit,
+                   p.rate_limit as package_rate_limit,
+                   COALESCE(NULLIF(c.speed_limit, ''), p.rate_limit) as effective_speed_limit
             FROM customer_devices d
             JOIN customers c ON d.customer_id = c.id
+            LEFT JOIN packages p ON c.package_name = p.name
             WHERE d.status = 'approved' AND c.status = 'active'
             ORDER BY d.id DESC
         """)

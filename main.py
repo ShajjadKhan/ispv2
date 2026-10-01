@@ -1943,23 +1943,25 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         default_rate = pkg_match["rate_limit"] if pkg_match else None
         effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
 
-        # 3. Apply to MikroTik
+        # 3. Apply to MikroTik fleet
         comment_str = f"CyberNet: {customer['phone']} - {customer['name']} ({customer['billing_type'].upper()})"
-        mt_ok = router_client.bind_device(
+        fleet_res = mikrotik_client.broadcast_bind_device(
             mac_address=customer["mac_address"],
             ip_address=customer.get("ip_address"),
             comment=comment_str,
             rate_limit=effective_rate
         )
+        mt_ok = any(fleet_res.values()) if fleet_res else False
 
         if not mt_ok:
-            logger.warning(f"Device bound in DB but MikroTik API reported an issue.")
+            logger.warning(f"Device bound in DB but MikroTik API reported an issue: {fleet_res}")
 
         return {
             "success": True,
-            "message": f"Customer '{payload.name}' approved! Internet activated on MikroTik.",
+            "message": f"Customer '{payload.name}' approved! Internet activated across MikroTik fleet.",
             "customer": customer,
-            "mikrotik_synced": mt_ok
+            "mikrotik_synced": mt_ok,
+            "fleet_results": fleet_res
         }
 
     except Exception as e:
@@ -1979,20 +1981,22 @@ async def reject_request(req_id: int):
 
 @app.post("/api/hotspot/devices/revoke")
 async def revoke_device(payload: RevokeDevicePayload):
-    """Revokes device access from MikroTik and local DB with instant connection drop."""
+    """Revokes device access from MikroTik and local DB with instant connection drop across the fleet."""
     logger.info(f"Admin revoking device MAC {payload.mac}")
-    
+
     # 1. Update database
     info = database.revoke_customer_device(payload.mac)
     client_ip = info.get("ip_address") if info else None
 
-    # 2. Instantly drop all traffic and remove bindings on MikroTik
-    mt_ok = router_client.unbind_device(payload.mac, ip_address=client_ip)
+    # 2. Instantly drop all traffic and remove bindings across MikroTik fleet
+    fleet_res = mikrotik_client.broadcast_unbind_device(payload.mac, ip_address=client_ip)
+    mt_ok = any(fleet_res.values()) if fleet_res else False
 
     return {
         "success": True,
-        "message": f"Device {payload.mac} revoked and disconnected immediately from MikroTik.",
-        "mikrotik_synced": mt_ok
+        "message": f"Device {payload.mac} revoked and disconnected immediately from MikroTik fleet.",
+        "mikrotik_synced": mt_ok,
+        "fleet_results": fleet_res
     }
 
 
@@ -2310,17 +2314,19 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
         devices = updated.get("devices", [])
         comment_str = f"CyberNet: {updated['phone']} - {updated['name']} ({updated['billing_type']})"
 
-        mt_ok = router_client.sync_customer_devices_speed(
+        fleet_res = mikrotik_client.broadcast_sync_customer_devices_speed(
             devices=devices,
             rate_limit=effective_speed,
             comment=comment_str
         )
+        mt_ok = any(fleet_res.values()) if fleet_res else False
 
         return {
             "success": True,
-            "message": f"Customer '{updated['name']}' updated and speed synced to MikroTik!",
+            "message": f"Customer '{updated['name']}' updated and speed synced across MikroTik fleet!",
             "customer": updated,
-            "mikrotik_synced": mt_ok
+            "mikrotik_synced": mt_ok,
+            "fleet_results": fleet_res
         }
     except Exception as e:
         logger.exception(f"Error editing customer #{customer_id}: {e}")
@@ -2331,8 +2337,8 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
 async def toggle_customer_status(customer_id: int):
     """
     Toggles customer between active and suspended.
-    If suspended, immediately drops all active connections and bindings from MikroTik.
-    If activated, restores bypassed bindings on MikroTik.
+    If suspended, immediately drops all active connections and bindings from MikroTik fleet.
+    If activated, restores bypassed bindings on MikroTik fleet.
     """
     logger.info(f"Toggling status for customer #{customer_id}")
     try:
@@ -2341,24 +2347,31 @@ async def toggle_customer_status(customer_id: int):
 
         if new_status == "suspended":
             for mac in macs:
-                router_client.unbind_device(mac)
-            logger.info(f"Customer #{customer_id} suspended. Unbound {len(macs)} MACs from MikroTik.")
+                mikrotik_client.broadcast_unbind_device(mac)
+            logger.info(f"Customer #{customer_id} suspended. Unbound {len(macs)} MACs from MikroTik fleet.")
         else:
             pkg_name = cust.get("package_name") if cust else ""
             packages = database.get_packages()
             pkg_match = next((p for p in packages if p["name"] == pkg_name), None)
-            rate_limit = pkg_match["rate_limit"] if pkg_match else None
+            rate_limit = cust.get("speed_limit") or (pkg_match["rate_limit"] if pkg_match else None)
+            cust_devices = cust.get("devices", []) if cust else []
+            dev_map = {d["mac_address"]: d.get("ip_address") for d in cust_devices if "mac_address" in d}
 
             for mac in macs:
                 comment = f"CyberNet: {cust.get('phone')} - {cust.get('name')} (Restored)"
-                router_client.bind_device(mac_address=mac, comment=comment, rate_limit=rate_limit)
-            logger.info(f"Customer #{customer_id} activated. Rebound {len(macs)} MACs to MikroTik.")
+                mikrotik_client.broadcast_bind_device(
+                    mac_address=mac,
+                    ip_address=dev_map.get(mac),
+                    comment=comment,
+                    rate_limit=rate_limit
+                )
+            logger.info(f"Customer #{customer_id} activated. Rebound {len(macs)} MACs to MikroTik fleet.")
 
         return {
             "success": True,
             "new_status": new_status,
             "macs_affected": macs,
-            "message": f"Customer is now {new_status.upper()}."
+            "message": f"Customer is now {new_status.upper()} across MikroTik fleet."
         }
     except Exception as e:
         logger.exception(f"Error toggling customer #{customer_id} status: {e}")
@@ -2367,7 +2380,7 @@ async def toggle_customer_status(customer_id: int):
 
 @app.post("/api/customers/{customer_id}/devices")
 async def add_device(customer_id: int, payload: AddDevicePayload):
-    """Adds a new MAC device to customer and authorizes it on MikroTik."""
+    """Adds a new MAC device to customer and authorizes it across MikroTik fleet."""
     logger.info(f"Adding device {payload.mac} to customer #{customer_id}")
     if database.is_randomized_mac(payload.mac):
         return JSONResponse(
@@ -2389,20 +2402,22 @@ async def add_device(customer_id: int, payload: AddDevicePayload):
         pkg_name = cust.get("package_name") if cust else ""
         packages = database.get_packages()
         pkg_match = next((p for p in packages if p["name"] == pkg_name), None)
-        rate_limit = pkg_match["rate_limit"] if pkg_match else None
+        rate_limit = cust.get("speed_limit") or (pkg_match["rate_limit"] if pkg_match else None)
 
         comment = f"CyberNet: {cust.get('phone', '')} - {cust.get('name', '')} ({payload.device_name})"
-        mt_ok = router_client.bind_device(
+        fleet_res = mikrotik_client.broadcast_bind_device(
             mac_address=payload.mac,
             comment=comment,
             rate_limit=rate_limit
         )
+        mt_ok = any(fleet_res.values()) if fleet_res else False
 
         return {
             "success": True,
-            "message": f"Device {payload.mac} added and authorized.",
+            "message": f"Device {payload.mac} added and authorized across fleet.",
             "device": dev,
-            "mikrotik_synced": mt_ok
+            "mikrotik_synced": mt_ok,
+            "fleet_results": fleet_res
         }
     except Exception as e:
         logger.exception(f"Error adding device to customer #{customer_id}: {e}")
@@ -2411,19 +2426,21 @@ async def add_device(customer_id: int, payload: AddDevicePayload):
 
 @app.delete("/api/customers/{customer_id}/devices/{device_id}")
 async def remove_device(customer_id: int, device_id: int):
-    """Removes a device from customer and revokes it immediately from MikroTik."""
+    """Removes a device from customer and revokes it immediately from MikroTik fleet."""
     logger.info(f"Removing device #{device_id} from customer #{customer_id}")
     try:
         mac = database.remove_customer_device(device_id)
         if not mac:
             raise HTTPException(status_code=404, detail="Device not found")
 
-        mt_ok = router_client.unbind_device(mac)
+        fleet_res = mikrotik_client.broadcast_unbind_device(mac)
+        mt_ok = any(fleet_res.values()) if fleet_res else False
         return {
             "success": True,
-            "message": f"Device {mac} removed and revoked from MikroTik.",
+            "message": f"Device {mac} removed and revoked from MikroTik fleet.",
             "mac": mac,
-            "mikrotik_synced": mt_ok
+            "mikrotik_synced": mt_ok,
+            "fleet_results": fleet_res
         }
     except Exception as e:
         logger.exception(f"Error removing device #{device_id}: {e}")
@@ -2435,7 +2452,7 @@ async def remove_device(customer_id: int, device_id: int):
 async def delete_customer_endpoint(customer_id: int):
     """
     Permanently deletes a customer, wipes their devices and collections,
-    and removes all associated bindings, queues, and active sessions from MikroTik.
+    and removes all associated bindings, queues, and active sessions from MikroTik fleet.
     """
     logger.warning(f"Initiating permanent deletion for customer #{customer_id}")
     try:
@@ -2443,20 +2460,20 @@ async def delete_customer_endpoint(customer_id: int):
         if not success:
             raise HTTPException(status_code=404, detail="Customer not found")
 
-        # Clean up MikroTik bindings, hosts, queues, and active connections
+        # Clean up MikroTik bindings, hosts, queues, and active connections across fleet
         unbound_count = 0
         for mac in macs:
             try:
-                router_client.unbind_device(mac)
+                mikrotik_client.broadcast_unbind_device(mac)
                 unbound_count += 1
             except Exception as mt_err:
                 logger.error(f"Error unbinding device {mac} during customer #{customer_id} deletion: {mt_err}")
 
-        logger.info(f"Customer #{customer_id} ({name} - {phone}) permanently deleted. Unbound {unbound_count}/{len(macs)} devices from MikroTik.")
+        logger.info(f"Customer #{customer_id} ({name} - {phone}) permanently deleted. Unbound {unbound_count}/{len(macs)} devices from MikroTik fleet.")
 
         return {
             "success": True,
-            "message": f"Subscriber '{name}' ({phone}) permanently deleted. {unbound_count} device(s) revoked from MikroTik.",
+            "message": f"Subscriber '{name}' ({phone}) permanently deleted. {unbound_count} device(s) revoked from MikroTik fleet.",
             "customer_id": customer_id,
             "unbound_macs": macs
         }
@@ -3339,6 +3356,23 @@ async def api_sync_fleet_router(router_id: int):
     """Manually broadcasts and syncs all approved subscribers and packages to this router."""
     res = mikrotik_client.sync_all_to_new_router(router_id)
     return res
+
+
+@app.get("/api/routers/{router_id}/queues")
+async def api_get_router_queues(router_id: int):
+    """Fetches live simple queues (/queue/simple) with bandwidth limits and real-time rates from a router."""
+    r = database.get_router_by_id(router_id)
+    if not r:
+        raise HTTPException(status_code=404, detail="Router not found")
+    client = mikrotik_client.get_client_for_router(r)
+    queues = client.get_simple_queues()
+    return {
+        "success": True,
+        "router": r["name"],
+        "router_id": router_id,
+        "count": len(queues),
+        "queues": queues
+    }
 
 
 

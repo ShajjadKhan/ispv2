@@ -625,7 +625,10 @@
       </div>
 
       <!-- ACTIONS -->
-      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; flex-wrap: wrap;" onclick="event.stopPropagation()">
+        <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 4px 9px;" onclick="viewRouterQueues({{ r.id }}, '{{ r.name }}')" title="Inspect Live Bandwidth Simple Queues">
+          📊 Queues
+        </button>
         <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 4px 9px;" onclick="syncFleetRouter({{ r.id }}, '{{ r.name }}')" title="Provision all approved subscribers to this router">
           ⚡ Sync Roaming
         </button>
@@ -682,6 +685,9 @@
           </span>
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 5px 10px;" onclick="viewRouterQueues({{ selected_router.id }}, '{{ selected_router.name }}')" title="Inspect Live Bandwidth Simple Queues">
+            📊 Live Queues
+          </button>
           <button type="button" class="btn-action-pill" style="font-size: 11px; padding: 5px 10px;" onclick="syncFleetRouter({{ selected_router.id }}, '{{ selected_router.name }}')" title="Provision all approved subscribers to this router">
             ⚡ Sync Roaming
           </button>
@@ -966,6 +972,36 @@
     </form>
   </div>
 </div>
+
+<!-- ROUTER SIMPLE QUEUES MODAL -->
+<div id="routerQueuesModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 720px; width: 100%;">
+    <div class="modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+        <span id="queuesModalTitle" style="font-weight: 700; font-size: 15px; color: #ffffff;">Bandwidth Queues</span>
+      </div>
+      <button type="button" class="btn-close-modal" onclick="closeRouterQueuesModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 16px;">
+      <div id="queuesModalLoading" style="text-align:center; padding: 24px; color: var(--text-dim);">
+        <div class="spinner" style="margin: 0 auto 10px auto;"></div>
+        <span>Querying live simple queues from MikroTik...</span>
+      </div>
+      <div id="queuesModalContent" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:8px;">
+          <div style="font-size:12px; color:var(--text-dim);">
+            Active Queues on <span id="queuesModalRouterName" class="text-white" style="font-weight:700;"></span>: <strong id="queuesModalCount" class="text-cyan">0</strong>
+          </div>
+          <button type="button" class="btn-action-pill" style="font-size:11px; padding:3px 8px;" onclick="refreshCurrentQueues()">
+            🔄 Refresh Queues
+          </button>
+        </div>
+        <div id="queuesListContainer" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -1133,6 +1169,84 @@
       }
     } catch (err) {
       cyberToast('Network error: ' + err.message);
+    }
+  }
+
+  let currentViewingRouterId = null;
+  let currentViewingRouterName = '';
+
+  function viewRouterQueues(id, name) {
+    currentViewingRouterId = id;
+    currentViewingRouterName = name;
+    document.getElementById('queuesModalTitle').textContent = `Bandwidth Queues — ${name}`;
+    document.getElementById('queuesModalRouterName').textContent = name;
+    document.getElementById('queuesModalLoading').style.display = 'block';
+    document.getElementById('queuesModalContent').style.display = 'none';
+    document.getElementById('routerQueuesModal').classList.add('open');
+    loadRouterQueues(id);
+  }
+
+  function closeRouterQueuesModal() {
+    document.getElementById('routerQueuesModal').classList.remove('open');
+  }
+
+  function refreshCurrentQueues() {
+    if (currentViewingRouterId) {
+      loadRouterQueues(currentViewingRouterId);
+    }
+  }
+
+  async function loadRouterQueues(routerId) {
+    try {
+      const res = await fetch(`/api/routers/${routerId}/queues`);
+      const data = await res.json();
+      document.getElementById('queuesModalLoading').style.display = 'none';
+      document.getElementById('queuesModalContent').style.display = 'block';
+      document.getElementById('queuesModalCount').textContent = data.count || 0;
+
+      const container = document.getElementById('queuesListContainer');
+      if (!data.queues || data.queues.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:30px 16px; background:rgba(255,255,255,0.02); border:1px dashed var(--border-subtle); border-radius:12px;">
+            <div style="font-size:28px; margin-bottom:8px;">⚡</div>
+            <div style="font-weight:700; color:#ffffff; font-size:14px; margin-bottom:4px;">No Active Queues (Full Wire-Speed)</div>
+            <p style="font-size:12px; color:var(--text-dim); max-width:440px; margin:0 auto; line-height:1.5;">
+              All authorized devices are currently operating with zero throttling (Unlimited). Speed limit queues will appear here automatically when a subscriber or package speed profile is configured.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+      data.queues.forEach(q => {
+        html += `
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="font-mono text-cyan" style="font-weight:700; font-size:13px;">${q.name}</span>
+                <span style="font-size:11px; font-weight:700; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); padding:1px 6px; border-radius:4px;">${q.max_limit_formatted}</span>
+              </div>
+              <div style="font-size:11.5px; color:var(--text-dim); margin-top:3px; font-family:var(--font-mono);">
+                Target: <strong class="text-white">${q.target}</strong>
+                ${q.comment ? ` &bull; <span style="color:#94a3b8;">${q.comment}</span>` : ''}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px; color:#10b981; font-weight:700;">Rate: ${q.current_rate}</div>
+              <div style="font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono);">Total: ${q.total_bytes_formatted}</div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    } catch (err) {
+      document.getElementById('queuesModalLoading').style.display = 'none';
+      document.getElementById('queuesModalContent').style.display = 'block';
+      document.getElementById('queuesListContainer').innerHTML = `
+        <div style="color:#f87171; padding:16px; text-align:center;">Failed to load queues: ${err.message}</div>
+      `;
     }
   }
 </script>
