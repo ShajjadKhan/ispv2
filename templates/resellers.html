@@ -171,6 +171,16 @@
     background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
   }
+  .btn-table-action.btn-delete-action {
+    color: #f87171 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+  }
+  .btn-table-action.btn-delete-action:hover {
+    background: rgba(239, 68, 68, 0.22) !important;
+    color: #ffffff !important;
+    border-color: #f87171 !important;
+  }
 
   .badge-tag {
     display: inline-flex;
@@ -611,16 +621,34 @@
                   {% endif %}
                 </td>
                 <td data-label="Actions" style="text-align:right;">
-                  <div style="display:inline-flex; align-items:center; gap:6px;">
-                    <button type="button" class="btn-topup-sm" onclick="openTopupModal({{ r.id }}, '{{ r.shop_name or r.username }}', {{ r.wallet_balance }})">
+                  <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                    <button type="button" class="btn-topup-sm" onclick="openTopupModal({{ r.id }}, '{{ (r.shop_name or r.username)|replace("'", "\\'") }}', {{ r.wallet_balance }})">
                       <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                       <span>Top-up</span>
                     </button>
                     <a href="/reseller?as_reseller_id={{ r.id }}" target="_blank" class="btn-table-action" title="Open Partner Portal as this Reseller">
                       <span>Portal ↗</span>
                     </a>
-                    <button type="button" class="btn-table-action" onclick="openEditModal({{ r.id }}, '{{ r.full_name|escape }}', '{{ r.shop_name|escape }}', '{{ r.phone|escape }}', {{ r.commission_rate }}, {{ r.is_active }})" title="Edit Reseller Settings">
+                    <button type="button" class="btn-table-action"
+                      data-id="{{ r.id }}"
+                      data-username="{{ r.username }}"
+                      data-fullname="{{ r.full_name }}"
+                      data-shopname="{{ r.shop_name or '' }}"
+                      data-phone="{{ r.phone or '' }}"
+                      data-comm="{{ r.commission_rate }}"
+                      data-active="{{ 1 if r.is_active else 0 }}"
+                      onclick="openEditResellerModalFromBtn(this)"
+                      title="Edit Reseller Settings">
+                      <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                       <span>Edit</span>
+                    </button>
+                    <button type="button" class="btn-table-action btn-delete-action"
+                      data-id="{{ r.id }}"
+                      data-name="{{ r.shop_name or r.username }}"
+                      onclick="deleteResellerPartner(this)"
+                      title="Delete Reseller Partner">
+                      <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                      <span>Delete</span>
                     </button>
                   </div>
                 </td>
@@ -678,9 +706,30 @@
                 {% endif %}
               </td>
               <td data-label="Actions" style="text-align:right;">
-                <button type="button" class="btn-table-action" onclick="openEditManagerModal({{ m.id }}, '{{ m.username|escape }}', '{{ m.full_name|escape }}', '{{ (m.phone or '')|escape }}', '{{ m.role }}', {{ 1 if m.is_active else 0 }})" title="Edit Manager / Change Credentials">
-                  <span>✏️ Edit</span>
-                </button>
+                <div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                  <button type="button" class="btn-table-action"
+                    data-id="{{ m.id }}"
+                    data-username="{{ m.username }}"
+                    data-fullname="{{ m.full_name }}"
+                    data-phone="{{ m.phone or '' }}"
+                    data-role="{{ m.role }}"
+                    data-active="{{ 1 if m.is_active else 0 }}"
+                    onclick="openEditManagerModalFromBtn(this)"
+                    title="Edit Manager / Change Credentials">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    <span>Edit</span>
+                  </button>
+                  {% if m.id != 1 %}
+                  <button type="button" class="btn-table-action btn-delete-action"
+                    data-id="{{ m.id }}"
+                    data-name="{{ m.full_name or m.username }}"
+                    onclick="deleteManagerUser(this)"
+                    title="Delete Manager Account">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    <span>Delete</span>
+                  </button>
+                  {% endif %}
+                </div>
               </td>
             </tr>
             {% endfor %}
@@ -893,24 +942,35 @@
         </div>
         <div class="form-grid-pair">
           <div class="form-group">
+            <label for="erUsername">Login Username</label>
+            <input type="text" class="form-input font-mono" id="erUsername" required minlength="3">
+          </div>
+          <div class="form-group">
             <label for="erPhone">Contact Phone</label>
             <input type="text" class="form-input font-mono" id="erPhone">
           </div>
+        </div>
+        <div class="form-grid-pair">
           <div class="form-group">
             <label for="erCommission">Commission Discount %</label>
             <input type="number" step="0.5" class="form-input font-mono" id="erCommission" required min="0" max="100">
           </div>
+          <div class="form-group">
+            <label for="erStatus">Partner Account Status</label>
+            <select class="form-input" id="erStatus">
+              <option value="1">Active (Can Recharge Subscribers)</option>
+              <option value="0">Suspended / Disabled</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
-          <label for="erStatus">Partner Account Status</label>
-          <select class="form-input" id="erStatus">
-            <option value="1">Active (Can Recharge Subscribers)</option>
-            <option value="0">Suspended / Disabled</option>
-          </select>
+          <label for="erPassword">Reset Password (Optional)</label>
+          <input type="password" class="form-input" id="erPassword" placeholder="Leave blank to keep current password" minlength="6">
+          <small style="color:var(--text-dim); font-size:11px; margin-top:3px; display:block;">Enter a new password if you want to reset this partner's password (min 6 chars).</small>
         </div>
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
           <button type="button" class="btn-secondary-action" onclick="closeModal('editResellerModal')">Cancel</button>
-          <button type="submit" class="btn-primary-action">Save Changes</button>
+          <button type="submit" class="btn-primary-action" id="btnSaveReseller">Save Changes</button>
         </div>
       </div>
     </form>
@@ -1028,13 +1088,27 @@
     openModal('topupWalletModal');
   }
 
+  function openEditResellerModalFromBtn(btn) {
+    document.getElementById('erId').value = btn.dataset.id;
+    document.getElementById('erShopName').value = btn.dataset.shopname || '';
+    document.getElementById('erFullName').value = btn.dataset.fullname || '';
+    document.getElementById('erUsername').value = btn.dataset.username || '';
+    document.getElementById('erPhone').value = btn.dataset.phone || '';
+    document.getElementById('erCommission').value = btn.dataset.comm || '10.0';
+    document.getElementById('erStatus').value = (btn.dataset.active !== undefined && btn.dataset.active !== null) ? btn.dataset.active : '1';
+    document.getElementById('erPassword').value = '';
+    openModal('editResellerModal');
+  }
+
   function openEditModal(id, fullName, shopName, phone, comm, active) {
     document.getElementById('erId').value = id;
     document.getElementById('erFullName').value = fullName;
     document.getElementById('erShopName').value = shopName;
+    document.getElementById('erUsername').value = '';
     document.getElementById('erPhone').value = phone || '';
     document.getElementById('erCommission').value = comm;
     document.getElementById('erStatus').value = active ? '1' : '0';
+    document.getElementById('erPassword').value = '';
     openModal('editResellerModal');
   }
 
@@ -1124,13 +1198,41 @@
   async function submitEditReseller(e) {
     e.preventDefault();
     const id = document.getElementById('erId').value;
+    const btn = document.getElementById('btnSaveReseller');
+    const username = document.getElementById('erUsername').value.trim();
+    const shopName = document.getElementById('erShopName').value.trim();
+    const fullName = document.getElementById('erFullName').value.trim();
+    const phone = document.getElementById('erPhone').value.trim();
+    const commission = parseFloat(document.getElementById('erCommission').value || 0);
+    const isActive = parseInt(document.getElementById('erStatus').value);
+    const newPass = document.getElementById('erPassword').value;
+
+    if (username && username.length < 3) {
+      cyberToast('Login username must be at least 3 characters long.');
+      return;
+    }
+
     const payload = {
-      full_name: document.getElementById('erFullName').value.trim(),
-      shop_name: document.getElementById('erShopName').value.trim(),
-      phone: document.getElementById('erPhone').value.trim(),
-      commission_rate: parseFloat(document.getElementById('erCommission').value || 0),
-      is_active: parseInt(document.getElementById('erStatus').value)
+      full_name: fullName,
+      shop_name: shopName,
+      username: username,
+      phone: phone,
+      commission_rate: commission,
+      is_active: isActive
     };
+
+    if (newPass) {
+      if (newPass.length < 6) {
+        cyberToast('New password must be at least 6 characters long.');
+        return;
+      }
+      payload.new_password = newPass;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+    }
 
     try {
       const res = await fetch(`/api/resellers/${id}/update`, {
@@ -1140,7 +1242,36 @@
       });
       const data = await res.json();
       if (data.success) {
-        cyberToast('Partner settings saved!');
+        cyberToast('Partner settings saved successfully!');
+        location.reload();
+      } else {
+        cyberToast('Error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      cyberToast('Network error: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    }
+  }
+
+  async function deleteResellerPartner(btn) {
+    const id = btn.dataset.id;
+    const name = btn.dataset.name || 'this partner';
+    if (!confirm(`Are you sure you want to permanently delete reseller partner "${name}"?\n\nAny customers linked to this partner will be unassigned (not deleted). This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/resellers/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        cyberToast(data.message || 'Reseller partner deleted successfully.');
         location.reload();
       } else {
         cyberToast('Error: ' + (data.error || data.message));
@@ -1148,6 +1279,17 @@
     } catch (err) {
       cyberToast('Network error: ' + err.message);
     }
+  }
+
+  function openEditManagerModalFromBtn(btn) {
+    document.getElementById('emId').value = btn.dataset.id;
+    document.getElementById('emUsername').value = btn.dataset.username || '';
+    document.getElementById('emFullName').value = btn.dataset.fullname || '';
+    document.getElementById('emPhone').value = btn.dataset.phone || '';
+    document.getElementById('emRole').value = btn.dataset.role || 'manager';
+    document.getElementById('emStatus').value = (btn.dataset.active !== undefined && btn.dataset.active !== null) ? btn.dataset.active : 1;
+    document.getElementById('emPassword').value = '';
+    openModal('editManagerModal');
   }
 
   function openEditManagerModal(id, username, fullName, phone, role, isActive) {
@@ -1214,6 +1356,30 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Save Changes';
+    }
+  }
+
+  async function deleteManagerUser(btn) {
+    const id = btn.dataset.id;
+    const name = btn.dataset.name || 'this manager';
+    if (!confirm(`Are you sure you want to permanently delete operations manager "${name}"?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/managers/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        cyberToast(data.message || 'Manager account deleted successfully.');
+        location.reload();
+      } else {
+        cyberToast('Error: ' + (data.error || data.message));
+      }
+    } catch (err) {
+      cyberToast('Network error: ' + err.message);
     }
   }
 </script>

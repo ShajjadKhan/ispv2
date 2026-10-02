@@ -257,6 +257,8 @@ class UpdateResellerPayload(BaseModel):
     phone: Optional[str] = None
     commission_rate: Optional[float] = None
     is_active: Optional[int] = None
+    username: Optional[str] = None
+    new_password: Optional[str] = None
 
 
 class CreateManagerPayload(BaseModel):
@@ -1463,9 +1465,22 @@ async def api_topup_reseller(reseller_id: int, payload: TopupResellerPayload, re
     return {"success": True, "message": msg, "new_balance": new_bal}
 
 
+@app.get("/api/resellers/{reseller_id}")
+async def api_get_reseller(reseller_id: int, request: Request):
+    """Fetches details for a specific reseller partner."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    r = auth_service.get_reseller_by_id(reseller_id)
+    if not r:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Reseller partner not found."})
+    return {"success": True, "reseller": r}
+
+
 @app.post("/api/resellers/{reseller_id}/update")
 async def api_update_reseller(reseller_id: int, payload: UpdateResellerPayload, request: Request):
-    """Admin updates reseller commission or account details."""
+    """Admin updates reseller commission, shop name, username, password, or account details."""
     user = getattr(request.state, "user", None)
     if not user or user.get("role") not in ("admin", "superadmin"):
         return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
@@ -1476,8 +1491,25 @@ async def api_update_reseller(reseller_id: int, payload: UpdateResellerPayload, 
         shop_name=payload.shop_name,
         phone=payload.phone,
         commission_rate=payload.commission_rate,
-        is_active=payload.is_active
+        is_active=payload.is_active,
+        username=payload.username,
+        new_password=payload.new_password
     )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
+
+
+@app.delete("/api/resellers/{reseller_id}")
+@app.post("/api/resellers/{reseller_id}/delete")
+async def api_delete_reseller(reseller_id: int, request: Request):
+    """Admin permanently deletes a reseller partner."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    requesting_id = user.get("id") or user.get("user_id")
+    success, msg = auth_service.delete_user(reseller_id, requesting_user_id=requesting_id)
     if not success:
         return JSONResponse(status_code=400, content={"success": False, "error": msg})
     return {"success": True, "message": msg}
@@ -1551,6 +1583,21 @@ async def api_update_manager(manager_id: int, payload: UpdateManagerPayload, req
     if not ok:
         return JSONResponse(status_code=400, content={"success": False, "error": msg})
     return {"success": True, "message": msg, "manager": updated_user}
+
+
+@app.delete("/api/managers/{manager_id}")
+@app.post("/api/managers/{manager_id}/delete")
+async def api_delete_manager(manager_id: int, request: Request):
+    """Admin permanently deletes an operations manager account."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    requesting_id = user.get("id") or user.get("user_id")
+    success, msg = auth_service.delete_user(manager_id, requesting_user_id=requesting_id)
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
 
 
 @app.post("/api/reseller/recharge")
