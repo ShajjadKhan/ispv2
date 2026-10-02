@@ -797,10 +797,19 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str) -> Dict[str, Any]:
             return {"status": "none", "message": "No pending request."}
 
         req = dict(row)
+        if req["status"] == "approved":
+            # If historical request says approved, but get_customer_by_mac was None or inactive,
+            # this device was deleted from customer_devices or customer is suspended/deleted!
+            return {
+                "status": "revoked",
+                "is_secondary": bool(req.get("is_secondary")),
+                "message": "Device access has been revoked or removed. Please contact administrator."
+            }
+
         return {
             "status": req["status"],
             "is_secondary": bool(req["is_secondary"]),
-            "message": "Connection approved!" if req["status"] == "approved" else "Awaiting admin approval."
+            "message": "Awaiting admin approval."
         }
 
 
@@ -1559,7 +1568,7 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
 
 
 def add_customer_device(customer_id: int, mac_address: str, device_name: str = "Client Device") -> Dict[str, Any]:
-    """Adds a new MAC device to an existing customer."""
+    """Adds a new MAC device to an existing customer and marks connection requests approved."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mac_clean = mac_address.strip().upper()
 
@@ -1572,33 +1581,46 @@ def add_customer_device(customer_id: int, mac_address: str, device_name: str = "
             INSERT OR REPLACE INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
             VALUES (?, ?, NULL, ?, 'approved', ?, ?)
         """, (customer_id, mac_clean, device_name, now_str, now_str))
+        cursor.execute("""
+            UPDATE connection_requests
+            SET status = 'approved', customer_id = ?, updated_at = ?
+            WHERE UPPER(mac_address) = ?
+        """, (customer_id, now_str, mac_clean))
         conn.commit()
         dev_id = cursor.lastrowid
         cursor.execute("SELECT * FROM customer_devices WHERE id = ?", (dev_id,))
         return dict(cursor.fetchone())
 
 
-def remove_customer_device(device_id: int) -> Optional[str]:
-    """Removes a device and returns its MAC for unbinding."""
+def remove_customer_device(device_id: int) -> Tuple[Optional[str], Optional[str]]:
+    """Removes a device, revokes its connection requests, and returns (mac, ip) for unbinding."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT mac_address FROM customer_devices WHERE id = ?", (device_id,))
+        cursor.execute("SELECT mac_address, ip_address FROM customer_devices WHERE id = ?", (device_id,))
         row = cursor.fetchone()
         if not row:
-            return None
+            return None, None
         mac = row["mac_address"].upper()
+        ip = row["ip_address"]
 
         cursor.execute("DELETE FROM customer_devices WHERE id = ?", (device_id,))
+        cursor.execute("""
+            UPDATE connection_requests
+            SET status = 'revoked', updated_at = ?
+            WHERE UPPER(mac_address) = ?
+        """, (now_str, mac))
         conn.commit()
-        return mac
+        return mac, ip
 
 
 def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str, str]:
     """
     Permanently deletes a customer and all associated devices, payment collections,
-    and disassociates ONUs, connection requests, and WhatsApp logs.
+    and disassociates ONUs, revokes connection requests, and disassociates WhatsApp logs.
     Returns (success, list_of_mac_addresses, customer_name, customer_phone).
     """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id, name, phone FROM customers WHERE id = ?", (customer_id,))
@@ -1620,8 +1642,10 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
         # 3. Delete collections / ledger records for this customer
         cursor.execute("DELETE FROM collections WHERE customer_id = ?", (customer_id,))
 
-        # 4. Disassociate connection requests
-        cursor.execute("UPDATE connection_requests SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
+        # 4. Revoke and disassociate connection requests
+        cursor.execute("UPDATE connection_requests SET status = 'revoked', customer_id = NULL, updated_at = ? WHERE customer_id = ?", (now_str, customer_id))
+        for m in macs:
+            cursor.execute("UPDATE connection_requests SET status = 'revoked', updated_at = ? WHERE UPPER(mac_address) = ?", (now_str, m))
 
         # 5. Disassociate assigned ONUs
         cursor.execute("UPDATE onus SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
@@ -1634,6 +1658,7 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
 
         conn.commit()
         return True, macs, cust_name, cust_phone
+
 
 
 def record_customer_payment(

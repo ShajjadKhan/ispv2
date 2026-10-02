@@ -1784,11 +1784,20 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
 
     result = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
     if result.get("status") == "approved":
+        # Validate that device is genuinely active in customer_devices before re-binding
+        cust = database.get_customer_by_mac(mac_clean)
+        if cust and cust.get("status") == "active":
+            try:
+                mikrotik_client.broadcast_bind_device(
+                    mac_address=mac_clean,
+                    comment=f"CyberNet: {cust.get('phone', '')} - {cust.get('name', 'Active Subscriber')}"
+                )
+            except Exception:
+                pass
+    elif result.get("status") in ("revoked", "rejected", "blocked"):
+        # Explicitly ensure MikroTik fleet unbinds and drops traffic for revoked/rejected devices
         try:
-            mikrotik_client.broadcast_bind_device(
-                mac_address=mac_clean,
-                comment=f"CyberNet: {result.get('message', 'Active Subscriber')}"
-            )
+            mikrotik_client.broadcast_unbind_device(mac_clean)
         except Exception:
             pass
 
@@ -2438,11 +2447,11 @@ async def remove_device(customer_id: int, device_id: int):
     """Removes a device from customer and revokes it immediately from MikroTik fleet."""
     logger.info(f"Removing device #{device_id} from customer #{customer_id}")
     try:
-        mac = database.remove_customer_device(device_id)
+        mac, ip = database.remove_customer_device(device_id)
         if not mac:
             raise HTTPException(status_code=404, detail="Device not found")
 
-        fleet_res = mikrotik_client.broadcast_unbind_device(mac)
+        fleet_res = mikrotik_client.broadcast_unbind_device(mac, ip_address=ip)
         mt_ok = any(fleet_res.values()) if fleet_res else False
         return {
             "success": True,
