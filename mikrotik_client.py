@@ -380,21 +380,28 @@ class RouterClient:
             # 1. /ip/hotspot/ip-binding
             binding_res = api.get_resource('/ip/hotspot/ip-binding')
             existing_bindings = binding_res.get()
-            found_id = None
+
+            # Remove any existing binding(s) for this MAC address.
+            # CRITICAL: We do NOT set the 'address' property on /ip/hotspot/ip-binding.
+            # When 'address' is omitted, MikroTik bypasses the device purely by hardware MAC address
+            # regardless of dynamic DHCP leases or IP reassignments. If 'address' were set,
+            # any DHCP IP change after a device is away for 1 day/week/month causes an IP mismatch
+            # and forces the customer to see the login screen again!
             for b in existing_bindings:
                 if b.get('mac-address', '').upper() == mac_clean:
-                    found_id = b['id']
-                    break
+                    try:
+                        binding_res.remove(id=b['id'])
+                    except Exception as e:
+                        logger.warning(f"Could not remove old binding {b.get('id')} for {mac_clean}: {e}")
 
-            if found_id:
-                binding_res.set(id=found_id, type='bypassed', comment=comment)
-                logger.info(f"Updated existing IP binding for MAC {mac_clean} to bypassed.")
-            else:
-                add_kwargs = {'mac-address': mac_clean, 'type': 'bypassed', 'comment': comment}
-                if ip_address and not ip_address.startswith("10.20.30.") and ip_address != "127.0.0.1":
-                    add_kwargs['address'] = ip_address
-                binding_res.add(**add_kwargs)
-                logger.info(f"Created new IP binding for MAC {mac_clean} as bypassed.")
+            binding_res.add(
+                **{
+                    'mac-address': mac_clean,
+                    'type': 'bypassed',
+                    'comment': comment
+                }
+            )
+            logger.info(f"Pushed pure MAC-only bypassed IP binding for {mac_clean} on {self.host}.")
 
             # 2. Clear any lingering unauthenticated active session
             try:
@@ -552,24 +559,24 @@ class RouterClient:
             )
             api = pool.get_api()
 
-            # 1. /ip/hotspot/ip-binding: Set type=blocked
+            # 1. /ip/hotspot/ip-binding: Set type=blocked (pure MAC-only)
             binding_res = api.get_resource('/ip/hotspot/ip-binding')
             existing_bindings = binding_res.get()
-            found_id = None
             for b in existing_bindings:
                 if b.get('mac-address', '').upper() == mac_clean:
-                    found_id = b['id']
-                    break
+                    try:
+                        binding_res.remove(id=b['id'])
+                    except Exception:
+                        pass
 
-            if found_id:
-                binding_res.set(id=found_id, type='blocked', comment=comment)
-                logger.info(f"Updated IP binding for MAC {mac_clean} to BLOCKED.")
-            else:
-                add_kwargs = {'mac-address': mac_clean, 'type': 'blocked', 'comment': comment}
-                if ip_address:
-                    add_kwargs['address'] = ip_address
-                binding_res.add(**add_kwargs)
-                logger.info(f"Created new BLOCKED IP binding for MAC {mac_clean}.")
+            binding_res.add(
+                **{
+                    'mac-address': mac_clean,
+                    'type': 'blocked',
+                    'comment': comment
+                }
+            )
+            logger.info(f"Created pure MAC-only BLOCKED IP binding for {mac_clean} on {self.host}.")
 
             # 2. Teardown active hotspot sessions, hosts, and conntracks
             self._tear_down_session(api, mac_clean, ip_address)
@@ -1467,6 +1474,40 @@ def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
         "packages_synced": pkgs_synced,
         "devices_synced": devices_synced
     }
+
+
+def broadcast_sync_all_approved_devices() -> Dict[str, Any]:
+    """
+    Synchronizes all approved customer devices to all active MikroTik routers
+    with pure MAC-only bypassed bindings (clearing any stale IP restrictions).
+    Guarantees instant internet without login prompts even after long disconnects.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    approved_devices = database.get_approved_devices()
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        count = 0
+        for d in approved_devices:
+            mac = d.get("mac_address")
+            if not mac:
+                continue
+            cust_name = d.get("customer_name") or "Subscriber"
+            pkg_name = d.get("package_name") or ""
+            comm = f"Sub: {cust_name} ({pkg_name})"
+            pkg_rate = d.get("effective_speed_limit") or d.get("speed_limit") or d.get("package_rate_limit")
+            ok = client.bind_device(
+                mac_address=mac,
+                ip_address=d.get("ip_address"),
+                comment=comm,
+                rate_limit=pkg_rate
+            )
+            if ok:
+                count += 1
+        results[r["name"]] = count
+        logger.info(f"Fleet Sync: Synced {count}/{len(approved_devices)} approved devices on {r['name']} ({r['host']})")
+    return results
 
 
 

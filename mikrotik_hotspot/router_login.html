@@ -1145,6 +1145,20 @@
       btn.disabled = false;
     }
   }
+
+  // Auto-detect if this client's hardware MAC is already an active authorized device
+  (function autoCheckApprovedDevice() {
+    if (!isSimulated && ROUTER_MAC && !isRandomMac(ROUTER_MAC)) {
+      fetch(API_BASE + "/api/hotspot/check-status?mac=" + encodeURIComponent(ROUTER_MAC))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.status === "approved") {
+            showApproved(data.message || "Welcome back! Your device is authorized.");
+          }
+        })
+        .catch(function() {});
+    }
+  })();
 </script>
 
 </body>

@@ -1701,11 +1701,11 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
         )
 
     if is_approved:
-        # Re-ensure MikroTik binding is active
-        router_client.bind_device(
+        # Re-ensure pure MAC-only MikroTik binding is active across the fleet
+        comment_str = f"CyberNet: {phone_clean} (Existing Active)"
+        mikrotik_client.broadcast_bind_device(
             mac_address=mac_clean,
-            ip_address=payload.ip,
-            comment=f"CyberNet: {phone_clean} (Existing Active)"
+            comment=comment_str
         )
         return JSONResponse(
             content={
@@ -1783,6 +1783,15 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
                 pass
 
     result = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
+    if result.get("status") == "approved":
+        try:
+            mikrotik_client.broadcast_bind_device(
+                mac_address=mac_clean,
+                comment=f"CyberNet: {result.get('message', 'Active Subscriber')}"
+            )
+        except Exception:
+            pass
+
     return JSONResponse(
         content=result,
         headers={"Access-Control-Allow-Origin": "*"}

@@ -787,6 +787,12 @@
         setTimeout(() => { window.location.href = redirectLink; }, 1500);
       }
     }
+
+    // Auto-detect if this client's hardware MAC is already an active authorized device
+    const clientMac = document.getElementById('userMac') ? document.getElementById('userMac').value.trim() : '';
+    if (clientMac && !isRandomMac(clientMac)) {
+      checkStatus(clientMac, '');
+    }
   </script>
 </body>
 </html>
