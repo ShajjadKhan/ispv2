@@ -3795,9 +3795,96 @@ def get_collections_hub_data(
         }
 
 
+def get_collection_by_id(collection_id: int) -> Optional[Dict[str, Any]]:
+    """Retrieves a single collection transaction with customer details."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT col.*, cust.name as customer_name, cust.phone as customer_phone
+            FROM collections col
+            LEFT JOIN customers cust ON col.customer_id = cust.id
+            WHERE col.id = ?
+        """, (collection_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def update_collection(
+    collection_id: int,
+    amount: float,
+    notes: str,
+    collected_at: Optional[str] = None,
+    collected_by: Optional[str] = None,
+    billing_type: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """Updates amount, notes, timestamp, collector, or billing type of a collection record."""
+    clean_amt = round(float(amount or 0.0), 2)
+    clean_notes = (notes or "").strip()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM collections WHERE id = ?", (collection_id,))
+        old = cursor.fetchone()
+        if not old:
+            return None
+
+        final_at = collected_at.strip() if (collected_at and collected_at.strip()) else old["collected_at"]
+        final_by = collected_by.strip() if (collected_by and collected_by.strip()) else old["collected_by"]
+        final_type = billing_type.strip() if (billing_type and billing_type.strip()) else old["billing_type"]
+        month_yr = final_at[:7] if len(final_at) >= 7 else old["month_year"]
+
+        cursor.execute("""
+            UPDATE collections
+            SET amount = ?, notes = ?, collected_at = ?, collected_by = ?, billing_type = ?, month_year = ?
+            WHERE id = ?
+        """, (clean_amt, clean_notes, final_at, final_by, final_type, month_yr, collection_id))
+        conn.commit()
+
+        cursor.execute("""
+            SELECT col.*, cust.name as customer_name, cust.phone as customer_phone
+            FROM collections col
+            LEFT JOIN customers cust ON col.customer_id = cust.id
+            WHERE col.id = ?
+        """, (collection_id,))
+        return dict(cursor.fetchone())
+
+
+def delete_collection(collection_id: int) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """Permanently deletes a collection entry and adjusts customer collected_today if applicable."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT col.*, cust.name as customer_name, cust.phone as customer_phone
+            FROM collections col
+            LEFT JOIN customers cust ON col.customer_id = cust.id
+            WHERE col.id = ?
+        """, (collection_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, None
+        col = dict(row)
+
+        cust_id = col.get("customer_id")
+        amt = float(col.get("amount") or 0.0)
+
+        # If customer had collected_today set from this payment, adjust collected_today
+        if cust_id and amt > 0:
+            cursor.execute("SELECT collected_today, credit_balance FROM customers WHERE id = ?", (cust_id,))
+            cust_row = cursor.fetchone()
+            if cust_row:
+                curr_collected = float(cust_row["collected_today"] or 0.0)
+                if curr_collected > 0:
+                    new_collected = max(0.0, round(curr_collected - amt, 2))
+                    cursor.execute("UPDATE customers SET collected_today = ? WHERE id = ?", (new_collected, cust_id))
+
+        cursor.execute("DELETE FROM collections WHERE id = ?", (collection_id,))
+        conn.commit()
+        return True, col
+
+
 # =========================================================
 # Reseller Partner Operations & Wallet Ledger
 # =========================================================
+
 
 def topup_reseller_wallet(
     reseller_id: int,

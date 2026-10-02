@@ -311,6 +311,14 @@ class ApplyCreditPayload(BaseModel):
     extend_days: int = 30
 
 
+class UpdateCollectionPayload(BaseModel):
+    amount: float
+    notes: Optional[str] = "Payment entry"
+    collected_at: Optional[str] = None
+    collected_by: Optional[str] = "Admin"
+    billing_type: Optional[str] = "cash"
+
+
 class PackagePayload(BaseModel):
     name: str
     price: float
@@ -2653,8 +2661,67 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
 
 
 # =========================================================
+# Collection & Financial Ledger Modification Endpoints
+# =========================================================
+
+@app.get("/api/collections/{collection_id}")
+async def get_collection_endpoint(collection_id: int):
+    """Fetches details of a single collection transaction."""
+    col = database.get_collection_by_id(collection_id)
+    if not col:
+        raise HTTPException(status_code=404, detail="Collection record not found")
+    return {"success": True, "collection": col}
+
+
+@app.put("/api/collections/{collection_id}")
+@app.post("/api/collections/{collection_id}/edit")
+async def update_collection_endpoint(collection_id: int, payload: UpdateCollectionPayload):
+    """Updates amount, notes, timestamp, collector, or billing type of a collection record."""
+    logger.info(f"Admin updating collection #{collection_id} with amount={payload.amount}, notes={payload.notes}")
+    try:
+        updated = database.update_collection(
+            collection_id=collection_id,
+            amount=payload.amount,
+            notes=payload.notes or "",
+            collected_at=payload.collected_at,
+            collected_by=payload.collected_by,
+            billing_type=payload.billing_type
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Collection record not found")
+        return {
+            "success": True,
+            "message": f"Payment record #COL-{collection_id} updated successfully.",
+            "collection": updated
+        }
+    except Exception as e:
+        logger.exception(f"Error updating collection #{collection_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.delete("/api/collections/{collection_id}")
+@app.post("/api/collections/{collection_id}/delete")
+async def delete_collection_endpoint(collection_id: int):
+    """Permanently deletes a collection entry from the financial ledger and balance sheet."""
+    logger.info(f"Admin deleting collection record #{collection_id}")
+    try:
+        success, deleted = database.delete_collection(collection_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Collection record not found")
+        return {
+            "success": True,
+            "message": f"Payment record #COL-{collection_id} deleted successfully.",
+            "deleted": deleted
+        }
+    except Exception as e:
+        logger.exception(f"Error deleting collection #{collection_id}: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# =========================================================
 # Grace Period, Daily Accrual & Month Settlement API Endpoints
 # =========================================================
+
 
 @app.get("/api/customers/{customer_id}/billing-breakdown")
 async def get_customer_billing_breakdown_endpoint(customer_id: int):
