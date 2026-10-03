@@ -611,6 +611,102 @@ def get_customer_by_phone(phone: str) -> Optional[Dict[str, Any]]:
         return dict(row) if row else None
 
 
+
+def is_customer_expired(cust: Optional[Dict[str, Any]], today_str: Optional[str] = None) -> Tuple[bool, str, Optional[str]]:
+    """
+    Evaluates whether a customer's subscription is currently expired.
+    Returns (is_expired: bool, reason: str, expiry_date_str: Optional[str]).
+    Rules:
+    1. If no customer record: return (False, "No record", None)
+    2. Active grace hold (suspension_held_until >= today) ALWAYS protects customer from being cut.
+    3. Expiry / Due date: if expiry_date < today (and not on active grace), customer is EXPIRED.
+    4. Explicit 'suspended' status: customer is EXPIRED / CUT.
+    5. All devices under an expired customer share the customer's expiry date; device join date doesn't matter.
+    """
+    if not cust:
+        return (False, "No customer record", None)
+
+    if not today_str:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
+    # 1. Grace Hold check (Promise to pay)
+    susp_until = cust.get("suspension_held_until")
+    if susp_until and str(susp_until).strip() >= today_str:
+        return (False, f"Protected by active grace hold until {susp_until}", str(susp_until).strip())
+
+    # 2. Expiry / Due date check
+    raw_exp = cust.get("expiry_date") or cust.get("due_date")
+    exp_date_str = None
+    if raw_exp:
+        try:
+            exp_date_str = str(raw_exp).split()[0].strip()
+            if len(exp_date_str) == 10 and exp_date_str[4] == '-' and exp_date_str[7] == '-':
+                if exp_date_str < today_str:
+                    return (True, f"Subscription expired on {exp_date_str}", exp_date_str)
+        except Exception:
+            pass
+
+    # 3. Explicit suspended status check
+    if cust.get("status") == "suspended":
+        return (True, "Subscription is suspended", exp_date_str or raw_exp)
+
+    return (False, f"Subscription active until {exp_date_str}" if exp_date_str else "Active", exp_date_str or raw_exp)
+
+
+def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
+    """
+    Audits customer subscriptions against current date.
+    When a customer expires (expiry_date < today without active grace hold):
+    - Sets customers.status = 'suspended'
+    - Sets customer_devices.status = 'blocked'
+    - Collects all device MAC addresses for immediate disconnection across MikroTik fleet.
+    Returns list of expired customers and their MAC addresses.
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    today_str = now.strftime("%Y-%m-%d")
+
+    expired_records = []
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # Query all customers who are either active OR have approved devices that must be cut
+        cursor.execute("""
+            SELECT id, name, phone, status, billing_type, package_name, expiry_date, due_date, suspension_held_until
+            FROM customers
+            WHERE status = 'active'
+               OR id IN (SELECT DISTINCT customer_id FROM customer_devices WHERE status = 'approved')
+        """)
+        candidates = [dict(r) for r in cursor.fetchall()]
+
+        for cust in candidates:
+            cid = cust["id"]
+            is_exp, reason, exp_date = is_customer_expired(cust, today_str=today_str)
+            if is_exp:
+                # Find all devices for this customer
+                cursor.execute("SELECT mac_address, status FROM customer_devices WHERE customer_id = ?", (cid,))
+                dev_rows = cursor.fetchall()
+                macs = [d["mac_address"].upper() for d in dev_rows if d["mac_address"]]
+                has_approved_dev = any(d["status"] == "approved" for d in dev_rows)
+
+                if cust["status"] == "active" or has_approved_dev:
+                    cursor.execute("UPDATE customers SET status = 'suspended', updated_at = ? WHERE id = ?", (now_str, cid))
+                    cursor.execute("UPDATE customer_devices SET status = 'blocked' WHERE customer_id = ?", (cid,))
+                    expired_records.append({
+                        "customer_id": cid,
+                        "name": cust["name"],
+                        "phone": cust["phone"],
+                        "expiry_date": exp_date,
+                        "reason": reason,
+                        "macs": macs
+                    })
+
+        conn.commit()
+
+    return expired_records
+
+
 def get_customer_by_mac(mac: str) -> Optional[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.cursor()
@@ -621,7 +717,16 @@ def get_customer_by_mac(mac: str) -> Optional[Dict[str, Any]]:
             WHERE UPPER(d.mac_address) = UPPER(?) AND d.status = 'approved'
         """, (mac,))
         row = cursor.fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        cust = dict(row)
+        is_exp, reason, exp_date = is_customer_expired(cust)
+        cust["is_expired"] = is_exp
+        cust["expiry_reason"] = reason
+        if is_exp:
+            cust["status"] = "expired"
+        return cust
+
 
 
 def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_model: Optional[str]) -> Tuple[Dict[str, Any], bool, bool]:
@@ -643,8 +748,15 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
 
         # Check if MAC is already approved
         existing_device = get_customer_by_mac(mac_upper)
-        if existing_device and existing_device["status"] == "active":
-            return (existing_device, True, False)
+        if existing_device:
+            is_exp, reason, exp_date = is_customer_expired(existing_device)
+            if is_exp or existing_device.get("is_expired") or existing_device.get("status") == "expired":
+                existing_device["status"] = "expired"
+                existing_device["is_expired"] = True
+                existing_device["expiry_date"] = exp_date or existing_device.get("expiry_date") or existing_device.get("due_date")
+                return (existing_device, False, False)
+            elif existing_device.get("status") == "active":
+                return (existing_device, True, False)
 
         # Check if phone belongs to an existing customer
         existing_cust = get_customer_by_phone(phone_clean)
@@ -681,8 +793,9 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
         return (req, False, bool(is_secondary))
 
 
-def get_request_status_by_mac_and_phone(mac: str, phone: str) -> Dict[str, Any]:
+def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, Any]:
     mac_upper = mac.strip().upper()
+    phone_clean = phone.strip() if phone else ""
     if is_randomized_mac(mac_upper):
         return {
             "status": "random_mac_blocked",
@@ -694,12 +807,38 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str) -> Dict[str, Any]:
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # First check if device MAC is approved directly
+        # 1. First check if device MAC is approved directly
         cust = get_customer_by_mac(mac_upper)
-        if cust and cust["status"] == "active":
-            return {"status": "approved", "message": f"Device authorized. Welcome {cust['name']}!"}
+        if cust:
+            is_exp, reason, exp_date = is_customer_expired(cust)
+            if is_exp or cust.get("is_expired") or cust.get("status") == "expired":
+                exp_display = exp_date or cust.get("expiry_date") or cust.get("due_date") or "N/A"
+                return {
+                    "status": "expired",
+                    "expiry_date": exp_display,
+                    "phone": cust.get("phone"),
+                    "name": cust.get("name"),
+                    "message": f"Your internet subscription expired on {exp_display}. Please renew your plan to restore internet access."
+                }
+            if cust.get("status") == "active":
+                return {"status": "approved", "message": f"Device authorized. Welcome {cust['name']}!"}
 
-        # Check latest connection request
+        # 2. Check if phone belongs to an existing customer who is expired
+        if phone_clean:
+            cust_by_phone = get_customer_by_phone(phone_clean)
+            if cust_by_phone:
+                is_exp, reason, exp_date = is_customer_expired(cust_by_phone)
+                if is_exp or cust_by_phone.get("status") == "suspended":
+                    exp_display = exp_date or cust_by_phone.get("expiry_date") or cust_by_phone.get("due_date") or "N/A"
+                    return {
+                        "status": "expired",
+                        "expiry_date": exp_display,
+                        "phone": cust_by_phone.get("phone"),
+                        "name": cust_by_phone.get("name"),
+                        "message": f"Subscriber account for {cust_by_phone.get('name')} expired on {exp_display}. Renewal required to connect new devices."
+                    }
+
+        # 3. Check latest connection request
         cursor.execute("""
             SELECT * FROM connection_requests
             WHERE UPPER(mac_address) = ?
@@ -776,6 +915,7 @@ def get_pending_requests() -> List[Dict[str, Any]]:
         cursor.execute("""
             SELECT r.*, c.name as existing_customer_name, c.billing_type as existing_billing_type,
                    c.package_name as existing_package_name, c.expiry_date as existing_expiry_date,
+                   c.due_date as existing_due_date, c.suspension_held_until as existing_suspension_held_until,
                    c.status as existing_customer_status, c.speed_limit as existing_speed_limit,
                    c.monthly_fee as existing_monthly_fee, c.max_devices as customer_max_devices,
                    (SELECT COUNT(*) FROM customer_devices cd WHERE cd.customer_id = c.id AND cd.status = 'approved') as current_device_count
@@ -790,6 +930,21 @@ def get_pending_requests() -> List[Dict[str, Any]]:
             r["device_model"] = parse_clean_device_model(r.get("device_model", ""))
             if r.get("existing_customer_name") or r.get("customer_id"):
                 r["is_secondary"] = 1
+                cust_data = {
+                    "status": r.get("existing_customer_status"),
+                    "expiry_date": r.get("existing_expiry_date"),
+                    "due_date": r.get("existing_due_date"),
+                    "suspension_held_until": r.get("existing_suspension_held_until")
+                }
+                is_exp, reason, exp_str = is_customer_expired(cust_data)
+                r["is_customer_expired"] = is_exp
+                r["customer_expiry_reason"] = reason
+                r["customer_expiry_date"] = exp_str or r.get("existing_expiry_date") or r.get("existing_due_date") or ""
+            else:
+                r["is_secondary"] = 0
+                r["is_customer_expired"] = False
+                r["customer_expiry_reason"] = ""
+                r["customer_expiry_date"] = ""
         return rows
 
 
@@ -881,10 +1036,15 @@ def approve_connection(
             # =========================================================================
             # CASE A: Existing Customer (Extra Device Authorization)
             # Billing is already done! Preserve all subscription parameters.
+            # Expiration is customer-centric: devices inherit customer expiry date.
             # =========================================================================
             cust = dict(cust_row)
             customer_id = cust["id"]
             existing_max = int(cust.get("max_devices") or 1)
+
+            # Check if customer is currently expired
+            today_str = now.strftime("%Y-%m-%d")
+            is_exp, exp_reason, exp_date = is_customer_expired(cust, today_str=today_str)
 
             # Count current approved devices
             cursor.execute("SELECT COUNT(*) FROM customer_devices WHERE customer_id = ? AND status = 'approved'", (customer_id,))
@@ -897,26 +1057,48 @@ def approve_connection(
 
             update_name = name.strip() if (name and not name.startswith("Customer 05")) else cust["name"]
 
-            # Only touch credit / collections if admin explicitly entered an extra payment (> 0)
-            if clean_collected > 0:
-                existing_credit = float(cust.get("credit_balance") or 0.0)
-                new_credit = round(existing_credit + clean_collected, 2)
+            # Expiration and status resolution:
+            # If admin passed an explicit future due_date, extend validity
+            if due_date and str(due_date).split()[0] >= today_str:
+                new_due_date = str(due_date).split()[0]
+                cust_status = "active"
+                dev_status = "approved"
                 cursor.execute("""
                     UPDATE customers
-                    SET name = ?, status = 'active', max_devices = ?, credit_balance = ?, updated_at = ?
+                    SET name = ?, status = 'active', max_devices = ?, due_date = ?, expiry_date = ?, updated_at = ?
                     WHERE id = ?
-                """, (update_name, new_max_devices, new_credit, now_str, customer_id))
-
-                cursor.execute("""
-                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
-                    VALUES (?, ?, ?, ?, ?, 'Admin')
-                """, (customer_id, clean_collected, cust.get("billing_type", "postpaid"), f"Additional device payment / credit deposit ({clean_collected:.2f} SAR)", now_str))
-            else:
+                """, (update_name, new_max_devices, new_due_date, new_due_date, now_str, customer_id))
+            elif is_exp and clean_collected == 0:
+                # Expired customer and no payment collected: keep suspended/cut
+                cust_status = "suspended"
+                dev_status = "blocked"
                 cursor.execute("""
                     UPDATE customers
-                    SET name = ?, status = 'active', max_devices = ?, updated_at = ?
+                    SET name = ?, status = 'suspended', max_devices = ?, updated_at = ?
                     WHERE id = ?
                 """, (update_name, new_max_devices, now_str, customer_id))
+            else:
+                cust_status = "active"
+                dev_status = "approved"
+                if clean_collected > 0:
+                    existing_credit = float(cust.get("credit_balance") or 0.0)
+                    new_credit = round(existing_credit + clean_collected, 2)
+                    cursor.execute("""
+                        UPDATE customers
+                        SET name = ?, status = 'active', max_devices = ?, credit_balance = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (update_name, new_max_devices, new_credit, now_str, customer_id))
+
+                    cursor.execute("""
+                        INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                        VALUES (?, ?, ?, ?, ?, 'Admin')
+                    """, (customer_id, clean_collected, cust.get("billing_type", "postpaid"), f"Additional device payment / credit deposit ({clean_collected:.2f} SAR)", now_str))
+                else:
+                    cursor.execute("""
+                        UPDATE customers
+                        SET name = ?, status = 'active', max_devices = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (update_name, new_max_devices, now_str, customer_id))
 
             # Insert or update customer_devices
             cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac,))
@@ -924,14 +1106,14 @@ def approve_connection(
             if dev_row:
                 cursor.execute("""
                     UPDATE customer_devices
-                    SET customer_id = ?, ip_address = ?, device_name = ?, status = 'approved', approved_at = ?
+                    SET customer_id = ?, ip_address = ?, device_name = ?, status = ?, approved_at = ?
                     WHERE id = ?
-                """, (customer_id, ip, req.get("device_model", "Mobile Phone"), now_str, dev_row["id"]))
+                """, (customer_id, ip, req.get("device_model", "Mobile Phone"), dev_status, now_str, dev_row["id"]))
             else:
                 cursor.execute("""
                     INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
-                    VALUES (?, ?, ?, ?, 'approved', ?, ?)
-                """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), now_str, now_str))
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), dev_status, now_str, now_str))
 
             # Mark request as approved
             cursor.execute("""
@@ -946,6 +1128,8 @@ def approve_connection(
             saved_cust = dict(cursor.fetchone())
             saved_cust["mac_address"] = mac
             saved_cust["ip_address"] = ip
+            saved_cust["device_status"] = dev_status
+            saved_cust["is_expired"] = (cust_status == "suspended") or (dev_status == "blocked")
             saved_cust["credit_balance"] = round(float(saved_cust.get("credit_balance") or 0.0), 2)
             return saved_cust
 

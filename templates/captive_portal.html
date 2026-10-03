@@ -722,6 +722,11 @@
           return;
         }
 
+        if (res.status === 'expired') {
+          showExpiredState(res.message);
+          return;
+        }
+
         if (res.status === 'approved') {
           showApprovedState(res.message);
           return;
@@ -759,6 +764,12 @@
           return;
         }
 
+        if (res.status === 'expired') {
+          if (pollInterval) clearInterval(pollInterval);
+          showExpiredState(res.message);
+          return;
+        }
+
         if (res.status === 'approved') {
           if (pollInterval) clearInterval(pollInterval);
           showApprovedState(res.message || "You are now connected to high-speed internet.");
@@ -772,6 +783,15 @@
       } catch (err) {
         console.warn('Status poll retry:', err);
       }
+    }
+
+    function showExpiredState(msg) {
+      document.getElementById('hotspotForm').style.display = 'none';
+      document.getElementById('statusSection').style.display = 'block';
+      document.getElementById('statusSpinner').style.display = 'none';
+      document.getElementById('statusTitle').innerText = "Subscription Expired";
+      document.getElementById('statusTitle').style.color = '#ef4444';
+      document.getElementById('statusMsg').innerText = msg || "Your internet subscription has expired. Please contact administrator to renew your plan.";
     }
 
     function showApprovedState(msg) {

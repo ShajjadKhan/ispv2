@@ -1032,9 +1032,16 @@
               <td data-label="Type" class="td-type">
                 {% if req.is_secondary %}
                   <div style="display:flex; flex-direction:column; gap:3px;">
-                    <span class="tag-device-type secondary" title="Existing customer: {{ req.existing_customer_name }}">
-                      Secondary Device
-                    </span>
+                    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                      <span class="tag-device-type secondary" title="Existing customer: {{ req.existing_customer_name }}">
+                        Secondary Device
+                      </span>
+                      {% if req.is_customer_expired %}
+                        <span class="badge" style="background:rgba(239, 68, 68, 0.2); color:#f87171; border:1px solid rgba(239, 68, 68, 0.4); font-size:10px; font-weight:700; padding:1px 6px;" title="Subscriber account expired on {{ req.customer_expiry_date }}">
+                          EXPIRED
+                        </span>
+                      {% endif %}
+                    </div>
                     <span class="font-mono" style="font-size:11px; color:{% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}#f87171{% else %}#34d399{% endif %}; font-weight:700;">
                       {% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}
                         ⚠ Limit ({{ req.current_device_count }}/{{ req.customer_max_devices }})
@@ -1264,7 +1271,10 @@
           </div>
 
           <div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.45;">
-            💡 <strong>No billing required:</strong> This extra phone connects under the subscriber's existing active account. All existing subscription dates, monthly rates, and package settings remain untouched.
+            💡 <strong>Customer-Centric Expiration:</strong> This phone shares the subscriber's subscription cycle (expires on <strong id="secondaryExpiryTip" style="color:#a7f3d0;">—</strong>). Device joining date does not matter; if the subscriber expires, all registered devices are automatically cut.
+          </div>
+          <div id="secondaryExpiredWarning" style="display:none; margin-top:10px; padding:10px 12px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.4); border-radius:8px; color:#fca5a5; font-size:12px; line-height:1.4;">
+            ⚠️ <strong>Subscriber Account Expired:</strong> This subscriber's plan expired on <strong id="secondaryExpiredDate"></strong>. Authorizing this device links it under the account, but internet access will remain cut until renewed.
           </div>
 
           <!-- Optional Toggle for extra fee collection -->
@@ -1586,6 +1596,30 @@
       if (secPlan) secPlan.textContent = pkgName || 'Active Plan';
       const secExp = document.getElementById('secondaryExpiryDate');
       if (secExp) secExp.textContent = expiryDate || 'Active';
+      const tipExp = document.getElementById('secondaryExpiryTip');
+      if (tipExp) tipExp.textContent = expiryDate || 'Active';
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const isExp = Boolean(expiryDate && expiryDate.slice(0, 10) < todayStr);
+      const warnBox = document.getElementById('secondaryExpiredWarning');
+      const warnDate = document.getElementById('secondaryExpiredDate');
+      const secStatus = document.getElementById('secondaryBillingStatus');
+      if (warnBox) {
+        if (isExp) {
+          warnBox.style.display = 'block';
+          if (warnDate) warnDate.textContent = expiryDate;
+          if (secStatus) {
+            secStatus.textContent = '❌ EXPIRED';
+            secStatus.style.color = '#f87171';
+          }
+        } else {
+          warnBox.style.display = 'none';
+          if (secStatus) {
+            secStatus.textContent = '✅ Settled / Active';
+            secStatus.style.color = '#34d399';
+          }
+        }
+      }
 
       // Reset extra collection toggle
       const chkExtra = document.getElementById('chkCollectExtraSecondary');

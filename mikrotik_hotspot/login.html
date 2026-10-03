@@ -1003,6 +1003,11 @@
         return;
       }
 
+      if (data.status === "expired") {
+        showError(data.message || "Your internet subscription has expired. Please contact support to renew.");
+        return;
+      }
+
       if (data.status === "approved") {
         showApproved(data.message);
       } else if (data.status === "pending") {
@@ -1045,6 +1050,11 @@
       .then(function(data) {
         if (data.status === "approved") {
           showApproved(data.message);
+        } else if (data.status === "expired") {
+          if (poller) clearInterval(poller);
+          showError(data.message || "Your internet subscription has expired. Please contact support to renew.");
+          document.getElementById("boxWaitingApproval").classList.add("d-none");
+          document.getElementById("phoneForm").classList.remove("d-none");
         } else if (data.status === "rejected") {
           if (poller) clearInterval(poller);
           showError("Request declined by admin. Please contact support.");

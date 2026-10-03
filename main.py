@@ -152,10 +152,46 @@ async def traffic_collector_loop():
             await asyncio.sleep(15)
 
 
+async def expiration_enforcement_loop():
+    """
+    Background worker that continuously audits customer expiry dates and cuts expired
+    connections across the MikroTik router fleet every 60 seconds.
+    Subscription validity is strictly customer-centric: when a customer expires,
+    all of their registered devices are disconnected immediately.
+    """
+    logger.info("Background Customer Expiration Enforcement Loop initialized.")
+    await asyncio.sleep(10)
+    while True:
+        try:
+            expired_customers = await asyncio.to_thread(database.check_and_enforce_customer_expirations)
+            if expired_customers:
+                for cust in expired_customers:
+                    cid = cust["customer_id"]
+                    macs = cust.get("macs", [])
+                    exp_date = cust.get("expiry_date", "")
+                    logger.warning(
+                        f"[Expiration Enforcer] Customer #{cid} ({cust.get('name')} - {cust.get('phone')}) "
+                        f"has expired on {exp_date}. Cutting connection across MikroTik fleet for {len(macs)} device(s)."
+                    )
+                    for mac in macs:
+                        try:
+                            mikrotik_client.broadcast_unbind_device(mac)
+                        except Exception as mt_err:
+                            logger.error(f"Error cutting expired MAC {mac} for customer #{cid}: {mt_err}")
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Expiration enforcer worker loop error: {e}")
+            await asyncio.sleep(30)
+
+
 @app.on_event("startup")
 async def startup_event():
     # Real live data from MikroTik traffic collector only
     asyncio.create_task(traffic_collector_loop())
+    # Customer subscription expiration enforcement loop across MikroTik fleet
+    asyncio.create_task(expiration_enforcement_loop())
 
 
 # =========================================================
@@ -1762,6 +1798,25 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             headers={"Access-Control-Allow-Origin": "*"}
         )
 
+    # Check if this customer or device is expired
+    if req_dict.get("is_expired") or req_dict.get("status") == "expired" or req_dict.get("is_customer_expired"):
+        exp_date = req_dict.get("expiry_date") or req_dict.get("customer_expiry_date") or "N/A"
+        try:
+            mikrotik_client.broadcast_unbind_device(mac_clean)
+        except Exception:
+            pass
+        return JSONResponse(
+            status_code=403,
+            content={
+                "success": False,
+                "status": "expired",
+                "expiry_date": exp_date,
+                "is_secondary_device": bool(is_secondary),
+                "message": f"Subscription expired on {exp_date}. Please contact administrator to renew your plan."
+            },
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
     if is_approved:
         # Re-ensure pure MAC-only MikroTik binding is active across the fleet
         comment_str = f"CyberNet: {phone_clean} (Existing Active)"
@@ -1846,9 +1901,9 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
 
     result = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
     if result.get("status") == "approved":
-        # Validate that device is genuinely active in customer_devices before re-binding
+        # Validate that device is genuinely active in customer_devices and NOT expired before re-binding
         cust = database.get_customer_by_mac(mac_clean)
-        if cust and cust.get("status") == "active":
+        if cust and cust.get("status") == "active" and not cust.get("is_expired"):
             try:
                 mikrotik_client.broadcast_bind_device(
                     mac_address=mac_clean,
@@ -1856,6 +1911,35 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
                 )
             except Exception:
                 pass
+        else:
+            # Device or customer is expired / inactive! Cut connection immediately
+            try:
+                mikrotik_client.broadcast_unbind_device(mac_clean)
+            except Exception:
+                pass
+            exp_date = (cust.get("expiry_date") or cust.get("due_date")) if cust else ""
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "status": "expired",
+                    "expiry_date": exp_date,
+                    "phone": cust.get("phone") if cust else phone_clean,
+                    "name": cust.get("name") if cust else "Subscriber",
+                    "message": f"Your internet subscription has expired. Please renew your plan to restore internet access."
+                },
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+    elif result.get("status") == "expired":
+        # Expired customer or device: cut connection immediately
+        try:
+            mikrotik_client.broadcast_unbind_device(mac_clean)
+        except Exception:
+            pass
+        return JSONResponse(
+            status_code=403,
+            content=result,
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
     elif result.get("status") in ("revoked", "rejected", "blocked"):
         # Explicitly ensure MikroTik fleet unbinds and drops traffic for revoked/rejected devices
         try:
@@ -2027,26 +2111,38 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         effective_rate = effective_speed if (effective_speed and effective_speed.strip()) else default_rate
 
         # 3. Apply to MikroTik fleet
-        cust_billing_label = customer.get("billing_type", "POSTPAID").upper()
-        comment_str = f"CyberNet: {customer['phone']} - {customer['name']} ({cust_billing_label})"
-        fleet_res = mikrotik_client.broadcast_bind_device(
-            mac_address=customer["mac_address"],
-            ip_address=customer.get("ip_address"),
-            comment=comment_str,
-            rate_limit=effective_rate
-        )
-        mt_ok = any(fleet_res.values()) if fleet_res else False
-
-        if not mt_ok:
-            logger.warning(f"Device bound in DB but MikroTik API reported an issue: {fleet_res}")
-
-        return {
-            "success": True,
-            "message": f"Customer '{payload.name}' approved! Internet activated across MikroTik fleet.",
-            "customer": customer,
-            "mikrotik_synced": mt_ok,
-            "fleet_results": fleet_res
-        }
+        is_active = (customer.get("status") == "active") and not customer.get("is_expired")
+        if is_active:
+            cust_billing_label = customer.get("billing_type", "POSTPAID").upper()
+            comment_str = f"CyberNet: {customer['phone']} - {customer['name']} ({cust_billing_label})"
+            fleet_res = mikrotik_client.broadcast_bind_device(
+                mac_address=customer["mac_address"],
+                ip_address=customer.get("ip_address"),
+                comment=comment_str,
+                rate_limit=effective_rate
+            )
+            mt_ok = any(fleet_res.values()) if fleet_res else False
+            if not mt_ok:
+                logger.warning(f"Device bound in DB but MikroTik API reported an issue: {fleet_res}")
+            return {
+                "success": True,
+                "message": f"Customer '{payload.name}' approved! Internet activated across MikroTik fleet.",
+                "customer": customer,
+                "mikrotik_synced": mt_ok,
+                "fleet_results": fleet_res
+            }
+        else:
+            try:
+                mikrotik_client.broadcast_unbind_device(customer["mac_address"])
+            except Exception:
+                pass
+            return {
+                "success": True,
+                "message": f"Device registered for '{payload.name}', but subscriber subscription is EXPIRED. Internet access will remain cut until renewed.",
+                "customer": customer,
+                "mikrotik_synced": False,
+                "fleet_results": {}
+            }
 
     except Exception as e:
         logger.exception(f"Error approving request #{req_id}: {e}")
@@ -2462,6 +2558,35 @@ async def toggle_customer_status(customer_id: int):
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
+@app.post("/api/customers/enforce-expirations")
+async def enforce_expirations_endpoint():
+    """
+    Manually triggers customer expiration audit and cuts connections for any expired accounts across MikroTik fleet.
+    """
+    logger.info("Manual expiration enforcement audit triggered.")
+    try:
+        expired_customers = await asyncio.to_thread(database.check_and_enforce_customer_expirations)
+        total_cut = 0
+        for cust in expired_customers:
+            for mac in cust.get("macs", []):
+                try:
+                    mikrotik_client.broadcast_unbind_device(mac)
+                    total_cut += 1
+                except Exception as mt_err:
+                    logger.error(f"Error unbinding expired MAC {mac}: {mt_err}")
+
+        return {
+            "success": True,
+            "expired_customers_count": len(expired_customers),
+            "devices_cut_count": total_cut,
+            "expired_customers": expired_customers,
+            "message": f"Expiration audit complete: {len(expired_customers)} customer(s) expired, {total_cut} device(s) cut across MikroTik fleet."
+        }
+    except Exception as e:
+        logger.exception(f"Error in manual expiration enforcement: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
 @app.post("/api/customers/{customer_id}/devices")
 async def add_device(customer_id: int, payload: AddDevicePayload):
     """Adds a new MAC device to customer and authorizes it across MikroTik fleet."""
@@ -2587,8 +2712,9 @@ async def record_payment(customer_id: int, payload: RecordPaymentPayload):
             btype_label = (cust.get("billing_type") or "PREPAID").upper()
             for d in cust["devices"]:
                 if d.get("status") == "approved":
-                    router_client.bind_device(
+                    mikrotik_client.broadcast_bind_device(
                         mac_address=d["mac_address"],
+                        ip_address=d.get("ip_address"),
                         comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')} ({btype_label})",
                         rate_limit=cust.get("effective_speed")
                     )
@@ -2631,8 +2757,9 @@ async def apply_credit(customer_id: int, payload: ApplyCreditPayload):
         if cust and cust.get("devices"):
             for d in cust["devices"]:
                 if d.get("status") == "approved":
-                    router_client.bind_device(
+                    mikrotik_client.broadcast_bind_device(
                         mac_address=d["mac_address"],
+                        ip_address=d.get("ip_address"),
                         comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')} (PREPAID)",
                         rate_limit=cust.get("effective_speed")
                     )
@@ -2706,7 +2833,7 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
         if cust_profile and cust_profile.get("status") == "active":
             for dev in cust_profile.get("devices", []):
                 if dev.get("status") == "approved":
-                    router_client.bind_device(
+                    mikrotik_client.broadcast_bind_device(
                         mac_address=dev["mac_address"],
                         ip_address=dev.get("ip_address"),
                         comment=f"CyberNet: {cust_profile.get('phone')} ({cust_profile.get('name')})",
@@ -2845,7 +2972,7 @@ async def record_customer_promise_endpoint(customer_id: int, payload: RecordProm
                 mac = dev.get("mac_address")
                 if mac:
                     try:
-                        router_client.bind_device(
+                        mikrotik_client.broadcast_bind_device(
                             mac_address=mac,
                             ip_address=dev.get("ip_address"),
                             comment=f"CyberNet: {cust.get('phone')} ({cust.get('name')}) [Grace Hold]",
@@ -2869,9 +2996,21 @@ async def cancel_customer_promise_endpoint(customer_id: int):
     """
     Cancels an active suspension hold / promise.
     Reverts customer to normal due/expiry date status.
+    If customer is expired, instantly cuts connection across MikroTik fleet.
     """
     try:
         res = database.cancel_customer_promise(customer_id)
+        cust = database.get_customer_profile(customer_id)
+        if cust:
+            is_exp, reason, exp_date = database.is_customer_expired(cust)
+            if is_exp:
+                database.toggle_customer_status(customer_id)
+                for dev in cust.get("devices", []):
+                    try:
+                        mikrotik_client.broadcast_unbind_device(dev["mac_address"])
+                    except Exception:
+                        pass
+                logger.warning(f"Suspension hold cancelled for customer #{customer_id}. Customer is expired: Cut connection for {len(cust.get('devices', []))} device(s).")
         return JSONResponse(content={"success": True, "message": "Suspension hold cancelled successfully."})
     except Exception as e:
         logger.exception(f"Error cancelling promise for customer #{customer_id}: {e}")
@@ -2905,7 +3044,7 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
                 mac = dev.get("mac_address")
                 if mac:
                     try:
-                        router_client.bind_device(
+                        mikrotik_client.broadcast_bind_device(
                             mac_address=mac,
                             ip_address=dev.get("ip_address"),
                             comment=f"CyberNet: {cust.get('phone')} ({cust.get('name')})",
