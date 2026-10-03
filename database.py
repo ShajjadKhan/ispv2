@@ -3072,8 +3072,11 @@ def get_dashboard_metrics(
             if target_revenue_sar > 0 else 100.0
         )
 
-        # 5. Capacity Limit (Base 100 users)
-        capacity_limit = 100
+        # 5. Dashboard subscriber capacity limit
+        try:
+            capacity_limit = max(1, int(os.getenv('ISP_CAPACITY_LIMIT', '500')))
+        except (TypeError, ValueError):
+            capacity_limit = 500
         capacity_percent = min(100.0, round((len(active_customers) / capacity_limit * 100), 1))
 
         # 6. Staff Performance Breakdown for Target Month
