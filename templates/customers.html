@@ -1837,6 +1837,7 @@
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Amount</th>
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Details &amp; Notes</th>
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase; text-align:right;">Recorded By</th>
+                      <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase; text-align:right;">Actions</th>
                     </tr>
                   </thead>
                   <tbody id="profCollectionsTbody">
@@ -3057,19 +3058,26 @@
               <td style="padding:10px 12px; text-align:right; font-family:var(--font-mono); color:var(--text-dim); font-size:11px; white-space:nowrap;">
                 ${col.collected_by || 'Admin'}
               </td>
+              <td style="padding:10px 12px; text-align:right; white-space:nowrap;">
+                <button type="button" class="btn-action-sm btn-delete-col" onclick="deleteCustomerPayment(${col.id}, ${col.amount})" title="Delete this payment record" style="padding:4px 8px; font-size:11px; color:#f87171; background:rgba(239,68,68,0.12); border-color:rgba(239,68,68,0.3);">
+                  <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  <span>Delete</span>
+                </button>
+              </td>
             `;
             tbody.appendChild(tr);
           });
         } else {
           tbody.innerHTML = `
             <tr>
-              <td colspan="4" style="text-align:center; padding:24px 12px; color:var(--text-dim); font-size:12px;">
+              <td colspan="5" style="text-align:center; padding:24px 12px; color:var(--text-dim); font-size:12px;">
                 No payment or collection records recorded yet.
               </td>
             </tr>
           `;
         }
       }
+
 
       // If user is currently looking at usage tab, reload usage data
       if (currentManageTab === 'usage') {
@@ -3396,7 +3404,26 @@
     }
   }
 
+  async function deleteCustomerPayment(colId, amount) {
+    const amtStr = parseFloat(amount || 0).toFixed(2);
+    if (!confirm(`Delete payment #COL-${colId} (+${amtStr} SAR)?\n\nThis will remove the payment from this customer and adjust the ledger.`)) return;
+    try {
+      const resp = await fetch(`/api/collections/${colId}`, { method: 'DELETE' });
+      const res = await resp.json();
+      if (res.success) {
+        if (typeof cyberToast === 'function') cyberToast('Payment record deleted.');
+        else alert('Payment record deleted.');
+        if (activeCustomerId) openProfileModal(activeCustomerId, 'billing');
+      } else {
+        alert('Failed to delete payment: ' + (res.error || res.message));
+      }
+    } catch (err) {
+      alert('Error deleting payment: ' + err.message);
+    }
+  }
+
   // Manual Add Customer Modal Logic
+
   function openAddCustomerModal() {
     const today = new Date();
     const futureDate = new Date();

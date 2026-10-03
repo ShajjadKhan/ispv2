@@ -258,6 +258,8 @@ class UpdateResellerPayload(BaseModel):
     phone: Optional[str] = None
     commission_rate: Optional[float] = None
     is_active: Optional[int] = None
+    username: Optional[str] = None
+    new_password: Optional[str] = None
 
 
 class CreateManagerPayload(BaseModel):
@@ -310,6 +312,14 @@ class RecordPaymentPayload(BaseModel):
 class ApplyCreditPayload(BaseModel):
     amount: Optional[float] = None
     extend_days: int = 30
+
+
+class UpdateCollectionPayload(BaseModel):
+    amount: float
+    notes: Optional[str] = "Payment entry"
+    collected_at: Optional[str] = None
+    collected_by: Optional[str] = "Admin"
+    billing_type: Optional[str] = "cash"
 
 
 class PackagePayload(BaseModel):
@@ -1456,9 +1466,22 @@ async def api_topup_reseller(reseller_id: int, payload: TopupResellerPayload, re
     return {"success": True, "message": msg, "new_balance": new_bal}
 
 
+@app.get("/api/resellers/{reseller_id}")
+async def api_get_reseller(reseller_id: int, request: Request):
+    """Fetches details for a specific reseller partner."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    r = auth_service.get_reseller_by_id(reseller_id)
+    if not r:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Reseller partner not found."})
+    return {"success": True, "reseller": r}
+
+
 @app.post("/api/resellers/{reseller_id}/update")
 async def api_update_reseller(reseller_id: int, payload: UpdateResellerPayload, request: Request):
-    """Admin updates reseller commission or account details."""
+    """Admin updates reseller commission, shop name, username, password, or account details."""
     user = getattr(request.state, "user", None)
     if not user or user.get("role") not in ("admin", "superadmin"):
         return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
@@ -1469,8 +1492,25 @@ async def api_update_reseller(reseller_id: int, payload: UpdateResellerPayload, 
         shop_name=payload.shop_name,
         phone=payload.phone,
         commission_rate=payload.commission_rate,
-        is_active=payload.is_active
+        is_active=payload.is_active,
+        username=payload.username,
+        new_password=payload.new_password
     )
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
+
+
+@app.delete("/api/resellers/{reseller_id}")
+@app.post("/api/resellers/{reseller_id}/delete")
+async def api_delete_reseller(reseller_id: int, request: Request):
+    """Admin permanently deletes a reseller partner."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    requesting_id = user.get("id") or user.get("user_id")
+    success, msg = auth_service.delete_user(reseller_id, requesting_user_id=requesting_id)
     if not success:
         return JSONResponse(status_code=400, content={"success": False, "error": msg})
     return {"success": True, "message": msg}
@@ -1544,6 +1584,21 @@ async def api_update_manager(manager_id: int, payload: UpdateManagerPayload, req
     if not ok:
         return JSONResponse(status_code=400, content={"success": False, "error": msg})
     return {"success": True, "message": msg, "manager": updated_user}
+
+
+@app.delete("/api/managers/{manager_id}")
+@app.post("/api/managers/{manager_id}/delete")
+async def api_delete_manager(manager_id: int, request: Request):
+    """Admin permanently deletes an operations manager account."""
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") not in ("admin", "superadmin"):
+        return JSONResponse(status_code=403, content={"success": False, "error": "Admin access required."})
+
+    requesting_id = user.get("id") or user.get("user_id")
+    success, msg = auth_service.delete_user(manager_id, requesting_user_id=requesting_id)
+    if not success:
+        return JSONResponse(status_code=400, content={"success": False, "error": msg})
+    return {"success": True, "message": msg}
 
 
 @app.post("/api/reseller/recharge")
@@ -1785,11 +1840,20 @@ async def check_connection_status(request: Request, mac: str, phone: Optional[st
 
     result = database.get_request_status_by_mac_and_phone(mac=mac_clean, phone=phone_clean)
     if result.get("status") == "approved":
+        # Validate that device is genuinely active in customer_devices before re-binding
+        cust = database.get_customer_by_mac(mac_clean)
+        if cust and cust.get("status") == "active":
+            try:
+                mikrotik_client.broadcast_bind_device(
+                    mac_address=mac_clean,
+                    comment=f"CyberNet: {cust.get('phone', '')} - {cust.get('name', 'Active Subscriber')}"
+                )
+            except Exception:
+                pass
+    elif result.get("status") in ("revoked", "rejected", "blocked"):
+        # Explicitly ensure MikroTik fleet unbinds and drops traffic for revoked/rejected devices
         try:
-            mikrotik_client.broadcast_bind_device(
-                mac_address=mac_clean,
-                comment=f"CyberNet: {result.get('message', 'Active Subscriber')}"
-            )
+            mikrotik_client.broadcast_unbind_device(mac_clean)
         except Exception:
             pass
 
@@ -2443,11 +2507,11 @@ async def remove_device(customer_id: int, device_id: int):
     """Removes a device from customer and revokes it immediately from MikroTik fleet."""
     logger.info(f"Removing device #{device_id} from customer #{customer_id}")
     try:
-        mac = database.remove_customer_device(device_id)
+        mac, ip = database.remove_customer_device(device_id)
         if not mac:
             raise HTTPException(status_code=404, detail="Device not found")
 
-        fleet_res = mikrotik_client.broadcast_unbind_device(mac)
+        fleet_res = mikrotik_client.broadcast_unbind_device(mac, ip_address=ip)
         mt_ok = any(fleet_res.values()) if fleet_res else False
         return {
             "success": True,
@@ -2649,8 +2713,67 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
 
 
 # =========================================================
+# Collection & Financial Ledger Modification Endpoints
+# =========================================================
+
+@app.get("/api/collections/{collection_id}")
+async def get_collection_endpoint(collection_id: int):
+    """Fetches details of a single collection transaction."""
+    col = database.get_collection_by_id(collection_id)
+    if not col:
+        raise HTTPException(status_code=404, detail="Collection record not found")
+    return {"success": True, "collection": col}
+
+
+@app.put("/api/collections/{collection_id}")
+@app.post("/api/collections/{collection_id}/edit")
+async def update_collection_endpoint(collection_id: int, payload: UpdateCollectionPayload):
+    """Updates amount, notes, timestamp, collector, or billing type of a collection record."""
+    logger.info(f"Admin updating collection #{collection_id} with amount={payload.amount}, notes={payload.notes}")
+    try:
+        updated = database.update_collection(
+            collection_id=collection_id,
+            amount=payload.amount,
+            notes=payload.notes or "",
+            collected_at=payload.collected_at,
+            collected_by=payload.collected_by,
+            billing_type=payload.billing_type
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Collection record not found")
+        return {
+            "success": True,
+            "message": f"Payment record #COL-{collection_id} updated successfully.",
+            "collection": updated
+        }
+    except Exception as e:
+        logger.exception(f"Error updating collection #{collection_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.delete("/api/collections/{collection_id}")
+@app.post("/api/collections/{collection_id}/delete")
+async def delete_collection_endpoint(collection_id: int):
+    """Permanently deletes a collection entry from the financial ledger and balance sheet."""
+    logger.info(f"Admin deleting collection record #{collection_id}")
+    try:
+        success, deleted = database.delete_collection(collection_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Collection record not found")
+        return {
+            "success": True,
+            "message": f"Payment record #COL-{collection_id} deleted successfully.",
+            "deleted": deleted
+        }
+    except Exception as e:
+        logger.exception(f"Error deleting collection #{collection_id}: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# =========================================================
 # Grace Period, Daily Accrual & Month Settlement API Endpoints
 # =========================================================
+
 
 @app.get("/api/customers/{customer_id}/billing-breakdown")
 async def get_customer_billing_breakdown_endpoint(customer_id: int):

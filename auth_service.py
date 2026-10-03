@@ -812,19 +812,32 @@ def update_reseller_profile(
     shop_name: Optional[str] = None,
     phone: Optional[str] = None,
     commission_rate: Optional[float] = None,
-    is_active: Optional[int] = None
+    is_active: Optional[int] = None,
+    username: Optional[str] = None,
+    new_password: Optional[str] = None
 ) -> Tuple[bool, str]:
-    """Updates reseller profile, commission, and active status."""
+    """Updates reseller profile, commission, active status, username, and password."""
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with database.get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, role FROM admin_users WHERE id = ?", (reseller_id,))
+        cursor.execute("SELECT id, username, role FROM admin_users WHERE id = ?", (reseller_id,))
         row = cursor.fetchone()
         if not row:
             return False, "User not found."
 
         updates = ["updated_at = ?"]
         params = [now_str]
+
+        if username is not None and username.strip():
+            clean_u = username.strip().lower()
+            if len(clean_u) < 3:
+                return False, "Username must be at least 3 characters long."
+            if clean_u != row["username"]:
+                cursor.execute("SELECT id FROM admin_users WHERE username = ? AND id != ?", (clean_u, reseller_id))
+                if cursor.fetchone():
+                    return False, f"Username '{clean_u}' is already taken."
+                updates.append("username = ?")
+                params.append(clean_u)
 
         if full_name is not None:
             updates.append("full_name = ?")
@@ -843,11 +856,94 @@ def update_reseller_profile(
             updates.append("is_active = ?")
             params.append(int(is_active))
 
+        if new_password and new_password.strip():
+            clean_pw = new_password.strip()
+            if len(clean_pw) < 6:
+                return False, "Password must be at least 6 characters long."
+            new_hash, new_salt = hash_password(clean_pw)
+            updates.append("password_hash = ?")
+            params.append(new_hash)
+            updates.append("salt = ?")
+            params.append(new_salt)
+            updates.append("is_default_password = 0")
+            updates.append("failed_attempts = 0")
+            updates.append("locked_until = NULL")
+
         params.append(reseller_id)
         sql = f"UPDATE admin_users SET {', '.join(updates)} WHERE id = ?"
         cursor.execute(sql, params)
         conn.commit()
         return True, "Reseller profile updated successfully."
+
+
+def get_reseller_by_id(reseller_id: int) -> Optional[Dict[str, Any]]:
+    """Fetches full reseller details by ID."""
+    now = datetime.now()
+    month_prefix = now.strftime("%Y-%m")
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                u.id, u.username, u.full_name, u.role, u.is_active,
+                COALESCE(u.wallet_balance, 0.0) as wallet_balance,
+                COALESCE(u.commission_rate, 0.0) as commission_rate,
+                COALESCE(u.shop_name, '') as shop_name,
+                COALESCE(u.phone, '') as phone,
+                u.last_login, u.created_at,
+                (SELECT COUNT(*) FROM customers c WHERE c.reseller_id = u.id) as customer_count,
+                (SELECT COUNT(*) FROM customers c WHERE c.reseller_id = u.id AND c.status = 'active') as active_customer_count,
+                COALESCE((
+                    SELECT SUM(col.amount) FROM collections col
+                    JOIN customers c ON col.customer_id = c.id
+                    WHERE c.reseller_id = u.id AND col.collected_at LIKE ?
+                ), 0.0) as month_sales
+            FROM admin_users u
+            WHERE u.id = ? AND u.role = 'reseller'
+        """, (f"{month_prefix}%", reseller_id))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def delete_user(user_id: int, requesting_user_id: Optional[int] = None) -> Tuple[bool, str]:
+    """
+    Permanently deletes a user account (reseller, manager, or admin).
+    Prevents self-deletion and deletion of root superadmin (ID 1).
+    Safely dissociates any subscribers belonging to this reseller (setting reseller_id = NULL).
+    """
+    if user_id == 1:
+        return False, "The master system administrator account (ID 1) cannot be deleted."
+    if requesting_user_id and user_id == requesting_user_id:
+        return False, "You cannot delete your own active administrator account."
+
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, role, full_name, shop_name FROM admin_users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "User account not found."
+        user = dict(row)
+
+        # 1. Unlink subscribers so they are not deleted
+        cursor.execute("UPDATE customers SET reseller_id = NULL WHERE reseller_id = ?", (user_id,))
+
+        # 2. Delete wallet ledger entries for this reseller
+        cursor.execute("DELETE FROM reseller_wallet_ledger WHERE reseller_id = ?", (user_id,))
+
+        # 3. Revoke all active sessions
+        cursor.execute("DELETE FROM admin_sessions WHERE user_id = ?", (user_id,))
+
+        # 4. Delete user record
+        cursor.execute("DELETE FROM admin_users WHERE id = ?", (user_id,))
+        conn.commit()
+
+        log_audit_event(
+            user["username"],
+            "127.0.0.1",
+            "account_deleted",
+            f"Deleted {user['role']} account '{user['username']}' (ID #{user_id})",
+            None
+        )
+        return True, f"Account '{user.get('shop_name') or user['username']}' successfully deleted."
 
 
 def update_user_status(user_id: int, is_active: int) -> Tuple[bool, str]:
