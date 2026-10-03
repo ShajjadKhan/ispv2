@@ -1456,6 +1456,20 @@
               </div>
             </div>
           </div>
+
+          <!-- Customer Joining Date & Billing Start Date -->
+          <div class="modal-grid-2" style="margin-top:12px; padding:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="inputJoinDate">Customer Joining Date</label>
+              <input type="date" class="form-input font-mono" id="inputJoinDate" name="join_date" style="color:#ffffff;">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date joined ISP (auto-registered, editable)</span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="inputBillingStartDate">Billing Cycle Start Date</label>
+              <input type="date" class="form-input font-mono" id="inputBillingStartDate" name="billing_start_date" style="color:#ffffff;">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Calculation origin for billing ledger &amp; cycle</span>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -1668,6 +1682,12 @@
       const postDateEl = document.getElementById('inputPostpaidDueDate');
       if (postDateEl) postDateEl.value = dateStr;
 
+      const todayStr = today.toISOString().split('T')[0];
+      const joinDateEl = document.getElementById('inputJoinDate');
+      if (joinDateEl) joinDateEl.value = todayStr;
+      const bStartEl = document.getElementById('inputBillingStartDate');
+      if (bStartEl) bStartEl.value = todayStr;
+
       const dueDayEl = document.getElementById('inputDueDay');
       if (dueDayEl) dueDayEl.value = futureDate.getDate();
 
@@ -1810,7 +1830,9 @@
           due_date: dueDate,
           max_devices: maxDevices,
           advance_mode: advanceMode,
-          is_secondary: false
+          is_secondary: false,
+          join_date: document.getElementById('inputJoinDate')?.value || null,
+          billing_start_date: document.getElementById('inputBillingStartDate')?.value || null
         })
       });
 

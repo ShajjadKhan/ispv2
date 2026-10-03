@@ -216,6 +216,8 @@ class ApproveConnectionPayload(BaseModel):
     speed_limit: Optional[str] = None
     advance_mode: Optional[str] = "credit"  # "credit" or "months"
     is_secondary: Optional[bool] = False
+    join_date: Optional[str] = None
+    billing_start_date: Optional[str] = None
 
 
 class RevokeDevicePayload(BaseModel):
@@ -236,6 +238,8 @@ class CreateCustomerPayload(BaseModel):
     initial_payment: Optional[float] = 0.0
     advance_mode: Optional[str] = "credit"
     reseller_id: Optional[int] = None
+    join_date: Optional[str] = None
+    billing_start_date: Optional[str] = None
 
 
 class EditCustomerPayload(BaseModel):
@@ -251,6 +255,7 @@ class EditCustomerPayload(BaseModel):
     credit_balance: Optional[float] = None
     reseller_id: Optional[int] = -1
     billing_start_date: Optional[str] = None
+    join_date: Optional[str] = None
     suspension_held_until: Optional[str] = -1
     suspension_hold_reason: Optional[str] = -1
 
@@ -1715,7 +1720,9 @@ async def api_reseller_create_customer(payload: CreateCustomerPayload, request: 
             speed_limit=payload.speed_limit,
             initial_payment=payload.initial_payment or 0.0,
             advance_mode=payload.advance_mode or "credit",
-            reseller_id=target_reseller_id
+            reseller_id=target_reseller_id,
+            join_date=payload.join_date,
+            billing_start_date=payload.billing_start_date
         )
 
         # Bind on MikroTik if MAC was supplied
@@ -2099,7 +2106,9 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
             max_devices=payload.max_devices or 1,
             speed_limit=payload.speed_limit,
             advance_mode=payload.advance_mode or "credit",
-            is_secondary=payload.is_secondary or False
+            is_secondary=payload.is_secondary or False,
+            join_date=payload.join_date,
+            billing_start_date=payload.billing_start_date
         )
 
         # 2. Determine effective rate limit (custom or package default)
@@ -2432,7 +2441,9 @@ async def create_new_customer(payload: CreateCustomerPayload):
             speed_limit=payload.speed_limit,
             initial_payment=payload.initial_payment or 0.0,
             advance_mode=payload.advance_mode or "credit",
-            reseller_id=payload.reseller_id
+            reseller_id=payload.reseller_id,
+            join_date=payload.join_date,
+            billing_start_date=payload.billing_start_date
         )
 
         mt_ok = True
@@ -2483,6 +2494,7 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             credit_balance=payload.credit_balance,
             reseller_id=payload.reseller_id,
             billing_start_date=payload.billing_start_date,
+            join_date=payload.join_date,
             suspension_held_until=payload.suspension_held_until,
             suspension_hold_reason=payload.suspension_hold_reason
         )

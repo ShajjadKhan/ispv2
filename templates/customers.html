@@ -1287,7 +1287,7 @@
                   <div class="cust-name-cell">
                     <span class="cust-name">{{ c.name }}</span>
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
-                      <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                      <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
                       {% if c.reseller_shop_name or c.reseller_username %}
                         <span class="badge-status" style="font-size:10px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">
                           🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1456,7 +1456,7 @@
               <div class="mobile-cust-info">
                 <span class="mobile-cust-name">{{ c.name }}</span>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
-                  <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.created_at[:10] }}</span>
+                  <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
                   {% if c.reseller_shop_name or c.reseller_username %}
                     <span class="badge-status" style="font-size:9.5px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 5px; border-radius:4px; font-weight:700;">
                       🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1971,6 +1971,19 @@
           <div class="form-group">
             <label for="addCustDueDate">Payment Due Date (Manual)</label>
             <input type="date" class="form-input font-mono" id="addCustDueDate" required style="color:#ffffff;">
+          </div>
+        </div>
+
+        <div class="modal-grid-2">
+          <div class="form-group">
+            <label for="addCustJoinDate">Customer Joining Date</label>
+            <input type="date" class="form-input font-mono" id="addCustJoinDate" style="color:#ffffff;">
+            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date joined ISP (auto-registered, editable)</span>
+          </div>
+          <div class="form-group">
+            <label for="addCustBillingStart">Billing Cycle Start Date</label>
+            <input type="date" class="form-input font-mono" id="addCustBillingStart" style="color:#ffffff;">
+            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Calculation origin for billing ledger &amp; cycle</span>
           </div>
         </div>
 
@@ -2930,7 +2943,8 @@
       const c = await resp.json();
 
       document.getElementById('profName').textContent = c.name;
-      document.getElementById('profSubhead').textContent = `Account #${c.id} • Registered ${c.created_at}`;
+      const jDate = c.join_date || (c.created_at ? c.created_at.slice(0, 10) : '—');
+      document.getElementById('profSubhead').textContent = `Account #${c.id} • Joined ${jDate}`;
       if (document.getElementById('profPhone')) {
         document.getElementById('profPhone').textContent = c.phone || '—';
       }
@@ -3426,9 +3440,14 @@
 
   function openAddCustomerModal() {
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
     const futureDate = new Date();
     futureDate.setDate(today.getDate() + 30);
     document.getElementById('addCustDueDate').value = futureDate.toISOString().split('T')[0];
+    const joinDateEl = document.getElementById('addCustJoinDate');
+    if (joinDateEl) joinDateEl.value = todayStr;
+    const bStartEl = document.getElementById('addCustBillingStart');
+    if (bStartEl) bStartEl.value = todayStr;
     const initPayEl = document.getElementById('addCustInitialPay');
     if (initPayEl) initPayEl.value = '0.00';
     onAddPkgChange();
@@ -3699,6 +3718,8 @@
     const advMode = (document.querySelector('input[name="add_cust_adv_mode"]:checked') || {}).value || 'credit';
     const resellerVal = document.getElementById('addCustReseller') ? document.getElementById('addCustReseller').value : '';
     const resellerId = resellerVal ? parseInt(resellerVal) : null;
+    const joinDate = document.getElementById('addCustJoinDate') ? document.getElementById('addCustJoinDate').value : null;
+    const bStart = document.getElementById('addCustBillingStart') ? document.getElementById('addCustBillingStart').value : null;
 
     if (mac && isRandomMac(mac)) {
       cyberToast('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
@@ -3723,7 +3744,9 @@
           mac_address: mac || null,
           initial_payment: initPay,
           advance_mode: advMode,
-          reseller_id: resellerId
+          reseller_id: resellerId,
+          join_date: joinDate || null,
+          billing_start_date: bStart || null
         })
       });
 

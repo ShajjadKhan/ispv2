@@ -611,7 +611,7 @@
           <span>&bull;</span>
           <span>{{ c.phone }}</span>
           <span>&bull;</span>
-          <span>Joined {{ c.created_at[:10] }}</span>
+          <span>Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
         </div>
       </div>
     </div>
@@ -667,6 +667,16 @@
         <div class="metric-item">
           <span class="m-label">Due / Expiry Date</span>
           <span class="m-value font-mono" id="sideDueDate">{{ c.due_date or c.expiry_date or '—' }}</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Customer Joined</span>
+          <span class="m-value font-mono text-white" id="sideJoinDate">{{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Billing Cycle Start</span>
+          <span class="m-value font-mono" id="sideBillingStartDate">{{ c.billing_start_date or c.join_date or c.created_at[:10] }}</span>
         </div>
 
         <div class="metric-item">
@@ -887,6 +897,20 @@
             <div class="form-group" style="margin-bottom:0;">
               <label>Customer Credit Wallet (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="custCredit" name="credit_balance" value="{{ '%.2f'|format(c.credit_balance or 0.0) }}" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <div class="modal-grid-2" style="margin-top:12px; margin-bottom:12px; padding:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Customer Joining Date <span style="font-size:11px; font-weight:normal; color:var(--text-dim);">(Auto-registered, editable)</span></label>
+              <input type="date" class="form-input font-mono" id="custJoinDate" name="join_date" value="{{ c.join_date or c.billing_start_date or c.created_at[:10] }}" style="color:#ffffff;">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date customer joined ISP (e.g. 1 year ago). Controls anniversary cycle day.</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Billing Cycle Start Date <span style="font-size:11px; font-weight:normal; color:var(--text-dim);">(Cycle Ledger Origin)</span></label>
+              <input type="date" class="form-input font-mono" id="custBillingStartDate" name="billing_start_date" value="{{ c.billing_start_date or c.join_date or c.created_at[:10] }}" style="color:#ffffff;">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Software debt ledger &amp; cycle calculation start date.</span>
             </div>
           </div>
 
@@ -1201,7 +1225,9 @@
       due_date: document.getElementById('custDueDate').value,
       credit_balance: parseFloat(document.getElementById('custCredit').value) || 0.0,
       max_devices: parseInt(document.getElementById('custMaxDevices').value) || 1,
-      reseller_id: resellerId
+      reseller_id: resellerId,
+      join_date: document.getElementById('custJoinDate') ? document.getElementById('custJoinDate').value : null,
+      billing_start_date: document.getElementById('custBillingStartDate') ? document.getElementById('custBillingStartDate').value : null
     };
 
     try {
@@ -1218,6 +1244,12 @@
         document.getElementById('sideMonthlyFee').textContent = parseFloat(res.customer.monthly_fee).toFixed(2) + ' SAR';
         document.getElementById('sideDueDate').textContent = res.customer.due_date || '—';
         document.getElementById('sideCreditBalance').textContent = parseFloat(res.customer.credit_balance || 0).toFixed(2) + ' SAR';
+        if (res.customer.join_date && document.getElementById('sideJoinDate')) {
+          document.getElementById('sideJoinDate').textContent = res.customer.join_date;
+        }
+        if (res.customer.billing_start_date && document.getElementById('sideBillingStartDate')) {
+          document.getElementById('sideBillingStartDate').textContent = res.customer.billing_start_date;
+        }
 
         btn.style.background = '#059669';
         btn.innerHTML = '<span>✓ Saved &amp; Synced! Redirecting...</span>';
