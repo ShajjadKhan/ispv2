@@ -578,6 +578,11 @@ def init_db():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_tr_sess_cust ON customer_connection_sessions(customer_id, started_at DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_tr_sess_mac_active ON customer_connection_sessions(mac_address, is_active)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_customer_devices_cust_id ON customer_devices(customer_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_customer_devices_mac ON customer_devices(mac_address)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_collections_cust_id ON collections(customer_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_conn_requests_mac ON connection_requests(mac_address)")
 
         conn.commit()
 
@@ -3072,12 +3077,16 @@ def get_dashboard_metrics(
             if target_revenue_sar > 0 else 100.0
         )
 
-        # 5. Dashboard subscriber capacity limit
+        # 5. Dashboard subscriber capacity limit (defaults to 1,500 subscribers, configurable via ISP_CAPACITY_LIMIT)
         try:
-            capacity_limit = max(1, int(os.getenv('ISP_CAPACITY_LIMIT', '500')))
+            configured_capacity = max(1000, int(os.getenv('ISP_CAPACITY_LIMIT', '1500')))
         except (TypeError, ValueError):
-            capacity_limit = 500
+            configured_capacity = 1500
+
+        # Dynamically auto-scale capacity if total active subscribers approach or exceed configured limit
+        capacity_limit = max(configured_capacity, max(1000, ((len(active_customers) // 500) + 1) * 500))
         capacity_percent = min(100.0, round((len(active_customers) / capacity_limit * 100), 1))
+        capacity_limit_formatted = f"{capacity_limit:,}"
 
         # 6. Staff Performance Breakdown for Target Month
         cursor.execute("""
@@ -3121,6 +3130,7 @@ def get_dashboard_metrics(
             "active_subscribers": len(active_customers),
             "suspended_count": len(suspended_customers),
             "capacity_limit": capacity_limit,
+            "capacity_limit_formatted": capacity_limit_formatted,
             "capacity_percent": capacity_percent,
             "total_approved_devices": total_approved_devices,
             "online_devices": online_approved_devices,

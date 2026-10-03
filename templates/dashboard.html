@@ -2092,7 +2092,7 @@
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number">{{ metrics.total_subscribers }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.capacity_limit }}</span></div>
+        <div class="kpi-main-number">{{ metrics.total_subscribers }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.capacity_limit_formatted or metrics.capacity_limit }}</span></div>
         <div class="kpi-sub-text">{{ metrics.active_subscribers }} Active &bull; {{ metrics.suspended_count }} Suspended</div>
       </div>
       <div class="kpi-progress-bar">
@@ -2206,7 +2206,7 @@
       </div>
       <div class="meter-stats-row">
         <span>Active Subscribers: <strong>{{ metrics.active_subscribers }}</strong></span>
-        <span>Gateway Limit: <strong>{{ metrics.capacity_limit }} users</strong></span>
+        <span>Gateway Limit: <strong>{{ metrics.capacity_limit_formatted or metrics.capacity_limit }} users</strong></span>
         <span>Connected Devices: <strong>{{ metrics.online_devices }} / {{ metrics.total_approved_devices }}</strong></span>
       </div>
     </div>
