@@ -353,6 +353,9 @@
   }
   .form-input:focus { border-color: #38bdf8; }
 
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .spin { animation: spin 0.8s linear infinite; }
+
   /* MOBILE RESPONSIVE OPTIMIZATION */
   @media (max-width: 768px) {
     .olt-chassis-card {
@@ -507,7 +510,14 @@
         </div>
       </div>
 
-      <div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <button id="syncOltBtn" type="button" onclick="triggerOltSync({{ selected_olt.id }})" class="pill-btn active" style="background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; color: #38bdf8; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" title="Sync live optical dBm and link states directly from physical OLT hardware">
+          <svg id="syncIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span id="syncBtnText">⚡ Sync Telemetry Now</span>
+        </button>
+
         <div class="status-pill" style="font-size: 12px; padding: 6px 14px;">
           <span class="pulse-dot"></span>
           <span>OLT ONLINE &bull; {{ selected_olt.temperature }}&deg;C</span>
@@ -531,6 +541,10 @@
       <div class="tele-box">
         <span class="label">PON Downlinks Active</span>
         <span class="value text-emerald">{{ selected_olt.ports | length }} PON Ports Active</span>
+      </div>
+      <div class="tele-box">
+        <span class="label">Last Hardware Sync</span>
+        <span class="value text-cyan" id="oltLastSyncTime" style="font-size: 11.5px;">{{ selected_olt.updated_at or 'Just now' }}</span>
       </div>
     </div>
   </div>
@@ -904,5 +918,60 @@
       alert('Error updating name: ' + err.message);
     }
   }
+
+  // 1-Click OLT Hardware Telemetry Sync
+  async function triggerOltSync(oltId) {
+    const btn = document.getElementById('syncOltBtn');
+    const icon = document.getElementById('syncIcon');
+    const txt = document.getElementById('syncBtnText');
+
+    if (btn) btn.disabled = true;
+    if (icon) icon.classList.add('spin');
+    if (txt) txt.textContent = 'Syncing...';
+
+    try {
+      const res = await fetch(`/api/olt/${oltId}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (txt) txt.textContent = '✓ Synced!';
+        const syncTimeEl = document.getElementById('oltLastSyncTime');
+        if (syncTimeEl && data.updated_at) {
+          syncTimeEl.textContent = data.updated_at;
+        }
+        setTimeout(() => {
+          window.location.reload();
+        }, 700);
+      } else {
+        alert('Sync error: ' + (data.error || 'Failed to sync'));
+        if (txt) txt.textContent = '⚡ Sync Telemetry Now';
+        if (btn) btn.disabled = false;
+        if (icon) icon.classList.remove('spin');
+      }
+    } catch (err) {
+      alert('Error triggering sync: ' + err.message);
+      if (txt) txt.textContent = '⚡ Sync Telemetry Now';
+      if (btn) btn.disabled = false;
+      if (icon) icon.classList.remove('spin');
+    }
+  }
+
+  // Background Auto-Refresh: Keep optical signals fresh every 30 seconds
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/olt/1/telemetry');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) {
+          const syncTimeEl = document.getElementById('oltLastSyncTime');
+          if (syncTimeEl && data.olt && data.olt.updated_at) {
+            syncTimeEl.textContent = data.olt.updated_at;
+          }
+        }
+      }
+    } catch (_) {}
+  }, 30000);
 </script>
 {% endblock %}

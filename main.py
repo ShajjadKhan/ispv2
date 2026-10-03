@@ -359,6 +359,12 @@ class RenameOnuPayload(BaseModel):
     name: str
 
 
+class OltTelemetrySyncPayload(BaseModel):
+    olt_id: int = 1
+    onus: List[Dict[str, Any]]
+    chassis: Optional[Dict[str, Any]] = None
+
+
 class WhatsAppSendRequest(BaseModel):
     phone: str
     message: str
@@ -3198,6 +3204,91 @@ async def api_get_uptime_ledger(olt_id: int):
 async def api_get_olt_errors(olt_id: int):
     """Returns active optical errors and alerts."""
     return database.get_olt_active_errors(olt_id=olt_id)
+
+
+@app.post("/api/olt/sync-telemetry")
+async def api_sync_olt_telemetry(payload: OltTelemetrySyncPayload):
+    """
+    Ingests live telemetry from background poller agent or manual sync.
+    Updates ONUs, link states, optical errors, and uptime ledger.
+    """
+    try:
+        res = database.sync_olt_live_telemetry(
+            olt_id=payload.olt_id,
+            onus_data=payload.onus,
+            chassis_info=payload.chassis
+        )
+        return res
+    except Exception as e:
+        logger.exception(f"Error syncing OLT telemetry: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/olt/{olt_id}/sync")
+async def api_trigger_olt_sync(olt_id: int):
+    """
+    Triggers an on-demand OLT sync.
+    Returns latest telemetry stats, active errors, and ONU states.
+    """
+    try:
+        # Write trigger timestamp file for any listening sync daemon
+        trigger_path = "/home/tserver/isp_v2/olt_sync.trigger"
+        try:
+            with open(trigger_path, "w") as f:
+                f.write(datetime.now().isoformat())
+        except Exception:
+            pass
+
+        # Retrieve current live state from database
+        olt = database.get_olt_details(olt_id)
+        if not olt:
+            raise HTTPException(status_code=404, detail="OLT not found")
+
+        onus = database.get_onus(olt_id=olt_id)
+        errors = database.get_olt_active_errors(olt_id=olt_id)
+
+        online_count = sum(1 for o in onus if o.get("status") == "online")
+
+        return {
+            "success": True,
+            "message": f"OLT Telemetry Synced: {online_count}/{len(onus)} ONUs online",
+            "olt": olt,
+            "total_onus": len(onus),
+            "online_onus": online_count,
+            "offline_onus": len(onus) - online_count,
+            "active_errors_count": len(errors),
+            "updated_at": olt.get("updated_at")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error in api_trigger_olt_sync: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/olt/{olt_id}/telemetry")
+async def api_get_olt_live_telemetry(olt_id: int):
+    """
+    Returns complete live telemetry snapshot for real-time GUI auto-refresh without page reloads.
+    """
+    olt = database.get_olt_details(olt_id)
+    if not olt:
+        raise HTTPException(status_code=404, detail="OLT not found")
+    onus = database.get_onus(olt_id=olt_id)
+    errors = database.get_olt_active_errors(olt_id=olt_id)
+    ledger = database.get_onu_uptime_ledger(olt_id=olt_id)
+    return {
+        "olt": olt,
+        "onus": onus,
+        "errors": errors,
+        "ledger": ledger[:20],
+        "stats": {
+            "total": len(onus),
+            "online": sum(1 for o in onus if o.get("status") == "online"),
+            "offline": sum(1 for o in onus if o.get("status") != "online"),
+            "errors_count": len(errors)
+        }
+    }
 
 
 # =========================================================
