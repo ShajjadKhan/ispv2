@@ -227,6 +227,126 @@
     gap: 16px;
   }
 
+  /* =========================================================
+     PAGE-SCOPED FORM CONTROL STYLING (DARK CYBERNET THEME)
+     ========================================================= */
+  .edit-page-container .form-group {
+    min-width: 0;
+  }
+  .edit-page-container .form-group > label {
+    display: block;
+    margin-bottom: 7px;
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .edit-page-container .form-input,
+  .edit-page-container .form-select,
+  .edit-page-container select.form-select,
+  .edit-page-container select.form-input,
+  .edit-page-container textarea.form-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+    background-color: #080e1b;
+    color: #f8fafc !important;
+    font: 500 14px/1.4 var(--font-sans);
+    caret-color: #38bdf8;
+    -webkit-text-fill-color: #f8fafc;
+    box-sizing: border-box;
+    transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+  }
+
+  .edit-page-container .form-input::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+    -webkit-text-fill-color: #94a3b8;
+  }
+
+  .edit-page-container .form-input:focus,
+  .edit-page-container .form-select:focus,
+  .edit-page-container select.form-select:focus,
+  .edit-page-container select.form-input:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background-color: #0b1425;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+  }
+
+  /* Form Selects */
+  .edit-page-container .form-select,
+  .edit-page-container select.form-select,
+  .edit-page-container select.form-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 38px;
+    cursor: pointer;
+  }
+  .edit-page-container .form-select option,
+  .edit-page-container select option {
+    color: #f8fafc;
+    background: #0f172a;
+    padding: 8px;
+  }
+
+  /* Native Date & Number Controls (Dark Theme & Calendar Picker) */
+  .edit-page-container input[type="date"],
+  .edit-page-container input[type="number"],
+  .edit-page-container input[type="text"],
+  .edit-page-container select {
+    font-family: var(--font-sans);
+    color-scheme: dark;
+  }
+  .edit-page-container input.font-mono {
+    font-family: var(--font-mono);
+  }
+  .edit-page-container input[type="date"] {
+    min-height: 44px;
+    padding: 9px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+    background: #080e1b;
+    color: #f8fafc !important;
+    accent-color: #38bdf8;
+    color-scheme: dark;
+    box-sizing: border-box;
+  }
+  .edit-page-container input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+    cursor: pointer;
+    opacity: 0.8;
+    padding: 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s ease, filter 0.15s ease;
+  }
+  .edit-page-container input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    filter: invert(1);
+    background: rgba(56, 189, 248, 0.15);
+  }
+
+  /* Desktop Grid Helpers */
+  .modal-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .modal-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+
   /* MODERN BILLING TYPE SELECTOR */
   .billing-card-picker {
     display: grid;
@@ -410,6 +530,72 @@
     outline: none;
   }
 
+  /* PRESET ACTION BUTTONS (+30 Days, +60 Days, Quota Pills) */
+  .edit-page-container .btn-preset {
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 8px;
+    background: #17233a;
+    color: #dbeafe;
+    font: 600 12px/1.3 var(--font-sans);
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 100ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    user-select: none;
+  }
+  .edit-page-container .btn-preset:hover {
+    background: rgba(56, 189, 248, 0.16);
+    border-color: rgba(56, 189, 248, 0.6);
+    color: #7dd3fc;
+    transform: translateY(-1px);
+  }
+  .edit-page-container .btn-preset:active {
+    transform: translateY(0);
+    background: rgba(56, 189, 248, 0.28);
+  }
+  .edit-page-container .btn-preset:focus-visible,
+  .edit-page-container .stepper-btn:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+
+  .btn-approve {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: none;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-approve:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
   /* DEVICE MACS LIST */
   .device-list-deck {
     display: flex;
@@ -525,13 +711,42 @@
     transform: translateY(-1px);
   }
 
-  /* MEDIA QUERIES FOR MOBILE */
+  /* MEDIA QUERIES FOR MOBILE & TABLET */
   @media (max-width: 900px) {
     .edit-content-grid {
       grid-template-columns: 1fr;
     }
     .edit-sidebar-card {
       position: static;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .modal-grid-2,
+    .modal-grid-3 {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+    }
+    .edit-page-container .form-input,
+    .edit-page-container .form-select,
+    .edit-page-container select.form-select,
+    .edit-page-container select.form-input,
+    .edit-page-container textarea.form-input {
+      font-size: 16px !important; /* Prevents iOS auto-zoom */
+      min-height: 44px;
+    }
+    .edit-page-container input[type="date"] {
+      min-height: 44px;
+      font-size: 16px !important;
+    }
+    .edit-page-container .btn-preset {
+      min-height: 42px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+    }
+    .form-section-body {
+      padding: 14px;
+      gap: 14px;
     }
   }
 
