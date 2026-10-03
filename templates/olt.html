@@ -150,13 +150,13 @@
 
   .pon-ports-bar {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 14px;
     padding: 20px 24px;
   }
 
   @media (max-width: 900px) {
-    .pon-ports-bar { grid-template-columns: repeat(2, 1fr); }
+    .pon-ports-bar { grid-template-columns: 1fr; }
   }
 
   .pon-card {
@@ -549,7 +549,7 @@
       <span class="font-mono" style="font-size: 11px; color: var(--text-dim);">Immediate Technician Action Recommended</span>
     </div>
 
-    <div>
+    <div style="max-height: 420px; overflow-y: auto;">
       {% for err in active_errors %}
       <div class="alarm-item-box">
         <div style="display: flex; flex-direction: column; gap: 4px;">

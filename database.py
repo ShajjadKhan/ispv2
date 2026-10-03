@@ -355,49 +355,14 @@ def init_db():
         )
         """)
 
-        # Seed initial OLT and ONUs if none exist
+        # Ensure default Core Hub OLT exists
         cursor.execute("SELECT COUNT(*) FROM olts")
         if cursor.fetchone()[0] == 0:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute("""
-                INSERT INTO olts (name, model, brand, ip_address, port, pon_type, pon_ports_count, uplink_ports_count, status, uptime, cpu_usage, memory_usage, temperature, snmp_community, notes, created_at, updated_at)
-                VALUES ('Core Hub OLT 1', 'V1600G1-B', 'VSOL', '10.20.30.2', 161, 'GPON', 4, 4, 'online', '18d 4h 12m', 16, 38, 39, 'public', 'Main Optical Distribution Hub (4 PON Ports, Class C+ SFP)', ?, ?)
+                INSERT INTO olts (id, name, model, brand, ip_address, port, pon_type, pon_ports_count, uplink_ports_count, status, uptime, cpu_usage, memory_usage, temperature, snmp_community, notes, created_at, updated_at)
+                VALUES (1, 'Core Hub OLT (VSOL 1-Port GPON)', 'V1600G-series', 'VSOL', '192.168.200.200', 161, 'GPON', 1, 3, 'online', '18d 4h 12m', 14, 38, 39, 'public', 'CyberNet Core GPON Plant on MikroTik ether4 (192.168.200.200:161)', ?, ?)
             """, (now_str, now_str))
-            olt_id = cursor.lastrowid
-
-            # Seed sample ONUs linked to existing customers
-            cursor.execute("SELECT id FROM customers WHERE id = 2")
-            if cursor.fetchone():
-                cursor.execute("""
-                    INSERT INTO onus (olt_id, pon_port, onu_id, customer_id, serial_number, mac_address, name, onu_model, mode, status, rx_power, tx_power, distance_m, vlan_id, created_at, updated_at)
-                    VALUES (?, 1, 1, 2, 'VSOL1A2B3C4D', '3C:38:24:0F:69:74', 'Shajjad Khan Office ONT', 'VSOL V2804RE (4GE+WiFi)', 'Routing', 'online', -18.6, 2.3, 420, 100, ?, ?)
-                """, (olt_id, now_str, now_str))
-
-            cursor.execute("SELECT id FROM customers WHERE id = 3")
-            if cursor.fetchone():
-                cursor.execute("""
-                    INSERT INTO onus (olt_id, pon_port, onu_id, customer_id, serial_number, mac_address, name, onu_model, mode, status, rx_power, tx_power, distance_m, vlan_id, created_at, updated_at)
-                    VALUES (?, 1, 2, 3, 'HWTC5E6F7A8B', '11:22:33:44:55', 'Ahmed Al-Mansoor Residence ONT', 'Huawei HG8546M (1GE+3FE+WiFi)', 'Routing', 'online', -21.4, 2.1, 1150, 100, ?, ?)
-                """, (olt_id, now_str, now_str))
-
-            cursor.execute("SELECT id FROM customers WHERE id = 5")
-            if cursor.fetchone():
-                cursor.execute("""
-                    INSERT INTO onus (olt_id, pon_port, onu_id, customer_id, serial_number, mac_address, name, onu_model, mode, status, rx_power, tx_power, distance_m, vlan_id, created_at, updated_at)
-                    VALUES (?, 2, 1, 5, 'ZTEG9C8B7A6F', NULL, 'Advance Test Postpaid Fiber ONT', 'ZTE F670L (Dual Band AC)', 'Routing', 'online', -25.8, 1.9, 1840, 100, ?, ?)
-                """, (olt_id, now_str, now_str))
-
-            cursor.execute("SELECT id FROM customers WHERE id = 6")
-            if cursor.fetchone():
-                cursor.execute("""
-                    INSERT INTO onus (olt_id, pon_port, onu_id, customer_id, serial_number, mac_address, name, onu_model, mode, status, rx_power, tx_power, distance_m, vlan_id, created_at, updated_at)
-                    VALUES (?, 3, 1, 6, 'FHTT4D3C2B1A', 'E0:D5:5E:AA:BB:CC', 'Sultan Villa ONT', 'FiberHome AN5506-04-F', 'Routing', 'online', -28.4, 1.8, 2310, 100, ?, ?)
-                """, (olt_id, now_str, now_str))
-
-            cursor.execute("""
-                INSERT INTO unconfigured_onus (olt_id, pon_port, serial_number, vendor, rx_power, discovered_at, status)
-                VALUES (?, 1, 'HWTC99887766', 'Huawei', -17.8, ?, 'unassigned')
-            """, (olt_id, now_str))
 
         # Migration: Add uptime and error diagnostic columns to onus
         onu_cols = [
@@ -428,58 +393,6 @@ def init_db():
             FOREIGN KEY (onu_id) REFERENCES onus(id) ON DELETE CASCADE
         )
         """)
-
-        # Seed initial uptime ledger entries if empty
-        cursor.execute("SELECT COUNT(*) FROM onu_uptime_ledger")
-        if cursor.fetchone()[0] == 0:
-            now_dt = datetime.now()
-            cursor.execute("SELECT id, serial_number, name FROM onus")
-            seeded_onus = [dict(r) for r in cursor.fetchall()]
-            for o in seeded_onus:
-                oid = o["id"]
-                sn = o["serial_number"]
-                if "VSOL" in sn:
-                    t1 = (now_dt - timedelta(days=18, hours=4)).strftime("%Y-%m-%d %H:%M:%S")
-                    cursor.execute("""
-                        INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
-                        VALUES (?, 'online', ?, '18d 4h 12m', 'Optical link synchronized & stable (Class C+)', -18.6)
-                    """, (oid, t1))
-                    cursor.execute("""
-                        UPDATE onus SET uptime = '18d 4h 12m', status = 'online', last_error = 'None (Normal Operation)', error_severity = 'normal', flaps_count = 0, availability_pct = 100.0, last_online_at = ? WHERE id = ?
-                    """, (t1, oid))
-                elif "HWTC" in sn:
-                    t1 = (now_dt - timedelta(days=6, hours=11)).strftime("%Y-%m-%d %H:%M:%S")
-                    t_glitch = (now_dt - timedelta(days=6, hours=11, minutes=4)).strftime("%Y-%m-%d %H:%M:%S")
-                    cursor.execute("""
-                        INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
-                        VALUES (?, 'dying_gasp', ?, '4m', 'Subscriber power glitch (dying gasp detected)', -21.4)
-                    """, (oid, t_glitch))
-                    cursor.execute("""
-                        INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
-                        VALUES (?, 'online', ?, '6d 11h 45m', 'Power restored - Optical link UP', -21.4)
-                    """, (oid, t1))
-                    cursor.execute("""
-                        UPDATE onus SET uptime = '6d 11h 45m', status = 'online', last_error = 'None (Brief power glitch 6d ago, recovered)', error_severity = 'normal', flaps_count = 1, availability_pct = 99.8, last_online_at = ? WHERE id = ?
-                    """, (t1, oid))
-                elif "ZTEG" in sn:
-                    t_warn = (now_dt - timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
-                    t_up = (now_dt - timedelta(days=2, hours=19)).strftime("%Y-%m-%d %H:%M:%S")
-                    cursor.execute("""
-                        INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
-                        VALUES (?, 'warning', ?, 'Ongoing (8h)', 'Optical attenuation warning (-25.8 dBm > -24dBm limit)', -25.8)
-                    """, (oid, t_warn))
-                    cursor.execute("""
-                        UPDATE onus SET uptime = '2d 19h 30m', status = 'online', last_error = 'High Optical Loss (-25.8 dBm > -24dBm limit)', error_severity = 'warning', flaps_count = 2, availability_pct = 98.6, last_online_at = ? WHERE id = ?
-                    """, (t_up, oid))
-                elif "FHTT" in sn:
-                    t_los = (now_dt - timedelta(minutes=48)).strftime("%Y-%m-%d %H:%M:%S")
-                    cursor.execute("""
-                        INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
-                        VALUES (?, 'los', ?, '48m (Active Cut)', 'Loss of Signal (LOS) - Optical RX power dropped to -34.0 dBm (Physical fiber break)', -34.0)
-                    """, (oid, t_los))
-                    cursor.execute("""
-                        UPDATE onus SET uptime = 'Offline (48m)', status = 'los', rx_power = -34.0, last_error = 'Critical Fiber Break (LOS / Signal Disconnected)', error_severity = 'critical', flaps_count = 3, availability_pct = 92.4, last_offline_at = ? WHERE id = ?
-                    """, (t_los, oid))
 
         # 10. WhatsApp Outbox & Delivery Ledger Table
         cursor.execute("""
@@ -2981,20 +2894,19 @@ def get_olt_details(olt_id: int) -> Optional[Dict[str, Any]]:
                 "name": f"PON {p}",
                 "total_onus": tot,
                 "online_onus": onl,
-                "max_capacity": 64,
-                "utilization_percent": min(100.0, round((tot / 64) * 100, 1)),
+                "max_capacity": 128,
+                "utilization_percent": min(100.0, round((tot / 128) * 100, 1)),
                 "tx_power_dbm": "+2.5 dBm",
                 "avg_rx_dbm": round(float(p_stat["avg_rx"] or -19.0), 1) if tot > 0 else "—",
                 "status": "up" if tot > 0 else "idle"
             })
         olt["ports"] = ports
 
-        # Uplink SFP Ports
+        # Uplink Ports (ge1, ge2, ge3)
         olt["uplink_ports"] = [
-            {"name": "GE 1 (Uplink)", "type": "1000Base-T", "status": "up", "speed": "1 Gbps", "comment": "Core MikroTik hAP lite (ether1)"},
-            {"name": "GE 2 (Uplink)", "type": "1000Base-T", "status": "down", "speed": "—", "comment": "Redundant Uplink Link"},
-            {"name": "10GE SFP+ 1", "type": "10G SFP+ Optical", "status": "up", "speed": "10 Gbps", "comment": "Backbone Optical Trunk"},
-            {"name": "10GE SFP+ 2", "type": "10G SFP+ Optical", "status": "down", "speed": "—", "comment": "Standby Ring Link"}
+            {"name": "ge1 (Copper)", "type": "1000Base-T", "status": "up", "speed": "1 Gbps", "comment": "MikroTik ether4 (192.168.200.1 / VLAN 10 Untagged)"},
+            {"name": "ge2 (Copper)", "type": "1000Base-T", "status": "idle", "speed": "1 Gbps", "comment": "Copper Uplink 2 (VLAN 30 Untagged)"},
+            {"name": "ge3 (SFP Optical)", "type": "1G SFP Optical (850nm)", "status": "up", "speed": "1 Gbps", "comment": "MikroTik sfp1 Hotspot (10.50.0.1/22 / VLAN 20 Untagged)"}
         ]
 
         return olt
@@ -3298,7 +3210,7 @@ def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:
             SELECT o.*, c.name as customer_name, c.phone as customer_phone
             FROM onus o
             LEFT JOIN customers c ON o.customer_id = c.id
-            WHERE (o.status != 'online' OR o.error_severity IN ('warning', 'critical') OR o.rx_power < -24.0)
+            WHERE (o.status != 'online' OR o.error_severity IN ('warning', 'critical') OR o.rx_power < -25.0)
         """
         params = []
         if olt_id:
@@ -3311,32 +3223,38 @@ def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:
             item = dict(r)
             rx = float(item.get("rx_power") or 0.0)
             status = item.get("status")
+            item["distance_km"] = round(int(item.get("distance_m") or 0) / 1000, 2)
             
             if status == "los" or rx <= -30.0:
-                item["diag_title"] = "Optical Loss of Signal (LOS / Fiber Break)"
+                item["diag_title"] = "Optical Loss of Signal (LOS / Fiber Break)" if status == "los" else f"Critical Low Optical Signal ({rx:.1f} dBm)"
                 item["diag_severity"] = "critical"
-                item["diag_badge"] = "CRITICAL FIBER CUT"
+                item["diag_badge"] = "CRITICAL FIBER BREAK" if status == "los" else "CRITICAL LOW SIGNAL"
                 item["diag_solution"] = "Inspect drop cable, optical splitter port, or customer fiber wall socket."
-            elif rx < -27.0:
+                item["signal_color"] = "#f87171"
+            elif rx <= -27.0:
                 item["diag_title"] = f"Severe Optical Attenuation ({rx:.1f} dBm)"
                 item["diag_severity"] = "critical"
                 item["diag_badge"] = "CRITICAL ATTENUATION"
                 item["diag_solution"] = "Fiber bend or dirty connector. Clean SC/APC connector with fiber pen."
-            elif rx < -24.0:
+                item["signal_color"] = "#f87171"
+            elif rx < -25.0:
                 item["diag_title"] = f"High Optical Loss ({rx:.1f} dBm)"
                 item["diag_severity"] = "warning"
                 item["diag_badge"] = "HIGH LOSS WARNING"
                 item["diag_solution"] = "Check fiber patch cord for tight bends or splitter insertion loss."
+                item["signal_color"] = "#fbbf24"
             elif status in ("power_off", "dying_gasp"):
                 item["diag_title"] = "Subscriber Power Disconnected (Dying Gasp)"
                 item["diag_severity"] = "warning"
                 item["diag_badge"] = "POWER OFF"
                 item["diag_solution"] = "Customer premise ONT is turned off or power adapter unplugged."
+                item["signal_color"] = "#fbbf24"
             else:
                 item["diag_title"] = item.get("last_error") or "Unknown Warning"
                 item["diag_severity"] = "warning"
                 item["diag_badge"] = "WARNING"
                 item["diag_solution"] = "Monitor optical link stability."
+                item["signal_color"] = "#fbbf24"
 
             errors.append(item)
         return errors
