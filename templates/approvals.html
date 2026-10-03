@@ -1774,14 +1774,14 @@
           closeApprovalModal();
           location.reload();
         } else {
-          alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+          cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'), 'error');
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<span>Authorize Device (No Billing)</span>';
           }
         }
       } catch (err) {
-        alert('Error approving request: ' + err.message);
+        cyberToast('Error approving request: ' + err.message, 'error');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>Authorize Device (No Billing)</span>';
@@ -1841,14 +1841,14 @@
         closeApprovalModal();
         location.reload();
       } else {
-        alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+        cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'), 'error');
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
         }
       }
     } catch (err) {
-      alert('Error approving request: ' + err.message);
+      cyberToast('Error approving request: ' + err.message, 'error');
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
@@ -1857,7 +1857,7 @@
   }
 
   async function quickApproveSecondary(reqId, custName) {
-    if (!confirm(`Authorize extra device for ${custName || 'this customer'} immediately?\n\nBilling is already active, internet will be activated right away without collecting any new fee.`)) return;
+    if (!(await cyberConfirm(`Authorize extra device for ${custName || 'this customer'} immediately?\n\nBilling is already active, internet will be activated right away without collecting any new fee.`, { title: 'Authorize Extra Device', okText: 'Authorize Device' }))) return;
 
     try {
       const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
@@ -1873,15 +1873,15 @@
       if (res.success) {
         location.reload();
       } else {
-        alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+        cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'), 'error');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message, 'error');
     }
   }
 
   async function rejectRequest(reqId) {
-    if (!confirm('Are you sure you want to reject this connection request?')) return;
+    if (!(await cyberConfirm('Are you sure you want to reject this connection request?', { title: 'Reject Request', okText: 'Reject Request', danger: true }))) return;
     try {
       const resp = await fetch(`/api/hotspot/requests/${reqId}/reject`, { method: 'POST' });
       const res = await resp.json();
@@ -1890,15 +1890,15 @@
         if (row) row.remove();
         location.reload();
       } else {
-        alert('Failed to reject: ' + (res.message || 'Error'));
+        cyberToast('Failed to reject: ' + (res.message || 'Error'), 'error');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message, 'error');
     }
   }
 
   async function revokeDevice(mac) {
-    if (!confirm(`Revoke internet access for device ${mac}?`)) return;
+    if (!(await cyberConfirm(`Revoke internet access for device ${mac}?`, { title: 'Revoke Device', okText: 'Revoke Access', danger: true }))) return;
     try {
       const resp = await fetch(`/api/hotspot/devices/revoke`, {
         method: 'POST',
@@ -1909,10 +1909,10 @@
       if (res.success) {
         location.reload();
       } else {
-        alert('Revoke failed: ' + res.message);
+        cyberToast('Revoke failed: ' + res.message, 'error');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message, 'error');
     }
   }
 

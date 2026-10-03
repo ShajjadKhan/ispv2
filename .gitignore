@@ -18,3 +18,8 @@ __pycache__/
 venv/
 backups/
 *.tmp
+
+# Local diagnostics and runtime markers
+diagnostics/antigravity_*/
+diagnostics/backups_*/
+*.trigger

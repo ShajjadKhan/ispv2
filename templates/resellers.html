@@ -1260,7 +1260,7 @@
   async function deleteResellerPartner(btn) {
     const id = btn.dataset.id;
     const name = btn.dataset.name || 'this partner';
-    if (!confirm(`Are you sure you want to permanently delete reseller partner "${name}"?\n\nAny customers linked to this partner will be unassigned (not deleted). This action cannot be undone.`)) {
+    if (!(await cyberConfirm(`Are you sure you want to permanently delete reseller partner "${name}"?\n\nAny customers linked to this partner will be unassigned (not deleted). This action cannot be undone.`, { title: 'Delete Reseller Partner', okText: 'Delete Partner', danger: true }))) {
       return;
     }
 
@@ -1362,7 +1362,7 @@
   async function deleteManagerUser(btn) {
     const id = btn.dataset.id;
     const name = btn.dataset.name || 'this manager';
-    if (!confirm(`Are you sure you want to permanently delete operations manager "${name}"?`)) {
+    if (!(await cyberConfirm(`Are you sure you want to permanently delete operations manager "${name}"?`, { title: 'Delete Manager', okText: 'Delete Manager', danger: true }))) {
       return;
     }
 

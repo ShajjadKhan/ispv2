@@ -3420,19 +3420,19 @@
 
   async function deleteCustomerPayment(colId, amount) {
     const amtStr = parseFloat(amount || 0).toFixed(2);
-    if (!confirm(`Delete payment #COL-${colId} (+${amtStr} SAR)?\n\nThis will remove the payment from this customer and adjust the ledger.`)) return;
+    if (!(await cyberConfirm(`Delete payment #COL-${colId} (+${amtStr} SAR)?\n\nThis will remove the payment from this customer and adjust the ledger.`, { title: 'Delete Payment', okText: 'Delete Payment', danger: true }))) return;
     try {
       const resp = await fetch(`/api/collections/${colId}`, { method: 'DELETE' });
       const res = await resp.json();
       if (res.success) {
         if (typeof cyberToast === 'function') cyberToast('Payment record deleted.');
-        else alert('Payment record deleted.');
+        else console.info('Payment record deleted.');
         if (activeCustomerId) openProfileModal(activeCustomerId, 'billing');
       } else {
-        alert('Failed to delete payment: ' + (res.error || res.message));
+        cyberToast('Failed to delete payment: ' + (res.error || res.message), 'error');
       }
     } catch (err) {
-      alert('Error deleting payment: ' + err.message);
+      cyberToast('Error deleting payment: ' + err.message, 'error');
     }
   }
 

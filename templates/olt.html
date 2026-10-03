@@ -912,10 +912,10 @@
         closeRenameModal();
         window.location.reload();
       } else {
-        alert('Failed to update name: ' + (data.error || 'Unknown error'));
+        cyberToast('Failed to update name: ' + (data.error || 'Unknown error'), 'error');
       }
     } catch (err) {
-      alert('Error updating name: ' + err.message);
+      cyberToast('Error updating name: ' + err.message, 'error');
     }
   }
 
@@ -945,13 +945,13 @@
           window.location.reload();
         }, 700);
       } else {
-        alert('Sync error: ' + (data.error || 'Failed to sync'));
+        cyberToast('Sync error: ' + (data.error || 'Failed to sync'), 'error');
         if (txt) txt.textContent = '⚡ Sync Telemetry Now';
         if (btn) btn.disabled = false;
         if (icon) icon.classList.remove('spin');
       }
     } catch (err) {
-      alert('Error triggering sync: ' + err.message);
+      cyberToast('Error triggering sync: ' + err.message, 'error');
       if (txt) txt.textContent = '⚡ Sync Telemetry Now';
       if (btn) btn.disabled = false;
       if (icon) icon.classList.remove('spin');

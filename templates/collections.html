@@ -2286,7 +2286,7 @@
     const notes = document.getElementById('posNotesInput').value.trim() || 'Cash Payment';
 
     if (!custId) {
-      alert('Please search and select a subscriber from the suggestions list.');
+      cyberToast('Please search and select a subscriber from the suggestions list.', 'warning');
       document.getElementById('posCustomerSearchInput').focus();
       return;
     }
@@ -2303,22 +2303,22 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message || 'Payment successfully recorded!');
+        cyberToast(res.message || 'Payment successfully recorded!', 'success');
         location.reload();
       } else {
-        alert('Collection failed: ' + (res.message || res.error));
+        cyberToast('Collection failed: ' + (res.message || res.error), 'error');
         btn.disabled = false;
         btn.innerHTML = '<span>Collect &amp; Extend</span>';
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message, 'error');
       btn.disabled = false;
       btn.innerHTML = '<span>Collect &amp; Extend</span>';
     }
   }
 
   async function quickSettleCredit(custId, fee) {
-    if (!confirm(`Settle bill of ${parseFloat(fee).toFixed(2)} SAR from customer's available wallet credit?`)) return;
+    if (!(await cyberConfirm(`Settle bill of ${parseFloat(fee).toFixed(2)} SAR from customer's available wallet credit?`, { title: 'Settle From Credit', okText: 'Settle Now' }))) return;
     try {
       const resp = await fetch(`/api/customers/${custId}/apply-credit`, {
         method: 'POST',
@@ -2327,13 +2327,13 @@
       });
       const res = await resp.json();
       if (res.success) {
-        alert(res.message || 'Successfully settled from credit balance!');
+        cyberToast(res.message || 'Successfully settled from credit balance!', 'success');
         location.reload();
       } else {
-        alert('Settlement failed: ' + (res.message || res.error));
+        cyberToast('Settlement failed: ' + (res.message || res.error), 'error');
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      cyberToast('Error: ' + err.message, 'error');
     }
   }
 
@@ -2399,7 +2399,7 @@
       const resp = await fetch(`/api/collections/${colId}`);
       const data = await resp.json();
       if (!data.success || !data.collection) {
-        alert(data.error || 'Failed to load collection details.');
+        cyberToast(data.error || 'Failed to load collection details.', 'error');
         return;
       }
       const c = data.collection;
@@ -2416,7 +2416,7 @@
       m.classList.add('open');
       m.style.display = 'flex';
     } catch (err) {
-      alert('Network error loading collection: ' + err.message);
+      cyberToast('Network error loading collection: ' + err.message, 'error');
     }
   }
 
@@ -2457,12 +2457,12 @@
         closeEditCollectionModal();
         location.reload();
       } else {
-        alert('Failed to update payment: ' + (res.error || res.message));
+        cyberToast('Failed to update payment: ' + (res.error || res.message), 'error');
         btn.disabled = false;
         btn.innerHTML = oldHtml;
       }
     } catch (err) {
-      alert('Error updating payment: ' + err.message);
+      cyberToast('Error updating payment: ' + err.message, 'error');
       btn.disabled = false;
       btn.innerHTML = oldHtml;
     }
@@ -2470,7 +2470,7 @@
 
   async function deleteCollectionRecord(colId, custName, amount) {
     const amtStr = parseFloat(amount || 0).toFixed(2);
-    if (!confirm(`Are you sure you want to DELETE payment #COL-${colId} (+${amtStr} SAR for ${custName})?\n\nThis will remove the transaction from the financial ledger and balance sheet.`)) {
+    if (!(await cyberConfirm(`Are you sure you want to DELETE payment #COL-${colId} (+${amtStr} SAR for ${custName})?\n\nThis will remove the transaction from the financial ledger and balance sheet.`, { title: 'Delete Payment', okText: 'Delete Payment', danger: true }))) {
       return;
     }
     try {
@@ -2492,10 +2492,10 @@
           location.reload();
         }
       } else {
-        alert('Failed to delete payment: ' + (res.error || res.message));
+        cyberToast('Failed to delete payment: ' + (res.error || res.message), 'error');
       }
     } catch (err) {
-      alert('Network error deleting payment: ' + err.message);
+      cyberToast('Network error deleting payment: ' + err.message, 'error');
     }
   }
 

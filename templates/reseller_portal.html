@@ -870,7 +870,7 @@
     const months = parseInt(document.getElementById('posMonthsSelect').value || 1);
     const notes = document.getElementById('posNotes').value.trim();
 
-    if (!confirm(`Confirm renewal for ${currentSelectedCustomer.name} (${months} month(s))?`)) return;
+    if (!(await cyberConfirm(`Confirm renewal for ${currentSelectedCustomer.name} (${months} month(s))?`, { title: 'Confirm Renewal', okText: 'Renew Subscription' }))) return;
 
     try {
       const res = await fetch('/api/reseller/recharge', {
@@ -894,10 +894,10 @@
 
         openModal('receiptModal');
       } else {
-        alert('Recharge failed: ' + (data.error || data.message));
+        cyberToast('Recharge failed: ' + (data.error || data.message), 'error');
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message, 'error');
     }
   }
 
@@ -921,7 +921,7 @@
     };
 
     if (payload.mac_address && isRandomMac(payload.mac_address)) {
-      alert('Cannot register subscriber: Randomized MAC address detected! CyberNet strictly requires physical Device MAC. Please turn off Private Wi-Fi Address on customer phone.');
+      cyberToast('Cannot register subscriber: Randomized MAC address detected! CyberNet strictly requires physical Device MAC. Please turn off Private Wi-Fi Address on customer phone.', 'error');
       return;
     }
 
@@ -933,13 +933,13 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Subscriber successfully registered!');
+        cyberToast('Subscriber successfully registered!', 'success');
         location.reload();
       } else {
-        alert('Registration error: ' + (data.error || data.message));
+        cyberToast('Registration error: ' + (data.error || data.message), 'error');
       }
     } catch (err) {
-      alert('Network error: ' + err.message);
+      cyberToast('Network error: ' + err.message, 'error');
     }
   }
 
