@@ -1061,8 +1061,19 @@
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})" title="Reject Random MAC request">
                       Reject
                     </button>
+                  {% elif req.is_secondary %}
+                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ req.existing_customer_name or '' }}')" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="1-Click Quick Authorize (No Billing)">
+                      <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                      <span>Quick Authorize</span>
+                    </button>
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                      <span>Review</span>
+                    </button>
+                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                      Reject
+                    </button>
                   {% else %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', {{ 1 if req.is_secondary else 0 }}, {{ req.customer_max_devices or 1 }})">
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 0, 1, 0, '', '')">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
@@ -1199,8 +1210,8 @@
   <div class="modal-box">
     <div class="modal-header">
       <div>
-        <h3>Approve Customer Connection</h3>
-        <p>Assign billing type, speed package, and manual fee</p>
+        <h3 id="modalHeaderTitle">Approve Customer Connection</h3>
+        <p id="modalHeaderSubtitle">Assign billing type, speed package, and manual fee</p>
       </div>
       <button type="button" class="btn-close-modal" onclick="closeApprovalModal()">&times;</button>
     </div>
@@ -1209,6 +1220,7 @@
       <input type="hidden" id="modalReqId" name="req_id">
       <input type="hidden" id="modalMac" name="mac">
       <input type="hidden" id="modalIp" name="ip">
+      <input type="hidden" id="modalIsSecondary" name="is_secondary" value="0">
 
       <div class="modal-body">
         <!-- Device Info Banner -->
@@ -1223,167 +1235,215 @@
           </div>
         </div>
 
-        <!-- Customer Name -->
-        <div class="form-group">
-          <label for="custName">Customer Full Name</label>
-          <input type="text" class="form-input" id="custName" name="name" required placeholder="e.g. Shajjad Khan">
-        </div>
-
-        <!-- Billing Type Selector -->
-        <div class="form-group">
-          <label>Select Billing Type</label>
-          <div class="billing-type-grid">
-            <div class="type-option-card prepaid-selected selected" id="cardPrepaid" onclick="selectBillingType('prepaid')">
-              <div class="title">
-                <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-                <span>Prepaid</span>
+        <!-- SECONDARY / EXTRA DEVICE AUTHORIZATION BOX -->
+        <div id="secondaryApprovalBox" style="display:none; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.25)); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 10px; gap:8px;">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#34d399; font-weight:700; margin-bottom:3px; display:flex; align-items:center; gap:6px;">
+                <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>Existing Active Subscriber</span>
               </div>
-              <div class="desc">Advance payment, expires in 30 days</div>
+              <div style="font-size:16px; font-weight:800; color:#ffffff;" id="secondaryCustName">Customer</div>
             </div>
+            <span class="badge" style="background:rgba(52, 211, 153, 0.2); color:#34d399; border:1px solid rgba(52, 211, 153, 0.4); font-size:11.5px; font-weight:700; padding:4px 10px; white-space:nowrap;" id="secondarySlotBadge">Device 4 of 4</span>
+          </div>
 
-            <div class="type-option-card" id="cardPostpaid" onclick="selectBillingType('postpaid')">
-              <div class="title">
-                <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                <span>Postpaid</span>
-              </div>
-              <div class="desc">Monthly recurring billing cycle</div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 10px 12px; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); font-size:12px;">
+            <div>
+              <span style="color:#94a3b8; display:block; font-size:10.5px;">Active Plan</span>
+              <strong style="color:#38bdf8;" id="secondaryPlanName">—</strong>
+            </div>
+            <div>
+              <span style="color:#94a3b8; display:block; font-size:10.5px;">Plan Expiry</span>
+              <strong style="color:#a7f3d0;" id="secondaryExpiryDate">—</strong>
+            </div>
+            <div>
+              <span style="color:#94a3b8; display:block; font-size:10.5px;">Billing Status</span>
+              <strong style="color:#34d399;" id="secondaryBillingStatus">✅ Settled / Active</strong>
             </div>
           </div>
-          <input type="hidden" id="selectedBillingType" name="billing_type" value="prepaid">
+
+          <div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.45;">
+            💡 <strong>No billing required:</strong> This extra phone connects under the subscriber's existing active account. All existing subscription dates, monthly rates, and package settings remain untouched.
+          </div>
+
+          <!-- Optional Toggle for extra fee collection -->
+          <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.12);">
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#94a3b8; cursor:pointer;">
+              <input type="checkbox" id="chkCollectExtraSecondary" onchange="toggleSecondaryExtraCollection()">
+              <span>Collect additional payment / deposit today (Optional)</span>
+            </label>
+            <div id="secondaryExtraFeeBox" style="display:none; margin-top:10px;">
+              <label style="font-size:11px; color:#cbd5e1;">Amount Collected Today (SAR)</label>
+              <input type="number" step="0.01" class="form-input font-mono" id="inputSecondaryExtraFee" value="0.00" placeholder="0.00" style="margin-top:4px;">
+            </div>
+          </div>
         </div>
 
-        <!-- Package Selection -->
-        <div class="form-group">
-          <label for="pkgSelect">Speed Package</label>
-          <select class="form-select" id="pkgSelect" name="package_name" onchange="onPackageChanged()">
-            {% for pkg in packages %}
-            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-shared="{{ pkg.shared_users or 1 }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} — {{ pkg.rate_limit }} ({{ pkg.default_price }} SAR)</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- SPEED LIMIT (MANUAL ENTRY) -->
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label for="approvalCustSpeed" style="margin:0;">Speed that Customer Will Get (Speed Limit)</label>
-            <span class="font-mono text-cyan" style="font-size:11px; font-weight:700;">Live MikroTik Queue</span>
-          </div>
-          <div class="preset-wrap" style="margin-top:6px;">
-            <input type="text" class="form-input font-mono" id="approvalCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('5M/5M')">5M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('10M/10M')">10M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('20M/20M')">20M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('30M/30M')">30M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('50M/50M')">50M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('100M/100M')">100M</button>
-              <button type="button" class="btn-preset" onclick="setApprovalSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
-            </div>
-          </div>
-          <span style="font-size:11px; color:var(--text-dim); margin-top:4px;">
-            Admin can manually adjust the bandwidth limit for this customer or pick Unlimited.
-          </span>
-        </div>
-
-        <!-- ALLOWED DEVICES (MANUAL ENTRY) -->
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label for="inputMaxDevices" style="margin:0;">How Many Devices Can Connect? (Device Limit) *</label>
-            <span class="font-mono text-cyan" id="dispDevLimitBadge" style="font-size:11px; font-weight:700;">Manual Limit</span>
-          </div>
-          <div class="preset-wrap" style="margin-top:6px;">
-            <input type="number" min="1" max="100" class="form-input font-mono" id="inputMaxDevices" name="max_devices" value="1" required style="width:110px; font-weight:800; font-size:15px; color:#38bdf8; text-align:center;">
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Device</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Devices</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Devices</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(5)">5 Devices</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(8)">8 Devices</button>
-              <button type="button" class="btn-preset" onclick="setDevLimit(10)">10 Devices</button>
-            </div>
-          </div>
-          <span style="font-size:11px; color:var(--text-dim); margin-top:4px;">
-            Select a quick preset above or type any custom number directly into the box.
-          </span>
-        </div>
-
-        <!-- PREPAID FIELDS -->
-        <div id="prepaidFieldsBox" class="conditional-box">
-          <div style="font-size:12px; font-weight:700; color:#34d399; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:6px;">
-            <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-            <span>Prepaid Payment &amp; Expiry Date</span>
-          </div>
-
-          <div class="modal-grid-2">
-            <div class="form-group">
-              <label for="inputCollectedToday">Amount Collected Today (SAR)</label>
-              <input type="number" step="0.01" class="form-input font-mono" id="inputCollectedToday" name="collected_today" required value="75.00" placeholder="e.g. 75.00">
-            </div>
-            <div class="form-group">
-              <label for="inputPrepaidMonthly">Monthly Rate (SAR)</label>
-              <input type="number" step="0.01" class="form-input font-mono" id="inputPrepaidMonthly" name="monthly_fee_prepaid" required value="75.00" placeholder="e.g. 75.00">
-            </div>
-          </div>
-
+        <!-- NEW CUSTOMER BILLING SETUP (HIDDEN FOR SECONDARY DEVICES) -->
+        <div id="newCustomerBillingBox">
+          <!-- Customer Name -->
           <div class="form-group">
-            <label for="inputPrepaidDueDate">Payment Due Date / Expiry (Manual Entry)</label>
-            <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date" required style="color:#ffffff;">
-            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually choose or enter the exact expiration / recharge due date.</span>
-          </div>
-        </div>
-
-        <!-- POSTPAID FIELDS -->
-        <div id="postpaidFieldsBox" class="conditional-box" style="display:none;">
-          <div style="font-size:12px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:6px;">
-            <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            <span>Postpaid Regular Cycle &amp; Advance Credit</span>
+            <label for="custName">Customer Full Name</label>
+            <input type="text" class="form-input" id="custName" name="name" required placeholder="e.g. Shajjad Khan">
           </div>
 
-          <div class="modal-grid-2">
-            <div class="form-group">
-              <label for="inputPostpaidMonthly">Monthly Collectable Fee (SAR)</label>
-              <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidMonthly" name="monthly_fee_postpaid" value="75.00" placeholder="e.g. 75.00" oninput="calculatePostpaidAdvance()">
-            </div>
-            <div class="form-group">
-              <label for="inputPostpaidCollected">Payment Collected Today / Advance (SAR)</label>
-              <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidCollected" name="collected_today_postpaid" value="0.00" placeholder="e.g. 100.00" oninput="calculatePostpaidAdvance()">
-              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0 if paying later, or enter full advance amount (e.g. 100 SAR).</span>
-            </div>
-          </div>
-
-          <!-- Live Advance Calculation Box -->
-          <div id="postpaidAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:12px; margin-bottom:12px;">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-              <div style="font-size:12px; font-weight:700; color:#34d399; display:flex; align-items:center; gap:6px;">
-                <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-                <span>Advance Payment Breakdown</span>
+          <!-- Billing Type Selector -->
+          <div class="form-group">
+            <label>Select Billing Type</label>
+            <div class="billing-type-grid">
+              <div class="type-option-card prepaid-selected selected" id="cardPrepaid" onclick="selectBillingType('prepaid')">
+                <div class="title">
+                  <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                  <span>Prepaid</span>
+                </div>
+                <div class="desc">Advance payment, expires in 30 days</div>
               </div>
-              <span class="badge" style="background:rgba(52,211,153,0.2); color:#34d399; font-size:11px; font-weight:700;" id="postpaidCreditBadge">+0.00 SAR Credit</span>
+
+              <div class="type-option-card" id="cardPostpaid" onclick="selectBillingType('postpaid')">
+                <div class="title">
+                  <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                  <span>Postpaid</span>
+                </div>
+                <div class="desc">Monthly recurring billing cycle</div>
+              </div>
             </div>
-            <div style="font-size:12px; color:#e2e8f0; margin-top:6px; line-height:1.4;" id="postpaidAdvanceText">
-              <!-- Rendered via JS -->
+            <input type="hidden" id="selectedBillingType" name="billing_type" value="prepaid">
+          </div>
+
+          <!-- Package Selection -->
+          <div class="form-group">
+            <label for="pkgSelect">Speed Package</label>
+            <select class="form-select" id="pkgSelect" name="package_name" onchange="onPackageChanged()">
+              {% for pkg in packages %}
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-shared="{{ pkg.shared_users or 1 }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} — {{ pkg.rate_limit }} ({{ pkg.default_price }} SAR)</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- SPEED LIMIT (MANUAL ENTRY) -->
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label for="approvalCustSpeed" style="margin:0;">Speed that Customer Will Get (Speed Limit)</label>
+              <span class="font-mono text-cyan" style="font-size:11px; font-weight:700;">Live MikroTik Queue</span>
             </div>
-            <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; gap:16px;">
-              <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#94a3b8; cursor:pointer;">
-                <input type="radio" name="postpaid_adv_mode" value="credit" checked onchange="calculatePostpaidAdvance()">
-                <span>Credit Balance (Keep extra as account credit)</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#94a3b8; cursor:pointer;">
-                <input type="radio" name="postpaid_adv_mode" value="months" onchange="calculatePostpaidAdvance()">
-                <span>Extend Multiple Months</span>
-              </label>
+            <div class="preset-wrap" style="margin-top:6px;">
+              <input type="text" class="form-input font-mono" id="approvalCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('5M/5M')">5M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('10M/10M')">10M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('20M/20M')">20M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('30M/30M')">30M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('50M/50M')">50M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('100M/100M')">100M</button>
+                <button type="button" class="btn-preset" onclick="setApprovalSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+              </div>
+            </div>
+            <span style="font-size:11px; color:var(--text-dim); margin-top:4px;">
+              Admin can manually adjust the bandwidth limit for this customer or pick Unlimited.
+            </span>
+          </div>
+
+          <!-- ALLOWED DEVICES (MANUAL ENTRY) -->
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label for="inputMaxDevices" style="margin:0;">How Many Devices Can Connect? (Device Limit) *</label>
+              <span class="font-mono text-cyan" id="dispDevLimitBadge" style="font-size:11px; font-weight:700;">Manual Limit</span>
+            </div>
+            <div class="preset-wrap" style="margin-top:6px;">
+              <input type="number" min="1" max="100" class="form-input font-mono" id="inputMaxDevices" name="max_devices" value="1" required style="width:110px; font-weight:800; font-size:15px; color:#38bdf8; text-align:center;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setDevLimit(1)">1 Device</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(2)">2 Devices</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(3)">3 Devices</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(5)">5 Devices</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(8)">8 Devices</button>
+                <button type="button" class="btn-preset" onclick="setDevLimit(10)">10 Devices</button>
+              </div>
+            </div>
+            <span style="font-size:11px; color:var(--text-dim); margin-top:4px;">
+              Select a quick preset above or type any custom number directly into the box.
+            </span>
+          </div>
+
+          <!-- PREPAID FIELDS -->
+          <div id="prepaidFieldsBox" class="conditional-box">
+            <div style="font-size:12px; font-weight:700; color:#34d399; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:6px;">
+              <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+              <span>Prepaid Payment &amp; Expiry Date</span>
+            </div>
+
+            <div class="modal-grid-2">
+              <div class="form-group">
+                <label for="inputCollectedToday">Amount Collected Today (SAR)</label>
+                <input type="number" step="0.01" class="form-input font-mono" id="inputCollectedToday" name="collected_today" required value="75.00" placeholder="e.g. 75.00">
+              </div>
+              <div class="form-group">
+                <label for="inputPrepaidMonthly">Monthly Rate (SAR)</label>
+                <input type="number" step="0.01" class="form-input font-mono" id="inputPrepaidMonthly" name="monthly_fee_prepaid" required value="75.00" placeholder="e.g. 75.00">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="inputPrepaidDueDate">Payment Due Date / Expiry (Manual Entry)</label>
+              <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date" required style="color:#ffffff;">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually choose or enter the exact expiration / recharge due date.</span>
             </div>
           </div>
 
-          <div class="modal-grid-2">
-            <div class="form-group">
-              <label for="inputPostpaidDueDate">Payment Due Date (Manual Entry)</label>
-              <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date" style="color:#ffffff;">
-              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually select statement payment due date.</span>
+          <!-- POSTPAID FIELDS -->
+          <div id="postpaidFieldsBox" class="conditional-box" style="display:none;">
+            <div style="font-size:12px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:6px;">
+              <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              <span>Postpaid Regular Cycle &amp; Advance Credit</span>
             </div>
-            <div class="form-group">
-              <label for="inputDueDay">Due Day of Month (1 - 31)</label>
-              <input type="number" min="1" max="31" class="form-input font-mono" id="inputDueDay" name="due_day" value="10" placeholder="e.g. 10">
+
+            <div class="modal-grid-2">
+              <div class="form-group">
+                <label for="inputPostpaidMonthly">Monthly Collectable Fee (SAR)</label>
+                <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidMonthly" name="monthly_fee_postpaid" value="75.00" placeholder="e.g. 75.00" oninput="calculatePostpaidAdvance()">
+              </div>
+              <div class="form-group">
+                <label for="inputPostpaidCollected">Payment Collected Today / Advance (SAR)</label>
+                <input type="number" step="0.01" class="form-input font-mono" id="inputPostpaidCollected" name="collected_today_postpaid" value="0.00" placeholder="e.g. 100.00" oninput="calculatePostpaidAdvance()">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0 if paying later, or enter full advance amount (e.g. 100 SAR).</span>
+              </div>
+            </div>
+
+            <!-- Live Advance Calculation Box -->
+            <div id="postpaidAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:12px; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-size:12px; font-weight:700; color:#34d399; display:flex; align-items:center; gap:6px;">
+                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+                  <span>Advance Payment Breakdown</span>
+                </div>
+                <span class="badge" style="background:rgba(52,211,153,0.2); color:#34d399; font-size:11px; font-weight:700;" id="postpaidCreditBadge">+0.00 SAR Credit</span>
+              </div>
+              <div style="font-size:12px; color:#e2e8f0; margin-top:6px; line-height:1.4;" id="postpaidAdvanceText">
+                <!-- Rendered via JS -->
+              </div>
+              <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; gap:16px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#94a3b8; cursor:pointer;">
+                  <input type="radio" name="postpaid_adv_mode" value="credit" checked onchange="calculatePostpaidAdvance()">
+                  <span>Credit Balance (Keep extra as account credit)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#94a3b8; cursor:pointer;">
+                  <input type="radio" name="postpaid_adv_mode" value="months" onchange="calculatePostpaidAdvance()">
+                  <span>Extend Multiple Months</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="modal-grid-2">
+              <div class="form-group">
+                <label for="inputPostpaidDueDate">Payment Due Date (Manual Entry)</label>
+                <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date" style="color:#ffffff;">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually select statement payment due date.</span>
+              </div>
+              <div class="form-group">
+                <label for="inputDueDay">Due Day of Month (1 - 31)</label>
+                <input type="number" min="1" max="31" class="form-input font-mono" id="inputDueDay" name="due_day" value="10" placeholder="e.g. 10">
+              </div>
             </div>
           </div>
         </div>
@@ -1472,7 +1532,13 @@
     }
   }
 
-  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev) {
+  function toggleSecondaryExtraCollection() {
+    const chk = document.getElementById('chkCollectExtraSecondary');
+    const box = document.getElementById('secondaryExtraFeeBox');
+    if (box) box.style.display = (chk && chk.checked) ? 'block' : 'none';
+  }
+
+  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate) {
     const modalReqId = document.getElementById('modalReqId');
     if (modalReqId) modalReqId.value = reqId;
     const modalMac = document.getElementById('modalMac');
@@ -1484,41 +1550,100 @@
     const dispMac = document.getElementById('dispMac');
     if (dispMac) dispMac.textContent = mac;
 
+    const isSec = Boolean(isSecondary && isSecondary !== '0' && isSecondary !== 0);
+    const modalIsSec = document.getElementById('modalIsSecondary');
+    if (modalIsSec) modalIsSec.value = isSec ? '1' : '0';
+
+    const secBox = document.getElementById('secondaryApprovalBox');
+    const newBox = document.getElementById('newCustomerBillingBox');
+    const modalTitle = document.getElementById('modalHeaderTitle');
+    const modalSub = document.getElementById('modalHeaderSubtitle');
+    const btnApprove = document.getElementById('btnSubmitApprove');
     const nameField = document.getElementById('custName');
-    if (nameField) nameField.value = custName ? custName : ('Customer ' + phone);
+    const colToday = document.getElementById('inputCollectedToday');
+    const prepMonthly = document.getElementById('inputPrepaidMonthly');
+    const prepDate = document.getElementById('inputPrepaidDueDate');
 
-    const devInput = document.getElementById('inputMaxDevices');
-    if (devInput) {
-      devInput.dataset.manuallySet = "";
-      if (existingMaxDev && parseInt(existingMaxDev) > 0) {
-        devInput.value = existingMaxDev;
-        devInput.dataset.manuallySet = "true";
-      } else {
-        devInput.value = 1;
+    if (isSec) {
+      if (secBox) secBox.style.display = 'block';
+      if (newBox) newBox.style.display = 'none';
+      if (modalTitle) modalTitle.textContent = 'Authorize Extra Device';
+      if (modalSub) modalSub.textContent = 'Authorize secondary phone under existing subscriber account — Billing already settled';
+      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (No Billing)</span>';
+
+      const secName = document.getElementById('secondaryCustName');
+      if (secName) secName.textContent = custName || ('Customer ' + phone);
+
+      const devSlot = (parseInt(currentDevCnt) || 0) + 1;
+      const maxSlots = parseInt(existingMaxDev) || 1;
+      const secSlot = document.getElementById('secondarySlotBadge');
+      if (secSlot) {
+        secSlot.textContent = `Device ${devSlot} of ${maxSlots}`;
+        secSlot.style.color = (devSlot > maxSlots) ? '#f87171' : '#34d399';
       }
+
+      const secPlan = document.getElementById('secondaryPlanName');
+      if (secPlan) secPlan.textContent = pkgName || 'Active Plan';
+      const secExp = document.getElementById('secondaryExpiryDate');
+      if (secExp) secExp.textContent = expiryDate || 'Active';
+
+      // Reset extra collection toggle
+      const chkExtra = document.getElementById('chkCollectExtraSecondary');
+      if (chkExtra) chkExtra.checked = false;
+      const extraBox = document.getElementById('secondaryExtraFeeBox');
+      if (extraBox) extraBox.style.display = 'none';
+      const extraFeeInput = document.getElementById('inputSecondaryExtraFee');
+      if (extraFeeInput) extraFeeInput.value = '0.00';
+
+      // Disable 'required' on hidden fields
+      if (nameField) nameField.required = false;
+      if (colToday) colToday.required = false;
+      if (prepMonthly) prepMonthly.required = false;
+      if (prepDate) prepDate.required = false;
+
+    } else {
+      if (secBox) secBox.style.display = 'none';
+      if (newBox) newBox.style.display = 'block';
+      if (modalTitle) modalTitle.textContent = 'Approve Customer Connection';
+      if (modalSub) modalSub.textContent = 'Assign billing type, speed package, and manual fee';
+      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Approve &amp; Activate Internet</span>';
+
+      if (nameField) {
+        nameField.required = true;
+        nameField.value = custName ? custName : ('Customer ' + phone);
+      }
+
+      const devInput = document.getElementById('inputMaxDevices');
+      if (devInput) {
+        devInput.dataset.manuallySet = "";
+        if (existingMaxDev && parseInt(existingMaxDev) > 0) {
+          devInput.value = existingMaxDev;
+          devInput.dataset.manuallySet = "true";
+        } else {
+          devInput.value = 1;
+        }
+      }
+
+      // Default dates: 30 days from now
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + 30);
+      const dateStr = futureDate.toISOString().split('T')[0];
+
+      if (prepDate) prepDate.value = dateStr;
+      const postDateEl = document.getElementById('inputPostpaidDueDate');
+      if (postDateEl) postDateEl.value = dateStr;
+
+      const dueDayEl = document.getElementById('inputDueDay');
+      if (dueDayEl) dueDayEl.value = futureDate.getDate();
+
+      const postColEl = document.getElementById('inputPostpaidCollected');
+      if (postColEl) postColEl.value = '0.00';
+
+      selectBillingType('prepaid');
+      onPackageChanged();
+      calculatePostpaidAdvance();
     }
-
-    // Default dates: 30 days from now
-    const today = new Date();
-    const futureDate = new Date();
-    futureDate.setDate(today.getDate() + 30);
-    const dateStr = futureDate.toISOString().split('T')[0];
-
-    const prepDateEl = document.getElementById('inputPrepaidDueDate');
-    if (prepDateEl) prepDateEl.value = dateStr;
-
-    const postDateEl = document.getElementById('inputPostpaidDueDate');
-    if (postDateEl) postDateEl.value = dateStr;
-
-    const dueDayEl = document.getElementById('inputDueDay');
-    if (dueDayEl) dueDayEl.value = futureDate.getDate();
-
-    const postColEl = document.getElementById('inputPostpaidCollected');
-    if (postColEl) postColEl.value = '0.00';
-
-    selectBillingType('prepaid');
-    onPackageChanged();
-    calculatePostpaidAdvance();
 
     const modal = document.getElementById('approvalModal');
     if (modal) modal.classList.add('open');
@@ -1572,6 +1697,45 @@
     }
 
     const reqId = document.getElementById('modalReqId')?.value;
+    const isSecondary = document.getElementById('modalIsSecondary')?.value === '1';
+
+    if (isSecondary) {
+      const custName = document.getElementById('secondaryCustName')?.textContent?.trim() || ('Customer ' + (document.getElementById('dispPhone')?.textContent || ''));
+      const chkExtra = document.getElementById('chkCollectExtraSecondary')?.checked;
+      const extraFee = chkExtra ? (parseFloat(document.getElementById('inputSecondaryExtraFee')?.value) || 0.0) : 0.0;
+
+      try {
+        const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: custName,
+            is_secondary: true,
+            collected_today: extraFee
+          })
+        });
+
+        const res = await resp.json();
+        if (res.success) {
+          closeApprovalModal();
+          location.reload();
+        } else {
+          alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Authorize Device (No Billing)</span>';
+          }
+        }
+      } catch (err) {
+        alert('Error approving request: ' + err.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Authorize Device (No Billing)</span>';
+        }
+      }
+      return;
+    }
+
     const name = document.getElementById('custName')?.value?.trim() || ('Customer ' + (document.getElementById('dispPhone')?.textContent || ''));
     const billingType = document.getElementById('selectedBillingType')?.value || 'prepaid';
     const pkgSelect = document.getElementById('pkgSelect');
@@ -1611,14 +1775,14 @@
           due_day: dueDay,
           due_date: dueDate,
           max_devices: maxDevices,
-          advance_mode: advanceMode
+          advance_mode: advanceMode,
+          is_secondary: false
         })
       });
 
       const res = await resp.json();
       if (res.success) {
         closeApprovalModal();
-        // Reload page to reflect approved state
         location.reload();
       } else {
         alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
@@ -1633,6 +1797,30 @@
         btn.disabled = false;
         btn.innerHTML = '<span>Approve &amp; Activate Internet</span>';
       }
+    }
+  }
+
+  async function quickApproveSecondary(reqId, custName) {
+    if (!confirm(`Authorize extra device for ${custName || 'this customer'} immediately?\n\nBilling is already active, internet will be activated right away without collecting any new fee.`)) return;
+
+    try {
+      const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: custName || 'Customer',
+          is_secondary: true,
+          collected_today: 0.0
+        })
+      });
+      const res = await resp.json();
+      if (res.success) {
+        location.reload();
+      } else {
+        alert('Approval failed: ' + (res.error || res.message || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
     }
   }
 

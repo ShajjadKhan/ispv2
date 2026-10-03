@@ -170,15 +170,16 @@ class HotspotSubmitRequest(BaseModel):
 
 class ApproveConnectionPayload(BaseModel):
     name: str
-    billing_type: str  # 'prepaid' or 'postpaid'
-    package_name: str
-    monthly_fee: float
-    collected_today: float = 0.0
-    due_day: int = 1
+    billing_type: Optional[str] = "prepaid"  # 'prepaid' or 'postpaid'
+    package_name: Optional[str] = None
+    monthly_fee: Optional[float] = 0.0
+    collected_today: Optional[float] = 0.0
+    due_day: Optional[int] = 1
     due_date: Optional[str] = None
-    max_devices: int = 1
+    max_devices: Optional[int] = 1
     speed_limit: Optional[str] = None
     advance_mode: Optional[str] = "credit"  # "credit" or "months"
+    is_secondary: Optional[bool] = False
 
 
 class RevokeDevicePayload(BaseModel):
@@ -2005,25 +2006,29 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         customer = database.approve_connection(
             req_id=req_id,
             name=payload.name,
-            billing_type=payload.billing_type,
+            billing_type=payload.billing_type or "prepaid",
             package_name=payload.package_name,
-            monthly_fee=payload.monthly_fee,
-            collected_today=payload.collected_today,
-            due_day=payload.due_day,
+            monthly_fee=payload.monthly_fee or 0.0,
+            collected_today=payload.collected_today or 0.0,
+            due_day=payload.due_day or 1,
             due_date=payload.due_date,
-            max_devices=payload.max_devices,
+            max_devices=payload.max_devices or 1,
             speed_limit=payload.speed_limit,
-            advance_mode=payload.advance_mode or "credit"
+            advance_mode=payload.advance_mode or "credit",
+            is_secondary=payload.is_secondary or False
         )
 
         # 2. Determine effective rate limit (custom or package default)
+        effective_package = customer.get("package_name") or payload.package_name
+        effective_speed = customer.get("speed_limit") or payload.speed_limit
         packages = database.get_packages()
-        pkg_match = next((p for p in packages if p["name"] == payload.package_name), None)
+        pkg_match = next((p for p in packages if p["name"] == effective_package), None)
         default_rate = pkg_match["rate_limit"] if pkg_match else None
-        effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
+        effective_rate = effective_speed if (effective_speed and effective_speed.strip()) else default_rate
 
         # 3. Apply to MikroTik fleet
-        comment_str = f"CyberNet: {customer['phone']} - {customer['name']} ({customer['billing_type'].upper()})"
+        cust_billing_label = customer.get("billing_type", "POSTPAID").upper()
+        comment_str = f"CyberNet: {customer['phone']} - {customer['name']} ({cust_billing_label})"
         fleet_res = mikrotik_client.broadcast_bind_device(
             mac_address=customer["mac_address"],
             ip_address=customer.get("ip_address"),

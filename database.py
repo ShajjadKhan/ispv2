@@ -775,10 +775,12 @@ def get_pending_requests() -> List[Dict[str, Any]]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT r.*, c.name as existing_customer_name, c.billing_type as existing_billing_type,
-                   c.max_devices as customer_max_devices,
+                   c.package_name as existing_package_name, c.expiry_date as existing_expiry_date,
+                   c.status as existing_customer_status, c.speed_limit as existing_speed_limit,
+                   c.monthly_fee as existing_monthly_fee, c.max_devices as customer_max_devices,
                    (SELECT COUNT(*) FROM customer_devices cd WHERE cd.customer_id = c.id AND cd.status = 'approved') as current_device_count
             FROM connection_requests r
-            LEFT JOIN customers c ON r.customer_id = c.id
+            LEFT JOIN customers c ON (r.customer_id = c.id OR (r.customer_id IS NULL AND r.phone = c.phone))
             WHERE r.status = 'pending'
             ORDER BY r.id DESC
         """)
@@ -786,6 +788,8 @@ def get_pending_requests() -> List[Dict[str, Any]]:
         for r in rows:
             r["is_random_mac"] = is_randomized_mac(r.get("mac_address", ""))
             r["device_model"] = parse_clean_device_model(r.get("device_model", ""))
+            if r.get("existing_customer_name") or r.get("customer_id"):
+                r["is_secondary"] = 1
         return rows
 
 
@@ -820,24 +824,25 @@ def get_request_by_id(req_id: int) -> Optional[Dict[str, Any]]:
 def approve_connection(
     req_id: int,
     name: str,
-    billing_type: str,
-    package_name: str,
-    monthly_fee: float,
+    billing_type: str = "prepaid",
+    package_name: Optional[str] = None,
+    monthly_fee: float = 0.0,
     collected_today: float = 0.0,
     due_day: int = 1,
     due_date: Optional[str] = None,
     max_devices: int = 1,
     speed_limit: Optional[str] = None,
-    advance_mode: str = "credit"
+    advance_mode: str = "credit",
+    is_secondary: bool = False
 ) -> Dict[str, Any]:
     """
     Approves a pending request:
-    1. Creates or updates customer with manual fee, due date, speed limit, device limit, and credit balance.
-    2. If customer pays in advance (e.g. 100 SAR for a 30 SAR monthly fee), registers 30 SAR for cycle
-       and automatically saves the remainder (+70 SAR) into customer credit balance.
-    3. Binds MAC to customer.
-    4. Records payment in collections ledger.
-    5. Marks connection request as approved.
+    1. For existing active customers (secondary/extra devices):
+       - DOES NOT reset or overwrite billing type, package, monthly fee, or due/expiry dates.
+       - DOES NOT record false collections when no extra payment is collected.
+       - Ensures customer remains active, auto-expands device limit if needed, and binds the device.
+    2. For new customers (initial subscription setup):
+       - Sets up billing type, package, fee, due date, payment collection, and binds the device.
     """
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -846,58 +851,6 @@ def approve_connection(
     monthly_fee = float(monthly_fee or 0.0)
     clean_limit = max(1, int(max_devices or 1))
     clean_speed = speed_limit.strip() if speed_limit and speed_limit.strip() else None
-
-    # Dynamic Lifecycle Auto-Switching:
-    # 0 SAR collected upfront -> POSTPAID (deferred billing)
-    # Payment >= monthly fee -> PREPAID (service pre-funded)
-    final_billing_type = (billing_type or "prepaid").strip().lower()
-    if clean_collected == 0.0:
-        final_billing_type = "postpaid"
-    elif clean_collected >= monthly_fee and monthly_fee > 0:
-        final_billing_type = "prepaid"
-
-    # Base due date / expiry calculation
-    if due_date and due_date.strip():
-        final_due_date = due_date.strip()
-    else:
-        final_due_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")
-
-    credit_to_add = 0.0
-    col_notes = ""
-
-    # Advance payment calculation
-    if clean_collected > 0 and monthly_fee > 0:
-        if clean_collected > monthly_fee:
-            if advance_mode == "months":
-                covered_months = int(clean_collected // monthly_fee)
-                surplus_credit = round(clean_collected - (covered_months * monthly_fee), 2)
-                try:
-                    base_dt = datetime.strptime(final_due_date, "%Y-%m-%d")
-                except Exception:
-                    base_dt = now
-                extra_days = (covered_months - 1) * 30 if covered_months > 1 else 0
-                final_due_date = (base_dt + timedelta(days=extra_days)).strftime("%Y-%m-%d")
-                credit_to_add = surplus_credit
-                col_notes = f"Advance payment: {clean_collected:.2f} SAR ({covered_months} months covered until {final_due_date}, +{surplus_credit:.2f} SAR credit)"
-            else:
-                # Default "credit" mode: 1st cycle covered, remaining extra money is held as customer credit
-                credit_to_add = round(clean_collected - monthly_fee, 2)
-                col_notes = f"Advance payment: {clean_collected:.2f} SAR ({monthly_fee:.2f} SAR 1st cycle, +{credit_to_add:.2f} SAR added to Credit Balance)"
-        elif clean_collected == monthly_fee:
-            col_notes = f"Initial activation payment for {package_name} ({clean_collected:.2f} SAR)"
-        else:
-            # Partial deposit
-            credit_to_add = clean_collected
-            col_notes = f"Initial payment deposit: {clean_collected:.2f} SAR credited to balance"
-    elif clean_collected > 0:
-        credit_to_add = clean_collected
-        col_notes = f"Initial credit deposit: {clean_collected:.2f} SAR"
-
-    expiry_date = final_due_date
-    try:
-        due_day = int(final_due_date.split("-")[2])
-    except Exception:
-        pass
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -909,7 +862,7 @@ def approve_connection(
             raise ValueError(f"Request #{req_id} not found.")
         req = dict(req_row)
 
-        phone = req["phone"]
+        phone = req["phone"].strip()
         mac = req["mac_address"].upper()
         ip = req["ip_address"]
 
@@ -917,67 +870,175 @@ def approve_connection(
         if is_randomized_mac(mac):
             raise ValueError(f"Cannot approve connection for request #{req_id}: MAC '{mac}' is a randomized MAC address. Customer must connect using physical Device MAC.")
 
-        # 1. Upsert customer
-        cursor.execute("SELECT id, credit_balance FROM customers WHERE phone = ?", (phone,))
+        # Check if customer already exists
+        cursor.execute("SELECT * FROM customers WHERE phone = ?", (phone,))
         cust_row = cursor.fetchone()
 
-        if cust_row:
-            customer_id = cust_row["id"]
-            existing_credit = float(cust_row["credit_balance"] or 0.0)
-            new_credit = round(existing_credit + credit_to_add, 2)
+        is_existing = cust_row is not None
+        is_secondary_req = bool(is_secondary or req.get("is_secondary") or is_existing)
+
+        if is_existing and is_secondary_req:
+            # =========================================================================
+            # CASE A: Existing Customer (Extra Device Authorization)
+            # Billing is already done! Preserve all subscription parameters.
+            # =========================================================================
+            cust = dict(cust_row)
+            customer_id = cust["id"]
+            existing_max = int(cust.get("max_devices") or 1)
+
+            # Count current approved devices
+            cursor.execute("SELECT COUNT(*) FROM customer_devices WHERE customer_id = ? AND status = 'approved'", (customer_id,))
+            current_dev_cnt = cursor.fetchone()[0] or 0
+
+            # Ensure max_devices accommodates this device
+            new_max_devices = max(existing_max, clean_limit)
+            if current_dev_cnt >= new_max_devices:
+                new_max_devices = current_dev_cnt + 1
+
+            update_name = name.strip() if (name and not name.startswith("Customer 05")) else cust["name"]
+
+            # Only touch credit / collections if admin explicitly entered an extra payment (> 0)
+            if clean_collected > 0:
+                existing_credit = float(cust.get("credit_balance") or 0.0)
+                new_credit = round(existing_credit + clean_collected, 2)
+                cursor.execute("""
+                    UPDATE customers
+                    SET name = ?, status = 'active', max_devices = ?, credit_balance = ?, updated_at = ?
+                    WHERE id = ?
+                """, (update_name, new_max_devices, new_credit, now_str, customer_id))
+
+                cursor.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                    VALUES (?, ?, ?, ?, ?, 'Admin')
+                """, (customer_id, clean_collected, cust.get("billing_type", "postpaid"), f"Additional device payment / credit deposit ({clean_collected:.2f} SAR)", now_str))
+            else:
+                cursor.execute("""
+                    UPDATE customers
+                    SET name = ?, status = 'active', max_devices = ?, updated_at = ?
+                    WHERE id = ?
+                """, (update_name, new_max_devices, now_str, customer_id))
+
+            # Insert or update customer_devices
+            cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac,))
+            dev_row = cursor.fetchone()
+            if dev_row:
+                cursor.execute("""
+                    UPDATE customer_devices
+                    SET customer_id = ?, ip_address = ?, device_name = ?, status = 'approved', approved_at = ?
+                    WHERE id = ?
+                """, (customer_id, ip, req.get("device_model", "Mobile Phone"), now_str, dev_row["id"]))
+            else:
+                cursor.execute("""
+                    INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
+                    VALUES (?, ?, ?, ?, 'approved', ?, ?)
+                """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), now_str, now_str))
+
+            # Mark request as approved
             cursor.execute("""
-                UPDATE customers
-                SET name = ?, billing_type = ?, package_name = ?, monthly_fee = ?,
-                    collected_today = ?, due_day = ?, due_date = ?, status = 'active',
-                    expiry_date = ?, max_devices = ?, speed_limit = ?, credit_balance = ?, updated_at = ?
+                UPDATE connection_requests
+                SET status = 'approved', customer_id = ?, updated_at = ?
                 WHERE id = ?
-            """, (name, final_billing_type, package_name, monthly_fee, clean_collected, due_day, final_due_date, expiry_date, clean_limit, clean_speed, new_credit, now_str, customer_id))
+            """, (customer_id, now_str, req_id))
+
+            conn.commit()
+
+            cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+            saved_cust = dict(cursor.fetchone())
+            saved_cust["mac_address"] = mac
+            saved_cust["ip_address"] = ip
+            saved_cust["credit_balance"] = round(float(saved_cust.get("credit_balance") or 0.0), 2)
+            return saved_cust
+
         else:
+            # =========================================================================
+            # CASE B: Brand New Customer (Initial Setup)
+            # =========================================================================
+            final_billing_type = (billing_type or "prepaid").strip().lower()
+            if clean_collected == 0.0:
+                final_billing_type = "postpaid"
+            elif clean_collected >= monthly_fee and monthly_fee > 0:
+                final_billing_type = "prepaid"
+
+            if due_date and due_date.strip():
+                final_due_date = due_date.strip()
+            else:
+                final_due_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")
+
+            credit_to_add = 0.0
+            col_notes = ""
+
+            if clean_collected > 0 and monthly_fee > 0:
+                if clean_collected > monthly_fee:
+                    if advance_mode == "months":
+                        covered_months = int(clean_collected // monthly_fee)
+                        surplus_credit = round(clean_collected - (covered_months * monthly_fee), 2)
+                        try:
+                            base_dt = datetime.strptime(final_due_date, "%Y-%m-%d")
+                        except Exception:
+                            base_dt = now
+                        extra_days = (covered_months - 1) * 30 if covered_months > 1 else 0
+                        final_due_date = (base_dt + timedelta(days=extra_days)).strftime("%Y-%m-%d")
+                        credit_to_add = surplus_credit
+                        col_notes = f"Advance payment: {clean_collected:.2f} SAR ({covered_months} months covered until {final_due_date}, +{surplus_credit:.2f} SAR credit)"
+                    else:
+                        credit_to_add = round(clean_collected - monthly_fee, 2)
+                        col_notes = f"Advance payment: {clean_collected:.2f} SAR ({monthly_fee:.2f} SAR 1st cycle, +{credit_to_add:.2f} SAR added to Credit Balance)"
+                elif clean_collected == monthly_fee:
+                    col_notes = f"Initial activation payment for {package_name} ({clean_collected:.2f} SAR)"
+                else:
+                    credit_to_add = clean_collected
+                    col_notes = f"Initial payment deposit: {clean_collected:.2f} SAR credited to balance"
+            elif clean_collected > 0:
+                credit_to_add = clean_collected
+                col_notes = f"Initial credit deposit: {clean_collected:.2f} SAR"
+
+            expiry_date = final_due_date
+            try:
+                due_day = int(final_due_date.split("-")[2])
+            except Exception:
+                pass
+
             new_credit = round(credit_to_add, 2)
             cursor.execute("""
                 INSERT INTO customers (phone, name, billing_type, package_name, monthly_fee, collected_today, due_day, due_date, status, expiry_date, max_devices, speed_limit, credit_balance, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
-            """, (phone, name, final_billing_type, package_name, monthly_fee, clean_collected, due_day, final_due_date, expiry_date, clean_limit, clean_speed, new_credit, now_str, now_str))
+            """, (phone, name, final_billing_type, package_name or "Standard", monthly_fee, clean_collected, due_day, final_due_date, expiry_date, clean_limit, clean_speed, new_credit, now_str, now_str))
             customer_id = cursor.lastrowid
 
-        # 2. Insert or update customer_devices
-        cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac,))
-        dev_row = cursor.fetchone()
-        if dev_row:
+            cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac,))
+            dev_row = cursor.fetchone()
+            if dev_row:
+                cursor.execute("""
+                    UPDATE customer_devices
+                    SET customer_id = ?, ip_address = ?, device_name = ?, status = 'approved', approved_at = ?
+                    WHERE id = ?
+                """, (customer_id, ip, req.get("device_model", "Mobile Phone"), now_str, dev_row["id"]))
+            else:
+                cursor.execute("""
+                    INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
+                    VALUES (?, ?, ?, ?, 'approved', ?, ?)
+                """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), now_str, now_str))
+
+            if clean_collected > 0:
+                cursor.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                    VALUES (?, ?, ?, ?, ?, 'Admin')
+                """, (customer_id, clean_collected, final_billing_type, col_notes or f"Activation payment for {package_name}", now_str))
+
             cursor.execute("""
-                UPDATE customer_devices
-                SET customer_id = ?, ip_address = ?, status = 'approved', approved_at = ?
+                UPDATE connection_requests
+                SET status = 'approved', customer_id = ?, updated_at = ?
                 WHERE id = ?
-            """, (customer_id, ip, now_str, dev_row["id"]))
-        else:
-            cursor.execute("""
-                INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
-                VALUES (?, ?, ?, ?, 'approved', ?, ?)
-            """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), now_str, now_str))
+            """, (customer_id, now_str, req_id))
 
-        # 3. If payment collected today > 0, log collection
-        if clean_collected > 0:
-            cursor.execute("""
-                INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
-                VALUES (?, ?, ?, ?, ?, 'Admin')
-            """, (customer_id, clean_collected, final_billing_type, col_notes or f"Activation payment for {package_name}", now_str))
+            conn.commit()
 
-        # 4. Mark request approved
-        cursor.execute("""
-            UPDATE connection_requests
-            SET status = 'approved', customer_id = ?, updated_at = ?
-            WHERE id = ?
-        """, (customer_id, now_str, req_id))
-
-        conn.commit()
-
-        # Return combined result
-        cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
-        cust = dict(cursor.fetchone())
-        cust["mac_address"] = mac
-        cust["ip_address"] = ip
-        cust["credit_balance"] = round(float(cust.get("credit_balance") or 0.0), 2)
-        return cust
+            cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+            saved_cust = dict(cursor.fetchone())
+            saved_cust["mac_address"] = mac
+            saved_cust["ip_address"] = ip
+            saved_cust["credit_balance"] = round(float(saved_cust.get("credit_balance") or 0.0), 2)
+            return saved_cust
 
 
 def reject_connection(req_id: int) -> bool:
