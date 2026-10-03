@@ -532,6 +532,8 @@ PUBLIC_PREFIXES = (
     "/api/hotspot/detect-mac",
     "/api/hotspot/validate-mac",
     "/api/customer/lookup",
+    "/api/olt/sync-telemetry",
+    "/downloads/",
     "/portal",
     "/hotspot"
 )
