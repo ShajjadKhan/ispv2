@@ -5180,6 +5180,536 @@ def clear_all_traffic_history() -> Dict[str, int]:
         }
 
 
+# ============================================================
+# DEDICATED CUSTOMER BALANCE SHEET & FINANCIAL LEDGER ENGINE
+# Direct integration with bills.db & isp_v2.db
+# Replicates and modernizes portal.php?page=balance
+# ============================================================
+
+BILLS_DB_PATH = os.getenv("BILLS_DB_PATH", "/home/tserver/billing_reminder/bills.db")
 
 
+def normalize_saudi_phone_number(raw: Optional[str]) -> str:
+    """Normalizes Saudi mobile to international 9665xxxxxxxx format."""
+    if not raw:
+        return ""
+    digits = re.sub(r"[^0-9]", "", str(raw).strip())
+    if digits.startswith("0") and len(digits) == 10:
+        return "966" + digits[1:]
+    elif digits.startswith("5") and len(digits) == 9:
+        return "966" + digits
+    return digits
 
+
+def get_balance_sheet_data(
+    source: str = "building",
+    status_filter: str = "all",
+    search_query: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Returns unified, real-time subscriber balance sheet data.
+    Matches the exact accounting rules of CyberNet billing_reminder (portal.php?page=balance):
+    - Billable days from start date to yesterday inclusive (excluding vacation holds)
+    - Daily rate = fee / 30
+    - Total owed = round(billable_days * daily_rate, 2)
+    - Total paid = sum(collections.amount)
+    - Balance = round(total_paid - total_owed, 2)
+    - Status: CREDIT (> 0), SETTLED (== 0), OWING (< 0)
+    - Sorted by highest debt owing first (most negative balance), then alphabetically by name.
+    """
+    source = (source or "building").strip().lower()
+    if source not in ("building", "live", "all"):
+        source = "building"
+    status_filter = (status_filter or "all").strip().lower()
+    q = (search_query or "").strip().lower()
+
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    # ----------------------------------------------------
+    # 1. Building Database (bills.db)
+    # ----------------------------------------------------
+    building_rows: List[Dict[str, Any]] = []
+    if os.path.exists(BILLS_DB_PATH):
+        try:
+            with sqlite3.connect(BILLS_DB_PATH, timeout=10) as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+
+                # Pre-fetch vacation holds
+                h_rows = cur.execute("SELECT customer_id, hold_start, hold_end FROM vacation_holds").fetchall()
+                holds_by_cid: Dict[int, List[Tuple[date, Optional[date]]]] = {}
+                for h in h_rows:
+                    cid = int(h["customer_id"])
+                    if cid not in holds_by_cid:
+                        holds_by_cid[cid] = []
+                    try:
+                        s = datetime.strptime(str(h["hold_start"])[:10], "%Y-%m-%d").date()
+                        e = datetime.strptime(str(h["hold_end"])[:10], "%Y-%m-%d").date() if h["hold_end"] else None
+                        holds_by_cid[cid].append((s, e))
+                    except Exception:
+                        pass
+
+                # Pre-fetch collections
+                col_rows = cur.execute("""
+                    SELECT customer_id, COALESCE(SUM(amount), 0.0) as total, COUNT(*) as count
+                    FROM collections
+                    WHERE amount > 0
+                    GROUP BY customer_id
+                """).fetchall()
+                colls_by_cid: Dict[int, float] = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
+                colls_count_by_cid: Dict[int, int] = {int(r["customer_id"]): int(r["count"] or 0) for r in col_rows}
+
+                custs = cur.execute("""
+                    SELECT id, name, mobile, building, apartment, room, due_day, billing_start_date,
+                           billing_day, monthly_fee, status, COALESCE(reminders_enabled, 1) as reminders_enabled
+                    FROM customers
+                    WHERE status = 'active'
+                """).fetchall()
+
+                for c in custs:
+                    cid = int(c["id"])
+                    fee = max(1.0, float(c["monthly_fee"] or 30.0))
+                    daily_rate = round(fee / 30.0, 4)
+                    start_str = c["billing_start_date"] or today.strftime("%Y-%m-01")
+                    try:
+                        start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+                    except Exception:
+                        start_d = today
+
+                    c_holds = holds_by_cid.get(cid, [])
+                    billable = 0
+                    cur_d = start_d
+                    while cur_d <= yesterday:
+                        in_h = False
+                        for hs, he in c_holds:
+                            if he is None:
+                                if cur_d >= hs:
+                                    in_h = True
+                                    break
+                            else:
+                                if hs <= cur_d <= he:
+                                    in_h = True
+                                    break
+                        if not in_h:
+                            billable += 1
+                        cur_d += timedelta(days=1)
+
+                    owed = round(billable * daily_rate, 2)
+                    paid = round(colls_by_cid.get(cid, 0.0), 2)
+                    bal = round(paid - owed, 2)
+                    st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+
+                    room_parts = []
+                    if c["building"]:
+                        room_parts.append(str(c["building"]).strip())
+                    if c["apartment"]:
+                        room_parts.append(str(c["apartment"]).strip())
+                    if c["room"]:
+                        room_parts.append("R" + str(c["room"]).strip())
+                    room_str = " ".join(room_parts).strip()
+
+                    mob_str = str(c["mobile"] or "").strip()
+                    norm_mob = normalize_saudi_phone_number(mob_str)
+
+                    building_rows.append({
+                        "id": cid,
+                        "name": str(c["name"] or f"Customer #{cid}").strip(),
+                        "mobile": mob_str,
+                        "norm_phone": norm_mob,
+                        "room": room_str,
+                        "monthly_fee": fee,
+                        "daily_rate": daily_rate,
+                        "billing_start_date": str(start_str)[:10],
+                        "billable_days": billable,
+                        "total_owed": owed,
+                        "total_paid": paid,
+                        "balance": bal,
+                        "status": st,
+                        "source": "building",
+                        "source_label": "Building Tenant",
+                        "payments_count": colls_count_by_cid.get(cid, 0),
+                        "reminders_enabled": int(c["reminders_enabled"] or 1)
+                    })
+        except Exception as e:
+            logger.error(f"Error querying bills.db in get_balance_sheet_data: {e}")
+
+    # ----------------------------------------------------
+    # 2. Live ISP v2 Database (isp_v2.db)
+    # ----------------------------------------------------
+    live_rows: List[Dict[str, Any]] = []
+    if os.path.exists(DB_PATH):
+        try:
+            with get_db() as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
+
+                col_rows = cur.execute("""
+                    SELECT customer_id, COALESCE(SUM(amount), 0.0) as total, COUNT(*) as count
+                    FROM collections
+                    WHERE amount > 0
+                    GROUP BY customer_id
+                """).fetchall()
+                colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
+                colls_count_by_cid = {int(r["customer_id"]): int(r["count"] or 0) for r in col_rows}
+
+                custs = cur.execute("""
+                    SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance, due_day
+                    FROM customers
+                    WHERE status = 'active'
+                """).fetchall()
+
+                for c in custs:
+                    cid = int(c["id"])
+                    fee = max(1.0, float(c["monthly_fee"] or 30.0))
+                    daily_rate = round(fee / 30.0, 4)
+                    start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-01")
+                    try:
+                        start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+                    except Exception:
+                        start_d = today
+
+                    billable = 0
+                    cur_d = start_d
+                    while cur_d <= yesterday:
+                        billable += 1
+                        cur_d += timedelta(days=1)
+
+                    owed = round(billable * daily_rate, 2)
+                    paid = round(colls_by_cid.get(cid, 0.0), 2)
+                    bal = round(paid - owed, 2)
+                    st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+
+                    phone_str = str(c["phone"] or "").strip()
+                    norm_mob = normalize_saudi_phone_number(phone_str)
+
+                    live_rows.append({
+                        "id": cid,
+                        "name": str(c["name"] or f"Subscriber #{cid}").strip(),
+                        "mobile": phone_str,
+                        "norm_phone": norm_mob,
+                        "room": str(c["notes"] or "").strip(),
+                        "monthly_fee": fee,
+                        "daily_rate": daily_rate,
+                        "billing_start_date": str(start_str)[:10],
+                        "billable_days": billable,
+                        "total_owed": owed,
+                        "total_paid": paid,
+                        "balance": bal,
+                        "status": st,
+                        "source": "live",
+                        "source_label": "Live ISP v2",
+                        "payments_count": colls_count_by_cid.get(cid, 0),
+                        "reminders_enabled": 1
+                    })
+        except Exception as e:
+            logger.error(f"Error querying isp_v2.db in get_balance_sheet_data: {e}")
+
+    # Build source counts
+    source_counts = {
+        "all": len(building_rows) + len(live_rows),
+        "building": len(building_rows),
+        "live": len(live_rows)
+    }
+
+    # Select base rows according to active source selection
+    if source == "building":
+        target_rows = list(building_rows)
+    elif source == "live":
+        target_rows = list(live_rows)
+    else:
+        target_rows = list(building_rows) + list(live_rows)
+
+    # Sort highest debt owing first (lowest/most negative balance), then alphabetically by name
+    target_rows.sort(key=lambda x: (x["balance"], x["name"].lower()))
+
+    # Compute global stats before status/query filters
+    grand_owed = round(sum(r["total_owed"] for r in target_rows), 2)
+    grand_paid = round(sum(r["total_paid"] for r in target_rows), 2)
+    grand_net = round(grand_paid - grand_owed, 2)
+    owing_count = sum(1 for r in target_rows if r["balance"] < 0)
+    settled_count = sum(1 for r in target_rows if r["balance"] == 0)
+    credit_count = sum(1 for r in target_rows if r["balance"] > 0)
+    total_active = len(target_rows)
+    total_debt_amount = round(sum(abs(r["balance"]) for r in target_rows if r["balance"] < 0), 2)
+    total_credit_amount = round(sum(r["balance"] for r in target_rows if r["balance"] > 0), 2)
+
+    status_counts = {
+        "all": total_active,
+        "owing": owing_count,
+        "settled": settled_count,
+        "credit": credit_count
+    }
+
+    # Filter by status if specified
+    filtered_rows = target_rows
+    if status_filter == "owing":
+        filtered_rows = [r for r in filtered_rows if r["balance"] < 0]
+    elif status_filter == "settled":
+        filtered_rows = [r for r in filtered_rows if r["balance"] == 0]
+    elif status_filter == "credit":
+        filtered_rows = [r for r in filtered_rows if r["balance"] > 0]
+
+    # Filter by search query if specified
+    if q:
+        tokens = [t for t in q.split() if t]
+        def row_matches(r: Dict[str, Any]) -> bool:
+            searchable = f"{r['name']} {r['mobile']} {r['norm_phone']} {r['room']}".lower()
+            return all(
+                tok in searchable or (
+                    tok.isdigit() and len(tok) >= 2 and (
+                        (tok.startswith('05') and ('966' + tok[1:]) in searchable) or
+                        (tok.startswith('9665') and ('0' + tok[3:]) in searchable) or
+                        (tok.startswith('5') and (('0' + tok in searchable) or ('966' + tok in searchable)))
+                    )
+                )
+                for tok in tokens
+            )
+        filtered_rows = [r for r in filtered_rows if row_matches(r)]
+
+    return {
+        "summary": {
+            "grand_owed": grand_owed,
+            "grand_paid": grand_paid,
+            "grand_net": grand_net,
+            "owing_count": owing_count,
+            "settled_count": settled_count,
+            "credit_count": credit_count,
+            "total_active": total_active,
+            "total_debt_amount": total_debt_amount,
+            "total_credit_amount": total_credit_amount
+        },
+        "source_counts": source_counts,
+        "status_counts": status_counts,
+        "rows": filtered_rows,
+        "source": source,
+        "status_filter": status_filter,
+        "search_query": search_query or ""
+    }
+
+
+def get_balance_customer_history(customer_id: int, source: str = "building") -> Dict[str, Any]:
+    """
+    Returns full billing cycle details, vacation holds, rate breakdown,
+    and collection receipts history for a customer in either database.
+    """
+    source = (source or "building").strip().lower()
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    if source == "building" and os.path.exists(BILLS_DB_PATH):
+        with sqlite3.connect(BILLS_DB_PATH, timeout=10) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            c = cur.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+            if not c:
+                raise ValueError(f"Customer #{customer_id} not found in Building database.")
+
+            # Vacation holds
+            h_rows = cur.execute("SELECT * FROM vacation_holds WHERE customer_id = ? ORDER BY hold_start DESC", (customer_id,)).fetchall()
+            holds = []
+            parsed_holds = []
+            for h in h_rows:
+                holds.append(dict(h))
+                try:
+                    s = datetime.strptime(str(h["hold_start"])[:10], "%Y-%m-%d").date()
+                    e = datetime.strptime(str(h["hold_end"])[:10], "%Y-%m-%d").date() if h["hold_end"] else None
+                    parsed_holds.append((s, e))
+                except Exception:
+                    pass
+
+            # Collections with collector user details
+            col_rows = cur.execute("""
+                SELECT c.id, c.month_year, c.amount, c.collected_date, c.is_settled,
+                       COALESCE(u.fullname, u.username, 'System') as collector
+                FROM collections c
+                LEFT JOIN users u ON c.collected_by = u.id
+                WHERE c.customer_id = ?
+                ORDER BY c.collected_date DESC, c.id DESC
+            """, (customer_id,)).fetchall()
+            collections = [dict(cr) for cr in col_rows]
+
+            fee = max(1.0, float(c["monthly_fee"] or 30.0))
+            daily_rate = round(fee / 30.0, 4)
+            start_str = c["billing_start_date"] or today.strftime("%Y-%m-01")
+            try:
+                start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+            except Exception:
+                start_d = today
+
+            billable = 0
+            cur_d = start_d
+            while cur_d <= yesterday:
+                in_h = False
+                for hs, he in parsed_holds:
+                    if he is None:
+                        if cur_d >= hs: in_h = True; break
+                    else:
+                        if hs <= cur_d <= he: in_h = True; break
+                if not in_h:
+                    billable += 1
+                cur_d += timedelta(days=1)
+
+            total_owed = round(billable * daily_rate, 2)
+            total_paid = round(sum(float(cr["amount"] or 0.0) for cr in collections if float(cr["amount"] or 0.0) > 0), 2)
+            balance = round(total_paid - total_owed, 2)
+            status_label = "CREDIT" if balance > 0 else ("SETTLED" if balance == 0 else "OWING")
+
+            room_parts = []
+            if c["building"]: room_parts.append(str(c["building"]).strip())
+            if c["apartment"]: room_parts.append(str(c["apartment"]).strip())
+            if c["room"]: room_parts.append("R" + str(c["room"]).strip())
+
+            return {
+                "customer": {
+                    "id": c["id"],
+                    "name": c["name"],
+                    "mobile": c["mobile"],
+                    "norm_phone": normalize_saudi_phone_number(c["mobile"]),
+                    "room": " ".join(room_parts).strip(),
+                    "monthly_fee": fee,
+                    "daily_rate": daily_rate,
+                    "billing_start_date": str(start_str)[:10],
+                    "status": c["status"],
+                    "source": "building",
+                    "source_label": "Building Tenant (bills.db)"
+                },
+                "metrics": {
+                    "billable_days": billable,
+                    "total_owed": total_owed,
+                    "total_paid": total_paid,
+                    "balance": balance,
+                    "status": status_label,
+                    "owes_amount": abs(balance) if balance < 0 else 0.0
+                },
+                "vacation_holds": holds,
+                "collections": collections
+            }
+
+    else:
+        # Query Live ISP v2 Database
+        with get_db() as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            c = cur.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+            if not c:
+                raise ValueError(f"Subscriber #{customer_id} not found in ISP v2 database.")
+
+            col_rows = cur.execute("""
+                SELECT id, month_year, amount, is_settled, waived_amount, notes,
+                       collected_at as collected_date, collected_by as collector
+                FROM collections
+                WHERE customer_id = ?
+                ORDER BY collected_at DESC, id DESC
+            """, (customer_id,)).fetchall()
+            collections = [dict(cr) for cr in col_rows]
+
+            fee = max(1.0, float(c["monthly_fee"] or 30.0))
+            daily_rate = round(fee / 30.0, 4)
+            start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-01")
+            try:
+                start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+            except Exception:
+                start_d = today
+
+            billable = 0
+            cur_d = start_d
+            while cur_d <= yesterday:
+                billable += 1
+                cur_d += timedelta(days=1)
+
+            total_owed = round(billable * daily_rate, 2)
+            total_paid = round(sum(float(cr["amount"] or 0.0) for cr in collections if float(cr["amount"] or 0.0) > 0), 2)
+            balance = round(total_paid - total_owed, 2)
+            status_label = "CREDIT" if balance > 0 else ("SETTLED" if balance == 0 else "OWING")
+
+            return {
+                "customer": {
+                    "id": c["id"],
+                    "name": c["name"],
+                    "mobile": c["phone"],
+                    "norm_phone": normalize_saudi_phone_number(c["phone"]),
+                    "room": str(c["notes"] or "").strip(),
+                    "monthly_fee": fee,
+                    "daily_rate": daily_rate,
+                    "billing_start_date": str(start_str)[:10],
+                    "status": c["status"],
+                    "source": "live",
+                    "source_label": "Live ISP v2 Database"
+                },
+                "metrics": {
+                    "billable_days": billable,
+                    "total_owed": total_owed,
+                    "total_paid": total_paid,
+                    "balance": balance,
+                    "status": status_label,
+                    "owes_amount": abs(balance) if balance < 0 else 0.0
+                },
+                "vacation_holds": [],
+                "collections": collections
+            }
+
+
+def record_balance_collection(
+    customer_id: int,
+    amount: float,
+    source: str = "building",
+    payment_type: str = "cash",
+    collector: str = "Admin",
+    notes: str = "",
+    month_year: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Records collection payment for either Building (bills.db) or Live (isp_v2.db).
+    """
+    source = (source or "building").strip().lower()
+    amount = float(amount or 0.0)
+    now = datetime.now()
+    month_str = month_year or now.strftime("%Y-%m")
+
+    if source == "building" and os.path.exists(BILLS_DB_PATH):
+        with sqlite3.connect(BILLS_DB_PATH, timeout=10) as conn:
+            cur = conn.cursor()
+            cust = cur.execute("SELECT name, monthly_fee FROM customers WHERE id = ?", (customer_id,)).fetchone()
+            if not cust:
+                raise ValueError(f"Customer #{customer_id} not found in Building database.")
+            
+            # Find admin user id
+            uid_row = cur.execute("SELECT id FROM users WHERE username = 'shajjad' OR role = 'master' LIMIT 1").fetchone()
+            uid = uid_row[0] if uid_row else 1
+
+            cur.execute("""
+                INSERT INTO collections (customer_id, month_year, amount, collected_by, collected_date, is_settled)
+                VALUES (?, ?, ?, ?, datetime('now', 'localtime'), 0)
+            """, (customer_id, month_str, amount, uid))
+
+            # Audit log if table exists
+            try:
+                cur.execute("""
+                    INSERT INTO audit_log (user_id, action, details, timestamp)
+                    VALUES (?, 'COLLECTION', ?, datetime('now', 'localtime'))
+                """, (uid, f"Collected {amount:.2f} SAR for {cust[0]} via CyberNet Balance Desk"))
+            except Exception:
+                pass
+            conn.commit()
+
+            return {
+                "success": True,
+                "customer_id": customer_id,
+                "amount": amount,
+                "source": "building",
+                "message": f"Successfully recorded payment of {amount:.2f} SAR for {cust[0]}!"
+            }
+    else:
+        # Record into isp_v2
+        return record_collection(
+            customer_id=customer_id,
+            amount=amount,
+            billing_type=payment_type,
+            notes=notes or f"Balance Sheet Desk ({payment_type})",
+            collected_by=collector,
+            month_year=month_str,
+            is_settled=False
+        )

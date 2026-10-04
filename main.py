@@ -21,10 +21,11 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from fastapi import FastAPI, Request, HTTPException, Query, Form
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse, Response
 from fastapi.templating import Jinja2Templates
 import uvicorn
 import qrcode
+import urllib.parse
 
 import mikrotik_client
 from mikrotik_client import RouterClient, format_bytes, clean_device_friendly_name
@@ -364,6 +365,22 @@ class UpdateCollectionPayload(BaseModel):
     collected_at: Optional[str] = None
     collected_by: Optional[str] = "Admin"
     billing_type: Optional[str] = "cash"
+
+
+class BalanceCollectPayload(BaseModel):
+    customer_id: int
+    amount: float
+    source: Optional[str] = "building"
+    payment_type: Optional[str] = "cash"
+    notes: Optional[str] = ""
+    collector: Optional[str] = None
+    month_year: Optional[str] = None
+
+
+class BalanceReminderPayload(BaseModel):
+    customer_id: int
+    source: Optional[str] = "building"
+    send_direct: Optional[bool] = False
 
 
 class PackagePayload(BaseModel):
@@ -1369,6 +1386,42 @@ async def collections_view(
             "end_date": end_date or "",
             "search_q": q or "",
             "customers_dropdown": data["customers_dropdown"]
+        }
+    )
+
+
+@app.api_route("/balance", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/billing/balance", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def balance_sheet_view(
+    request: Request,
+    source: Optional[str] = "building",
+    status: Optional[str] = "all",
+    q: Optional[str] = None
+):
+    """
+    Dedicated Customer Balance Sheet & Financial Ledger Desk.
+    Replicates and modernizes portal.php?page=balance with CyberNet OS styling.
+    """
+    live_status = router_client.get_live_status()
+    data = database.get_balance_sheet_data(
+        source=source or "building",
+        status_filter=status or "all",
+        search_query=q
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="balance.html",
+        context={
+            "router": live_status,
+            "active_page": "balance",
+            "bs": data["summary"],
+            "rows": data["rows"],
+            "source": data["source"],
+            "source_counts": data["source_counts"],
+            "status_counts": data["status_counts"],
+            "status_filter": data["status_filter"],
+            "search_q": data["search_query"]
         }
     )
 
@@ -2928,6 +2981,158 @@ async def delete_collection_endpoint(collection_id: int):
     except Exception as e:
         logger.exception(f"Error deleting collection #{collection_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+# =========================================================
+# Dedicated Balance Sheet & Ledger API Endpoints
+# =========================================================
+
+@app.get("/api/balance/history/{customer_id}")
+async def api_balance_customer_history(customer_id: int, source: str = "building"):
+    """Returns detailed history, statement breakdown, vacation holds, and receipts for customer."""
+    try:
+        data = database.get_balance_customer_history(customer_id=customer_id, source=source)
+        return {"success": True, "data": data}
+    except Exception as e:
+        logger.exception(f"Error fetching balance history for #{customer_id} (source={source}): {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/balance/collect")
+async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
+    """Records quick collection directly from the Balance Sheet ledger."""
+    user = getattr(request.state, "user", None)
+    collector = payload.collector or (user.fullname if user and getattr(user, "fullname", None) else (user.username if user else "Admin"))
+    try:
+        res = database.record_balance_collection(
+            customer_id=payload.customer_id,
+            amount=payload.amount,
+            source=payload.source or "building",
+            payment_type=payload.payment_type or "cash",
+            collector=collector,
+            notes=payload.notes or "",
+            month_year=payload.month_year
+        )
+        return res
+    except Exception as e:
+        logger.exception(f"Error in api_balance_collect for #{payload.customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/balance/send-reminder")
+async def api_balance_send_reminder(payload: BalanceReminderPayload, request: Request):
+    """
+    Builds the authentic CyberNet account status reminder and sends via OpenWA
+    or returns WhatsApp direct click URL.
+    """
+    try:
+        hist = database.get_balance_customer_history(customer_id=payload.customer_id, source=payload.source)
+        cust = hist["customer"]
+        metrics = hist["metrics"]
+
+        cust_name = cust["name"]
+        norm_phone = cust["norm_phone"] or database.normalize_saudi_phone_number(cust["mobile"])
+        balance_val = metrics["balance"]
+        owed_amount = abs(balance_val) if balance_val < 0 else 0.0
+        start_date_str = cust["billing_start_date"]
+
+        # Build message matching billing_reminder
+        msg = f"📶 *CYBERNET ACCOUNT STATUS*\n"
+        msg += f"Assalamu Alaikum {cust_name}!\n\n"
+        if start_date_str:
+            msg += f"📅 Connected since: {start_date_str}\n"
+
+        if balance_val < 0:
+            msg += f"⚠️ *Outstanding Balance: {owed_amount:.2f} SAR*\n\n"
+            msg += f"💰 Please recharge to continue enjoying uninterrupted internet service.\n\n"
+        elif balance_val > 0:
+            msg += f"✅ *Your account has an advance credit of +{balance_val:.2f} SAR.*\n\n"
+        else:
+            msg += f"✅ *Your account is fully settled (0.00 SAR).* Thank you!\n\n"
+
+        msg += f"💳 *Payment Accounts / طرق الدفع:*\n\n"
+        msg += f"1️⃣ *Shajjad Khan:*\n"
+        msg += f"📱 +966597595059 (STC Pay, Barq, AlinmaPay)\n"
+        msg += f"🏦 Alinma Bank IBAN: `SA3305000068206538133000`\n\n"
+        msg += f"2️⃣ *Riyad Hossain:*\n"
+        msg += f"📱 +966552036454 (STC Pay, Barq)\n"
+        msg += f"🏦 Alinma Bank IBAN: `SA5805000068207720354000`\n\n"
+        msg += f"🎬 Free Movies: http://10.12.14.16:8082\n"
+        msg += f"⚽ Live Football: http://10.12.14.16:8086\n\n"
+        msg += f"📞 Support (24/7): 0597595059 / 0552036454\n"
+        msg += f"Please recharge on time to avoid service interruption. 🙏"
+
+        wa_web_url = f"https://wa.me/{norm_phone}?text={urllib.parse.quote(msg)}" if norm_phone else None
+
+        sent_via_openwa = False
+        error_msg = None
+        if not payload.send_direct and norm_phone:
+            try:
+                import whatsapp_service
+                success, err = whatsapp_service.send_whatsapp_raw(norm_phone, msg)
+                if success:
+                    sent_via_openwa = True
+                else:
+                    error_msg = err
+            except Exception as wex:
+                error_msg = str(wex)
+
+        return {
+            "success": True,
+            "sent_via_openwa": sent_via_openwa,
+            "whatsapp_url": wa_web_url,
+            "phone": norm_phone,
+            "customer_name": cust_name,
+            "balance": balance_val,
+            "message_text": msg,
+            "error": error_msg
+        }
+    except Exception as e:
+        logger.exception(f"Error in api_balance_send_reminder for #{payload.customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/balance/export")
+async def api_balance_export_csv(
+    source: str = "building",
+    status: str = "all",
+    q: Optional[str] = None
+):
+    """Exports the balance sheet ledger to CSV."""
+    import csv, io
+    data = database.get_balance_sheet_data(source=source, status_filter=status, search_query=q)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Rank", "Customer ID", "Name", "Mobile", "Room/Notes",
+        "Source", "Monthly Fee (SAR)", "Daily Rate (SAR)", "Since Date",
+        "Billable Days", "Total Owed (SAR)", "Total Paid (SAR)",
+        "Balance (SAR)", "Status"
+    ])
+    for idx, r in enumerate(data["rows"], start=1):
+        writer.writerow([
+            idx,
+            r["id"],
+            r["name"],
+            r["mobile"],
+            r["room"],
+            r["source_label"],
+            f"{r['monthly_fee']:.2f}",
+            f"{r['daily_rate']:.4f}",
+            r["billing_start_date"],
+            r["billable_days"],
+            f"{r['total_owed']:.2f}",
+            f"{r['total_paid']:.2f}",
+            f"{r['balance']:.2f}",
+            r["status"]
+        ])
+    csv_text = output.getvalue()
+    filename = f"CyberNet_Balance_Sheet_{source}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(
+        content=csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 # =========================================================
