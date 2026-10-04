@@ -1394,17 +1394,16 @@ async def collections_view(
 @app.api_route("/billing/balance", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def balance_sheet_view(
     request: Request,
-    source: Optional[str] = "building",
     status: Optional[str] = "all",
     q: Optional[str] = None
 ):
     """
     Dedicated Customer Balance Sheet & Financial Ledger Desk.
     Replicates and modernizes portal.php?page=balance with CyberNet OS styling.
+    Strictly for CyberNet OS existing subscribers.
     """
     live_status = router_client.get_live_status()
     data = database.get_balance_sheet_data(
-        source=source or "building",
         status_filter=status or "all",
         search_query=q
     )
@@ -1417,13 +1416,12 @@ async def balance_sheet_view(
             "active_page": "balance",
             "bs": data["summary"],
             "rows": data["rows"],
-            "source": data["source"],
-            "source_counts": data["source_counts"],
             "status_counts": data["status_counts"],
             "status_filter": data["status_filter"],
             "search_q": data["search_query"]
         }
     )
+
 
 
 @app.api_route("/packages", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -2988,13 +2986,13 @@ async def delete_collection_endpoint(collection_id: int):
 # =========================================================
 
 @app.get("/api/balance/history/{customer_id}")
-async def api_balance_customer_history(customer_id: int, source: str = "building"):
-    """Returns detailed history, statement breakdown, vacation holds, and receipts for customer."""
+async def api_balance_customer_history(customer_id: int, source: Optional[str] = None):
+    """Returns detailed history, statement breakdown, and receipts for CyberNet customer."""
     try:
-        data = database.get_balance_customer_history(customer_id=customer_id, source=source)
+        data = database.get_balance_customer_history(customer_id=customer_id)
         return {"success": True, "data": data}
     except Exception as e:
-        logger.exception(f"Error fetching balance history for #{customer_id} (source={source}): {e}")
+        logger.exception(f"Error fetching balance history for #{customer_id}: {e}")
         return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
 
 
@@ -3007,7 +3005,6 @@ async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
         res = database.record_balance_collection(
             customer_id=payload.customer_id,
             amount=payload.amount,
-            source=payload.source or "building",
             payment_type=payload.payment_type or "cash",
             collector=collector,
             notes=payload.notes or "",
@@ -3026,7 +3023,7 @@ async def api_balance_send_reminder(payload: BalanceReminderPayload, request: Re
     or returns WhatsApp direct click URL.
     """
     try:
-        hist = database.get_balance_customer_history(customer_id=payload.customer_id, source=payload.source)
+        hist = database.get_balance_customer_history(customer_id=payload.customer_id)
         cust = hist["customer"]
         metrics = hist["metrics"]
 
@@ -3094,18 +3091,18 @@ async def api_balance_send_reminder(payload: BalanceReminderPayload, request: Re
 
 @app.get("/api/balance/export")
 async def api_balance_export_csv(
-    source: str = "building",
     status: str = "all",
-    q: Optional[str] = None
+    q: Optional[str] = None,
+    source: Optional[str] = None
 ):
-    """Exports the balance sheet ledger to CSV."""
+    """Exports the CyberNet OS balance sheet ledger to CSV."""
     import csv, io
-    data = database.get_balance_sheet_data(source=source, status_filter=status, search_query=q)
+    data = database.get_balance_sheet_data(status_filter=status, search_query=q)
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
         "Rank", "Customer ID", "Name", "Mobile", "Room/Notes",
-        "Source", "Monthly Fee (SAR)", "Daily Rate (SAR)", "Since Date",
+        "Monthly Fee (SAR)", "Daily Rate (SAR)", "Since Date",
         "Billable Days", "Total Owed (SAR)", "Total Paid (SAR)",
         "Balance (SAR)", "Status"
     ])
@@ -3116,7 +3113,6 @@ async def api_balance_export_csv(
             r["name"],
             r["mobile"],
             r["room"],
-            r["source_label"],
             f"{r['monthly_fee']:.2f}",
             f"{r['daily_rate']:.4f}",
             r["billing_start_date"],
@@ -3127,12 +3123,13 @@ async def api_balance_export_csv(
             r["status"]
         ])
     csv_text = output.getvalue()
-    filename = f"CyberNet_Balance_Sheet_{source}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"CyberNet_Balance_Sheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(
         content=csv_text,
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
 
 
 # =========================================================
