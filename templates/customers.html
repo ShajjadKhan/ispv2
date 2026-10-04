@@ -1282,10 +1282,15 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
                 <td>
                   <div class="cust-name-cell">
-                    <span class="cust-name">{{ c.name }}</span>
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                      <span class="cust-name">{{ c.name }}</span>
+                      {% if c.notes %}
+                        <span style="font-size:10px; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.35); padding:1px 6px; border-radius:4px; font-weight:600; white-space:nowrap;" title="Room / Note: {{ c.notes }}">🚪 {{ c.notes }}</span>
+                      {% endif %}
+                    </div>
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                       <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
                       {% if c.reseller_shop_name or c.reseller_username %}
@@ -1449,12 +1454,17 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
               <div class="mobile-cust-info">
-                <span class="mobile-cust-name">{{ c.name }}</span>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <span class="mobile-cust-name">{{ c.name }}</span>
+                  {% if c.notes %}
+                    <span style="font-size:9.5px; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.35); padding:1px 5px; border-radius:4px; font-weight:600; white-space:nowrap;" title="Room / Note: {{ c.notes }}">🚪 {{ c.notes }}</span>
+                  {% endif %}
+                </div>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                   <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
                   {% if c.reseller_shop_name or c.reseller_username %}
@@ -1909,6 +1919,14 @@
         </div>
 
         <div class="form-group">
+          <label for="newCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Customer Note / Room # / Flat</span>
+            <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+          </label>
+          <input type="text" class="form-input" id="newCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
+        </div>
+
+        <div class="form-group">
           <label for="addCustReseller">Assigned Reseller / Partner Shop (Optional)</label>
           <select class="form-select" id="addCustReseller">
             <option value="">🏢 Direct ISP (No Reseller)</option>
@@ -2080,6 +2098,13 @@
               <label for="editCustPhone">Primary Phone Number</label>
               <input type="text" class="form-input font-mono" id="editCustPhone" required>
             </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="editCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Customer Note / Room # / Flat</span>
+              <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+            </label>
+            <input type="text" class="form-input" id="editCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
           </div>
         </div>
 
@@ -3575,6 +3600,10 @@
       // Credit balance
       document.getElementById('editCustCredit').value = parseFloat(c.credit_balance || 0).toFixed(2);
 
+      // Customer notes / room number
+      const editNotesEl = document.getElementById('editCustNotes');
+      if (editNotesEl) editNotesEl.value = c.notes || '';
+
       document.getElementById('editCustomerModal').classList.add('open');
     } catch (err) {
       cyberToast('Failed to load customer details: ' + err.message);
@@ -3627,6 +3656,7 @@
 
     const name = document.getElementById('editCustName').value.trim();
     const phone = document.getElementById('editCustPhone').value.trim();
+    const notes = document.getElementById('editCustNotes') ? document.getElementById('editCustNotes').value.trim() : '';
     const bType = document.getElementById('editCustType').value;
     const pkg = document.getElementById('editCustPkg').value;
     const speed = document.getElementById('editCustSpeed').value.trim();
@@ -3648,7 +3678,8 @@
           monthly_fee: fee,
           due_date: dueDate,
           max_devices: maxDev,
-          credit_balance: credit
+          credit_balance: credit,
+          notes: notes
         })
       });
 
@@ -3720,6 +3751,7 @@
     const resellerId = resellerVal ? parseInt(resellerVal) : null;
     const joinDate = document.getElementById('addCustJoinDate') ? document.getElementById('addCustJoinDate').value : null;
     const bStart = document.getElementById('addCustBillingStart') ? document.getElementById('addCustBillingStart').value : null;
+    const notes = document.getElementById('newCustNotes') ? document.getElementById('newCustNotes').value.trim() : '';
 
     if (mac && isRandomMac(mac)) {
       cyberToast('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
@@ -3746,7 +3778,8 @@
           advance_mode: advMode,
           reseller_id: resellerId,
           join_date: joinDate || null,
-          billing_start_date: bStart || null
+          billing_start_date: bStart || null,
+          notes: notes
         })
       });
 

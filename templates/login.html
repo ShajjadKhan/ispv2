@@ -459,7 +459,34 @@
       <form id="loginForm" method="POST" action="/login" onsubmit="handleLoginSubmit(event)">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="next" value="{{ next_url }}">
+        {% if requires_totp %}
+        <input type="hidden" name="preauth_token" value="{{ preauth_token }}">
+        {% endif %}
 
+        {% if requires_totp %}
+        <div class="form-group">
+          <label class="form-label" for="otp_code">6-Digit Authenticator Code</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9zm3 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>
+            <input
+              type="text"
+              id="otp_code"
+              name="otp_code"
+              class="form-input"
+              placeholder="000000"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              pattern="[0-9]{6}"
+              minlength="6"
+              maxlength="6"
+              aria-describedby="otpHelp"
+              required
+              autofocus
+            >
+          </div>
+          <div id="otpHelp" style="font-size:12px; color:var(--text-muted); margin-top:8px;">Open your authenticator app and enter the current 6-digit code.</div>
+        </div>
+        {% else %}
         <!-- Username Input -->
         <div class="form-group">
           <label class="form-label" for="username">Operator Username</label>
@@ -506,10 +533,11 @@
             <span>Keep session active (30 Days)</span>
           </label>
         </div>
+        {% endif %}
 
         <!-- Submit Button -->
         <button type="submit" id="btnSubmit" class="btn-submit">
-          <span id="btnText">Authenticate Operator</span>
+          <span id="btnText">{% if requires_totp %}Verify Authenticator Code{% else %}Authenticate Operator{% endif %}</span>
           <svg id="arrowIcon" viewBox="0 0 24 24"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42L16.86 11H5v2z"/></svg>
           <div id="btnSpinner" class="spinner"></div>
         </button>
@@ -554,7 +582,7 @@
       const spinner = document.getElementById('btnSpinner');
 
       btn.disabled = true;
-      btnText.textContent = 'Verifying Credentials...';
+      btnText.textContent = document.getElementById('otp_code') ? 'Verifying Code...' : 'Verifying Credentials...';
       arrowIcon.style.display = 'none';
       spinner.style.display = 'inline-block';
     }

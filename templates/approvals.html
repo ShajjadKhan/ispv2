@@ -1073,14 +1073,14 @@
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
                       Reject
                     </button>
                   {% else %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 0, 1, 0, '', '')">
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 0, 1, 0, '', '', '{{ (req.notes or '') | escape }}')">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
@@ -1139,9 +1139,14 @@
             {% for cust in approved_customers %}
             <tr class="approved-dev-row" data-billing="{{ cust.billing_type }}">
               <td data-label="Customer Name" style="font-weight:700; color:#ffffff;">
-                <a href="/customers/{{ cust.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
-                  {{ cust.customer_name }}
-                </a>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <a href="/customers/{{ cust.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
+                    {{ cust.customer_name }}
+                  </a>
+                  {% if cust.notes %}
+                    <span style="font-size:10px; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.35); padding:1px 6px; border-radius:4px; font-weight:600; white-space:nowrap;" title="Room / Note: {{ cust.notes }}">🚪 {{ cust.notes }}</span>
+                  {% endif %}
+                </div>
               </td>
               <td data-label="Phone" class="font-mono text-dim">{{ cust.phone }}</td>
               <td data-label="MAC Address" class="cust-mac-cell font-mono">
@@ -1277,6 +1282,15 @@
             ⚠️ <strong>Subscriber Account Expired:</strong> This subscriber's plan expired on <strong id="secondaryExpiredDate"></strong>. Authorizing this device links it under the account, but internet access will remain cut until renewed.
           </div>
 
+          <!-- Customer Note / Room Number for Secondary Device -->
+          <div style="margin-top:12px;">
+            <label for="secondaryCustNotes" style="font-size:11px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center;">
+              <span>Customer Note / Room # / Flat</span>
+              <span style="font-size:10.5px; color:#94a3b8;">Optional</span>
+            </label>
+            <input type="text" class="form-input" id="secondaryCustNotes" name="secondary_notes" placeholder="e.g. Room 302, Flat 14, Building B" style="margin-top:4px;">
+          </div>
+
           <!-- Optional Toggle for extra fee collection -->
           <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.12);">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#94a3b8; cursor:pointer;">
@@ -1296,6 +1310,15 @@
           <div class="form-group">
             <label for="custName">Customer Full Name</label>
             <input type="text" class="form-input" id="custName" name="name" required placeholder="e.g. Shajjad Khan">
+          </div>
+
+          <!-- Customer Note / Room Number -->
+          <div class="form-group">
+            <label for="custNotes" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Customer Note / Room # / Flat</span>
+              <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+            </label>
+            <input type="text" class="form-input" id="custNotes" name="notes" placeholder="e.g. Room 302, Flat 14, Building B">
           </div>
 
           <!-- Billing Type Selector -->
@@ -1562,7 +1585,7 @@
     if (box) box.style.display = (chk && chk.checked) ? 'block' : 'none';
   }
 
-  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate) {
+  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes) {
     const modalReqId = document.getElementById('modalReqId');
     if (modalReqId) modalReqId.value = reqId;
     const modalMac = document.getElementById('modalMac');
@@ -1573,6 +1596,11 @@
     if (dispPhone) dispPhone.textContent = phone;
     const dispMac = document.getElementById('dispMac');
     if (dispMac) dispMac.textContent = mac;
+
+    const notesInput = document.getElementById('custNotes');
+    if (notesInput) notesInput.value = existingNotes || '';
+    const secNotesInput = document.getElementById('secondaryCustNotes');
+    if (secNotesInput) secNotesInput.value = existingNotes || '';
 
     const isSec = Boolean(isSecondary && isSecondary !== '0' && isSecondary !== 0);
     const modalIsSec = document.getElementById('modalIsSecondary');
@@ -1757,6 +1785,7 @@
       const custName = document.getElementById('secondaryCustName')?.textContent?.trim() || ('Customer ' + (document.getElementById('dispPhone')?.textContent || ''));
       const chkExtra = document.getElementById('chkCollectExtraSecondary')?.checked;
       const extraFee = chkExtra ? (parseFloat(document.getElementById('inputSecondaryExtraFee')?.value) || 0.0) : 0.0;
+      const secNotes = document.getElementById('secondaryCustNotes')?.value?.trim() || '';
 
       try {
         const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
@@ -1765,7 +1794,8 @@
           body: JSON.stringify({
             name: custName,
             is_secondary: true,
-            collected_today: extraFee
+            collected_today: extraFee,
+            notes: secNotes
           })
         });
 
@@ -1791,6 +1821,7 @@
     }
 
     const name = document.getElementById('custName')?.value?.trim() || ('Customer ' + (document.getElementById('dispPhone')?.textContent || ''));
+    const notes = document.getElementById('custNotes')?.value?.trim() || '';
     const billingType = document.getElementById('selectedBillingType')?.value || 'prepaid';
     const pkgSelect = document.getElementById('pkgSelect');
     const pkgName = (pkgSelect && pkgSelect.options && pkgSelect.selectedIndex >= 0) ? pkgSelect.options[pkgSelect.selectedIndex].value : 'Standard (20 Mbps)';
@@ -1831,6 +1862,7 @@
           max_devices: maxDevices,
           advance_mode: advanceMode,
           is_secondary: false,
+          notes: notes,
           join_date: document.getElementById('inputJoinDate')?.value || null,
           billing_start_date: document.getElementById('inputBillingStartDate')?.value || null
         })

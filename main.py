@@ -218,6 +218,7 @@ class ApproveConnectionPayload(BaseModel):
     is_secondary: Optional[bool] = False
     join_date: Optional[str] = None
     billing_start_date: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class RevokeDevicePayload(BaseModel):
@@ -240,6 +241,7 @@ class CreateCustomerPayload(BaseModel):
     reseller_id: Optional[int] = None
     join_date: Optional[str] = None
     billing_start_date: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class EditCustomerPayload(BaseModel):
@@ -258,6 +260,7 @@ class EditCustomerPayload(BaseModel):
     join_date: Optional[str] = None
     suspension_held_until: Optional[str] = -1
     suspension_hold_reason: Optional[str] = -1
+    notes: Optional[str] = -1
 
 
 class RecordPromisePayload(BaseModel):
@@ -1146,6 +1149,7 @@ async def approvals_view(request: Request):
                 "customer_status": dev.get("customer_status") or "active",
                 "expiry_date": dev.get("expiry_date"),
                 "max_devices": dev.get("max_devices") or 1,
+                "notes": dev.get("notes") or "",
                 "devices": []
             }
         customers_map[cid]["devices"].append(dev)
@@ -1724,15 +1728,17 @@ async def api_reseller_create_customer(payload: CreateCustomerPayload, request: 
             advance_mode=payload.advance_mode or "credit",
             reseller_id=target_reseller_id,
             join_date=payload.join_date,
-            billing_start_date=payload.billing_start_date
+            billing_start_date=payload.billing_start_date,
+            notes=payload.notes
         )
 
         # Bind on MikroTik if MAC was supplied
         mt_ok = True
         if payload.mac_address and payload.mac_address.strip():
+            notes_str = f" [{cust['notes'].strip()}]" if cust.get("notes") and cust["notes"].strip() else ""
             mt_ok = router_client.bind_device(
                 mac_address=payload.mac_address,
-                comment=f"CyberNet Partner [{user.get('username')}]: {cust['phone']} - {cust['name']}"
+                comment=f"CyberNet Partner [{user.get('username')}]: {cust['phone']} - {cust['name']}{notes_str}"
             )
 
         return {
@@ -2110,7 +2116,8 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
             advance_mode=payload.advance_mode or "credit",
             is_secondary=payload.is_secondary or False,
             join_date=payload.join_date,
-            billing_start_date=payload.billing_start_date
+            billing_start_date=payload.billing_start_date,
+            notes=payload.notes
         )
 
         # 2. Determine effective rate limit (custom or package default)
@@ -2125,7 +2132,8 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         is_active = (customer.get("status") == "active") and not customer.get("is_expired")
         if is_active:
             cust_billing_label = customer.get("billing_type", "POSTPAID").upper()
-            comment_str = f"CyberNet: {customer['phone']} - {customer['name']} ({cust_billing_label})"
+            notes_str = f" [{customer['notes'].strip()}]" if customer.get("notes") and customer["notes"].strip() else ""
+            comment_str = f"CyberNet: {customer['phone']} - {customer['name']}{notes_str} ({cust_billing_label})"
             fleet_res = mikrotik_client.broadcast_bind_device(
                 mac_address=customer["mac_address"],
                 ip_address=customer.get("ip_address"),
@@ -2445,7 +2453,8 @@ async def create_new_customer(payload: CreateCustomerPayload):
             advance_mode=payload.advance_mode or "credit",
             reseller_id=payload.reseller_id,
             join_date=payload.join_date,
-            billing_start_date=payload.billing_start_date
+            billing_start_date=payload.billing_start_date,
+            notes=payload.notes
         )
 
         mt_ok = True
@@ -2455,7 +2464,8 @@ async def create_new_customer(payload: CreateCustomerPayload):
             default_rate = pkg_match["rate_limit"] if pkg_match else None
             effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
 
-            comment = f"CyberNet: {cust['phone']} - {cust['name']} ({cust['billing_type'].upper()})"
+            notes_str = f" [{cust['notes'].strip()}]" if cust.get("notes") and cust["notes"].strip() else ""
+            comment = f"CyberNet: {cust['phone']} - {cust['name']}{notes_str} ({cust['billing_type'].upper()})"
             mt_ok = router_client.bind_device(
                 mac_address=payload.mac_address,
                 comment=comment,
@@ -2498,7 +2508,8 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             billing_start_date=payload.billing_start_date,
             join_date=payload.join_date,
             suspension_held_until=payload.suspension_held_until,
-            suspension_hold_reason=payload.suspension_hold_reason
+            suspension_hold_reason=payload.suspension_hold_reason,
+            notes=payload.notes
         )
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "message": "Customer not found."})
@@ -2506,7 +2517,8 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
         # Sync updated speed to MikroTik for all approved devices of this customer
         effective_speed = updated.get("effective_speed")
         devices = updated.get("devices", [])
-        comment_str = f"CyberNet: {updated['phone']} - {updated['name']} ({updated['billing_type']})"
+        notes_str = f" [{updated['notes'].strip()}]" if updated.get("notes") and updated["notes"].strip() else ""
+        comment_str = f"CyberNet: {updated['phone']} - {updated['name']}{notes_str} ({updated['billing_type']})"
 
         fleet_res = mikrotik_client.broadcast_sync_customer_devices_speed(
             devices=devices,
@@ -2551,8 +2563,9 @@ async def toggle_customer_status(customer_id: int):
             cust_devices = cust.get("devices", []) if cust else []
             dev_map = {d["mac_address"]: d.get("ip_address") for d in cust_devices if "mac_address" in d}
 
+            notes_str = f" [{cust.get('notes', '').strip()}]" if cust and cust.get("notes") and cust.get("notes").strip() else ""
             for mac in macs:
-                comment = f"CyberNet: {cust.get('phone')} - {cust.get('name')} (Restored)"
+                comment = f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} (Restored)"
                 mikrotik_client.broadcast_bind_device(
                     mac_address=mac,
                     ip_address=dev_map.get(mac),

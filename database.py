@@ -154,6 +154,17 @@ def init_db():
         except Exception:
             pass
 
+        # Migration: Customer notes / room number identification
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN notes TEXT DEFAULT ''")
+        except Exception:
+            pass
+
+        try:
+            cursor.execute("ALTER TABLE connection_requests ADD COLUMN notes TEXT DEFAULT ''")
+        except Exception:
+            pass
+
         # 2. Customer Devices Table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS customer_devices (
@@ -929,7 +940,7 @@ def get_pending_requests() -> List[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT r.*, c.name as existing_customer_name, c.billing_type as existing_billing_type,
+            SELECT r.*, c.name as existing_customer_name, c.notes as existing_customer_notes, c.billing_type as existing_billing_type,
                    c.package_name as existing_package_name, c.expiry_date as existing_expiry_date,
                    c.due_date as existing_due_date, c.suspension_held_until as existing_suspension_held_until,
                    c.status as existing_customer_status, c.speed_limit as existing_speed_limit,
@@ -944,6 +955,7 @@ def get_pending_requests() -> List[Dict[str, Any]]:
         for r in rows:
             r["is_random_mac"] = is_randomized_mac(r.get("mac_address", ""))
             r["device_model"] = parse_clean_device_model(r.get("device_model", ""))
+            r["existing_customer_notes"] = r.get("existing_customer_notes") or r.get("notes") or ""
             if r.get("existing_customer_name") or r.get("customer_id"):
                 r["is_secondary"] = 1
                 cust_data = {
@@ -969,7 +981,7 @@ def get_approved_devices() -> List[Dict[str, Any]]:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT d.*, c.phone, c.name as customer_name, c.billing_type, c.package_name, c.monthly_fee,
-                   c.status as customer_status, c.expiry_date, c.max_devices, c.speed_limit,
+                   c.status as customer_status, c.expiry_date, c.max_devices, c.speed_limit, c.notes,
                    p.rate_limit as package_rate_limit,
                    COALESCE(NULLIF(c.speed_limit, ''), p.rate_limit) as effective_speed_limit
             FROM customer_devices d
@@ -1006,7 +1018,8 @@ def approve_connection(
     advance_mode: str = "credit",
     is_secondary: bool = False,
     join_date: Optional[str] = None,
-    billing_start_date: Optional[str] = None
+    billing_start_date: Optional[str] = None,
+    notes: Optional[str] = ""
 ) -> Dict[str, Any]:
     """
     Approves a pending request:
@@ -1137,13 +1150,15 @@ def approve_connection(
                 cursor.execute("UPDATE customers SET join_date = ? WHERE id = ?", (join_date.strip(), customer_id))
             if billing_start_date and billing_start_date.strip():
                 cursor.execute("UPDATE customers SET billing_start_date = ? WHERE id = ?", (billing_start_date.strip(), customer_id))
+            if notes is not None and notes.strip():
+                cursor.execute("UPDATE customers SET notes = ? WHERE id = ?", (notes.strip(), customer_id))
 
             # Mark request as approved
             cursor.execute("""
                 UPDATE connection_requests
-                SET status = 'approved', customer_id = ?, updated_at = ?
+                SET status = 'approved', customer_id = ?, notes = COALESCE(NULLIF(?, ''), notes), updated_at = ?
                 WHERE id = ?
-            """, (customer_id, now_str, req_id))
+            """, (customer_id, (notes.strip() if notes else None), now_str, req_id))
 
             conn.commit()
 
@@ -1224,20 +1239,21 @@ def approve_connection(
             except Exception:
                 pass
 
+            final_notes = notes.strip() if notes and notes.strip() else ""
             new_credit = round(credit_to_add, 2)
             cursor.execute("""
                 INSERT INTO customers (
                     phone, name, billing_type, package_name, monthly_fee,
                     collected_today, due_day, due_date, status, expiry_date,
                     max_devices, speed_limit, credit_balance, join_date, billing_start_date,
-                    created_at, updated_at
+                    notes, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 phone, name, final_billing_type, package_name or "Standard", monthly_fee,
                 clean_collected, due_day, final_due_date, expiry_date,
                 clean_limit, clean_speed, new_credit, final_join_date, final_billing_start,
-                now_str, now_str
+                final_notes, now_str, now_str
             ))
             customer_id = cursor.lastrowid
 
@@ -1263,9 +1279,9 @@ def approve_connection(
 
             cursor.execute("""
                 UPDATE connection_requests
-                SET status = 'approved', customer_id = ?, updated_at = ?
+                SET status = 'approved', customer_id = ?, notes = ?, updated_at = ?
                 WHERE id = ?
-            """, (customer_id, now_str, req_id))
+            """, (customer_id, final_notes, now_str, req_id))
 
             conn.commit()
 
@@ -1535,7 +1551,8 @@ def create_customer(
     advance_mode: str = "credit",
     reseller_id: Optional[int] = None,
     join_date: Optional[str] = None,
-    billing_start_date: Optional[str] = None
+    billing_start_date: Optional[str] = None,
+    notes: Optional[str] = ""
 ) -> Dict[str, Any]:
     """Manually creates a new customer with custom speed, fee, due date, device limit, advance credit handling, and optional reseller attribution."""
     now = datetime.now()
@@ -1543,6 +1560,7 @@ def create_customer(
 
     clean_payment = float(initial_payment or 0.0)
     monthly_fee = float(monthly_fee or 0.0)
+    final_notes = notes.strip() if notes and notes.strip() else ""
 
     # Auto-register join_date and billing_start_date
     today_str = now.strftime("%Y-%m-%d")
@@ -1625,14 +1643,14 @@ def create_customer(
                 phone, name, billing_type, package_name, monthly_fee,
                 collected_today, due_day, due_date, status, expiry_date,
                 max_devices, speed_limit, credit_balance, reseller_id,
-                join_date, billing_start_date, created_at, updated_at
+                join_date, billing_start_date, notes, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             phone.strip(), name.strip(), final_billing_type, package_name, monthly_fee,
             clean_payment, due_day, final_due_date, expiry_date,
             clean_limit, clean_speed, credit_to_add, reseller_id,
-            final_join_date, final_billing_start, now_str, now_str
+            final_join_date, final_billing_start, final_notes, now_str, now_str
         ))
         customer_id = cursor.lastrowid
 
@@ -1674,12 +1692,13 @@ def update_customer_details(
     billing_start_date: Optional[str] = None,
     join_date: Optional[str] = None,
     suspension_held_until: Optional[str] = -1,
-    suspension_hold_reason: Optional[str] = -1
+    suspension_hold_reason: Optional[str] = -1,
+    notes: Optional[str] = -1
 ) -> Optional[Dict[str, Any]]:
     """
     Updates any customer fields: monthly rate, payment due date, custom speed limit,
     billing type, device limit, package name, name, phone, status, credit balance, reseller attribution,
-    join date, billing start date, and suspension grace hold.
+    join date, billing start date, suspension grace hold, and notes/room number.
     Automatically keeps prepaid expiry_date and due_day in sync.
     """
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1701,6 +1720,7 @@ def update_customer_details(
         new_max_devices = max(1, int(max_devices)) if max_devices is not None else int(current.get("max_devices") or 1)
         new_credit = round(max(0.0, float(credit_balance)), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
         final_reseller_id = current.get("reseller_id") if reseller_id == -1 else reseller_id
+        new_notes = current.get("notes") or "" if notes == -1 else (notes.strip() if notes else "")
 
         # Billing start date & join date & suspension hold
         new_bstart = billing_start_date.strip() if billing_start_date and billing_start_date.strip() else current.get("billing_start_date")
@@ -1743,14 +1763,14 @@ def update_customer_details(
                 monthly_fee = ?, due_date = ?, due_day = ?, expiry_date = ?,
                 speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, reseller_id = ?,
                 join_date = ?, billing_start_date = ?, suspension_held_until = ?, suspension_hold_reason = ?,
-                updated_at = ?
+                notes = ?, updated_at = ?
             WHERE id = ?
         """, (
             new_name, new_phone, new_btype, new_pkg,
             new_fee, new_due_date, new_due_day, new_expiry_date,
             new_speed, new_max_devices, new_status, new_credit, final_reseller_id,
             new_join_date, new_bstart, new_susp_held, new_susp_reason,
-            now_str,
+            new_notes, now_str,
             customer_id
         ))
         conn.commit()

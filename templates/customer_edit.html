@@ -1001,6 +1001,14 @@
               </select>
             </div>
           </div>
+
+          <div class="form-group" style="margin-bottom:0; margin-top:12px;">
+            <label for="custNotes" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Customer Note / Room # / Flat</span>
+              <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+            </label>
+            <input type="text" class="form-input" id="custNotes" name="notes" value="{{ c.notes or '' }}" placeholder="e.g. Room 302, Flat 14, Building B">
+          </div>
         </div>
       </div>
 
@@ -1389,7 +1397,9 @@
     const spd = document.getElementById('custSpeed').value.trim() || 'Unlimited';
     const name = document.getElementById('custName').value.trim() || 'Customer';
     const phone = document.getElementById('custPhone').value.trim() || '05XXXXXXXX';
-    const qStr = `/queue simple add name="CyberNet: ${phone} - ${name}" max-limit=${spd}`;
+    const notes = document.getElementById('custNotes') ? document.getElementById('custNotes').value.trim() : '';
+    const notesStr = notes ? ` [${notes}]` : '';
+    const qStr = `/queue simple add name="CyberNet: ${phone} - ${name}${notesStr}" max-limit=${spd}`;
     const pEl = document.getElementById('previewQueueStr');
     if (pEl) pEl.textContent = qStr;
   }
@@ -1442,7 +1452,8 @@
       max_devices: parseInt(document.getElementById('custMaxDevices').value) || 1,
       reseller_id: resellerId,
       join_date: document.getElementById('custJoinDate') ? document.getElementById('custJoinDate').value : null,
-      billing_start_date: document.getElementById('custBillingStartDate') ? document.getElementById('custBillingStartDate').value : null
+      billing_start_date: document.getElementById('custBillingStartDate') ? document.getElementById('custBillingStartDate').value : null,
+      notes: document.getElementById('custNotes') ? document.getElementById('custNotes').value.trim() : ''
     };
 
     try {
@@ -1594,6 +1605,9 @@
   // Live input change listener for queue preview
   document.getElementById('custName').addEventListener('input', updateQueuePreview);
   document.getElementById('custPhone').addEventListener('input', updateQueuePreview);
+  if (document.getElementById('custNotes')) {
+    document.getElementById('custNotes').addEventListener('input', updateQueuePreview);
+  }
 
   // Permanent Delete Customer Modal and Execution
   function openDeleteCustomerModal() {
