@@ -609,25 +609,435 @@
     flex-wrap: wrap;
   }
 
-  /* RESPONSIVE DESIGN */
-  @media (max-width: 1024px) {
-    .bal-kpi-deck {
-      grid-template-columns: repeat(2, 1fr);
-    }
+  /* =========================================================
+     MOBILE RESPONSIVE BALANCE SHEET DECK (iPhone, Android)
+     ========================================================= */
+  .desktop-table-view {
+    display: block;
   }
-  @media (max-width: 768px) {
+  .mobile-balance-deck {
+    display: none;
+  }
+
+  .bal-mobile-card {
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  .bal-mobile-card.card-status-owing {
+    border-left: 4px solid #ef4444;
+  }
+  .bal-mobile-card.card-status-credit {
+    border-left: 4px solid #10b981;
+  }
+  .bal-mobile-card.card-status-settled {
+    border-left: 4px solid #64748b;
+  }
+
+  .m-bal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .m-bal-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+  .m-bal-rank {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-dim);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+  .m-bal-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(56, 189, 248, 0.25);
+  }
+  .m-bal-cust-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    gap: 2px;
+  }
+  .m-bal-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .m-bal-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    text-decoration: none;
+    cursor: pointer;
+    line-height: 1.25;
+  }
+  .m-bal-name:hover {
+    color: #38bdf8;
+    text-decoration: underline;
+  }
+  .m-bal-id {
+    font-size: 10.5px;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .m-bal-room-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  /* HERO NET BALANCE CALLOUT */
+  .m-bal-hero-box {
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+  .m-bal-hero-box.hero-owing {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(185, 28, 28, 0.06) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .m-bal-hero-box.hero-credit {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .m-bal-hero-box.hero-settled {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .m-bal-hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .m-bal-hero-lbl {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .m-bal-hero-sub {
+    font-size: 10.5px;
+    color: var(--text-dim);
+  }
+  .m-bal-hero-val {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  /* 2-COLUMN INFO GRID */
+  .m-bal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+  }
+  .m-grid-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .m-grid-lbl {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .m-grid-val {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+
+  /* ACTION BUTTONS (4 TOUCH-FRIENDLY BUTTONS) */
+  .m-bal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 2px;
+  }
+  .btn-m-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    min-height: 42px;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .btn-m-action svg {
+    width: 13px;
+    height: 13px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+  .btn-m-hist {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.28);
+  }
+  .btn-m-hist:hover {
+    background: rgba(56, 189, 248, 0.22);
+    color: #ffffff;
+  }
+  .btn-m-wa {
+    background: rgba(37, 211, 102, 0.15);
+    color: #25d366;
+    border-color: rgba(37, 211, 102, 0.35);
+  }
+  .btn-m-wa:hover {
+    background: rgba(37, 211, 102, 0.25);
+    color: #ffffff;
+  }
+  .btn-m-settle {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  }
+  .btn-m-settle:hover {
+    filter: brightness(1.1);
+  }
+  .btn-m-call {
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    border-color: var(--border-subtle);
+  }
+  .btn-m-call:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  /* MOBILE GRAND TOTAL CARD */
+  .m-bal-grand-total {
+    background: linear-gradient(135deg, #0b1120 0%, #080e1b 100%);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  .m-total-head {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+  }
+  .m-total-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .m-total-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .m-total-col .t-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .m-total-col .t-val {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    font-weight: 800;
+  }
+
+  /* RESPONSIVE DESIGN (TABLETS & SMARTPHONES: iPhone, Honor, Redmi) */
+  @media (max-width: 1024px) {
+    .desktop-table-view {
+      display: none !important;
+    }
+    .mobile-balance-deck {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 12px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
     .bal-kpi-deck {
-      grid-template-columns: 1fr;
-      gap: 8px;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px !important;
     }
     .bal-kpi-val {
-      font-size: 22px;
+      font-size: 21px !important;
+    }
+    .bal-toolbar-card {
+      padding: 10px 12px !important;
+    }
+    .bal-filter-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+    }
+    .bal-search-box {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+    .bal-search-input {
+      font-size: 16px !important; /* Critical to prevent iOS Safari auto-zoom */
+    }
+    .bal-status-pills {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      flex-wrap: nowrap !important;
+      scrollbar-width: none !important;
+      padding-bottom: 2px !important;
+      gap: 6px !important;
+    }
+    .bal-status-pills::-webkit-scrollbar {
+      display: none !important;
+    }
+    .filter-pill {
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+    .bal-modal-box {
+      width: 95vw !important;
+      max-height: 90vh !important;
+      border-radius: 14px !important;
+      margin: 10px auto !important;
+    }
+    .bal-modal-box input,
+    .bal-modal-box select,
+    .bal-modal-box textarea {
+      font-size: 16px !important; /* Prevent iOS zoom inside modals */
+    }
+  }
+
+  @media (max-width: 440px) {
+    .bal-page-wrap {
+      padding-bottom: 20px !important;
+      gap: 10px !important;
     }
     .bal-header-card {
-      padding: 10px 12px;
+      padding: 10px 12px !important;
+      border-radius: 12px !important;
     }
-    .bal-actions-bar {
-      flex-wrap: wrap;
+    .bal-title-icon {
+      width: 32px !important;
+      height: 32px !important;
+    }
+    .bal-title-text h2 {
+      font-size: 15px !important;
+    }
+    .bal-header-actions {
+      width: 100% !important;
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 6px !important;
+    }
+    .btn-bal-action {
+      justify-content: center !important;
+      padding: 6px 4px !important;
+      font-size: 11px !important;
+    }
+    .bal-kpi-deck {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 6px !important;
+    }
+    .bal-kpi-card {
+      padding: 10px 12px !important;
+      border-radius: 10px !important;
+    }
+    .bal-kpi-val {
+      font-size: 17px !important;
+    }
+    .bal-kpi-sub {
+      font-size: 10.5px !important;
+    }
+    .bal-mobile-card {
+      padding: 12px !important;
+      border-radius: 12px !important;
+    }
+    .m-bal-hero-val {
+      font-size: 16px !important;
+    }
+    .m-total-grid {
+      grid-template-columns: 1fr !important;
+      gap: 6px !important;
+    }
+    .btn-m-action {
+      min-height: 42px !important;
+      font-size: 11.5px !important;
+      padding: 8px 4px !important;
     }
   }
 
@@ -825,8 +1235,8 @@
     </div>
   </div>
 
-  <!-- 4. MAIN DATA TABLE -->
-  <div class="bal-table-card">
+  <!-- 4. MAIN DATA TABLE (DESKTOP VIEW) -->
+  <div class="bal-table-card desktop-table-view">
     <div class="bal-table-wrap">
       <table id="balanceTable" class="bal-table">
         <thead>
@@ -987,6 +1397,189 @@
     </div>
   </div>
 
+  <!-- 5. MOBILE BALANCE CARD DECK (PHONE-RESPONSIVE VIEW: iPhone, Honor, Redmi) -->
+  <div class="mobile-balance-deck" id="mobileBalanceDeck">
+    {% for r in rows %}
+    <div class="bal-mobile-card card-status-{{ r.status|lower }}"
+         id="mBalCard-{{ r.id }}"
+         data-status="{{ r.status|lower }}"
+         data-search="{{ r.name|lower }} {{ r.mobile }} {{ (r.room or '')|lower }} {{ r.id }}">
+      
+      <!-- Card Header: Rank, Avatar, Name, ID, Room, Status Badge -->
+      <div class="m-bal-header">
+        <div class="m-bal-user">
+          <span class="m-bal-rank">#{{ loop.index }}</span>
+          <div class="m-bal-avatar" style="{% if r.balance < 0 %}background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow:0 3px 8px rgba(239,68,68,0.3);{% elif r.balance > 0 %}background:linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow:0 3px 8px rgba(16,185,129,0.3);{% endif %}">
+            {{ r.name[:1]|upper }}
+          </div>
+          <div class="m-bal-cust-info">
+            <div class="m-bal-name-row">
+              <a href="javascript:void(0)" onclick="showBalanceHistory({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}')" class="m-bal-name" title="Click to view statement">
+                {{ r.name }}
+              </a>
+              <span class="m-bal-id font-mono">#{{ r.id }}</span>
+            </div>
+            {% if r.room %}
+            <div class="m-bal-room-row">
+              <span class="bal-room-badge">
+                <svg viewBox="0 0 24 24" style="width:11px; height:11px; fill:currentColor;"><path d="M19 19V5c0-1.1-.9-2-2-2H7c-1.1 0-2 .9-2 2v14H3v2h18v-2h-2zm-8-6c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+                <span>{{ r.room }}</span>
+              </span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <span class="status-badge status-badge-{{ r.status|lower }}">
+            {{ r.status }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Hero Net Balance Callout Banner -->
+      <div class="m-bal-hero-box {% if r.balance < 0 %}hero-owing{% elif r.balance > 0 %}hero-credit{% else %}hero-settled{% endif %}">
+        <div class="m-bal-hero-text">
+          {% if r.balance < 0 %}
+            <div class="m-bal-hero-lbl" style="color:#fca5a5;">⚠️ NET BALANCE OWING (DEBT)</div>
+            <div class="m-bal-hero-sub">Due immediately for internet access</div>
+          {% elif r.balance > 0 %}
+            <div class="m-bal-hero-lbl" style="color:#6ee7b7;">★ PREPAID FLOAT (WALLET CREDIT)</div>
+            <div class="m-bal-hero-sub">Carried forward to next billing cycle</div>
+          {% else %}
+            <div class="m-bal-hero-lbl" style="color:#94a3b8;">✓ ACCOUNT FULLY SETTLED</div>
+            <div class="m-bal-hero-sub">Zero outstanding dues or credit float</div>
+          {% endif %}
+        </div>
+        <div class="m-bal-hero-val" style="{% if r.balance < 0 %}color:#f87171;{% elif r.balance > 0 %}color:#34d399;{% else %}color:#94a3b8;{% endif %}">
+          {% if r.balance > 0 %}+{{ "%.2f"|format(r.balance) }}{% else %}{{ "%.2f"|format(r.balance) }}{% endif %}
+          <span style="font-size:12px; font-weight:600;">SAR</span>
+        </div>
+      </div>
+
+      <!-- 2-Column Financial Details Grid -->
+      <div class="m-bal-grid">
+        <div class="m-grid-item">
+          <span class="m-grid-lbl">Mobile Phone</span>
+          <a href="tel:{{ r.mobile }}" class="bal-phone-link" style="font-size:12px;">
+            <svg viewBox="0 0 24 24" style="width:11px; height:11px; fill:currentColor;"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            <span>{{ r.mobile }}</span>
+          </a>
+        </div>
+
+        <div class="m-grid-item">
+          <span class="m-grid-lbl">Connected Since</span>
+          <span class="m-grid-val font-mono" style="font-size:11.5px; color:#cbd5e1;">📅 {{ r.billing_start_date }}</span>
+        </div>
+
+        <div class="m-grid-item">
+          <span class="m-grid-lbl">Billable Days</span>
+          <span class="m-grid-val font-mono" style="color:#38bdf8;">⚡ {{ r.billable_days }} days</span>
+        </div>
+
+        <div class="m-grid-item">
+          <span class="m-grid-lbl">Plan Rate</span>
+          <span class="m-grid-val font-mono" style="font-size:11.5px;">{{ "%.2f"|format(r.monthly_fee) }} SAR <span style="font-size:10px; color:var(--text-dim); font-weight:normal;">({{ "%.4f"|format(r.daily_rate) }}/d)</span></span>
+        </div>
+
+        <div class="m-grid-item">
+          <span class="m-grid-lbl">Total Accrued Owed</span>
+          <span class="m-grid-val font-mono" style="color:#f87171;">{{ "%.2f"|format(r.total_owed) }} SAR</span>
+        </div>
+
+        <div class="m-grid-item">
+          <span class="m-grid-lbl">Total Paid (Cash)</span>
+          <a href="javascript:void(0)" onclick="showBalanceHistory({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}')" class="m-grid-val bal-paid-link" style="font-size:12px;" title="View payment breakdown">
+            <span>{{ "%.2f"|format(r.total_paid) }} SAR</span>
+            <svg viewBox="0 0 24 24" style="width:10px; height:10px; fill:currentColor; opacity:0.8;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row (Touch Friendly) -->
+      <div class="m-bal-actions">
+        <!-- History -->
+        <button type="button" class="btn-m-action btn-m-hist" onclick="showBalanceHistory({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}')" title="View statement &amp; receipts">
+          <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+          <span>Statement</span>
+        </button>
+
+        <!-- WhatsApp Reminder -->
+        {% if r.balance < 0 %}
+          <button type="button" class="btn-m-action btn-m-wa" onclick="openReminderModal({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}', '{{ r.mobile }}', {{ r.balance }})" title="Send WhatsApp debt reminder">
+            <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+            <span>WhatsApp</span>
+          </button>
+        {% else %}
+          <a href="tel:{{ r.mobile }}" class="btn-m-action btn-m-call" title="Call subscriber">
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            <span>Direct Call</span>
+          </a>
+        {% endif %}
+
+        <!-- Settle / Collect -->
+        <button type="button" class="btn-m-action btn-m-settle" onclick="openBalanceCollectModal({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}', {{ r.balance }})" title="Record payment">
+          <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          <span>💵 Settle</span>
+        </button>
+
+        <!-- Call or Receipts -->
+        {% if r.balance < 0 %}
+          <a href="tel:{{ r.mobile }}" class="btn-m-action btn-m-call" title="Call subscriber">
+            <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+            <span>Call</span>
+          </a>
+        {% else %}
+          <button type="button" class="btn-m-action btn-m-call" onclick="showBalanceHistory({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}')" title="Receipts">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            <span>Receipts</span>
+          </button>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+
+    <!-- Mobile No Match Empty State -->
+    <div id="mBalanceNoMatchCard" style="display:none; background:#090e1a; border:1px dashed var(--border-subtle); border-radius:12px; padding:28px 16px; text-align:center; color:var(--text-dim);">
+      <div style="font-size:28px; margin-bottom:8px; opacity:0.6;">🔍</div>
+      <strong style="color:#ffffff; font-size:14px; display:block;">No matching subscribers found</strong>
+      <div style="font-size:12px; margin-top:4px;">Try searching with another name, phone number, room, or reset filters.</div>
+    </div>
+
+    <!-- Mobile Grand Total Summary Card -->
+    <div class="m-bal-grand-total">
+      <div class="m-total-head">
+        <span>Fleet Summary ({{ bs.total_active }} Subscribers)</span>
+        <span style="color:#38bdf8; font-family:var(--font-mono);">CyberNet OS</span>
+      </div>
+      <div class="m-total-grid">
+        <div class="m-total-col">
+          <span class="t-lbl">Total Accrued</span>
+          <span class="t-val" style="color:#f87171;">{{ "%.2f"|format(bs.grand_owed) }} SAR</span>
+        </div>
+        <div class="m-total-col">
+          <span class="t-lbl">Total Paid</span>
+          <span class="t-val" style="color:#34d399;">{{ "%.2f"|format(bs.grand_paid) }} SAR</span>
+        </div>
+        <div class="m-total-col">
+          <span class="t-lbl">Net Balance</span>
+          <span class="t-val" style="color:{% if bs.grand_net < 0 %}#f87171{% elif bs.grand_net > 0 %}#34d399{% else %}#94a3b8{% endif %};">
+            {% if bs.grand_net > 0 %}+{{ "%.2f"|format(bs.grand_net) }}{% else %}{{ "%.2f"|format(bs.grand_net) }}{% endif %} SAR
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Status Legend -->
+    <div class="bal-footer-legend" style="border-radius:10px; border:1px solid var(--border-subtle); padding:10px 12px; font-size:11px; flex-direction:column; align-items:flex-start; gap:8px;">
+      <span style="font-weight:700; color:#ffffff;">Status Legend:</span>
+      <div><span class="status-badge status-badge-owing">OWING</span> Unpaid debt due</div>
+      <div><span class="status-badge status-badge-settled">SETTLED</span> Zero balance</div>
+      <div><span class="status-badge status-badge-credit">CREDIT</span> Prepaid wallet float</div>
+    </div>
+
+  </div>
+
 </div>
 
 <!-- =========================================================
@@ -1131,55 +1724,76 @@ function setBalanceFilter(status, btn) {
 function filterBalanceTable() {
   const query = (document.getElementById('balanceSearch')?.value || '').toLowerCase().trim();
   const table = document.getElementById('balanceTable');
-  if (!table) return;
+  const mobileDeck = document.getElementById('mobileBalanceDeck');
 
-  const rows = table.querySelectorAll('tbody tr:not(.table-total-row):not(#balanceNoMatchRow)');
+  const rows = table ? table.querySelectorAll('tbody tr:not(.table-total-row):not(#balanceNoMatchRow)') : [];
+  const cards = mobileDeck ? mobileDeck.querySelectorAll('.bal-mobile-card') : [];
   const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
-  let visibleCount = 0;
 
+  function testMatch(text, st) {
+    let passStatus = (activeStatusFilter === 'all' || st === activeStatusFilter);
+    if (!passStatus) return false;
+    if (tokens.length === 0) return true;
+    return tokens.every(tok => {
+      if (text.includes(tok)) return true;
+      const dig = tok.replace(/\D/g, '');
+      if (dig.length >= 2) {
+        if (dig.startsWith('05') && text.includes('966' + dig.slice(1))) return true;
+        if (dig.startsWith('9665') && text.includes('0' + dig.slice(3))) return true;
+        if (dig.startsWith('5') && (text.includes('0' + dig) || text.includes('966' + dig))) return true;
+      }
+      return false;
+    });
+  }
+
+  let tableVisibleCount = 0;
   rows.forEach(r => {
     const text = r.textContent.toLowerCase();
-    const st = r.getAttribute('data-status') || '';
-
-    let passStatus = (activeStatusFilter === 'all' || st === activeStatusFilter);
-    let passQuery = true;
-
-    if (tokens.length > 0) {
-      passQuery = tokens.every(tok => {
-        if (text.includes(tok)) return true;
-        const dig = tok.replace(/\D/g, '');
-        if (dig.length >= 2) {
-          if (dig.startsWith('05') && text.includes('966' + dig.slice(1))) return true;
-          if (dig.startsWith('9665') && text.includes('0' + dig.slice(3))) return true;
-          if (dig.startsWith('5') && (text.includes('0' + dig) || text.includes('966' + dig))) return true;
-        }
-        return false;
-      });
-    }
-
-    if (passStatus && passQuery) {
+    const st = (r.getAttribute('data-status') || '').toLowerCase();
+    if (testMatch(text, st)) {
       r.style.display = '';
-      visibleCount++;
+      tableVisibleCount++;
     } else {
       r.style.display = 'none';
     }
   });
 
+  let cardsVisibleCount = 0;
+  cards.forEach(c => {
+    const searchData = (c.getAttribute('data-search') || c.textContent).toLowerCase();
+    const st = (c.getAttribute('data-status') || '').toLowerCase();
+    if (testMatch(searchData, st)) {
+      c.style.display = '';
+      cardsVisibleCount++;
+    } else {
+      c.style.display = 'none';
+    }
+  });
+
+  // Desktop No-Match Row
   let noRow = document.getElementById('balanceNoMatchRow');
-  if (visibleCount === 0 && (query || activeStatusFilter !== 'all')) {
-    if (!noRow) {
+  if (tableVisibleCount === 0 && (query || activeStatusFilter !== 'all')) {
+    if (!noRow && table) {
       const tbody = table.querySelector('tbody');
       if (tbody) {
         noRow = document.createElement('tr');
         noRow.id = 'balanceNoMatchRow';
-        noRow.innerHTML = `<td colspan="10" style="text-align:center; padding:32px; color:var(--text-dim);"><div style="font-size:24px; margin-bottom:8px; opacity:0.5;">🔍</div><strong>No matching subscriber records found</strong><div style="font-size:12px; margin-top:4px;">Try searching with a different name, phone, or clear filters.</div></td>`;
+        noRow.innerHTML = `<td colspan="13" style="text-align:center; padding:32px; color:var(--text-dim);"><div style="font-size:24px; margin-bottom:8px; opacity:0.5;">🔍</div><strong>No matching subscriber records found</strong><div style="font-size:12px; margin-top:4px;">Try searching with a different name, phone, room, or clear filters.</div></td>`;
         tbody.insertBefore(noRow, tbody.querySelector('.table-total-row'));
       }
-    } else {
+    } else if (noRow) {
       noRow.style.display = '';
     }
   } else if (noRow) {
     noRow.style.display = 'none';
+  }
+
+  // Mobile No-Match Card
+  let noCard = document.getElementById('mBalanceNoMatchCard');
+  if (cardsVisibleCount === 0 && (query || activeStatusFilter !== 'all')) {
+    if (noCard) noCard.style.display = 'block';
+  } else if (noCard) {
+    noCard.style.display = 'none';
   }
 }
 
