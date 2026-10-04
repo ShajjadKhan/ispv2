@@ -1265,7 +1265,6 @@
               <div class="bal-cust-cell">
                 <a href="javascript:void(0)" onclick="showBalanceHistory({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}')" class="bal-cust-name-link" title="Click to view full financial ledger &amp; receipts">
                   <span style="font-weight:700;">{{ r.name }}</span>
-                  <span class="font-mono" style="font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.12); padding:1px 6px; border-radius:4px; margin-left:4px;">#{{ r.id }}</span>
                 </a>
               </div>
             </td>
@@ -1417,7 +1416,6 @@
               <a href="javascript:void(0)" onclick="showBalanceHistory({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}')" class="m-bal-name" title="Click to view statement">
                 {{ r.name }}
               </a>
-              <span class="m-bal-id font-mono">#{{ r.id }}</span>
             </div>
             {% if r.room %}
             <div class="m-bal-room-row">

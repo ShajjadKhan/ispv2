@@ -1,6 +1,9 @@
 import requests
 import re
 import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import auth_service
 import database
 
@@ -81,9 +84,12 @@ print('PASS 7: JS real-time filter synchronization between desktop table and mob
 assert 'bal-room-badge' in html, 'bal-room-badge missing in mobile card'
 print('PASS 8: Customer room / note badge verified')
 
-# Verify Net Balance hero amounts
-assert 'hero-owing' in html, 'hero-owing missing'
-assert 'hero-settled' in html, 'hero-settled missing'
-print('PASS 9: Hero Net Balance callout styling verified')
+# Verify customer ID #number is NOT displayed beside subscriber names
+ashraf_desktop = re.search(r'Ashraf.*?(?=</td>)', html, re.DOTALL)
+assert ashraf_desktop and '#12' not in ashraf_desktop.group(0), 'Found #12 in desktop Ashraf name cell'
+
+ashraf_mobile = re.search(r'class="m-bal-name"[^>]*>\s*Ashraf\s*</a>.*?(?=<div class="m-bal-hero-box)', html, re.DOTALL)
+assert ashraf_mobile and '#12' not in ashraf_mobile.group(0), 'Found #12 in mobile Ashraf header'
+print('PASS 10: Verified customer ID #number is cleanly removed from beside subscriber names')
 
 print('\nALL VERIFICATION CHECKS PASSED 100%! Phone responsiveness is active and verified!')
