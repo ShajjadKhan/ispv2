@@ -3010,6 +3010,21 @@ async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
             notes=payload.notes or "",
             month_year=payload.month_year
         )
+        # Re-bind customer devices on MikroTik to restore/guarantee active internet access
+        try:
+            cust_profile = database.get_customer_profile(payload.customer_id)
+            if cust_profile and cust_profile.get("status") == "active":
+                for dev in cust_profile.get("devices", []):
+                    if dev.get("status") == "approved":
+                        mikrotik_client.broadcast_bind_device(
+                            mac_address=dev["mac_address"],
+                            ip_address=dev.get("ip_address"),
+                            comment=f"CyberNet: {cust_profile.get('phone')} - {cust_profile.get('name')} [{cust_profile.get('notes') or ''}]",
+                            rate_limit=cust_profile.get("effective_speed")
+                        )
+        except Exception as me:
+            logger.warning(f"Could not rebind device after balance collection for #{payload.customer_id}: {me}")
+
         return res
     except Exception as e:
         logger.exception(f"Error in api_balance_collect for #{payload.customer_id}: {e}")

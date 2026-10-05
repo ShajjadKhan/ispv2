@@ -5434,18 +5434,78 @@ def record_balance_collection(
 ) -> Dict[str, Any]:
     """
     Records collection payment directly into CyberNet OS ledger.
+    - Adds record to collections table
+    - Restores customer status to active and marks devices approved
+    - Updates expiry/due date if monthly fee is covered
     """
-    amount = float(amount or 0.0)
+    clean_amt = round(float(amount or 0.0), 2)
+    if clean_amt <= 0:
+        raise ValueError("Collection amount must be greater than 0.00 SAR.")
+
     now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
     month_str = month_year or now.strftime("%Y-%m")
 
-    return record_collection(
-        customer_id=customer_id,
-        amount=amount,
-        billing_type=payment_type,
-        notes=notes or f"Balance Sheet Desk ({payment_type})",
-        collected_by=collector,
-        month_year=month_str,
-        is_settled=False
-    )
+    with get_db() as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        cur.execute("SELECT id, name, phone, notes, monthly_fee, expiry_date, due_date, status FROM customers WHERE id = ?", (customer_id,))
+        cust_row = cur.fetchone()
+        if not cust_row:
+            raise ValueError(f"Customer #{customer_id} not found in database.")
+
+        cust = dict(cust_row)
+        cust_name = cust.get("name") or f"Subscriber #{customer_id}"
+
+        # 1. Insert collection record
+        col_notes = notes.strip() if notes and notes.strip() else f"Balance Sheet Collection ({payment_type})"
+        cur.execute("""
+            INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
+        """, (customer_id, clean_amt, payment_type or "cash", col_notes, now_str, collector or "Admin", month_str))
+        col_id = cur.lastrowid
+
+        # 2. Reactivate customer and devices if previously suspended / blocked
+        cur.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+
+        # 3. Advance expiry/due date if payment covers monthly cycle
+        monthly_fee = float(cust.get("monthly_fee") or 30.0)
+        if monthly_fee > 0 and clean_amt >= monthly_fee:
+            days_to_add = int(clean_amt // monthly_fee) * 30
+            current_exp = cust.get("expiry_date") or cust.get("due_date")
+            try:
+                base_dt = datetime.strptime(str(current_exp)[:10], "%Y-%m-%d")
+                calc_base = max(base_dt, now)
+            except Exception:
+                calc_base = now
+            new_exp = (calc_base + timedelta(days=days_to_add)).strftime("%Y-%m-%d")
+            try:
+                new_due_day = int(new_exp.split("-")[2])
+            except Exception:
+                new_due_day = 1
+            cur.execute("""
+                UPDATE customers
+                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, updated_at = ?
+                WHERE id = ?
+            """, (new_exp, new_exp, new_due_day, now_str, customer_id))
+        else:
+            cur.execute("""
+                UPDATE customers
+                SET status = 'active', updated_at = ?
+                WHERE id = ?
+            """, (now_str, customer_id))
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "collection_id": col_id,
+            "customer_id": customer_id,
+            "customer_name": cust_name,
+            "amount": clean_amt,
+            "payment_type": payment_type,
+            "collected_at": now_str,
+            "message": f"Successfully collected {clean_amt:.2f} SAR for {cust_name}!"
+        }
 

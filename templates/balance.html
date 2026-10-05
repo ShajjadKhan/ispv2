@@ -158,6 +158,51 @@
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.2);
   }
+  .btn-bal-collect {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+  .btn-bal-collect:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+  }
+
+  .amount-presets-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .btn-preset-amt {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.15s ease;
+  }
+  .btn-preset-amt:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #38bdf8;
+  }
+  .btn-preset-amt.preset-debt {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+  }
+  .btn-preset-amt.preset-debt:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #ffffff;
+  }
 
   /* 2. 4-CARD KPI FINTECH DECK */
   .bal-kpi-deck {
@@ -577,11 +622,14 @@
     background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
   }
+  .btn-tbl-collect,
   .btn-tbl-settle {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(16, 185, 129, 0.16);
     color: #34d399;
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(16, 185, 129, 0.35);
+    font-weight: 800;
   }
+  .btn-tbl-collect:hover,
   .btn-tbl-settle:hover {
     background: #10b981;
     color: #ffffff;
@@ -855,12 +903,14 @@
     background: rgba(37, 211, 102, 0.25);
     color: #ffffff;
   }
+  .btn-m-collect,
   .btn-m-settle {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff;
     border-color: rgba(16, 185, 129, 0.5);
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
   }
+  .btn-m-collect:hover,
   .btn-m-settle:hover {
     filter: brightness(1.1);
   }
@@ -1001,7 +1051,7 @@
     .bal-header-actions {
       width: 100% !important;
       display: grid !important;
-      grid-template-columns: repeat(3, 1fr) !important;
+      grid-template-columns: repeat(2, 1fr) !important;
       gap: 6px !important;
     }
     .btn-bal-action {
@@ -1139,6 +1189,10 @@
     </div>
 
     <div class="bal-header-actions">
+      <button type="button" class="btn-bal-action btn-bal-collect" onclick="openBalanceCollectModal(null)" title="Record payment collection from any subscriber">
+        <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        <span>+ Collect</span>
+      </button>
       <a href="/api/balance/export" class="btn-bal-action btn-bal-secondary" title="Download Balance Sheet as CSV">
         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
         <span>Export CSV</span>
@@ -1348,10 +1402,10 @@
                   </button>
                 {% endif %}
 
-                <!-- Settle / Collect Button -->
-                <button type="button" class="btn-tbl-sm btn-tbl-settle" onclick="openBalanceCollectModal({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}', {{ r.balance }})" title="Record cash or bank payment">
+                <!-- Collect Button -->
+                <button type="button" class="btn-tbl-sm btn-tbl-collect btn-tbl-settle" onclick="openBalanceCollectModal({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}', {{ r.balance }})" title="Record payment collection">
                   <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-                  <span>Settle</span>
+                  <span>Collect</span>
                 </button>
 
                 <!-- Phone Call Button -->
@@ -1514,10 +1568,10 @@
           </a>
         {% endif %}
 
-        <!-- Settle / Collect -->
-        <button type="button" class="btn-m-action btn-m-settle" onclick="openBalanceCollectModal({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}', {{ r.balance }})" title="Record payment">
+        <!-- Collect -->
+        <button type="button" class="btn-m-action btn-m-collect btn-m-settle" onclick="openBalanceCollectModal({{ r.id }}, '{{ r.name|replace('\'', '\\\'') }}', {{ r.balance }})" title="Record payment collection">
           <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-          <span>💵 Settle</span>
+          <span>💵 Collect</span>
         </button>
 
         <!-- Call or Receipts -->
@@ -1602,29 +1656,66 @@
 </div>
 
 <!-- =========================================================
-     MODAL 2: QUICK SETTLE / RECORD COLLECTION MODAL
+     MODAL 2: QUICK COLLECT / RECORD COLLECTION MODAL
      ========================================================= -->
 <div id="balanceCollectModal" class="bal-modal-overlay" onclick="if(event.target===this)closeBalanceCollectModal()">
-  <div class="bal-modal-box" style="max-width:500px;">
+  <div class="bal-modal-box" style="max-width:520px;">
     <div class="bal-modal-head">
       <h3>
         <svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:#10b981;"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-        <span>Settle Balance / Record Payment</span>
+        <span id="collModalTitleText">Collect Payment &amp; Record Receipt</span>
       </h3>
       <button type="button" class="bal-modal-close-btn" onclick="closeBalanceCollectModal()">&times;</button>
     </div>
     <form id="balanceCollectForm" onsubmit="handleBalanceCollectSubmit(event)" class="bal-modal-body">
       <input type="hidden" id="collCustId" name="customer_id" value="">
 
-      <div style="background:#080e1b; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
-        <div style="font-size:12px; color:var(--text-dim);">Customer Account</div>
-        <div id="collCustNameLabel" style="font-size:15px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
-        <div id="collCurrentBalLabel" style="font-size:12px; font-family:var(--font-mono); margin-top:4px;">Current Balance: 0.00 SAR</div>
+      <!-- Customer Selector Dropdown (Shown when collecting from header) -->
+      <div id="collCustSelectWrap">
+        <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Select Subscriber</label>
+        <select id="collCustSelect" class="bal-search-input" style="padding-left:12px; font-size:13.5px; font-weight:600;" onchange="onModalCustomerSelectChange(this.value)">
+          <option value="">— Choose a Subscriber to Collect —</option>
+          {% for r in rows %}
+          <option value="{{ r.id }}">
+            {{ r.name }}{% if r.room %} [🚪 {{ r.room }}]{% endif %} — {% if r.balance < 0 %}⚠️ Due: {{ "%.2f"|format(r.balance) }} SAR{% elif r.balance > 0 %}★ Credit: +{{ "%.2f"|format(r.balance) }} SAR{% else %}✓ Settled (0.00 SAR){% endif %}
+          </option>
+          {% endfor %}
+        </select>
       </div>
 
+      <!-- Customer Summary Card -->
+      <div id="collCustSummaryCard" style="background:#080e1b; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div>
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Subscriber Account</div>
+            <div id="collCustNameLabel" style="font-size:15px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
+            <div id="collCustPhoneRoom" style="font-size:12px; color:var(--text-dim); margin-top:2px;">—</div>
+          </div>
+          <div id="collCurrentBalBadge" style="text-align:right;">
+            <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Account Balance</div>
+            <div id="collCurrentBalLabel" style="font-size:14px; font-weight:800; font-family:var(--font-mono); margin-top:2px;">0.00 SAR</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Amount Input with POS Preset Chips -->
       <div>
-        <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Payment Amount (SAR)</label>
-        <input type="number" id="collAmountInput" step="0.5" min="1" required class="bal-search-input" style="padding-left:12px; font-size:16px; font-weight:800; font-family:var(--font-mono);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0;">Collection Amount (SAR)</label>
+          <span style="font-size:11px; color:#38bdf8; font-family:var(--font-mono);">SAR Currency</span>
+        </div>
+        <input type="number" id="collAmountInput" step="0.5" min="1" required class="bal-search-input font-mono" style="padding-left:12px; font-size:18px; font-weight:800; color:#34d399;" placeholder="0.00">
+        
+        <!-- Quick Preset Chips -->
+        <div class="amount-presets-bar">
+          <span style="font-size:11px; color:var(--text-dim); font-weight:600;">Presets:</span>
+          <button type="button" class="btn-preset-amt preset-debt" id="btnPresetExactDebt" onclick="applyAmountPreset('exact')">Exact Debt</button>
+          <button type="button" class="btn-preset-amt" onclick="applyAmountPreset(30)">30 SAR (1 Mo)</button>
+          <button type="button" class="btn-preset-amt" onclick="applyAmountPreset(50)">50 SAR</button>
+          <button type="button" class="btn-preset-amt" onclick="applyAmountPreset(60)">60 SAR (2 Mo)</button>
+          <button type="button" class="btn-preset-amt" onclick="applyAmountPreset(100)">100 SAR</button>
+          <button type="button" class="btn-preset-amt" onclick="applyAmountPreset('clear')" style="color:#94a3b8;">Clear</button>
+        </div>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -1634,6 +1725,7 @@
             <option value="cash">💵 Cash Payment</option>
             <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
             <option value="stc_pay">📱 STC Pay / Barq</option>
+            <option value="pos_card">💳 POS / Card</option>
             <option value="voucher">🎫 Voucher / Coupon</option>
             <option value="other">📝 Other</option>
           </select>
@@ -1646,14 +1738,14 @@
 
       <div>
         <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Transaction Notes (Optional)</label>
-        <input type="text" id="collNotesInput" placeholder="e.g. Paid in full for current month" class="bal-search-input" style="padding-left:10px;">
+        <input type="text" id="collNotesInput" placeholder="e.g. Paid in full for current month / STC Pay Ref" class="bal-search-input" style="padding-left:10px;">
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
         <button type="button" class="btn-bal-action btn-bal-secondary" onclick="closeBalanceCollectModal()">Cancel</button>
-        <button type="submit" id="collSubmitBtn" class="btn-bal-action btn-bal-primary" style="background:#10b981; border-color:#059669;">
+        <button type="submit" id="collSubmitBtn" class="btn-bal-action btn-bal-primary" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-color:#059669; font-weight:800; box-shadow:0 2px 8px rgba(16,185,129,0.35);">
           <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-          <span>Confirm &amp; Record Payment</span>
+          <span>Confirm &amp; Record Collection</span>
         </button>
       </div>
     </form>
@@ -1692,7 +1784,11 @@
           <span>Copy Text</span>
         </button>
 
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn-bal-action btn-bal-collect" style="background:#10b981; border-color:#059669; color:#ffffff;" onclick="collectFromReminderModal()" title="Record collection immediately for this customer">
+            <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+            <span>💵 Collect Payment</span>
+          </button>
           <a id="remWaDirectLink" href="#" target="_blank" class="btn-bal-action btn-bal-secondary" style="color:#25d366; border-color:rgba(37,211,102,0.35);">
             <span>Open WhatsApp Web ↗</span>
           </a>
@@ -1836,7 +1932,7 @@ async function showBalanceHistory(cid, name) {
             </div>
           </div>
           <div style="display:flex; gap:6px;">
-            <button type="button" class="btn-tbl-sm btn-tbl-settle" onclick="closeBalanceHistoryModal(); openBalanceCollectModal(${c.id}, '${c.name.replace(/'/g, "\\'")}', ${m.balance});">💵 Settle Now</button>
+            <button type="button" class="btn-tbl-sm btn-tbl-collect btn-tbl-settle" onclick="closeBalanceHistoryModal(); openBalanceCollectModal(${c.id}, '${c.name.replace(/'/g, "\\'")}', ${m.balance});">💵 Collect Payment</button>
             <a href="tel:${c.mobile}" class="btn-tbl-sm btn-tbl-call">📞 Call</a>
           </div>
         </div>
@@ -1914,32 +2010,127 @@ function closeBalanceHistoryModal() {
   if (m) m.classList.remove('open');
 }
 
-// Quick Settle / Collect Modal
-function openBalanceCollectModal(cid, name, balance) {
-  document.getElementById('collCustId').value = cid;
-  document.getElementById('collCustNameLabel').textContent = name;
+// Customer cache for instant modal lookup
+const balanceRowsData = {
+  {% for r in rows %}
+  "{{ r.id }}": {
+    id: {{ r.id }},
+    name: "{{ r.name|replace('\'', '\\\'') }}",
+    mobile: "{{ r.mobile }}",
+    room: "{{ (r.room or '')|replace('\'', '\\\'') }}",
+    balance: {{ r.balance }},
+    fee: {{ r.monthly_fee }},
+    total_owed: {{ r.total_owed }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
 
-  const currentBalEl = document.getElementById('collCurrentBalLabel');
+let currentModalSelectedBalance = 0;
+
+// Quick Collect Modal
+function openBalanceCollectModal(cid, name, balance) {
+  const custSelect = document.getElementById('collCustSelect');
+  const custIdInput = document.getElementById('collCustId');
   const amountInput = document.getElementById('collAmountInput');
 
-  let owedVal = balance < 0 ? Math.abs(balance) : 0;
-  if (currentBalEl) {
-    if (balance < 0) {
-      currentBalEl.innerHTML = `Current Balance: <strong style="color:#f87171;">-${owedVal.toFixed(2)} SAR (Due)</strong>`;
-    } else if (balance > 0) {
-      currentBalEl.innerHTML = `Current Balance: <strong style="color:#34d399;">+${parseFloat(balance).toFixed(2)} SAR (Credit)</strong>`;
-    } else {
-      currentBalEl.innerHTML = `Current Balance: <strong style="color:#94a3b8;">0.00 SAR (Settled)</strong>`;
+  if (cid) {
+    custIdInput.value = cid;
+    if (custSelect) custSelect.value = cid;
+    let rowData = balanceRowsData[cid] || { id: cid, name: name || ('Subscriber #' + cid), balance: (balance !== undefined ? balance : 0), room: '', mobile: '' };
+    updateModalCustomerDisplay(rowData);
+  } else {
+    // Open from header: pick first owing or currently selected
+    if (custSelect) {
+      if (!custSelect.value) {
+        let firstOwing = null;
+        for (let k in balanceRowsData) {
+          if (balanceRowsData[k].balance < 0) {
+            firstOwing = balanceRowsData[k];
+            break;
+          }
+        }
+        if (firstOwing) {
+          custSelect.value = firstOwing.id;
+          custIdInput.value = firstOwing.id;
+          updateModalCustomerDisplay(firstOwing);
+        } else if (custSelect.options.length > 1) {
+          custSelect.selectedIndex = 1;
+          onModalCustomerSelectChange(custSelect.value);
+        }
+      } else {
+        onModalCustomerSelectChange(custSelect.value);
+      }
     }
-  }
-
-  // Pre-fill amount with balance owed or standard fee 30
-  if (amountInput) {
-    amountInput.value = owedVal > 0 ? owedVal.toFixed(2) : '30.00';
   }
 
   const modal = document.getElementById('balanceCollectModal');
   if (modal) modal.classList.add('open');
+}
+
+function onModalCustomerSelectChange(cid) {
+  const custIdInput = document.getElementById('collCustId');
+  if (!cid) {
+    custIdInput.value = '';
+    document.getElementById('collCustNameLabel').textContent = '— Please select a subscriber —';
+    document.getElementById('collCustPhoneRoom').textContent = '—';
+    document.getElementById('collCurrentBalLabel').innerHTML = '0.00 SAR';
+    return;
+  }
+  custIdInput.value = cid;
+  const d = balanceRowsData[cid];
+  if (d) updateModalCustomerDisplay(d);
+}
+
+function updateModalCustomerDisplay(d) {
+  currentModalSelectedBalance = d.balance || 0;
+  document.getElementById('collCustNameLabel').textContent = d.name;
+  let subInfo = [];
+  if (d.mobile) subInfo.push('📱 ' + d.mobile);
+  if (d.room) subInfo.push('🚪 Room: ' + d.room);
+  document.getElementById('collCustPhoneRoom').textContent = subInfo.join(' • ') || ('CyberNet Subscriber #' + d.id);
+
+  const currentBalEl = document.getElementById('collCurrentBalLabel');
+  const amountInput = document.getElementById('collAmountInput');
+  const debtPresetBtn = document.getElementById('btnPresetExactDebt');
+
+  let owedVal = d.balance < 0 ? Math.abs(d.balance) : 0;
+  if (currentBalEl) {
+    if (d.balance < 0) {
+      currentBalEl.innerHTML = `<span style="color:#f87171;">-${owedVal.toFixed(2)} SAR (Due)</span>`;
+      if (debtPresetBtn) debtPresetBtn.textContent = `Exact Debt (${owedVal.toFixed(2)} SAR)`;
+    } else if (d.balance > 0) {
+      currentBalEl.innerHTML = `<span style="color:#34d399;">+${parseFloat(d.balance).toFixed(2)} SAR (Credit)</span>`;
+      if (debtPresetBtn) debtPresetBtn.textContent = `Exact Debt (0.00 SAR)`;
+    } else {
+      currentBalEl.innerHTML = `<span style="color:#94a3b8;">0.00 SAR (Settled)</span>`;
+      if (debtPresetBtn) debtPresetBtn.textContent = `Exact Debt (0.00 SAR)`;
+    }
+  }
+
+  if (amountInput) {
+    amountInput.value = owedVal > 0 ? owedVal.toFixed(2) : (d.fee > 0 ? d.fee.toFixed(2) : '30.00');
+  }
+}
+
+function applyAmountPreset(amt) {
+  const amountInput = document.getElementById('collAmountInput');
+  if (!amountInput) return;
+  if (amt === 'exact') {
+    let owedVal = currentModalSelectedBalance < 0 ? Math.abs(currentModalSelectedBalance) : 0;
+    amountInput.value = owedVal > 0 ? owedVal.toFixed(2) : '30.00';
+  } else if (amt === 'clear') {
+    amountInput.value = '';
+    amountInput.focus();
+  } else {
+    amountInput.value = parseFloat(amt).toFixed(2);
+  }
+}
+
+function collectFromReminderModal() {
+  const cid = parseInt(document.getElementById('remCustId').value);
+  const name = document.getElementById('remCustNameText').textContent;
+  closeBalanceReminderModal();
+  openBalanceCollectModal(cid, name);
 }
 
 function closeBalanceCollectModal() {
