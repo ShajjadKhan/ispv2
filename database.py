@@ -245,6 +245,20 @@ def init_db():
         )
         """)
 
+        # 4d. Customer Suspensions & Pause Ledger Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS customer_suspensions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            suspended_at TEXT NOT NULL,
+            resumed_at TEXT,
+            reason TEXT DEFAULT 'Administration suspension',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_suspensions_cust ON customer_suspensions(customer_id)")
+
         # 4b. Reseller Partner Wallet & Transaction Ledger
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS reseller_wallet_ledger (
@@ -720,6 +734,12 @@ def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
                 if cust["status"] == "active" or has_approved_dev:
                     cursor.execute("UPDATE customers SET status = 'suspended', updated_at = ? WHERE id = ?", (now_str, cid))
                     cursor.execute("UPDATE customer_devices SET status = 'blocked' WHERE customer_id = ?", (cid,))
+                    cursor.execute("SELECT id FROM customer_suspensions WHERE customer_id = ? AND resumed_at IS NULL", (cid,))
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
+                            VALUES (?, ?, 'Automated expiration cutoff', ?)
+                        """, (cid, now_str, now_str))
                     expired_records.append({
                         "customer_id": cid,
                         "name": cust["name"],
@@ -1773,6 +1793,23 @@ def update_customer_details(
             new_notes, now_str,
             customer_id
         ))
+
+        # Handle suspension lifecycle if status changed
+        if new_status != current.get("status"):
+            if new_status == "suspended":
+                cursor.execute("SELECT id FROM customer_suspensions WHERE customer_id = ? AND resumed_at IS NULL", (customer_id,))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
+                        VALUES (?, ?, 'Admin profile status update', ?)
+                    """, (customer_id, now_str, now_str))
+            elif new_status == "active":
+                cursor.execute("""
+                    UPDATE customer_suspensions
+                    SET resumed_at = ?
+                    WHERE customer_id = ? AND resumed_at IS NULL
+                """, (now_str, customer_id))
+
         conn.commit()
 
         return get_customer_profile(customer_id)
@@ -1841,6 +1878,18 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
 
         cursor.execute("UPDATE customers SET status = ?, updated_at = ? WHERE id = ?", (new_status, now_str, customer_id))
         cursor.execute("UPDATE customer_devices SET status = ? WHERE customer_id = ?", (new_device_status, customer_id))
+
+        if new_status == "suspended":
+            cursor.execute("""
+                INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
+                VALUES (?, ?, 'Manual admin toggle', ?)
+            """, (customer_id, now_str, now_str))
+        else:
+            cursor.execute("""
+                UPDATE customer_suspensions
+                SET resumed_at = ?
+                WHERE customer_id = ? AND resumed_at IS NULL
+            """, (now_str, customer_id))
 
         cursor.execute("SELECT mac_address FROM customer_devices WHERE customer_id = ?", (customer_id,))
         macs = [r["mac_address"].upper() for r in cursor.fetchall()]
@@ -2634,6 +2683,11 @@ def settle_customer_cycles(
         if total_collected > 0:
             cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
             cursor.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer_id))
+            cursor.execute("""
+                UPDATE customer_suspensions
+                SET resumed_at = ?
+                WHERE customer_id = ? AND resumed_at IS NULL
+            """, (now_str, customer_id))
 
         # If any months were settled, fulfill any pending promises and advance due date
         if settled_months_list:
@@ -5235,6 +5289,26 @@ def get_balance_sheet_data(
         colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
         colls_count_by_cid = {int(r["customer_id"]): int(r["count"] or 0) for r in col_rows}
 
+        # Load suspensions for all subscribers
+        try:
+            susp_rows = cur.execute("""
+                SELECT customer_id, suspended_at, resumed_at
+                FROM customer_suspensions
+                ORDER BY id ASC
+            """).fetchall()
+        except Exception:
+            susp_rows = []
+
+        susp_by_cid: Dict[int, List[Tuple[date, Optional[date]]]] = {}
+        for s in susp_rows:
+            scid = int(s["customer_id"])
+            try:
+                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+                susp_by_cid.setdefault(scid, []).append((s_d, r_d))
+            except Exception:
+                pass
+
         custs = cur.execute("""
             SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance, due_day
             FROM customers
@@ -5254,10 +5328,26 @@ def get_balance_sheet_data(
             except Exception:
                 start_d = today
 
+            cust_susp = list(susp_by_cid.get(cid, []))
+            is_currently_suspended = (str(c["status"]).strip().lower() == "suspended")
+            if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
+                cust_susp.append((today, None))
+
             billable = 0
             cur_d = start_d
             while cur_d <= yesterday:
-                billable += 1
+                in_susp = False
+                for s_start, s_end in cust_susp:
+                    if s_end is None:
+                        if cur_d >= s_start:
+                            in_susp = True
+                            break
+                    else:
+                        if s_start <= cur_d <= s_end:
+                            in_susp = True
+                            break
+                if not in_susp:
+                    billable += 1
                 cur_d += timedelta(days=1)
 
             owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
@@ -5282,6 +5372,7 @@ def get_balance_sheet_data(
                 "total_paid": paid,
                 "balance": bal,
                 "status": st,
+                "is_suspended": is_currently_suspended,
                 "payments_count": colls_count_by_cid.get(cid, 0),
                 "reminders_enabled": 1
             })
@@ -5387,10 +5478,53 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
         except Exception:
             start_d = today
 
+        # Load suspensions for this customer
+        try:
+            susp_rows = cur.execute("""
+                SELECT id, suspended_at, resumed_at, reason
+                FROM customer_suspensions
+                WHERE customer_id = ?
+                ORDER BY id ASC
+            """, (customer_id,)).fetchall()
+            suspensions_data = [
+                {
+                    "id": s["id"],
+                    "suspended_at": str(s["suspended_at"])[:10],
+                    "resumed_at": str(s["resumed_at"])[:10] if s["resumed_at"] else None,
+                    "reason": str(s["reason"] or "Suspended")
+                }
+                for s in susp_rows
+            ]
+        except Exception:
+            suspensions_data = []
+
+        is_currently_suspended = (str(c["status"]).strip().lower() == "suspended")
+        cust_susp: List[Tuple[date, Optional[date]]] = []
+        for s in suspensions_data:
+            try:
+                s_d = datetime.strptime(s["suspended_at"], "%Y-%m-%d").date()
+                r_d = datetime.strptime(s["resumed_at"], "%Y-%m-%d").date() if s["resumed_at"] else None
+                cust_susp.append((s_d, r_d))
+            except Exception:
+                pass
+        if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
+            cust_susp.append((today, None))
+
         billable = 0
         cur_d = start_d
         while cur_d <= yesterday:
-            billable += 1
+            in_susp = False
+            for s_start, s_end in cust_susp:
+                if s_end is None:
+                    if cur_d >= s_start:
+                        in_susp = True
+                        break
+                else:
+                    if s_start <= cur_d <= s_end:
+                        in_susp = True
+                        break
+            if not in_susp:
+                billable += 1
             cur_d += timedelta(days=1)
 
         total_owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
@@ -5408,7 +5542,8 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
                 "monthly_fee": fee,
                 "daily_rate": daily_rate,
                 "billing_start_date": str(start_str)[:10],
-                "status": c["status"]
+                "status": c["status"],
+                "is_suspended": is_currently_suspended
             },
             "metrics": {
                 "billable_days": billable,
@@ -5416,9 +5551,11 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
                 "total_paid": total_paid,
                 "balance": balance,
                 "status": status_label,
-                "owes_amount": abs(balance) if balance < 0 else 0.0
+                "owes_amount": abs(balance) if balance < 0 else 0.0,
+                "is_suspended": is_currently_suspended
             },
-            "vacation_holds": [],
+            "suspensions": suspensions_data,
+            "vacation_holds": suspensions_data,
             "collections": collections
         }
 
@@ -5496,6 +5633,13 @@ def record_balance_collection(
                 WHERE id = ?
             """, (now_str, customer_id))
 
+        # Close open suspension for this customer if reactivated
+        cur.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
+
         conn.commit()
 
         return {
@@ -5508,4 +5652,150 @@ def record_balance_collection(
             "collected_at": now_str,
             "message": f"Successfully collected {clean_amt:.2f} SAR for {cust_name}!"
         }
+
+
+def get_monthly_reconciliation(month_str: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Computes end-of-month financial reconciliation and collector breakdown
+    strictly for the calendar month (1st day 00:00:00 to last day 23:59:59).
+    Matches the executive reporting requirements of CyberNet OS.
+    """
+    today = date.today()
+    if not month_str or not month_str.strip():
+        month_str = today.strftime("%Y-%m")
+    else:
+        month_str = month_str.strip()[:7]
+
+    try:
+        y, m = int(month_str[:4]), int(month_str[5:7])
+    except Exception:
+        y, m = today.year, today.month
+        month_str = f"{y:04d}-{m:02d}"
+
+    dim = calendar.monthrange(y, m)[1]
+    start_ts = f"{month_str}-01 00:00:00"
+    end_ts = f"{month_str}-{dim:02d} 23:59:59"
+    month_label = datetime(y, m, 1).strftime("%B %Y")
+
+    with get_db() as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # 1. Total collections within this calendar month window
+        stats_row = cur.execute("""
+            SELECT COALESCE(SUM(amount), 0.0) as total_amount,
+                   COUNT(*) as total_transactions,
+                   COUNT(DISTINCT customer_id) as paying_subscribers
+            FROM collections
+            WHERE collected_at >= ? AND collected_at <= ? AND amount > 0
+        """, (start_ts, end_ts)).fetchone()
+
+        total_amount = float(stats_row["total_amount"] or 0.0)
+        total_tx = int(stats_row["total_transactions"] or 0)
+        paying_subs = int(stats_row["paying_subscribers"] or 0)
+
+        # 2. Total active customers in fleet
+        total_active_custs = cur.execute("SELECT COUNT(*) FROM customers WHERE status != 'deleted'").fetchone()[0]
+        pending_subs = max(0, total_active_custs - paying_subs)
+
+        # 3. Collections by Staff / Collector
+        staff_rows = cur.execute("""
+            SELECT collected_by as collector,
+                   COUNT(*) as count,
+                   COALESCE(SUM(amount), 0.0) as total,
+                   COALESCE(AVG(amount), 0.0) as average
+            FROM collections
+            WHERE collected_at >= ? AND collected_at <= ? AND amount > 0
+            GROUP BY collected_by
+            ORDER BY total DESC, count DESC
+        """, (start_ts, end_ts)).fetchall()
+
+        staff_breakdown = [
+            {
+                "collector": str(r["collector"] or "System"),
+                "count": int(r["count"] or 0),
+                "total": round(float(r["total"] or 0.0), 2),
+                "average": round(float(r["average"] or 0.0), 2)
+            }
+            for r in staff_rows
+        ]
+
+        # 4. Collections by Payment Method (Cash, Alinma, STC Pay, etc.)
+        method_rows = cur.execute("""
+            SELECT billing_type as method,
+                   COUNT(*) as count,
+                   COALESCE(SUM(amount), 0.0) as total
+            FROM collections
+            WHERE collected_at >= ? AND collected_at <= ? AND amount > 0
+            GROUP BY billing_type
+            ORDER BY total DESC
+        """, (start_ts, end_ts)).fetchall()
+
+        method_breakdown = [
+            {
+                "method": str(r["method"] or "Cash").title(),
+                "count": int(r["count"] or 0),
+                "total": round(float(r["total"] or 0.0), 2)
+            }
+            for r in method_rows
+        ]
+
+        # 5. Full itemized collection records for this calendar month
+        tx_rows = cur.execute("""
+            SELECT c.id, c.customer_id, cu.name as customer_name, cu.phone as mobile, cu.notes as room,
+                   c.amount, c.billing_type, c.collected_at, c.collected_by, c.month_year, c.is_settled, c.notes
+            FROM collections c
+            LEFT JOIN customers cu ON c.customer_id = cu.id
+            WHERE c.collected_at >= ? AND c.collected_at <= ? AND c.amount > 0
+            ORDER BY c.collected_at DESC, c.id DESC
+        """, (start_ts, end_ts)).fetchall()
+
+        transactions = [
+            {
+                "id": int(r["id"]),
+                "customer_id": int(r["customer_id"]),
+                "customer_name": str(r["customer_name"] or f"Subscriber #{r['customer_id']}"),
+                "mobile": str(r["mobile"] or ""),
+                "room": str(r["room"] or ""),
+                "amount": round(float(r["amount"] or 0.0), 2),
+                "billing_type": str(r["billing_type"] or "cash"),
+                "collected_at": str(r["collected_at"] or ""),
+                "collected_by": str(r["collected_by"] or "Admin"),
+                "month_year": str(r["month_year"] or month_str),
+                "is_settled": int(r["is_settled"] or 0),
+                "notes": str(r["notes"] or "")
+            }
+            for r in tx_rows
+        ]
+
+        # Generate list of past 12 calendar months for selector
+        months_available = []
+        cur_m = datetime(today.year, today.month, 1)
+        for _ in range(12):
+            m_val = cur_m.strftime("%Y-%m")
+            m_lbl = cur_m.strftime("%B %Y")
+            months_available.append({"value": m_val, "label": m_lbl, "is_selected": (m_val == month_str)})
+            prev_m = cur_m.month - 1
+            prev_y = cur_m.year
+            if prev_m == 0:
+                prev_m = 12
+                prev_y -= 1
+            cur_m = datetime(prev_y, prev_m, 1)
+
+        return {
+            "month": month_str,
+            "month_label": month_label,
+            "start_date": f"{month_str}-01",
+            "end_date": f"{month_str}-{dim:02d}",
+            "total_collected": round(total_amount, 2),
+            "total_transactions": total_tx,
+            "paying_subscribers": paying_subs,
+            "pending_subscribers": pending_subs,
+            "total_active_subscribers": total_active_custs,
+            "staff_breakdown": staff_breakdown,
+            "method_breakdown": method_breakdown,
+            "transactions": transactions,
+            "months_available": months_available
+        }
+
 

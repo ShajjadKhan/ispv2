@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>CyberNet ISP — Month-End Collection Report ({{ report.month_label }})</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #0f172a;
+      background: #f8fafc;
+      padding: 36px 20px;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .report-sheet {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 32px 36px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .report-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #0284c7;
+      margin-bottom: 24px;
+    }
+    .brand-title h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-title p {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .report-meta {
+      text-align: right;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    .report-meta strong {
+      color: #0f172a;
+    }
+
+    /* Executive KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .kpi-value {
+      font-family: monospace;
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+    .kpi-green { color: #059669; }
+    .kpi-blue { color: #0284c7; }
+
+    /* Tables */
+    h3 {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 24px 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 12.5px;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 9px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .total-row td {
+      background: #f1f5f9 !important;
+      font-weight: 800;
+      color: #0f172a;
+      border-top: 2px solid #cbd5e1;
+    }
+
+    /* Print & Actions */
+    .print-bar {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 1000;
+    }
+    .btn-print {
+      padding: 9px 16px;
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-print:hover {
+      background: #0369a1;
+    }
+    .btn-close-view {
+      background: #475569;
+    }
+
+    .report-footer {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .report-sheet {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .print-bar {
+        display: none !important;
+      }
+    }
+    @media (max-width: 768px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-bar">
+  <button type="button" class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+  <a href="/balance" class="btn-print btn-close-view">✕ Close</a>
+</div>
+
+<div class="report-sheet">
+  <div class="report-top-bar">
+    <div class="brand-title">
+      <h1>📶 CyberNet ISP</h1>
+      <p>Executive Monthly Collection &amp; Revenue Reconciliation Report</p>
+    </div>
+    <div class="report-meta">
+      <div><strong>Reconciliation Month:</strong> {{ report.month_label }}</div>
+      <div><strong>Accounting Period:</strong> {{ report.start_date }} → {{ report.end_date }}</div>
+      <div><strong>Generated:</strong> <span class="mono">{{ report.transactions[0].collected_at[:16] if report.transactions else report.month }}</span></div>
+    </div>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Cash Collected</div>
+      <div class="kpi-value kpi-green">{{ "%.2f"|format(report.total_collected) }} <span style="font-size:12px;font-weight:600;color:#64748b">SAR</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Transactions Count</div>
+      <div class="kpi-value">{{ report.total_transactions }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Subscribers Paid</div>
+      <div class="kpi-value kpi-blue">{{ report.paying_subscribers }} <span style="font-size:12px;font-weight:600;color:#64748b">/ {{ report.total_active_subscribers }}</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Subscribers Pending</div>
+      <div class="kpi-value" style="color:#ef4444;">{{ report.pending_subscribers }}</div>
+    </div>
+  </div>
+
+  <!-- STAFF RECONCILIATION TABLE -->
+  <h3>👤 Collections by Staff / Collector</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Collector Name</th>
+        <th class="text-right">Transactions</th>
+        <th class="text-right">Total Collected (SAR)</th>
+        <th class="text-right">Average / Transaction</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in report.staff_breakdown %}
+      <tr>
+        <td><strong>{{ s.collector }}</strong></td>
+        <td class="text-right mono">{{ s.count }}</td>
+        <td class="text-right mono" style="color:#059669; font-weight:700;">{{ "%.2f"|format(s.total) }} SAR</td>
+        <td class="text-right mono">{{ "%.2f"|format(s.average) }} SAR</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" style="text-align:center; padding:16px; color:#94a3b8;">No staff collections recorded for this month.</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td>TOTAL RECONCILED</td>
+        <td class="text-right mono">{{ report.total_transactions }}</td>
+        <td class="text-right mono" style="color:#059669;">{{ "%.2f"|format(report.total_collected) }} SAR</td>
+        <td class="text-right mono">{{ "%.2f"|format((report.total_collected / report.total_transactions) if report.total_transactions > 0 else 0.0) }} SAR</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- PAYMENT METHODS BREAKDOWN -->
+  {% if report.method_breakdown %}
+  <h3>💳 Collections by Payment Method</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Payment Method</th>
+        <th class="text-right">Transactions</th>
+        <th class="text-right">Total Amount (SAR)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in report.method_breakdown %}
+      <tr>
+        <td><strong>{{ m.method }}</strong></td>
+        <td class="text-right mono">{{ m.count }}</td>
+        <td class="text-right mono" style="color:#059669; font-weight:700;">{{ "%.2f"|format(m.total) }} SAR</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- FULL ITEMIZED TRANSACTIONS LEDGER -->
+  <h3>📜 Itemized Collection Ledger ({{ report.transactions|length }} Records)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date &amp; Time</th>
+        <th>Subscriber</th>
+        <th>Room / Notes</th>
+        <th>Month Settled</th>
+        <th>Method</th>
+        <th class="text-right">Amount (SAR)</th>
+        <th>Collector</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in report.transactions %}
+      <tr>
+        <td class="mono" style="color:#94a3b8;">{{ loop.index }}</td>
+        <td class="mono" style="font-size:11.5px;">{{ t.collected_at }}</td>
+        <td><strong>{{ t.customer_name }}</strong></td>
+        <td style="color:#64748b;">{{ t.room or '—' }}</td>
+        <td class="mono">{{ t.month_year }}</td>
+        <td style="text-transform:capitalize;">{{ t.billing_type }}</td>
+        <td class="text-right mono" style="color:#059669; font-weight:700;">{{ "%.2f"|format(t.amount) }} SAR</td>
+        <td>{{ t.collected_by }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" style="text-align:center; padding:24px; color:#94a3b8;">No collection records found for {{ report.month_label }}.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="report-footer">
+    CyberNet OS ISP Billing Engine &bull; Riyadh, Kingdom of Saudi Arabia &bull; Confidential Internal Report
+  </div>
+</div>
+
+</body>
+</html>

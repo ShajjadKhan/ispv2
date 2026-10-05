@@ -1395,7 +1395,8 @@ async def collections_view(
 async def balance_sheet_view(
     request: Request,
     status: Optional[str] = "all",
-    q: Optional[str] = None
+    q: Optional[str] = None,
+    month: Optional[str] = None
 ):
     """
     Dedicated Customer Balance Sheet & Financial Ledger Desk.
@@ -1407,6 +1408,7 @@ async def balance_sheet_view(
         status_filter=status or "all",
         search_query=q
     )
+    reconciliation = database.get_monthly_reconciliation(month_str=month)
 
     return templates.TemplateResponse(
         request=request,
@@ -1418,7 +1420,9 @@ async def balance_sheet_view(
             "rows": data["rows"],
             "status_counts": data["status_counts"],
             "status_filter": data["status_filter"],
-            "search_q": data["search_query"]
+            "search_q": data["search_query"],
+            "reconciliation": reconciliation,
+            "selected_month": reconciliation["month"]
         }
     )
 
@@ -3151,6 +3155,37 @@ async def api_balance_export_csv(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+
+@app.get("/api/balance/reconciliation")
+async def api_balance_reconciliation(month: Optional[str] = None):
+    """Returns JSON end-of-month reconciliation data for CyberNet collections."""
+    try:
+        data = database.get_monthly_reconciliation(month_str=month)
+        return {"success": True, "data": data}
+    except Exception as e:
+        logger.exception(f"Error fetching monthly reconciliation for {month}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+@app.get("/balance/report", response_class=HTMLResponse)
+@app.get("/billing/report", response_class=HTMLResponse)
+async def balance_printable_report_view(
+    request: Request,
+    month: Optional[str] = None
+):
+    """
+    Renders the executive printable month-end collection report.
+    Replicates report_print.php from legacy billing_reminder.
+    """
+    data = database.get_monthly_reconciliation(month_str=month)
+    return templates.TemplateResponse(
+        request=request,
+        name="balance_report.html",
+        context={
+            "request": request,
+            "report": data
+        }
+    )
 
 
 # =========================================================
