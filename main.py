@@ -45,6 +45,7 @@ BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 app = FastAPI(
     title="CyberNet OS v2",
@@ -60,6 +61,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Enable high-performance HTTP gzip compression for responses >= 1KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
@@ -179,6 +183,14 @@ async def expiration_enforcement_loop():
                             mikrotik_client.broadcast_unbind_device(mac)
                         except Exception as mt_err:
                             logger.error(f"Error cutting expired MAC {mac} for customer #{cid}: {mt_err}")
+
+                    pp_user = cust.get("pppoe_username")
+                    if pp_user:
+                        try:
+                            mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=True)
+                            logger.info(f"[Expiration Enforcer] Disabled PPPoE secret for '{pp_user}' (customer #{cid}).")
+                        except Exception as pp_err:
+                            logger.error(f"Error disabling expired PPPoE for customer #{cid}: {pp_err}")
             await asyncio.sleep(60)
         except asyncio.CancelledError:
             break
@@ -220,6 +232,11 @@ class ApproveConnectionPayload(BaseModel):
     join_date: Optional[str] = None
     billing_start_date: Optional[str] = None
     notes: Optional[str] = None
+    connection_type: Optional[str] = "hotspot"
+    pppoe_username: Optional[str] = None
+    pppoe_password: Optional[str] = None
+    pppoe_profile: Optional[str] = None
+    pppoe_remote_ip: Optional[str] = None
 
 
 class RevokeDevicePayload(BaseModel):
@@ -243,6 +260,11 @@ class CreateCustomerPayload(BaseModel):
     join_date: Optional[str] = None
     billing_start_date: Optional[str] = None
     notes: Optional[str] = None
+    connection_type: Optional[str] = "hotspot"
+    pppoe_username: Optional[str] = None
+    pppoe_password: Optional[str] = None
+    pppoe_profile: Optional[str] = None
+    pppoe_remote_ip: Optional[str] = None
 
 
 class EditCustomerPayload(BaseModel):
@@ -262,6 +284,11 @@ class EditCustomerPayload(BaseModel):
     suspension_held_until: Optional[str] = -1
     suspension_hold_reason: Optional[str] = -1
     notes: Optional[str] = -1
+    connection_type: Optional[str] = None
+    pppoe_username: Optional[str] = -1
+    pppoe_password: Optional[str] = -1
+    pppoe_profile: Optional[str] = -1
+    pppoe_remote_ip: Optional[str] = -1
 
 
 class RecordPromisePayload(BaseModel):
@@ -1186,12 +1213,34 @@ async def approvals_view(request: Request):
     )
 
 
-def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict):
+def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict, pppoe_map: Optional[dict] = None):
     """
     Enriches each customer's devices list with live connection telemetry (online/recent/offline),
     calculates online_devices_count, and formats friendly device labels.
+    Also enriches PPPoE customers with live active session data.
     """
+    if pppoe_map is None:
+        try:
+            pppoe_map = router_client.get_pppoe_sessions_map()
+        except Exception:
+            pppoe_map = {}
+
     for cust in customers_list:
+        is_pppoe = (cust.get("connection_type") == "pppoe")
+        pp_user = cust.get("pppoe_username") or (cust.get("phone") if is_pppoe else None)
+
+        if is_pppoe and pp_user:
+            session = pppoe_map.get(pp_user)
+            if session:
+                cust["is_pppoe_active"] = True
+                cust["pppoe_session"] = session
+                cust["online_devices_count"] = 1
+            else:
+                cust["is_pppoe_active"] = False
+                cust["pppoe_session"] = None
+                cust["online_devices_count"] = 0
+            continue
+
         online_count = 0
         devices = cust.get("devices", [])
         for dev in devices:
@@ -2172,7 +2221,12 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
             is_secondary=payload.is_secondary or False,
             join_date=payload.join_date,
             billing_start_date=payload.billing_start_date,
-            notes=payload.notes
+            notes=payload.notes,
+            connection_type=payload.connection_type or "hotspot",
+            pppoe_username=payload.pppoe_username,
+            pppoe_password=payload.pppoe_password,
+            pppoe_profile=payload.pppoe_profile,
+            pppoe_remote_ip=payload.pppoe_remote_ip
         )
 
         # 2. Determine effective rate limit (custom or package default)
@@ -2185,9 +2239,33 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
 
         # 3. Apply to MikroTik fleet
         is_active = (customer.get("status") == "active") and not customer.get("is_expired")
-        if is_active:
+        notes_str = f" [{customer['notes'].strip()}]" if customer.get("notes") and customer["notes"].strip() else ""
+
+        if customer.get("connection_type") == "pppoe":
+            pp_user = customer.get("pppoe_username") or customer.get("phone")
+            pp_pass = customer.get("pppoe_password") or "cyber123"
+            pp_prof = customer.get("pppoe_profile") or "pppoe-profile-ether4"
+            pp_ip = customer.get("pppoe_remote_ip") or None
+            pp_comm = f"CyberNet PPPoE: {customer['phone']} - {customer['name']}{notes_str}"
+            fleet_res = mikrotik_client.broadcast_sync_pppoe_secret(
+                username=pp_user,
+                password=pp_pass,
+                profile=pp_prof,
+                remote_ip=pp_ip,
+                rate_limit=effective_rate,
+                disabled=not is_active,
+                comment=pp_comm
+            )
+            mt_ok = any(fleet_res.values()) if fleet_res else False
+            return {
+                "success": True,
+                "message": f"Customer '{payload.name}' approved! PPPoE account provisioned across MikroTik fleet.",
+                "customer": customer,
+                "mikrotik_synced": mt_ok,
+                "fleet_results": fleet_res
+            }
+        elif is_active:
             cust_billing_label = customer.get("billing_type", "POSTPAID").upper()
-            notes_str = f" [{customer['notes'].strip()}]" if customer.get("notes") and customer["notes"].strip() else ""
             comment_str = f"CyberNet: {customer['phone']} - {customer['name']}{notes_str} ({cust_billing_label})"
             fleet_res = mikrotik_client.broadcast_bind_device(
                 mac_address=customer["mac_address"],
@@ -2286,11 +2364,26 @@ async def get_customers_live_devices(request: Request):
             "online_count": cust.get("online_devices_count", 0),
             "total_devices": len(dev_list),
             "max_devices": cust.get("max_devices", 1),
-            "devices": dev_list
+            "devices": dev_list,
+            "connection_type": cust.get("connection_type", "hotspot"),
+            "is_pppoe_active": cust.get("is_pppoe_active", False),
+            "pppoe_session": cust.get("pppoe_session")
         }
     return {
         "success": True,
         "customers": result_customers,
+        "timestamp": time.strftime("%H:%M:%S")
+    }
+
+
+@app.get("/api/pppoe/active")
+async def get_pppoe_active_sessions():
+    """Returns all live PPPoE active sessions across active MikroTik routers."""
+    sessions = mikrotik_client.broadcast_get_active_pppoe_sessions()
+    return {
+        "success": True,
+        "count": len(sessions),
+        "sessions": list(sessions.values()),
         "timestamp": time.strftime("%H:%M:%S")
     }
 
@@ -2509,17 +2602,38 @@ async def create_new_customer(payload: CreateCustomerPayload):
             reseller_id=payload.reseller_id,
             join_date=payload.join_date,
             billing_start_date=payload.billing_start_date,
-            notes=payload.notes
+            notes=payload.notes,
+            connection_type=payload.connection_type or "hotspot",
+            pppoe_username=payload.pppoe_username,
+            pppoe_password=payload.pppoe_password,
+            pppoe_profile=payload.pppoe_profile,
+            pppoe_remote_ip=payload.pppoe_remote_ip
         )
 
         mt_ok = True
-        if payload.mac_address and payload.mac_address.strip():
-            packages = database.get_packages()
-            pkg_match = next((p for p in packages if p["name"] == payload.package_name), None)
-            default_rate = pkg_match["rate_limit"] if pkg_match else None
-            effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
+        packages = database.get_packages()
+        pkg_match = next((p for p in packages if p["name"] == payload.package_name), None)
+        default_rate = pkg_match["rate_limit"] if pkg_match else None
+        effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
+        notes_str = f" [{cust['notes'].strip()}]" if cust.get("notes") and cust["notes"].strip() else ""
 
-            notes_str = f" [{cust['notes'].strip()}]" if cust.get("notes") and cust["notes"].strip() else ""
+        if cust.get("connection_type") == "pppoe" or (payload.connection_type and payload.connection_type.lower() == "pppoe"):
+            pp_user = cust.get("pppoe_username") or payload.pppoe_username or cust.get("phone")
+            pp_pass = cust.get("pppoe_password") or payload.pppoe_password or "cyber123"
+            pp_prof = cust.get("pppoe_profile") or payload.pppoe_profile or "pppoe-profile-ether4"
+            pp_ip = cust.get("pppoe_remote_ip") or payload.pppoe_remote_ip or None
+            pp_comm = f"CyberNet PPPoE: {cust['phone']} - {cust['name']}{notes_str}"
+            pp_res = mikrotik_client.broadcast_sync_pppoe_secret(
+                username=pp_user,
+                password=pp_pass,
+                profile=pp_prof,
+                remote_ip=pp_ip,
+                rate_limit=effective_rate,
+                disabled=False,
+                comment=pp_comm
+            )
+            mt_ok = any(pp_res.values()) if pp_res else False
+        elif payload.mac_address and payload.mac_address.strip():
             comment = f"CyberNet: {cust['phone']} - {cust['name']}{notes_str} ({cust['billing_type'].upper()})"
             mt_ok = router_client.bind_device(
                 mac_address=payload.mac_address,
@@ -2564,27 +2678,44 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             join_date=payload.join_date,
             suspension_held_until=payload.suspension_held_until,
             suspension_hold_reason=payload.suspension_hold_reason,
-            notes=payload.notes
+            notes=payload.notes,
+            connection_type=payload.connection_type,
+            pppoe_username=payload.pppoe_username,
+            pppoe_password=payload.pppoe_password,
+            pppoe_profile=payload.pppoe_profile,
+            pppoe_remote_ip=payload.pppoe_remote_ip
         )
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "message": "Customer not found."})
 
-        # Sync updated speed to MikroTik for all approved devices of this customer
         effective_speed = updated.get("effective_speed")
         devices = updated.get("devices", [])
         notes_str = f" [{updated['notes'].strip()}]" if updated.get("notes") and updated["notes"].strip() else ""
         comment_str = f"CyberNet: {updated['phone']} - {updated['name']}{notes_str} ({updated['billing_type']})"
 
-        fleet_res = mikrotik_client.broadcast_sync_customer_devices_speed(
-            devices=devices,
-            rate_limit=effective_speed,
-            comment=comment_str
-        )
+        fleet_res = {}
+        if updated.get("connection_type") == "pppoe":
+            pp_comm = f"CyberNet PPPoE: {updated['phone']} - {updated['name']}{notes_str}"
+            fleet_res = mikrotik_client.broadcast_sync_pppoe_secret(
+                username=updated.get("pppoe_username") or updated.get("phone"),
+                password=updated.get("pppoe_password") or "cyber123",
+                profile=updated.get("pppoe_profile") or "pppoe-profile-ether4",
+                remote_ip=updated.get("pppoe_remote_ip") or None,
+                rate_limit=effective_speed,
+                disabled=(updated.get("status") == "suspended"),
+                comment=pp_comm
+            )
+        else:
+            fleet_res = mikrotik_client.broadcast_sync_customer_devices_speed(
+                devices=devices,
+                rate_limit=effective_speed,
+                comment=comment_str
+            )
         mt_ok = any(fleet_res.values()) if fleet_res else False
 
         return {
             "success": True,
-            "message": f"Customer '{updated['name']}' updated and speed synced across MikroTik fleet!",
+            "message": f"Customer '{updated['name']}' updated and synced across MikroTik fleet!",
             "customer": updated,
             "mikrotik_synced": mt_ok,
             "fleet_results": fleet_res
@@ -2606,7 +2737,12 @@ async def toggle_customer_status(customer_id: int):
         new_status, macs = database.toggle_customer_status(customer_id)
         cust = database.get_customer_profile(customer_id)
 
-        if new_status == "suspended":
+        if cust and cust.get("connection_type") == "pppoe":
+            pp_user = cust.get("pppoe_username") or cust.get("phone")
+            if pp_user:
+                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=(new_status == "suspended"))
+                logger.info(f"Customer #{customer_id} PPPoE secret '{pp_user}' toggled to disabled={new_status == 'suspended'}.")
+        elif new_status == "suspended":
             for mac in macs:
                 mikrotik_client.broadcast_unbind_device(mac)
             logger.info(f"Customer #{customer_id} suspended. Unbound {len(macs)} MACs from MikroTik fleet.")
@@ -2627,6 +2763,7 @@ async def toggle_customer_status(customer_id: int):
                     comment=comment,
                     rate_limit=rate_limit
                 )
+            logger.info(f"Customer #{customer_id} activated. Rebound {len(macs)} MACs to MikroTik fleet.")
             logger.info(f"Customer #{customer_id} activated. Rebound {len(macs)} MACs to MikroTik fleet.")
 
         return {
@@ -2650,6 +2787,14 @@ async def enforce_expirations_endpoint():
         expired_customers = await asyncio.to_thread(database.check_and_enforce_customer_expirations)
         total_cut = 0
         for cust in expired_customers:
+            conn_type = cust.get("connection_type", "hotspot")
+            pp_user = cust.get("pppoe_username") or cust.get("phone")
+            if conn_type == "pppoe" and pp_user:
+                try:
+                    mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=True)
+                    total_cut += 1
+                except Exception as pp_err:
+                    logger.error(f"Error disabling expired PPPoE secret {pp_user}: {pp_err}")
             for mac in cust.get("macs", []):
                 try:
                     mikrotik_client.broadcast_unbind_device(mac)
@@ -2747,7 +2892,7 @@ async def delete_customer_endpoint(customer_id: int):
     """
     logger.warning(f"Initiating permanent deletion for customer #{customer_id}")
     try:
-        success, macs, name, phone = database.delete_customer_permanently(customer_id)
+        success, macs, name, phone, pppoe_username = database.delete_customer_permanently(customer_id)
         if not success:
             raise HTTPException(status_code=404, detail="Customer not found")
 
@@ -2760,13 +2905,22 @@ async def delete_customer_endpoint(customer_id: int):
             except Exception as mt_err:
                 logger.error(f"Error unbinding device {mac} during customer #{customer_id} deletion: {mt_err}")
 
-        logger.info(f"Customer #{customer_id} ({name} - {phone}) permanently deleted. Unbound {unbound_count}/{len(macs)} devices from MikroTik fleet.")
+        # Clean up MikroTik PPPoE secret & terminate active PPPoE session
+        if pppoe_username:
+            try:
+                mikrotik_client.broadcast_remove_pppoe_secret(pppoe_username)
+                logger.info(f"Purged PPPoE secret '{pppoe_username}' for deleted customer #{customer_id} across fleet.")
+            except Exception as pp_err:
+                logger.error(f"Error removing PPPoE secret '{pppoe_username}' for customer #{customer_id}: {pp_err}")
+
+        logger.info(f"Customer #{customer_id} ({name} - {phone}) permanently deleted. Unbound {unbound_count}/{len(macs)} devices, removed PPPoE secret '{pppoe_username}' from MikroTik fleet.")
 
         return {
             "success": True,
             "message": f"Subscriber '{name}' ({phone}) permanently deleted. {unbound_count} device(s) revoked from MikroTik fleet.",
             "customer_id": customer_id,
-            "unbound_macs": macs
+            "unbound_macs": macs,
+            "pppoe_username": pppoe_username
         }
     except HTTPException:
         raise
@@ -3020,20 +3174,26 @@ async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
             notes=payload.notes or "",
             month_year=payload.month_year
         )
-        # Re-bind customer devices on MikroTik to restore/guarantee active internet access
+        # Re-bind customer devices or re-enable PPPoE secret on MikroTik to restore/guarantee active internet access
         try:
             cust_profile = database.get_customer_profile(payload.customer_id)
             if cust_profile and cust_profile.get("status") == "active":
-                for dev in cust_profile.get("devices", []):
-                    if dev.get("status") == "approved":
-                        mikrotik_client.broadcast_bind_device(
-                            mac_address=dev["mac_address"],
-                            ip_address=dev.get("ip_address"),
-                            comment=f"CyberNet: {cust_profile.get('phone')} - {cust_profile.get('name')} [{cust_profile.get('notes') or ''}]",
-                            rate_limit=cust_profile.get("effective_speed")
-                        )
+                if cust_profile.get("connection_type") == "pppoe":
+                    pp_user = cust_profile.get("pppoe_username") or cust_profile.get("phone")
+                    if pp_user:
+                        mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
+                        logger.info(f"Re-enabled PPPoE secret for '{pp_user}' after balance collection.")
+                else:
+                    for dev in cust_profile.get("devices", []):
+                        if dev.get("status") == "approved":
+                            mikrotik_client.broadcast_bind_device(
+                                mac_address=dev["mac_address"],
+                                ip_address=dev.get("ip_address"),
+                                comment=f"CyberNet: {cust_profile.get('phone')} - {cust_profile.get('name')} [{cust_profile.get('notes') or ''}]",
+                                rate_limit=cust_profile.get("effective_speed")
+                            )
         except Exception as me:
-            logger.warning(f"Could not rebind device after balance collection for #{payload.customer_id}: {me}")
+            logger.warning(f"Could not restore access after balance collection for #{payload.customer_id}: {me}")
 
         return res
     except Exception as e:

@@ -143,6 +143,10 @@ class RouterClient:
         self.use_ssl = use_ssl
         self._telemetry_cache: Optional[Dict[str, Dict[str, Any]]] = None
         self._telemetry_cache_time: float = 0.0
+        self._live_status_cache: Optional[Dict[str, Any]] = None
+        self._live_status_cache_time: float = 0.0
+        self._online_macs_cache: Optional[List[str]] = None
+        self._online_macs_cache_time: float = 0.0
 
     def refresh_from_db(self):
         """Dynamically reloads router connection parameters from database if available."""
@@ -160,11 +164,17 @@ class RouterClient:
         except Exception:
             pass
 
-    def get_live_status(self) -> Dict[str, Any]:
+    def get_live_status(self, max_cache_age_sec: float = 5.0) -> Dict[str, Any]:
         """
         Connects to MikroTik and fetches live status, resource metrics, and interfaces.
         Returns a structured dictionary with success state, latency, and hardware telemetry.
+        Cached in memory for max_cache_age_sec to minimize socket stalls.
         """
+        now = time.time()
+        if self._live_status_cache is not None and (now - self._live_status_cache_time) < max_cache_age_sec:
+            if self._live_status_cache.get("connected"):
+                return self._live_status_cache
+
         self.refresh_from_db()
         start_time = time.time()
         pool = None
@@ -296,7 +306,7 @@ class RouterClient:
             version = res.get('version', 'RouterOS')
             model = rb.get('model', res.get('board-name', 'hAP lite'))
 
-            return {
+            res_dict = {
                 "connected": True,
                 "host": self.host,
                 "port": self.port,
@@ -317,6 +327,9 @@ class RouterClient:
                 "error": None,
                 "checked_at": time.strftime("%H:%M:%S")
             }
+            self._live_status_cache = res_dict
+            self._live_status_cache_time = time.time()
+            return res_dict
         except Exception as e:
             latency_ms = round((time.time() - start_time) * 1000, 1)
             logger.error(f"Failed to connect to MikroTik at {self.host}:{self.port} - {e}")
@@ -688,10 +701,22 @@ class RouterClient:
                 res = api.get_resource("/ppp/profile")
                 existing = res.get(name=clean_prof)
                 params = {
-                    "rate-limit": effective_rate
+                    "rate-limit": effective_rate,
+                    "local-address": "10.44.0.1",
+                    "remote-address": "pool-pppoe-ether4",
+                    "dns-server": "8.8.8.8,1.1.1.1",
+                    "change-tcp-mss": "yes"
                 }
                 if existing:
-                    res.set(id=existing[0]["id"], **params)
+                    # Update without overriding existing custom local/remote if present
+                    upd_params = {"rate-limit": effective_rate, "change-tcp-mss": "yes"}
+                    if not existing[0].get("local-address"):
+                        upd_params["local-address"] = "10.44.0.1"
+                    if not existing[0].get("remote-address"):
+                        upd_params["remote-address"] = "pool-pppoe-ether4"
+                    if not existing[0].get("dns-server"):
+                        upd_params["dns-server"] = "8.8.8.8,1.1.1.1"
+                    res.set(id=existing[0]["id"], **upd_params)
                     logger.info(f"Updated PPPoE profile '{clean_prof}' on MikroTik: rate-limit='{effective_rate}' (Unlimited={unlimited})")
                 else:
                     params["name"] = clean_prof
@@ -737,6 +762,298 @@ class RouterClient:
             return True
         except Exception as e:
             logger.error(f"Failed to delete profile '{clean_prof}' from MikroTik: {e}")
+            return False
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    # =========================================================================
+    # PPPoE SUBSCRIBER MANAGEMENT & REAL-TIME SYNCHRONIZATION
+    # =========================================================================
+    def sync_pppoe_secret(
+        self,
+        username: str,
+        password: str,
+        profile: Optional[str] = None,
+        remote_ip: Optional[str] = None,
+        local_ip: Optional[str] = None,
+        rate_limit: Optional[str] = None,
+        disabled: bool = False,
+        comment: str = ""
+    ) -> bool:
+        """
+        Provisions or updates a PPPoE subscriber credential in /ppp/secret on MikroTik.
+        Supports speed rate-limits via auto-provisioned profiles, static remote IP,
+        and suspension toggle with immediate session termination.
+        """
+        clean_user = (username or "").strip()
+        clean_pass = (password or "").strip()
+        if not clean_user or not clean_pass:
+            logger.error("sync_pppoe_secret requires valid username and password.")
+            return False
+
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+
+            # Profile resolution & rate limit handling
+            selected_profile = profile.strip() if profile and profile.strip() else "pppoe-profile-ether4"
+            norm_rate = normalize_rate_limit(rate_limit)
+
+            if norm_rate:
+                custom_prof_name = f"pppoe-{norm_rate.replace('/', '-').lower()}"
+                try:
+                    prof_res = api.get_resource('/ppp/profile')
+                    existing_p = prof_res.get(name=custom_prof_name)
+                    if not existing_p:
+                        prof_res.add(
+                            name=custom_prof_name,
+                            **{
+                                'local-address': local_ip or '10.44.0.1',
+                                'remote-address': 'pool-pppoe-ether4',
+                                'rate-limit': norm_rate,
+                                'dns-server': '8.8.8.8,1.1.1.1',
+                                'change-tcp-mss': 'yes'
+                            }
+                        )
+                        logger.info(f"Auto-created speed profile '{custom_prof_name}' ({norm_rate}) on {self.host}")
+                    selected_profile = custom_prof_name
+                except Exception as pe:
+                    logger.warning(f"Could not ensure rate profile {custom_prof_name}: {pe}")
+
+            sec_res = api.get_resource('/ppp/secret')
+            existing_secs = sec_res.get(name=clean_user)
+
+            params = {
+                'name': clean_user,
+                'password': clean_pass,
+                'service': 'pppoe',
+                'profile': selected_profile,
+                'disabled': 'yes' if disabled else 'no',
+                'comment': comment or f"CyberNet PPPoE: {clean_user}"
+            }
+            if remote_ip and remote_ip.strip():
+                params['remote-address'] = remote_ip.strip()
+            if local_ip and local_ip.strip():
+                params['local-address'] = local_ip.strip()
+
+            if existing_secs:
+                sec_res.set(id=existing_secs[0]['id'], **params)
+                logger.info(f"Updated /ppp/secret for '{clean_user}' (profile={selected_profile}, disabled={disabled}) on {self.host}")
+            else:
+                sec_res.add(**params)
+                logger.info(f"Created /ppp/secret for '{clean_user}' (profile={selected_profile}, disabled={disabled}) on {self.host}")
+
+            # If disabled (e.g. customer suspended or cut off), kick active connection immediately!
+            if disabled:
+                try:
+                    act_res = api.get_resource('/ppp/active')
+                    for act in act_res.get(name=clean_user):
+                        act_res.remove(id=act['id'])
+                        logger.info(f"Terminated active PPPoE session for suspended user '{clean_user}' on {self.host}")
+                except Exception as ae:
+                    logger.warning(f"Could not terminate active PPPoE session for {clean_user}: {ae}")
+
+            return True
+        except Exception as e:
+            logger.error(f"Failed to sync PPPoE secret for '{clean_user}' on {self.host}: {e}")
+            return False
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    def remove_pppoe_secret(self, username: str) -> bool:
+        """Removes /ppp/secret and terminates active session for username on MikroTik."""
+        clean_user = (username or "").strip()
+        if not clean_user:
+            return False
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            sec_res = api.get_resource('/ppp/secret')
+            for s in sec_res.get(name=clean_user):
+                sec_res.remove(id=s['id'])
+                logger.info(f"Removed /ppp/secret for '{clean_user}' on {self.host}")
+
+            try:
+                act_res = api.get_resource('/ppp/active')
+                for act in act_res.get(name=clean_user):
+                    act_res.remove(id=act['id'])
+                    logger.info(f"Terminated active PPPoE session for removed user '{clean_user}' on {self.host}")
+            except Exception:
+                pass
+            return True
+        except Exception as e:
+            logger.error(f"Failed to remove PPPoE secret for '{clean_user}' on {self.host}: {e}")
+            return False
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    def toggle_pppoe_secret(self, username: str, disabled: bool = True) -> bool:
+        """Enables or disables /ppp/secret on MikroTik. Kicks active session if disabling."""
+        clean_user = (username or "").strip()
+        if not clean_user:
+            return False
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            sec_res = api.get_resource('/ppp/secret')
+            existing = sec_res.get(name=clean_user)
+            if not existing:
+                logger.warning(f"/ppp/secret for '{clean_user}' not found on {self.host} during toggle")
+                return False
+
+            sec_res.set(id=existing[0]['id'], disabled='yes' if disabled else 'no')
+            logger.info(f"Toggled /ppp/secret for '{clean_user}' to disabled={disabled} on {self.host}")
+
+            if disabled:
+                try:
+                    act_res = api.get_resource('/ppp/active')
+                    for act in act_res.get(name=clean_user):
+                        act_res.remove(id=act['id'])
+                        logger.info(f"Kicked active PPPoE session for '{clean_user}' on {self.host}")
+                except Exception:
+                    pass
+            return True
+        except Exception as e:
+            logger.error(f"Failed to toggle PPPoE secret for '{clean_user}' on {self.host}: {e}")
+            return False
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    def get_active_pppoe_sessions(self) -> List[Dict[str, Any]]:
+        """Fetches all currently connected PPPoE sessions from /ppp/active."""
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            active_res = api.get_resource('/ppp/active')
+            sessions = active_res.get()
+            clean = []
+            for s in sessions:
+                clean.append({
+                    "id": s.get("id"),
+                    "name": s.get("name"),
+                    "service": s.get("service", "pppoe"),
+                    "caller_id": s.get("caller-id", ""),
+                    "address": s.get("address", ""),
+                    "uptime": s.get("uptime", ""),
+                    "encoding": s.get("encoding", "")
+                })
+            return clean
+        except Exception as e:
+            logger.error(f"Failed to fetch /ppp/active from {self.host}: {e}")
+            return []
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    def get_pppoe_secrets(self) -> List[Dict[str, Any]]:
+        """Queries /ppp/secret from this router."""
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            return api.get_resource('/ppp/secret').get()
+        except Exception as e:
+            logger.error(f"Failed to fetch /ppp/secret from {self.host}: {e}")
+            return []
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    def get_pppoe_sessions_map(self) -> Dict[str, Dict[str, Any]]:
+        """Returns map of {username: session_data} for fast O(1) lookup."""
+        sessions = self.get_active_pppoe_sessions()
+        return {s["name"]: s for s in sessions if s.get("name")}
+
+    def disconnect_pppoe_session(self, username: str) -> bool:
+        """Terminates an active session from /ppp/active for username."""
+        clean_user = (username or "").strip()
+        if not clean_user:
+            return False
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                self.host,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                use_ssl=self.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            act_res = api.get_resource('/ppp/active')
+            for act in act_res.get(name=clean_user):
+                act_res.remove(id=act['id'])
+                logger.info(f"Disconnected active PPPoE session for '{clean_user}' on {self.host}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to disconnect PPPoE session for '{clean_user}' on {self.host}: {e}")
             return False
         finally:
             if pool is not None:
@@ -1029,10 +1346,15 @@ class RouterClient:
                 except Exception:
                     pass
 
-    def get_online_mac_addresses(self) -> List[str]:
+    def get_online_mac_addresses(self, max_cache_age_sec: float = 5.0) -> List[str]:
         """
         Fetches all MAC addresses currently active in /ip/hotspot/host and bound in /ip/dhcp-server/lease.
+        Cached in memory for max_cache_age_sec to prevent high-frequency socket bottlenecks.
         """
+        now = time.time()
+        if self._online_macs_cache is not None and (now - self._online_macs_cache_time) < max_cache_age_sec:
+            return self._online_macs_cache
+
         pool = None
         try:
             pool = routeros_api.RouterOsApiPool(
@@ -1066,7 +1388,10 @@ class RouterClient:
             except Exception as e:
                 logger.warning(f"Could not read DHCP leases: {e}")
 
-            return list(active_macs)
+            mac_list = list(active_macs)
+            self._online_macs_cache = mac_list
+            self._online_macs_cache_time = time.time()
+            return mac_list
         except Exception as e:
             logger.warning(f"Could not fetch online MAC addresses from MikroTik: {e}")
             return []
@@ -1425,10 +1750,104 @@ def broadcast_delete_package_profile(profile_name: str) -> Dict[str, Any]:
     return results
 
 
+def broadcast_sync_pppoe_secret(
+    username: str,
+    password: str,
+    profile: Optional[str] = None,
+    remote_ip: Optional[str] = None,
+    local_ip: Optional[str] = None,
+    rate_limit: Optional[str] = None,
+    disabled: bool = False,
+    comment: str = ""
+) -> Dict[str, bool]:
+    """
+    Provisions or updates a PPPoE secret across ALL active MikroTik routers in the fleet.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.sync_pppoe_secret(
+            username=username,
+            password=password,
+            profile=profile,
+            remote_ip=remote_ip,
+            local_ip=local_ip,
+            rate_limit=rate_limit,
+            disabled=disabled,
+            comment=comment
+        )
+        results[r["name"]] = ok
+        logger.info(f"Fleet PPPoE Sync: {username} on {r['name']} ({r['host']}) -> {ok}")
+    return results
+
+
+def broadcast_remove_pppoe_secret(username: str) -> Dict[str, bool]:
+    """
+    Removes a PPPoE secret and terminates active sessions across ALL active MikroTik routers.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.remove_pppoe_secret(username=username)
+        results[r["name"]] = ok
+        logger.info(f"Fleet PPPoE Remove: {username} on {r['name']} ({r['host']}) -> {ok}")
+    return results
+
+
+def broadcast_toggle_pppoe_secret(username: str, disabled: bool = True) -> Dict[str, bool]:
+    """
+    Enables or disables a PPPoE secret across ALL active MikroTik routers.
+    If disabled=True, immediately terminates active session.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.toggle_pppoe_secret(username=username, disabled=disabled)
+        results[r["name"]] = ok
+        logger.info(f"Fleet PPPoE Toggle (disabled={disabled}): {username} on {r['name']} ({r['host']}) -> {ok}")
+    return results
+
+
+def broadcast_get_active_pppoe_sessions() -> Dict[str, Dict[str, Any]]:
+    """
+    Aggregates active PPPoE sessions across all active routers into a map of {username: session_data}.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    all_sessions = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        sess_map = client.get_pppoe_sessions_map()
+        for u_name, s_data in sess_map.items():
+            s_data["router_name"] = r["name"]
+            all_sessions[u_name] = s_data
+    return all_sessions
+
+
+def broadcast_disconnect_pppoe_session(username: str) -> Dict[str, bool]:
+    """
+    Terminates active PPPoE session for username across all active routers.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    results = {}
+    for r in routers:
+        client = get_client_for_router(r)
+        ok = client.disconnect_pppoe_session(username=username)
+        results[r["name"]] = ok
+    return results
+
+
 def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
     """
     When a new MikroTik router is added to the fleet, provisions ALL existing
-    approved customer devices and package speed profiles to it automatically.
+    approved customer devices, package speed profiles, and PPPoE subscriber secrets to it automatically.
     """
     import database
     r = database.get_router_by_id(router_id)
@@ -1468,23 +1887,48 @@ def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
         if ok:
             devices_synced += 1
 
+    # 3. Sync all PPPoE subscriber credentials
+    pppoe_customers = database.get_all_pppoe_customers()
+    pppoe_synced = 0
+    for pc in pppoe_customers:
+        u_name = pc.get("pppoe_username") or pc.get("phone")
+        p_word = pc.get("pppoe_password") or "cyber123"
+        prof = pc.get("pppoe_profile") or "pppoe-profile-ether4"
+        rem_ip = pc.get("pppoe_remote_ip") or None
+        is_dis = (pc.get("status") == "suspended")
+        eff_speed = pc.get("speed_limit") or pc.get("package_rate_limit")
+        notes_str = f" [{pc['notes'].strip()}]" if pc.get("notes") and pc["notes"].strip() else ""
+        comm = f"CyberNet PPPoE: {pc['phone']} - {pc['name']}{notes_str}"
+        ok = client.sync_pppoe_secret(
+            username=u_name,
+            password=p_word,
+            profile=prof,
+            remote_ip=rem_ip,
+            rate_limit=eff_speed,
+            disabled=is_dis,
+            comment=comm
+        )
+        if ok:
+            pppoe_synced += 1
+
     return {
         "success": True,
         "router": r["name"],
         "packages_synced": pkgs_synced,
-        "devices_synced": devices_synced
+        "devices_synced": devices_synced,
+        "pppoe_synced": pppoe_synced
     }
 
 
 def broadcast_sync_all_approved_devices() -> Dict[str, Any]:
     """
-    Synchronizes all approved customer devices to all active MikroTik routers
-    with pure MAC-only bypassed bindings (clearing any stale IP restrictions).
-    Guarantees instant internet without login prompts even after long disconnects.
+    Synchronizes all approved customer devices and PPPoE subscribers to all active MikroTik routers.
+    Guarantees instant connectivity without login prompts.
     """
     import database
     routers = database.get_all_routers(active_only=True)
     approved_devices = database.get_approved_devices()
+    pppoe_customers = database.get_all_pppoe_customers()
     results = {}
     for r in routers:
         client = get_client_for_router(r)
@@ -1505,8 +1949,31 @@ def broadcast_sync_all_approved_devices() -> Dict[str, Any]:
             )
             if ok:
                 count += 1
-        results[r["name"]] = count
-        logger.info(f"Fleet Sync: Synced {count}/{len(approved_devices)} approved devices on {r['name']} ({r['host']})")
+
+        pp_count = 0
+        for pc in pppoe_customers:
+            u_name = pc.get("pppoe_username") or pc.get("phone")
+            p_word = pc.get("pppoe_password") or "cyber123"
+            prof = pc.get("pppoe_profile") or "pppoe-profile-ether4"
+            rem_ip = pc.get("pppoe_remote_ip") or None
+            is_dis = (pc.get("status") == "suspended")
+            eff_speed = pc.get("speed_limit") or pc.get("package_rate_limit")
+            notes_str = f" [{pc['notes'].strip()}]" if pc.get("notes") and pc["notes"].strip() else ""
+            comm = f"CyberNet PPPoE: {pc['phone']} - {pc['name']}{notes_str}"
+            ok = client.sync_pppoe_secret(
+                username=u_name,
+                password=p_word,
+                profile=prof,
+                remote_ip=rem_ip,
+                rate_limit=eff_speed,
+                disabled=is_dis,
+                comment=comm
+            )
+            if ok:
+                pp_count += 1
+
+        results[r["name"]] = {"devices": count, "pppoe": pp_count}
+        logger.info(f"Fleet Sync: Synced {count} devices and {pp_count} PPPoE subscribers on {r['name']} ({r['host']})")
     return results
 
 
