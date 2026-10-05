@@ -3000,7 +3000,13 @@ async def api_balance_customer_history(customer_id: int, source: Optional[str] =
 async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
     """Records quick collection directly from the Balance Sheet ledger."""
     user = getattr(request.state, "user", None)
-    collector = payload.collector or (user.fullname if user and getattr(user, "fullname", None) else (user.username if user else "Admin"))
+    admin_name = "Admin"
+    if user:
+        if isinstance(user, dict):
+            admin_name = user.get("full_name") or user.get("username") or "Admin"
+        else:
+            admin_name = getattr(user, "full_name", None) or getattr(user, "username", None) or "Admin"
+    collector = admin_name if admin_name != "Admin" else (payload.collector or "Admin")
     try:
         res = database.record_balance_collection(
             customer_id=payload.customer_id,

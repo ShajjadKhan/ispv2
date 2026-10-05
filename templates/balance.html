@@ -1718,35 +1718,39 @@
         </div>
       </div>
 
+      <!-- Hidden collector input automatically mapped to logged-in admin user -->
+      <input type="hidden" id="collCollectorInput" value="{{ (request.state.user.full_name or request.state.user.username) if (request.state and request.state.user) else 'Admin' }}">
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div>
           <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Payment Method</label>
           <select id="collPaymentType" class="bal-search-input" style="padding-left:10px;">
             <option value="cash">💵 Cash Payment</option>
-            <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
             <option value="stc_pay">📱 STC Pay / Barq</option>
+            <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
             <option value="pos_card">💳 POS / Card</option>
             <option value="voucher">🎫 Voucher / Coupon</option>
             <option value="other">📝 Other</option>
           </select>
         </div>
         <div>
-          <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Collector Name</label>
-          <input type="text" id="collCollectorInput" value="{{ request.state.user.fullname if (request.state and request.state.user) else 'Admin' }}" class="bal-search-input" style="padding-left:10px;">
+          <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Transaction Notes (Optional)</label>
+          <input type="text" id="collNotesInput" placeholder="e.g. Paid in full / STC Pay Ref" class="bal-search-input" style="padding-left:10px;">
         </div>
       </div>
 
-      <div>
-        <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Transaction Notes (Optional)</label>
-        <input type="text" id="collNotesInput" placeholder="e.g. Paid in full for current month / STC Pay Ref" class="bal-search-input" style="padding-left:10px;">
-      </div>
-
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
-        <button type="button" class="btn-bal-action btn-bal-secondary" onclick="closeBalanceCollectModal()">Cancel</button>
-        <button type="submit" id="collSubmitBtn" class="btn-bal-action btn-bal-primary" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-color:#059669; font-weight:800; box-shadow:0 2px 8px rgba(16,185,129,0.35);">
-          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-          <span>Confirm &amp; Record Collection</span>
-        </button>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid rgba(148, 163, 184, 0.15);">
+        <div style="font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+          <svg viewBox="0 0 24 24" style="width:15px; height:15px; fill:#38bdf8;"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <span>Collector: <strong style="color:#f1f5f9;">{{ (request.state.user.full_name or request.state.user.username) if (request.state and request.state.user) else 'Admin' }}</strong></span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-bal-action btn-bal-secondary" onclick="closeBalanceCollectModal()">Cancel</button>
+          <button type="submit" id="collSubmitBtn" class="btn-bal-action btn-bal-primary" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-color:#059669; font-weight:800; box-shadow:0 2px 8px rgba(16,185,129,0.35);">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            <span>Confirm &amp; Record Collection</span>
+          </button>
+        </div>
       </div>
     </form>
   </div>
@@ -2030,16 +2034,20 @@ let currentModalSelectedBalance = 0;
 // Quick Collect Modal
 function openBalanceCollectModal(cid, name, balance) {
   const custSelect = document.getElementById('collCustSelect');
+  const custSelectWrap = document.getElementById('collCustSelectWrap');
   const custIdInput = document.getElementById('collCustId');
   const amountInput = document.getElementById('collAmountInput');
 
   if (cid) {
+    // Specific subscriber collection: HIDE the subscriber selector dropdown
+    if (custSelectWrap) custSelectWrap.style.display = 'none';
     custIdInput.value = cid;
     if (custSelect) custSelect.value = cid;
-    let rowData = balanceRowsData[cid] || { id: cid, name: name || ('Subscriber #' + cid), balance: (balance !== undefined ? balance : 0), room: '', mobile: '' };
+    let rowData = balanceRowsData[cid] || { id: cid, name: name || ('Subscriber #' + cid), balance: (balance !== undefined ? balance : 0), room: '', mobile: '', fee: 30 };
     updateModalCustomerDisplay(rowData);
   } else {
-    // Open from header: pick first owing or currently selected
+    // Open from header: show dropdown so operator can pick any subscriber
+    if (custSelectWrap) custSelectWrap.style.display = 'block';
     if (custSelect) {
       if (!custSelect.value) {
         let firstOwing = null;
@@ -2097,18 +2105,22 @@ function updateModalCustomerDisplay(d) {
   if (currentBalEl) {
     if (d.balance < 0) {
       currentBalEl.innerHTML = `<span style="color:#f87171;">-${owedVal.toFixed(2)} SAR (Due)</span>`;
-      if (debtPresetBtn) debtPresetBtn.textContent = `Exact Debt (${owedVal.toFixed(2)} SAR)`;
+      if (debtPresetBtn) {
+        debtPresetBtn.style.display = 'inline-block';
+        debtPresetBtn.textContent = `Exact Debt (${owedVal.toFixed(2)} SAR)`;
+      }
     } else if (d.balance > 0) {
       currentBalEl.innerHTML = `<span style="color:#34d399;">+${parseFloat(d.balance).toFixed(2)} SAR (Credit)</span>`;
-      if (debtPresetBtn) debtPresetBtn.textContent = `Exact Debt (0.00 SAR)`;
+      if (debtPresetBtn) debtPresetBtn.style.display = 'none';
     } else {
       currentBalEl.innerHTML = `<span style="color:#94a3b8;">0.00 SAR (Settled)</span>`;
-      if (debtPresetBtn) debtPresetBtn.textContent = `Exact Debt (0.00 SAR)`;
+      if (debtPresetBtn) debtPresetBtn.style.display = 'none';
     }
   }
 
   if (amountInput) {
-    amountInput.value = owedVal > 0 ? owedVal.toFixed(2) : (d.fee > 0 ? d.fee.toFixed(2) : '30.00');
+    let defaultFee = (d.fee && d.fee > 0) ? d.fee : 30.0;
+    amountInput.value = owedVal > 0 ? owedVal.toFixed(2) : defaultFee.toFixed(2);
   }
 }
 
