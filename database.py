@@ -165,6 +165,31 @@ def init_db():
         except Exception:
             pass
 
+        # Migration: PPPoE connection technology support
+        customer_pppoe_cols = [
+            ("connection_type", "TEXT NOT NULL DEFAULT 'hotspot'"),
+            ("pppoe_username", "TEXT DEFAULT ''"),
+            ("pppoe_password", "TEXT DEFAULT ''"),
+            ("pppoe_profile", "TEXT DEFAULT ''"),
+            ("pppoe_remote_ip", "TEXT DEFAULT ''")
+        ]
+        for col_name, col_type in customer_pppoe_cols:
+            try:
+                cursor.execute(f"ALTER TABLE customers ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+
+        conn_req_pppoe_cols = [
+            ("connection_type", "TEXT DEFAULT 'hotspot'"),
+            ("pppoe_username", "TEXT DEFAULT ''"),
+            ("pppoe_password", "TEXT DEFAULT ''")
+        ]
+        for col_name, col_type in conn_req_pppoe_cols:
+            try:
+                cursor.execute(f"ALTER TABLE connection_requests ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+
         # 2. Customer Devices Table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS customer_devices (
@@ -714,7 +739,8 @@ def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
 
         # Query all customers who are either active OR have approved devices that must be cut
         cursor.execute("""
-            SELECT id, name, phone, status, billing_type, package_name, expiry_date, due_date, suspension_held_until
+            SELECT id, name, phone, status, billing_type, package_name, expiry_date, due_date, suspension_held_until,
+                   connection_type, pppoe_username
             FROM customers
             WHERE status = 'active'
                OR id IN (SELECT DISTINCT customer_id FROM customer_devices WHERE status = 'approved')
@@ -746,7 +772,9 @@ def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
                         "phone": cust["phone"],
                         "expiry_date": exp_date,
                         "reason": reason,
-                        "macs": macs
+                        "macs": macs,
+                        "connection_type": cust.get("connection_type") or "hotspot",
+                        "pppoe_username": cust.get("pppoe_username") or ""
                     })
 
         conn.commit()
@@ -1039,7 +1067,13 @@ def approve_connection(
     is_secondary: bool = False,
     join_date: Optional[str] = None,
     billing_start_date: Optional[str] = None,
-    notes: Optional[str] = ""
+    notes: Optional[str] = "",
+    connection_type: str = "hotspot",
+    pppoe_username: Optional[str] = None,
+    pppoe_password: Optional[str] = None,
+    pppoe_profile: Optional[str] = None,
+    pppoe_remote_ip: Optional[str] = None,
+    **kwargs: Any
 ) -> Dict[str, Any]:
     """
     Approves a pending request:
@@ -1261,19 +1295,27 @@ def approve_connection(
 
             final_notes = notes.strip() if notes and notes.strip() else ""
             new_credit = round(credit_to_add, 2)
+            final_conn_type = "pppoe" if connection_type and connection_type.strip().lower() == "pppoe" else (req.get("connection_type") or "hotspot")
+            final_pppoe_user = pppoe_username.strip() if pppoe_username and pppoe_username.strip() else (req.get("pppoe_username") or (phone.strip() if final_conn_type == "pppoe" else ""))
+            final_pppoe_pass = pppoe_password.strip() if pppoe_password and pppoe_password.strip() else (req.get("pppoe_password") or ("" if final_conn_type != "pppoe" else "cyber" + phone.strip()[-4:]))
+            final_pppoe_prof = pppoe_profile.strip() if pppoe_profile and pppoe_profile.strip() else ""
+            final_pppoe_ip = pppoe_remote_ip.strip() if pppoe_remote_ip and pppoe_remote_ip.strip() else ""
+
             cursor.execute("""
                 INSERT INTO customers (
                     phone, name, billing_type, package_name, monthly_fee,
                     collected_today, due_day, due_date, status, expiry_date,
                     max_devices, speed_limit, credit_balance, join_date, billing_start_date,
-                    notes, created_at, updated_at
+                    notes, connection_type, pppoe_username, pppoe_password, pppoe_profile, pppoe_remote_ip,
+                    created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 phone, name, final_billing_type, package_name or "Standard", monthly_fee,
                 clean_collected, due_day, final_due_date, expiry_date,
                 clean_limit, clean_speed, new_credit, final_join_date, final_billing_start,
-                final_notes, now_str, now_str
+                final_notes, final_conn_type, final_pppoe_user, final_pppoe_pass, final_pppoe_prof, final_pppoe_ip,
+                now_str, now_str
             ))
             customer_id = cursor.lastrowid
 
@@ -1572,7 +1614,13 @@ def create_customer(
     reseller_id: Optional[int] = None,
     join_date: Optional[str] = None,
     billing_start_date: Optional[str] = None,
-    notes: Optional[str] = ""
+    notes: Optional[str] = "",
+    connection_type: str = "hotspot",
+    pppoe_username: Optional[str] = None,
+    pppoe_password: Optional[str] = None,
+    pppoe_profile: Optional[str] = None,
+    pppoe_remote_ip: Optional[str] = None,
+    **kwargs: Any
 ) -> Dict[str, Any]:
     """Manually creates a new customer with custom speed, fee, due date, device limit, advance credit handling, and optional reseller attribution."""
     now = datetime.now()
@@ -1655,6 +1703,12 @@ def create_customer(
     clean_limit = max(1, int(max_devices or 1))
     clean_speed = speed_limit.strip() if speed_limit and speed_limit.strip() else None
 
+    final_conn_type = "pppoe" if connection_type and connection_type.strip().lower() == "pppoe" else "hotspot"
+    final_pppoe_user = pppoe_username.strip() if pppoe_username and pppoe_username.strip() else (phone.strip() if final_conn_type == "pppoe" else "")
+    final_pppoe_pass = pppoe_password.strip() if pppoe_password and pppoe_password.strip() else ("" if final_conn_type != "pppoe" else "cyber" + phone.strip()[-4:])
+    final_pppoe_prof = pppoe_profile.strip() if pppoe_profile and pppoe_profile.strip() else ""
+    final_pppoe_ip = pppoe_remote_ip.strip() if pppoe_remote_ip and pppoe_remote_ip.strip() else ""
+
     with get_db() as conn:
         cursor = conn.cursor()
 
@@ -1663,14 +1717,18 @@ def create_customer(
                 phone, name, billing_type, package_name, monthly_fee,
                 collected_today, due_day, due_date, status, expiry_date,
                 max_devices, speed_limit, credit_balance, reseller_id,
-                join_date, billing_start_date, notes, created_at, updated_at
+                join_date, billing_start_date, notes, connection_type,
+                pppoe_username, pppoe_password, pppoe_profile, pppoe_remote_ip,
+                created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             phone.strip(), name.strip(), final_billing_type, package_name, monthly_fee,
             clean_payment, due_day, final_due_date, expiry_date,
             clean_limit, clean_speed, credit_to_add, reseller_id,
-            final_join_date, final_billing_start, final_notes, now_str, now_str
+            final_join_date, final_billing_start, final_notes, final_conn_type,
+            final_pppoe_user, final_pppoe_pass, final_pppoe_prof, final_pppoe_ip,
+            now_str, now_str
         ))
         customer_id = cursor.lastrowid
 
@@ -1713,7 +1771,13 @@ def update_customer_details(
     join_date: Optional[str] = None,
     suspension_held_until: Optional[str] = -1,
     suspension_hold_reason: Optional[str] = -1,
-    notes: Optional[str] = -1
+    notes: Optional[str] = -1,
+    connection_type: Optional[str] = None,
+    pppoe_username: Optional[str] = -1,
+    pppoe_password: Optional[str] = -1,
+    pppoe_profile: Optional[str] = -1,
+    pppoe_remote_ip: Optional[str] = -1,
+    **kwargs: Any
 ) -> Optional[Dict[str, Any]]:
     """
     Updates any customer fields: monthly rate, payment due date, custom speed limit,
@@ -1741,6 +1805,11 @@ def update_customer_details(
         new_credit = round(max(0.0, float(credit_balance)), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
         final_reseller_id = current.get("reseller_id") if reseller_id == -1 else reseller_id
         new_notes = current.get("notes") or "" if notes == -1 else (notes.strip() if notes else "")
+        new_conn_type = connection_type.strip().lower() if connection_type and connection_type.strip() else current.get("connection_type", "hotspot")
+        new_pppoe_user = current.get("pppoe_username", "") if pppoe_username == -1 else (pppoe_username.strip() if pppoe_username else "")
+        new_pppoe_pass = current.get("pppoe_password", "") if pppoe_password == -1 else (pppoe_password.strip() if pppoe_password else "")
+        new_pppoe_prof = current.get("pppoe_profile", "") if pppoe_profile == -1 else (pppoe_profile.strip() if pppoe_profile else "")
+        new_pppoe_ip = current.get("pppoe_remote_ip", "") if pppoe_remote_ip == -1 else (pppoe_remote_ip.strip() if pppoe_remote_ip else "")
 
         # Billing start date & join date & suspension hold
         new_bstart = billing_start_date.strip() if billing_start_date and billing_start_date.strip() else current.get("billing_start_date")
@@ -1783,14 +1852,16 @@ def update_customer_details(
                 monthly_fee = ?, due_date = ?, due_day = ?, expiry_date = ?,
                 speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, reseller_id = ?,
                 join_date = ?, billing_start_date = ?, suspension_held_until = ?, suspension_hold_reason = ?,
-                notes = ?, updated_at = ?
+                notes = ?, connection_type = ?, pppoe_username = ?, pppoe_password = ?,
+                pppoe_profile = ?, pppoe_remote_ip = ?, updated_at = ?
             WHERE id = ?
         """, (
             new_name, new_phone, new_btype, new_pkg,
             new_fee, new_due_date, new_due_day, new_expiry_date,
             new_speed, new_max_devices, new_status, new_credit, final_reseller_id,
             new_join_date, new_bstart, new_susp_held, new_susp_reason,
-            new_notes, now_str,
+            new_notes, new_conn_type, new_pppoe_user, new_pppoe_pass,
+            new_pppoe_prof, new_pppoe_ip, now_str,
             customer_id
         ))
 
@@ -1945,22 +2016,23 @@ def remove_customer_device(device_id: int) -> Tuple[Optional[str], Optional[str]
         return mac, ip
 
 
-def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str, str]:
+def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str, str, str]:
     """
     Permanently deletes a customer and all associated devices, payment collections,
     and disassociates ONUs, revokes connection requests, and disassociates WhatsApp logs.
-    Returns (success, list_of_mac_addresses, customer_name, customer_phone).
+    Returns (success, list_of_mac_addresses, customer_name, customer_phone, pppoe_username).
     """
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name, phone FROM customers WHERE id = ?", (customer_id,))
+        cursor.execute("SELECT id, name, phone, pppoe_username FROM customers WHERE id = ?", (customer_id,))
         cust = cursor.fetchone()
         if not cust:
-            return False, [], "", ""
+            return False, [], "", "", ""
 
         cust_name = cust["name"]
         cust_phone = cust["phone"]
+        cust_pppoe_user = cust.get("pppoe_username") or ""
 
         # 1. Fetch all MAC addresses of devices registered to this customer
         cursor.execute("SELECT mac_address FROM customer_devices WHERE customer_id = ?", (customer_id,))
@@ -1988,7 +2060,18 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
         cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
 
         conn.commit()
-        return True, macs, cust_name, cust_phone
+        return True, macs, cust_name, cust_phone, cust_pppoe_user
+
+
+def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
+    """Returns all customers configured with connection_type == 'pppoe'."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        query = "SELECT * FROM customers WHERE connection_type = 'pppoe'"
+        if active_only:
+            query += " AND status = 'active'"
+        query += " ORDER BY id ASC"
+        return [dict(r) for r in cursor.execute(query).fetchall()]
 
 
 
