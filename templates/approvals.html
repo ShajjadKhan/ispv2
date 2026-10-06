@@ -207,6 +207,45 @@
     vertical-align: top;
     min-width: 260px;
   }
+  .phone-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    vertical-align: middle;
+  }
+  .btn-copy-phone {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #94a3b8;
+    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    vertical-align: middle;
+    outline: none;
+  }
+  .btn-copy-phone:hover {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+  }
+  .btn-copy-phone:active {
+    transform: scale(0.95);
+  }
+  .btn-copy-phone.copied {
+    background: rgba(16, 185, 129, 0.22) !important;
+    border-color: #10b981 !important;
+    color: #34d399 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
+  }
   .approved-mac-chip {
     display: flex;
     align-items: center;
@@ -1013,7 +1052,20 @@
           {% if pending_requests %}
             {% for req in pending_requests %}
             <tr id="req-row-{{ req.id }}" class="req-table-row" {% if req.is_random_mac %}style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"{% endif %}>
-              <td data-label="Phone Number" class="font-mono text-white td-phone" style="font-weight:700;">{{ req.phone }}</td>
+              <td data-label="Phone Number" class="font-mono text-white td-phone" style="font-weight:700;">
+                <span class="phone-wrap">
+                  <span class="phone-val">{{ req.phone }}</span>
+                  <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
+                    <svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <svg class="check-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                </span>
+              </td>
               <td data-label="Device MAC" class="font-mono td-mac">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span class="text-cyan" style="font-weight:700;">{{ req.mac_address }}</span>
@@ -1148,7 +1200,20 @@
                   {% endif %}
                 </div>
               </td>
-              <td data-label="Phone" class="font-mono text-dim">{{ cust.phone }}</td>
+              <td data-label="Phone" class="font-mono text-dim">
+                <span class="phone-wrap">
+                  <span>{{ cust.phone }}</span>
+                  <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ cust.phone }}', this, event)" title="Copy Phone Number: {{ cust.phone }}" aria-label="Copy phone number">
+                    <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <svg class="check-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                </span>
+              </td>
               <td data-label="MAC Address" class="cust-mac-cell font-mono">
                 <div style="display:flex; flex-direction:column; gap:6px;">
                   {% for dev in cust.devices %}
@@ -1239,7 +1304,18 @@
         <div class="device-summary-pill">
           <div>
             <div class="lbl">Phone Number</div>
-            <div class="val text-cyan" id="dispPhone">0597595059</div>
+            <div class="val text-cyan" style="display:inline-flex; align-items:center; gap:8px;">
+              <span id="dispPhone">0597595059</span>
+              <button type="button" class="btn-copy-phone" onclick="copyPhone(document.getElementById('dispPhone')?.textContent?.trim() || '', this, event)" title="Copy Phone Number" aria-label="Copy phone number">
+                <svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <svg class="check-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
           <div>
             <div class="lbl">Device MAC Address</div>
@@ -1997,6 +2073,61 @@
         setTimeout(() => { el.style.boxShadow = ''; }, 2000);
       }
     }
+  }
+
+  // Copy Phone Number to clipboard with instant visual feedback and toast
+  function copyPhone(phone, btn, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (!phone) return;
+    
+    const doFeedback = () => {
+      if (btn) {
+        btn.classList.add('copied');
+        const copyIcon = btn.querySelector('.copy-icon');
+        const checkIcon = btn.querySelector('.check-icon');
+        if (copyIcon && checkIcon) {
+          copyIcon.style.display = 'none';
+          checkIcon.style.display = 'inline-block';
+        }
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          if (copyIcon && checkIcon) {
+            copyIcon.style.display = 'inline-block';
+            checkIcon.style.display = 'none';
+          }
+        }, 2000);
+      }
+      if (typeof cyberToast === 'function') {
+        cyberToast('📋 Copied phone: ' + phone);
+      }
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(phone).then(doFeedback).catch(() => {
+        fallbackCopyPhone(phone, doFeedback);
+      });
+    } else {
+      fallbackCopyPhone(phone, doFeedback);
+    }
+  }
+
+  function fallbackCopyPhone(text, callback) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      if (callback) callback();
+    } catch (e) {
+      prompt('Copy Phone Number:', text);
+    }
+    document.body.removeChild(ta);
   }
 </script>
 {% endblock %}
