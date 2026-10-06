@@ -1985,6 +1985,43 @@
     }
     .no-print { display: none !important; }
   }
+  .phone-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    vertical-align: middle;
+  }
+  .btn-copy-phone {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #94a3b8;
+    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    vertical-align: middle;
+    outline: none;
+  }
+  .btn-copy-phone:hover {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+  }
+  .btn-copy-phone:active { transform: scale(0.95); }
+  .btn-copy-phone.copied {
+    background: rgba(16, 185, 129, 0.22) !important;
+    border-color: #10b981 !important;
+    color: #34d399 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
+  }
 </style>
 {% endblock %}
 
@@ -4165,6 +4202,7 @@
           const typeCol = req.is_secondary
             ? `<div style="display:flex; flex-direction:column; gap:3px;">
                  <span class="tag-device-type secondary" title="Existing customer: ${req.existing_customer_name || ''}">Secondary Device</span>
+                 ${req.existing_customer_name ? `<div style="font-size:11px; color:#fbbf24; font-weight:700;">For: ${req.existing_customer_name}</div>` : ''}
                  <span class="font-mono" style="font-size:11px; color:${(req.current_device_count || 0) >= (req.customer_max_devices || 1) ? '#f87171' : '#34d399'}; font-weight:700;">
                    ${(req.current_device_count || 0) >= (req.customer_max_devices || 1) ? `⚠ Limit (${req.current_device_count}/${req.customer_max_devices})` : `Device ${(req.current_device_count || 0) + 1} of ${req.customer_max_devices || 1}`}
                  </span>
@@ -4192,9 +4230,39 @@
                </button>
                <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`;
 
+          const safeName = (req.existing_customer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const safePhone = (req.phone || '');
+          const safeNotes = (req.existing_customer_notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+          const copyBtnSvg = `<svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg class="check-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+          const phoneCell = (req.is_secondary && req.existing_customer_name)
+            ? `<div class="pending-sub-cell">
+                 <div style="font-weight:800; color:#ffffff; font-size:13.5px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                   <span>${safeName}</span>
+                   ${safeNotes ? `<span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); padding:1px 5px; border-radius:4px; font-weight:600;" title="Room / Note: ${safeNotes}">🚪 ${safeNotes}</span>` : ''}
+                 </div>
+                 <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
+                   <span class="phone-wrap">
+                     <span class="phone-val font-mono" style="font-size:12px; color:#94a3b8; font-weight:600;">${safePhone}</span>
+                     <button type="button" class="btn-copy-phone" onclick="copyPhone('${safePhone}', this, event)" title="Copy Phone Number: ${safePhone}" aria-label="Copy phone number">${copyBtnSvg}</button>
+                   </span>
+                   <span style="font-size:10px; font-weight:700; background:rgba(16,185,129,0.12); color:#34d399; border:1px solid rgba(16,185,129,0.25); padding:1px 5px; border-radius:4px;">Registered</span>
+                 </div>
+               </div>`
+            : `<div class="pending-sub-cell">
+                 <div style="font-weight:700; color:#38bdf8; font-size:12.5px;">New Customer</div>
+                 <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                   <span class="phone-wrap">
+                     <span class="phone-val font-mono text-white" style="font-size:13px; font-weight:700;">${safePhone}</span>
+                     <button type="button" class="btn-copy-phone" onclick="copyPhone('${safePhone}', this, event)" title="Copy Phone Number: ${safePhone}" aria-label="Copy phone number">${copyBtnSvg}</button>
+                   </span>
+                 </div>
+               </div>`;
+
           return `
             <tr id="req-row-${req.id}" class="req-table-row ${isRandom ? 'random-mac-card' : ''}" ${isRandom ? 'style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"' : ''}>
-              <td data-label="Phone Number" class="font-mono text-white td-phone" style="font-weight:700;">${req.phone}</td>
+              <td data-label="Subscriber / Phone" class="td-phone">${phoneCell}</td>
               <td data-label="Device MAC" class="font-mono td-mac">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span class="text-cyan" style="font-weight:700;">${req.mac_address}</span>
@@ -4214,6 +4282,63 @@
       }
     } catch (err) {
       console.warn('Could not refresh pending requests:', err);
+    }
+  }
+
+
+  // Copy Phone Number to clipboard with instant visual feedback and toast
+  function copyPhone(phone, btn, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    if (!phone) return;
+
+    const doFeedback = () => {
+      if (btn) {
+        btn.classList.add('copied');
+        const copyIcon = btn.querySelector('.copy-icon');
+        const checkIcon = btn.querySelector('.check-icon');
+        if (copyIcon && checkIcon) {
+          copyIcon.style.display = 'none';
+          checkIcon.style.display = 'inline-block';
+        }
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          if (copyIcon && checkIcon) {
+            copyIcon.style.display = 'inline-block';
+            checkIcon.style.display = 'none';
+          }
+        }, 2000);
+      }
+      if (typeof cyberToast === 'function') {
+        cyberToast('📋 Copied phone: ' + phone);
+      }
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(phone).then(doFeedback).catch(() => {
+        fallbackCopyPhone(phone, doFeedback);
+      });
+    } else {
+      fallbackCopyPhone(phone, doFeedback);
+    }
+  }
+
+  function fallbackCopyPhone(text, callback) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      if (callback) callback();
+    } catch (e) {
+      prompt('Copy Phone Number:', text);
+    } finally {
+      document.body.removeChild(ta);
     }
   }
 
