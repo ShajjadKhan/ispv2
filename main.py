@@ -1031,12 +1031,17 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     staff performance breakdown, and 1-click collections.
     """
     live_status = router_client.get_live_status()
-    online_macs = []
-    if live_status.get("connected"):
+    # Aggregate online devices across all active fleet routers
+    all_active_routers = database.get_all_routers(active_only=True)
+    online_macs_set = set()
+    for r in all_active_routers:
         try:
-            online_macs = router_client.get_online_mac_addresses()
+            c = mikrotik_client.get_client_for_router(r)
+            r_macs = c.get_online_mac_addresses(max_cache_age_sec=5.0)
+            online_macs_set.update(r_macs)
         except Exception as e:
-            logger.warning(f"Could not retrieve online MACs: {e}")
+            logger.debug(f"Could not retrieve online MACs for router {r.get('id')}: {e}")
+    online_macs = list(online_macs_set)
 
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
     pending_requests = database.get_pending_requests()
@@ -1095,14 +1100,36 @@ async def gateway_view(request: Request, router_id: Optional[int] = None):
     else:
         selected_live_status = router_client.get_live_status()
 
-    # Refresh fleet list with cached or live indicators
+    # Refresh fleet list with live telemetry for all active routers
     fleet_list = database.get_all_routers()
-    if selected_router_record and fleet_list:
-        for r in fleet_list:
-            if r["id"] == selected_router_record["id"]:
-                r["cpu_usage"] = selected_live_status.get("cpu_load", r.get("cpu_usage", 0))
-                r["uptime"] = selected_live_status.get("uptime", r.get("uptime"))
-                r["last_status"] = "online" if selected_live_status.get("connected") else "offline"
+    for r in fleet_list:
+        if selected_router_record and r["id"] == selected_router_record["id"]:
+            r["cpu_usage"] = selected_live_status.get("cpu_load", r.get("cpu_usage", 0))
+            r["uptime"] = selected_live_status.get("uptime", r.get("uptime"))
+            r["last_status"] = "online" if selected_live_status.get("connected") else "offline"
+            r["identity"] = selected_live_status.get("identity", r.get("identity"))
+            r["model"] = selected_live_status.get("model", r.get("model"))
+        elif r.get("is_active"):
+            try:
+                r_client = mikrotik_client.get_client_for_router(r)
+                r_status = r_client.get_live_status(max_cache_age_sec=5.0)
+                database.update_router_telemetry(
+                    router_id=r["id"],
+                    identity=r_status.get("identity"),
+                    model=r_status.get("model"),
+                    ros_version=r_status.get("version"),
+                    cpu_usage=r_status.get("cpu_load", 0),
+                    memory_usage=int(r_status.get("memory_percent", 0)),
+                    uptime=r_status.get("uptime"),
+                    last_status="online" if r_status.get("connected") else "offline"
+                )
+                r["cpu_usage"] = r_status.get("cpu_load", 0)
+                r["uptime"] = r_status.get("uptime")
+                r["last_status"] = "online" if r_status.get("connected") else "offline"
+                r["identity"] = r_status.get("identity")
+                r["model"] = r_status.get("model")
+            except Exception as e:
+                logger.warning(f"Could not poll fleet router #{r.get('id')} ({r.get('name')}): {e}")
     pending_requests = database.get_pending_requests()
 
     return templates.TemplateResponse(

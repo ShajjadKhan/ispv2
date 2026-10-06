@@ -303,6 +303,59 @@ class RouterClient:
                 if iface and addr:
                     ip_map[iface] = addr
 
+            # 6. Active Hotspot Hosts & DHCP Leases
+            hosts = []
+            try:
+                raw_hosts = api.get_resource('/ip/hotspot/host').get()
+                bindings = api.get_resource('/ip/hotspot/ip-binding').get()
+                leases = api.get_resource('/ip/dhcp-server/lease').get()
+                bind_map = {b.get("mac-address", "").strip().upper(): b for b in bindings if b.get("mac-address")}
+                lease_map = {l.get("mac-address", "").strip().upper(): l for l in leases if l.get("mac-address")}
+                seen_macs = set()
+
+                for rh in raw_hosts:
+                    m = rh.get("mac-address", "").strip().upper()
+                    if not m or m in seen_macs:
+                        continue
+                    seen_macs.add(m)
+                    b_entry = bind_map.get(m, {})
+                    l_entry = lease_map.get(m, {})
+                    is_bypassed = rh.get("bypassed") == "true" or b_entry.get("type") == "bypassed"
+                    rate = b_entry.get("rate-limit") or rh.get("rate-limit") or ""
+                    comm = b_entry.get("comment") or rh.get("comment") or (l_entry.get("host-name") if l_entry else "") or ""
+                    hosts.append({
+                        "mac": m,
+                        "address": rh.get("address") or rh.get("to-address") or "",
+                        "interface": rh.get("interface") or rh.get("bridge") or "bridge-lan",
+                        "bypassed": is_bypassed,
+                        "rate_limit": rate,
+                        "comment": comm,
+                        "uptime": rh.get("uptime", ""),
+                        "idle_time": rh.get("idle-time", "")
+                    })
+
+                for rl in leases:
+                    m = rl.get("mac-address", "").strip().upper()
+                    if not m or m in seen_macs or rl.get("status") != "bound":
+                        continue
+                    seen_macs.add(m)
+                    b_entry = bind_map.get(m, {})
+                    is_bypassed = b_entry.get("type") == "bypassed"
+                    rate = b_entry.get("rate-limit") or ""
+                    comm = b_entry.get("comment") or rl.get("host-name") or "DHCP Client"
+                    hosts.append({
+                        "mac": m,
+                        "address": rl.get("active-address") or rl.get("address") or "",
+                        "interface": rl.get("server") or "dhcp",
+                        "bypassed": is_bypassed,
+                        "rate_limit": rate,
+                        "comment": comm,
+                        "uptime": rl.get("expires-after", ""),
+                        "idle_time": rl.get("last-seen", "")
+                    })
+            except Exception as e:
+                logger.debug(f"Could not read hosts/leases from {self.host}: {e}")
+
             # Memory Calculations
             total_mem_bytes = int(res.get('total-memory', 0))
             free_mem_bytes = int(res.get('free-memory', 0))
@@ -336,6 +389,7 @@ class RouterClient:
                 "interfaces": interfaces,
                 "physical_interfaces": physical_interfaces,
                 "ip_map": ip_map,
+                "hosts": hosts,
                 "error": None,
                 "checked_at": time.strftime("%H:%M:%S")
             }
@@ -363,6 +417,7 @@ class RouterClient:
                 "interfaces": [],
                 "physical_interfaces": [],
                 "ip_map": {},
+                "hosts": [],
                 "error": str(e),
                 "checked_at": time.strftime("%H:%M:%S")
             }
