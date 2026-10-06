@@ -134,13 +134,15 @@ class RouterClient:
         username: str = "admin",
         password: str = "admin",
         port: int = 8728,
-        use_ssl: bool = False
+        use_ssl: bool = False,
+        router_id: Optional[int] = None
     ):
         self.host = host
         self.username = username
         self.password = password
         self.port = port
         self.use_ssl = use_ssl
+        self.router_id = router_id
         self._telemetry_cache: Optional[Dict[str, Dict[str, Any]]] = None
         self._telemetry_cache_time: float = 0.0
         self._live_status_cache: Optional[Dict[str, Any]] = None
@@ -152,6 +154,16 @@ class RouterClient:
         """Dynamically reloads router connection parameters from database if available."""
         try:
             import database
+            if self.router_id is not None:
+                r = database.get_router_by_id(self.router_id)
+                if r:
+                    self.host = r.get("host") or self.host
+                    self.username = r.get("username") or self.username
+                    self.password = r.get("password") or self.password
+                    self.port = r.get("port") or self.port
+                    self.use_ssl = (self.port == 8729 or bool(r.get("use_ssl", False)))
+                return
+
             routers = database.get_all_routers(active_only=True)
             if routers:
                 default_r = next((r for r in routers if r.get("is_default")), routers[0])
@@ -1641,7 +1653,8 @@ def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
         username=r_dict["username"],
         password=r_dict["password"],
         port=port,
-        use_ssl=use_ssl
+        use_ssl=use_ssl,
+        router_id=r_dict.get("id")
     )
 
 
