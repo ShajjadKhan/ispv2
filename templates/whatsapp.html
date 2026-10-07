@@ -311,6 +311,10 @@
   .clean-table tr:last-child td { border-bottom: none; }
   .clean-table tr:hover td { background: rgba(255, 255, 255, 0.015); }
 
+  .cust-sug-item:hover {
+    background: rgba(56, 189, 248, 0.14) !important;
+  }
+
   /* BUTTONS */
   .btn-wa-send {
     background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
@@ -656,32 +660,54 @@
 
       <div class="composer-body">
 
-        <!-- RECIPIENT SELECTOR -->
-        <div class="form-group">
-          <label class="form-label" for="custPicker">1. Choose Recipient</label>
-          <div style="display: flex; gap: 8px;">
-            <select id="custPicker" class="form-control" onchange="onCustomerSelected(this.value)">
-              <option value="">-- Choose Existing Subscriber or Enter Phone --</option>
-              {% for c in customers %}
-              <option value="{{ c.id }}"
-                      data-phone="{{ c.phone }}"
-                      data-name="{{ c.name }}"
-                      data-package="{{ c.package_name }}"
-                      data-due="{{ c.due_balance or c.total_due or 0 }}"
-                      data-expiry="{{ c.expiry_date }}">
-                {{ c.name }} ({{ c.phone }}) — Plan: {{ c.package_name }} [Due: {{ c.due_balance or c.total_due or 0 }} SAR]
-              </option>
-              {% endfor %}
-            </select>
+        <!-- RECIPIENT LIVE SEARCH & SELECTION -->
+        <div class="form-group" style="position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="custSearchInput" style="margin-bottom: 0;">1. Choose Recipient</label>
+            <span id="selectedCustBadge" style="display: none; font-size: 11px; background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.35); padding: 3px 8px; border-radius: 6px; font-weight: 700; align-items: center;">
+              <span id="selectedCustBadgeText">Selected</span>
+              <button type="button" onclick="clearSelectedCustomer()" style="background: none; border: none; color: #f87171; margin-left: 6px; cursor: pointer; font-size: 13px; font-weight: bold; padding: 0; line-height: 1;" title="Clear selection">&times;</button>
+            </span>
           </div>
+
+          <div style="position: relative;">
+            <div style="display: flex; align-items: center; position: relative;">
+              <span style="position: absolute; left: 12px; color: var(--text-dim); font-size: 13px; pointer-events: none; z-index: 2;">
+                🔍
+              </span>
+              <input type="text"
+                     id="custSearchInput"
+                     class="form-control"
+                     style="padding-left: 36px; padding-right: 32px;"
+                     placeholder="Type subscriber name, phone, or room (min 2 chars)..."
+                     autocomplete="off"
+                     oninput="onCustSearchInput(this.value)"
+                     onkeydown="onCustSearchKeyDown(event)"
+                     onfocus="onCustSearchInput(this.value)" />
+              <button type="button"
+                      id="btnClearCustSearch"
+                      onclick="clearSelectedCustomer()"
+                      style="position: absolute; right: 10px; background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; display: none; z-index: 2;"
+                      title="Clear">&times;</button>
+            </div>
+
+            <!-- LIVE AUTOCOMPLETE DROPDOWN -->
+            <div id="custSuggestionsList"
+                 style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1050; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; max-height: 280px; overflow-y: auto; box-shadow: 0 14px 36px rgba(0,0,0,0.85);">
+            </div>
+          </div>
+          <input type="hidden" id="selectedCustId" value="" />
         </div>
 
-        <!-- PHONE NUMBER -->
+        <!-- RECIPIENT PHONE NUMBER -->
         <div class="form-group">
           <label class="form-label" for="targetPhone">Recipient Mobile Number</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="font-mono" style="background:#090e1a; border:1px solid var(--border-subtle); padding:10px 12px; border-radius:8px; font-size:13px; color:#38bdf8;">+966</span>
-            <input type="text" id="targetPhone" class="form-control font-mono" placeholder="05XXXXXXXX or 5XXXXXXXX" oninput="updateLivePreview()">
+            <input type="text" id="targetPhone" class="form-control font-mono" placeholder="05XXXXXXXX or 5XXXXXXXX" oninput="onPhoneInput()">
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+            Auto-populated from subscriber search, or enter a standalone mobile number.
           </div>
         </div>
 
@@ -1151,34 +1177,238 @@
     updateLivePreview();
   }
 
-  function onCustomerSelected(custId) {
-    if (!custId) {
-      currentCustData = { name: "Customer", phone: "", package: "High-Speed Fiber", due: "0.00", expiry: "End of Month" };
-      document.getElementById('targetPhone').value = "";
-      updateLivePreview();
+  // In-memory subscriber dictionary for instant autocomplete (0ms latency)
+  const ALL_SUBSCRIBERS = [
+    {% for c in customers %}
+    {
+      id: {{ c.id }},
+      name: {{ (c.name or '') | tojson }},
+      phone: {{ (c.phone or '') | tojson }},
+      package: {{ (c.package_name or 'High-Speed Fiber') | tojson }},
+      due: {{ ((c.due_balance or c.total_due or 0) | float) | tojson }},
+      expiry: {{ (c.expiry_date or 'End of Month') | tojson }},
+      room: {{ (c.room or c.notes or '') | tojson }},
+      status: {{ (c.status or 'active') | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  let activeSugIndex = -1;
+  let currentFilteredSubs = [];
+
+  function onCustSearchInput(val) {
+    const q = (val || '').trim().toLowerCase();
+    const list = document.getElementById('custSuggestionsList');
+    const clearBtn = document.getElementById('btnClearCustSearch');
+    
+    if (clearBtn) {
+      clearBtn.style.display = q.length > 0 ? 'block' : 'none';
+    }
+
+    if (q.length < 2) {
+      list.style.display = 'none';
+      list.innerHTML = '';
+      currentFilteredSubs = [];
+      activeSugIndex = -1;
       return;
     }
 
-    const select = document.getElementById('custPicker');
-    const opt = select.options[select.selectedIndex];
+    const cleanDigits = q.replace(/\D/g, '');
+    currentFilteredSubs = ALL_SUBSCRIBERS.filter(sub => {
+      const matchName = (sub.name || '').toLowerCase().includes(q);
+      const matchRoom = (sub.room || '').toLowerCase().includes(q);
+      const matchPackage = (sub.package || '').toLowerCase().includes(q);
+      let matchPhone = false;
+      if (cleanDigits.length >= 2) {
+        const subDigits = (sub.phone || '').replace(/\D/g, '');
+        matchPhone = subDigits.includes(cleanDigits) ||
+          (cleanDigits.startsWith('05') && subDigits.includes('966' + cleanDigits.slice(1))) ||
+          (cleanDigits.startsWith('5') && subDigits.includes('966' + cleanDigits));
+      }
+      return matchName || matchRoom || matchPackage || matchPhone;
+    }).slice(0, 8);
+
+    if (currentFilteredSubs.length === 0) {
+      list.innerHTML = `
+        <div style="padding: 12px 14px; color: var(--text-dim); font-size: 12px; text-align: center;">
+          <i class="fas fa-search" style="margin-right: 6px; opacity: 0.5;"></i>No subscribers matching "<strong>${escapeHtml(q)}</strong>"
+        </div>
+      `;
+      list.style.display = 'block';
+      activeSugIndex = -1;
+      return;
+    }
+
+    activeSugIndex = -1;
+    list.innerHTML = currentFilteredSubs.map((sub, idx) => {
+      const dueVal = parseFloat(sub.due || 0);
+      const dueBadge = dueVal > 0 
+        ? `<span style="color:#f87171; font-weight:700;">${dueVal.toFixed(2)} SAR Due</span>`
+        : `<span style="color:#25d366; font-weight:600;">Paid ✅</span>`;
+      
+      const phoneDisplay = sub.phone ? sub.phone : 'No Phone';
+      const roomDisplay = sub.room ? ` · Room: ${escapeHtml(sub.room)}` : '';
+
+      return `
+        <div class="cust-sug-item" 
+             id="sugItem_${idx}"
+             data-index="${idx}"
+             onclick="selectSubscriberByIndex(${idx})"
+             style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; transition: background 0.15s ease;">
+          <div>
+            <div style="font-weight: 700; color: #ffffff; font-size: 13px;">${escapeHtml(sub.name)}</div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+              <span class="font-mono text-cyan">${escapeHtml(phoneDisplay)}</span>
+              <span> &bull; </span>
+              <span>${escapeHtml(sub.package)}</span>
+              ${roomDisplay}
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; font-family: var(--font-mono);">
+            ${dueBadge}
+            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 2px;">${escapeHtml(sub.expiry || 'End of Month')}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    list.style.display = 'block';
+  }
+
+  function selectSubscriberByIndex(idx) {
+    if (idx < 0 || idx >= currentFilteredSubs.length) return;
+    selectSubscriber(currentFilteredSubs[idx]);
+  }
+
+  function selectSubscriber(sub) {
     currentCustData = {
-      id: custId,
-      name: opt.getAttribute('data-name') || "Customer",
-      phone: opt.getAttribute('data-phone') || "",
-      package: opt.getAttribute('data-package') || "High-Speed Fiber",
-      due: parseFloat(opt.getAttribute('data-due') || 0).toFixed(2),
-      expiry: opt.getAttribute('data-expiry') || "End of Month"
+      id: sub.id,
+      name: sub.name || "Customer",
+      phone: sub.phone || "",
+      package: sub.package || "High-Speed Fiber",
+      due: parseFloat(sub.due || 0).toFixed(2),
+      expiry: sub.expiry || "End of Month"
     };
 
-    document.getElementById('targetPhone').value = currentCustData.phone;
+    const idInput = document.getElementById('selectedCustId');
+    if (idInput) idInput.value = sub.id;
+
+    const searchInput = document.getElementById('custSearchInput');
+    if (searchInput) searchInput.value = sub.name;
+
+    const phoneInput = document.getElementById('targetPhone');
+    if (phoneInput) phoneInput.value = sub.phone || "";
+    
+    // Update selected badge
+    const badge = document.getElementById('selectedCustBadge');
+    const badgeText = document.getElementById('selectedCustBadgeText');
+    if (badge && badgeText) {
+      badgeText.textContent = `${sub.name} (#${sub.id})`;
+      badge.style.display = 'inline-flex';
+    }
+
+    const clearBtn = document.getElementById('btnClearCustSearch');
+    if (clearBtn) clearBtn.style.display = 'block';
+
+    // Hide dropdown
+    const list = document.getElementById('custSuggestionsList');
+    if (list) {
+      list.style.display = 'none';
+      list.innerHTML = '';
+    }
+
     updateLivePreview();
   }
 
-  function loadCustomerToComposer(custId) {
-    document.getElementById('custPicker').value = custId;
-    onCustomerSelected(custId);
-    document.getElementById('messageEditor').scrollIntoView({ behavior: 'smooth' });
+  function clearSelectedCustomer() {
+    currentCustData = {
+      name: "Customer",
+      phone: "",
+      package: "High-Speed Fiber",
+      due: "0.00",
+      expiry: "End of Month"
+    };
+
+    const idInput = document.getElementById('selectedCustId');
+    if (idInput) idInput.value = "";
+
+    const searchInput = document.getElementById('custSearchInput');
+    if (searchInput) searchInput.value = "";
+
+    const phoneInput = document.getElementById('targetPhone');
+    if (phoneInput) phoneInput.value = "";
+    
+    const badge = document.getElementById('selectedCustBadge');
+    if (badge) badge.style.display = 'none';
+
+    const clearBtn = document.getElementById('btnClearCustSearch');
+    if (clearBtn) clearBtn.style.display = 'none';
+
+    const list = document.getElementById('custSuggestionsList');
+    if (list) {
+      list.style.display = 'none';
+      list.innerHTML = '';
+    }
+
+    updateLivePreview();
+    if (searchInput) searchInput.focus();
   }
+
+  function loadCustomerToComposer(custId) {
+    const sub = ALL_SUBSCRIBERS.find(s => s.id === custId);
+    if (sub) {
+      selectSubscriber(sub);
+    }
+    const composer = document.getElementById('custSearchInput') || document.getElementById('messageEditor');
+    if (composer) composer.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function onPhoneInput() {
+    currentCustData.phone = document.getElementById('targetPhone').value.trim();
+    updateLivePreview();
+  }
+
+  function onCustSearchKeyDown(e) {
+    const list = document.getElementById('custSuggestionsList');
+    if (!list || list.style.display === 'none' || currentFilteredSubs.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeSugIndex = (activeSugIndex + 1) % currentFilteredSubs.length;
+      highlightSugItem(activeSugIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSugIndex = (activeSugIndex - 1 + currentFilteredSubs.length) % currentFilteredSubs.length;
+      highlightSugItem(activeSugIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSugIndex >= 0 && activeSugIndex < currentFilteredSubs.length) {
+        selectSubscriberByIndex(activeSugIndex);
+      }
+    } else if (e.key === 'Escape') {
+      list.style.display = 'none';
+    }
+  }
+
+  function highlightSugItem(idx) {
+    document.querySelectorAll('.cust-sug-item').forEach((el, i) => {
+      if (i === idx) {
+        el.style.background = 'rgba(56, 189, 248, 0.18)';
+        el.scrollIntoView({ block: 'nearest' });
+      } else {
+        el.style.background = '';
+      }
+    });
+  }
+
+  // Close suggestions when clicking outside
+  document.addEventListener('click', (e) => {
+    const searchInput = document.getElementById('custSearchInput');
+    const list = document.getElementById('custSuggestionsList');
+    if (list && searchInput && !list.contains(e.target) && e.target !== searchInput) {
+      list.style.display = 'none';
+    }
+  });
 
   function updateLivePreview() {
     const raw = document.getElementById('messageEditor').value;
