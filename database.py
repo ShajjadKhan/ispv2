@@ -179,6 +179,13 @@ def init_db():
             except Exception:
                 pass
 
+        # Migration: Per-subscriber reminder mute toggle
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN reminders_enabled INTEGER NOT NULL DEFAULT 1")
+        except Exception:
+            pass
+
+
         conn_req_pppoe_cols = [
             ("connection_type", "TEXT DEFAULT 'hotspot'"),
             ("pppoe_username", "TEXT DEFAULT ''"),
@@ -498,6 +505,17 @@ def init_db():
                 ("template_maintenance", "🛠️ *CyberNet Maintenance Announcement*\n\nDear Subscribers,\nPlease be informed that scheduled optical network optimization will take place on *[EXPIRY_DATE]* for 30 minutes.\n\nWe apologize for any temporary inconvenience and appreciate your patience!\nSupport: [HELPLINE]")
             ]
             cursor.executemany("INSERT INTO whatsapp_settings (key, value) VALUES (?, ?)", default_wa_settings)
+
+        # Seed Phase 3 automated scheduler settings if not present
+        auto_scheduler_defaults = [
+            ("auto_dispatch_time", "12:00"),
+            ("auto_dispatch_max_per_day", "25"),
+            ("auto_dispatch_dedupe_days", "3"),
+            ("auto_dispatch_last_run", "")
+        ]
+        for k, v in auto_scheduler_defaults:
+            cursor.execute("INSERT OR IGNORE INTO whatsapp_settings (key, value) VALUES (?, ?)", (k, v))
+
 
         # Seed initial sample audit logs if empty
         cursor.execute("SELECT COUNT(*) FROM whatsapp_logs")
@@ -4126,13 +4144,41 @@ def get_due_customers_for_whatsapp() -> List[Dict[str, Any]]:
                 c["days_since_last_reminder"] = None
                 c["recently_notified"] = False
 
+            # Per-subscriber reminder mute flag (1 = active, 0 = muted)
+            raw_mute = c.get("reminders_enabled")
+            c["reminders_enabled"] = (int(raw_mute) == 1) if raw_mute is not None else True
+
             due_list.append(c)
 
     due_list.sort(key=lambda x: x["effective_due"], reverse=True)
     return due_list
 
 
+def toggle_customer_reminders(customer_id: int, enabled: Optional[bool] = None) -> bool:
+    """
+    Toggles or sets the reminders_enabled flag for a customer (1 = active, 0 = muted).
+    Returns the new boolean state (True = reminders active, False = muted).
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if enabled is None:
+            cursor.execute("""
+                UPDATE customers 
+                SET reminders_enabled = CASE WHEN COALESCE(reminders_enabled, 1) = 1 THEN 0 ELSE 1 END,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (customer_id,))
+        else:
+            val = 1 if enabled else 0
+            cursor.execute("UPDATE customers SET reminders_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (val, customer_id))
+        conn.commit()
+        cursor.execute("SELECT COALESCE(reminders_enabled, 1) FROM customers WHERE id = ?", (customer_id,))
+        row = cursor.fetchone()
+        return bool(row[0] == 1) if row else True
+
+
 get_customers = get_all_customers
+
 
 
 # =========================================================================

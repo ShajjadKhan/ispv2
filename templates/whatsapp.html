@@ -846,6 +846,7 @@
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectAllDue(true)">☑ Select All</button>
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectNeverReminded()">🟢 Select Never Reminded</button>
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectUnremindedOver3Days()">📅 Select Due (&gt;3d ago)</button>
+        <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectOnlyActiveReminders()">🔔 Select Non-Muted</button>
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px; color: var(--text-muted);" onclick="clearBatchSelection()">Clear</button>
       </div>
 
@@ -925,11 +926,13 @@
                        data-expiry="{{ c.expiry_date or 'End of Month' }}"
                        data-recent="{{ 'true' if c.recently_notified else 'false' }}"
                        data-hassent="{{ 'true' if c.last_reminder_at else 'false' }}"
+                       data-muted="{{ 'false' if c.reminders_enabled else 'true' }}"
                        onchange="updateBatchSelectionStats()"
                        style="accent-color: #38bdf8; cursor: pointer;">
               </td>
               <td>
                 <strong style="color: #ffffff;">{{ c.name }}</strong>
+                <span id="mute-badge-{{ c.id }}" class="badge-status" style="display: {{ 'none' if c.reminders_enabled else 'inline-block' }}; font-size: 9.5px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-left: 5px;">🔕 Muted</span>
               </td>
               <td class="font-mono text-cyan">{{ c.phone }}</td>
               <td class="text-dim" style="font-size: 11px;">
@@ -965,9 +968,14 @@
                 {% endif %}
               </td>
               <td>
-                <button type="button" class="btn-simulate" style="font-size: 11px; padding: 4px 10px;" onclick="loadCustomerToComposer({{ c.id }})">
-                  ✉️ Single
-                </button>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                  <button type="button" class="btn-simulate" style="font-size: 11px; padding: 4px 8px;" onclick="loadCustomerToComposer({{ c.id }})">
+                    ✉️ Single
+                  </button>
+                  <button type="button" id="mute-btn-{{ c.id }}" class="btn-simulate" style="font-size: 10.5px; padding: 4px 7px; color: {{ '#f87171' if c.reminders_enabled else '#22c55e' }};" onclick="toggleMuteCustomer({{ c.id }}, event)" title="{{ 'Mute automated notices' if c.reminders_enabled else 'Unmute notices' }}">
+                    {{ '🔕' if c.reminders_enabled else '🔔' }}
+                  </button>
+                </div>
               </td>
             </tr>
             {% endfor %}
@@ -1141,7 +1149,7 @@
     <form onsubmit="saveSettings(event)">
       <div class="modal-body">
 
-        <!-- AUTO DISPATCH SAFETY TOGGLE -->
+        <!-- AUTO DISPATCH SAFETY TOGGLE & SCHEDULER CONTROLS -->
         <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -1154,6 +1162,24 @@
               <option value="0" {% if wa_settings.auto_dispatch_enabled != '1' %}selected{% endif %}>DISABLED (Safe)</option>
               <option value="1" {% if wa_settings.auto_dispatch_enabled == '1' %}selected{% endif %}>ENABLED</option>
             </select>
+          </div>
+
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div>
+              <label class="form-label" for="set_auto_time">Scheduled Run Time</label>
+              <input type="text" id="set_auto_time" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_time or '12:00' }}" placeholder="12:00">
+              <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Daily hour (HH:MM)</div>
+            </div>
+            <div>
+              <label class="form-label" for="set_auto_max">Daily Cap (Max msgs)</label>
+              <input type="number" id="set_auto_max" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_max_per_day or '25' }}" min="5" max="100">
+              <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Protects line health</div>
+            </div>
+            <div>
+              <label class="form-label" for="set_auto_dedupe">Min Days Between Notice</label>
+              <input type="number" id="set_auto_dedupe" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_dedupe_days or '3' }}" min="1" max="15">
+              <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Deduplication limit</div>
+            </div>
           </div>
         </div>
 
@@ -1716,7 +1742,8 @@
     let anyChecked = false;
     chks.forEach(c => {
       const isRecent = c.getAttribute('data-recent') === 'true';
-      c.checked = !isRecent;
+      const isMuted = c.getAttribute('data-muted') === 'true';
+      c.checked = !isRecent && !isMuted;
       if (c.checked) anyChecked = true;
     });
     const master = document.getElementById('masterDueChk');
@@ -1724,9 +1751,59 @@
     updateBatchSelectionStats();
   }
 
+  function selectOnlyActiveReminders() {
+    const chks = document.querySelectorAll('.due-cust-chk');
+    let anyChecked = false;
+    chks.forEach(c => {
+      const isMuted = c.getAttribute('data-muted') === 'true';
+      c.checked = !isMuted;
+      if (c.checked) anyChecked = true;
+    });
+    const master = document.getElementById('masterDueChk');
+    if (master) master.checked = anyChecked;
+    updateBatchSelectionStats();
+  }
+
+  async function toggleMuteCustomer(custId, event) {
+    if (event) event.stopPropagation();
+    try {
+      const res = await fetch(`/api/customers/${custId}/toggle-reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        const isEnabled = data.reminders_enabled;
+        const btn = document.getElementById(`mute-btn-${custId}`);
+        const badge = document.getElementById(`mute-badge-${custId}`);
+        const chk = document.querySelector(`.due-cust-chk[data-id="${custId}"]`);
+
+        if (btn) {
+          btn.textContent = isEnabled ? '🔕' : '🔔';
+          btn.style.color = isEnabled ? '#f87171' : '#22c55e';
+          btn.title = isEnabled ? 'Mute automated notices' : 'Unmute notices';
+        }
+        if (badge) {
+          badge.style.display = isEnabled ? 'none' : 'inline-block';
+        }
+        if (chk) {
+          chk.setAttribute('data-muted', isEnabled ? 'false' : 'true');
+          if (!isEnabled) chk.checked = false;
+        }
+        updateBatchSelectionStats();
+        cyberToast(data.message);
+      } else {
+        cyberToast('Failed to toggle reminder status: ' + (data.error || 'Unknown error'));
+      }
+    } catch (e) {
+      cyberToast('Network error: ' + e.message);
+    }
+  }
+
   function clearBatchSelection() {
     selectAllDue(false);
   }
+
 
   function updateBatchSelectionStats() {
     const chks = document.querySelectorAll('.due-cust-chk:checked');
@@ -1839,7 +1916,10 @@
     let skippedCount = 0;
     chks.forEach(c => {
       const isRecent = c.getAttribute('data-recent') === 'true';
-      if (dedupeActive && isRecent) {
+      const isMuted = c.getAttribute('data-muted') === 'true';
+      if (isMuted) {
+        skippedCount++;
+      } else if (dedupeActive && isRecent) {
         skippedCount++;
       } else {
         queue.push({
@@ -2044,6 +2124,9 @@
     e.preventDefault();
     const payload = {
       auto_dispatch_enabled: document.getElementById('set_auto_dispatch').value,
+      auto_dispatch_time: document.getElementById('set_auto_time') ? document.getElementById('set_auto_time').value.trim() : '12:00',
+      auto_dispatch_max_per_day: document.getElementById('set_auto_max') ? document.getElementById('set_auto_max').value.trim() : '25',
+      auto_dispatch_dedupe_days: document.getElementById('set_auto_dedupe') ? document.getElementById('set_auto_dedupe').value.trim() : '3',
       quiet_hours_enabled: document.getElementById('set_quiet_enabled').value,
       quiet_hours_start: document.getElementById('set_quiet_start').value.trim(),
       quiet_hours_end: document.getElementById('set_quiet_end').value.trim(),

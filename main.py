@@ -199,12 +199,135 @@ async def expiration_enforcement_loop():
             await asyncio.sleep(30)
 
 
+async def whatsapp_auto_dispatch_loop():
+    """
+    Phase 3: Background Automated WhatsApp Reminder Loop.
+    Checks once a minute if auto-dispatch is enabled, if it's the configured schedule hour,
+    and dispatches due notices with anti-ban pacing, quiet hours protection, and deduplication.
+    """
+    logger.info("Background WhatsApp Auto-Dispatch Scheduled Loop initialized.")
+    while True:
+        try:
+            await asyncio.sleep(60)
+            wa_settings = database.get_whatsapp_settings()
+            if wa_settings.get("auto_dispatch_enabled") != "1":
+                continue
+
+            now = datetime.now()
+            today_str = now.strftime("%Y-%m-%d")
+
+            # Check if already completed today
+            last_run = wa_settings.get("auto_dispatch_last_run", "")
+            if last_run == today_str:
+                continue
+
+            # Check scheduled hour (e.g. "12:00")
+            sched_time = wa_settings.get("auto_dispatch_time", "12:00")
+            current_time = now.strftime("%H:%M")
+            if current_time != sched_time:
+                continue
+
+            # Quiet hours shield protection
+            quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+            is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+                wa_settings.get("quiet_hours_start", "22:00"),
+                wa_settings.get("quiet_hours_end", "09:00")
+            )
+            if quiet_enabled and is_night:
+                logger.warning(f"[WhatsApp Auto-Scheduler] Skipping scheduled dispatch: {quiet_desc}")
+                continue
+
+            logger.info(f"[WhatsApp Auto-Scheduler] Starting daily automated reminder dispatch for {today_str}...")
+
+            due_custs = database.get_due_customers_for_whatsapp()
+            try:
+                max_daily = int(wa_settings.get("auto_dispatch_max_per_day", "25"))
+            except Exception:
+                max_daily = 25
+            try:
+                dedupe_days = float(wa_settings.get("auto_dispatch_dedupe_days", "3.0"))
+            except Exception:
+                dedupe_days = 3.0
+
+            # Filter candidates: must have phone, not muted, not notified recently
+            eligible = []
+            for c in due_custs:
+                if not c.get("phone"):
+                    continue
+                if not c.get("reminders_enabled", True):
+                    continue
+                days_since = c.get("days_since_last_reminder")
+                if days_since is not None and days_since < dedupe_days:
+                    continue
+                eligible.append(c)
+
+            candidates = eligible[:max_daily]
+            logger.info(f"[WhatsApp Auto-Scheduler] Found {len(eligible)} eligible subscribers. Processing capped batch of {len(candidates)}.")
+
+            template_str = wa_settings.get("template_reminder", "")
+
+            sent_count = 0
+            blocked_count = 0
+            for c in candidates:
+                # Anti-ban human pacing delay (6 seconds between messages)
+                await asyncio.sleep(6)
+
+                msg = whatsapp_service.render_message_template(
+                    template_str=template_str,
+                    customer_name=c.get("name", ""),
+                    phone=c.get("phone", ""),
+                    package_name=c.get("package_name", ""),
+                    due_balance=float(c.get("effective_due", 0.0)),
+                    expiry_date=c.get("expiry_date", ""),
+                    support_phone=wa_settings.get("support_phone", "0597595059"),
+                    movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
+                    football_server=wa_settings.get("football_server", "http://10.12.14.16:8080")
+                )
+
+                clean_p = whatsapp_service.format_phone(c["phone"])
+                if not clean_p:
+                    continue
+
+                ok, err = whatsapp_service.send_whatsapp_raw(clean_p, msg)
+                if not ok and "SANDBOX SHIELD" in str(err):
+                    status_str = "blocked_sandbox"
+                    blocked_count += 1
+                else:
+                    status_str = "sent" if ok else "failed"
+                    if ok:
+                        sent_count += 1
+
+                database.log_whatsapp_message(
+                    phone=clean_p,
+                    message_body=msg,
+                    message_type="reminder",
+                    status=status_str,
+                    error_message=err,
+                    customer_id=c.get("id"),
+                    customer_name=c.get("name"),
+                    sent_by="system_auto_scheduler"
+                )
+
+            # Record that we successfully ran today
+            database.update_whatsapp_settings({"auto_dispatch_last_run": today_str})
+            logger.info(f"[WhatsApp Auto-Scheduler] Finished daily run for {today_str}. Sent: {sent_count}, Sandbox Blocked: {blocked_count}.")
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.exception(f"Unhandled error in whatsapp_auto_dispatch_loop: {e}")
+            await asyncio.sleep(60)
+
+
 @app.on_event("startup")
 async def startup_event():
     # Real live data from MikroTik traffic collector only
     asyncio.create_task(traffic_collector_loop())
     # Customer subscription expiration enforcement loop across MikroTik fleet
     asyncio.create_task(expiration_enforcement_loop())
+    # Automated WhatsApp Billing Reminder Scheduled Loop
+    asyncio.create_task(whatsapp_auto_dispatch_loop())
+
 
 
 # =========================================================
@@ -465,6 +588,9 @@ class WhatsAppSendRequest(BaseModel):
 
 class WhatsAppSettingsRequest(BaseModel):
     auto_dispatch_enabled: Optional[str] = None
+    auto_dispatch_time: Optional[str] = None
+    auto_dispatch_max_per_day: Optional[str] = None
+    auto_dispatch_dedupe_days: Optional[str] = None
     quiet_hours_enabled: Optional[str] = None
     quiet_hours_start: Optional[str] = None
     quiet_hours_end: Optional[str] = None
@@ -476,6 +602,7 @@ class WhatsAppSettingsRequest(BaseModel):
     template_voucher: Optional[str] = None
     template_expiry: Optional[str] = None
     template_maintenance: Optional[str] = None
+
 
 
 class CreateOltPayload(BaseModel):
@@ -4089,6 +4216,26 @@ async def api_whatsapp_save_settings(req: WhatsAppSettingsRequest):
             updates[k] = str(v)
     saved = database.update_whatsapp_settings(updates)
     return {"success": True, "settings": saved}
+
+
+@app.post("/api/customers/{customer_id}/toggle-reminders")
+async def api_toggle_customer_reminders(customer_id: int):
+    """
+    Phase 3: Toggles the reminders_enabled flag for a subscriber (mute / unmute).
+    Muted subscribers are excluded from automated and bulk WhatsApp dispatches.
+    """
+    try:
+        new_state = database.toggle_customer_reminders(customer_id)
+        return {
+            "success": True,
+            "customer_id": customer_id,
+            "reminders_enabled": new_state,
+            "message": f"Reminders {'activated' if new_state else 'muted'} for subscriber #{customer_id}"
+        }
+    except Exception as e:
+        logger.exception(f"Error toggling reminders for customer #{customer_id}: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
 
 
 @app.get("/api/whatsapp/logs")
