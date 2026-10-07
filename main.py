@@ -3313,6 +3313,21 @@ async def record_payment(customer_id: int, payload: RecordPaymentPayload):
         if result.get("new_credit_balance", 0) > 0:
             msg += f" Current Credit Balance: {result['new_credit_balance']:.2f} SAR."
 
+        # Dispatch WhatsApp payment receipt if requested
+        if getattr(payload, "send_whatsapp", False):
+            try:
+                wa_receipt = dispatch_payment_receipt_whatsapp(
+                    customer_id=customer_id,
+                    amount_paid=payload.amount,
+                    receipt_no=f"PAY-{result.get('payment_id', datetime.now().strftime('%Y%m%d%H%M'))}",
+                    collector="Admin",
+                    payment_type="cash",
+                    notes=payload.notes or "Service Renewal"
+                )
+                result["whatsapp_receipt"] = wa_receipt
+            except Exception as we:
+                logger.warning(f"Could not dispatch WhatsApp receipt for customer #{customer_id}: {we}")
+
         return {
             "success": True,
             "message": msg,
