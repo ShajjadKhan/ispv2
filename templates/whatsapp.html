@@ -417,8 +417,123 @@
     gap: 10px;
   }
 
+  /* TOPIC SUB-NAVIGATION BAR */
+  .wa-subnav-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #090e1a;
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  .wa-nav-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    user-select: none;
+  }
+  .wa-nav-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .wa-nav-tab.active {
+    color: #25d366;
+    background: rgba(37, 211, 102, 0.12);
+    border-color: rgba(37, 211, 102, 0.35);
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.15);
+  }
+  .wa-nav-tab .tab-icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+  .wa-nav-tab .tab-counter {
+    font-size: 10.5px;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .wa-nav-tab.active .tab-counter {
+    background: rgba(37, 211, 102, 0.25);
+    color: #25d366;
+  }
+
+  .wa-topic-pane {
+    animation: fadeInTopic 0.18s ease-out;
+  }
+  @keyframes fadeInTopic {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* QUEUE SEARCH BAR & HIGHLIGHTS */
+  .queue-search-row {
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .queue-toolbar {
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.015);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .queue-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .queue-pacing-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Customer selection row highlight */
+  #dueCustomersTable tr.due-table-row.row-selected {
+    background: rgba(14, 165, 233, 0.05);
+  }
+
   /* MOBILE RESPONSIVE OPTIMIZATION */
   @media (max-width: 768px) {
+    .wa-subnav-bar {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 6px !important;
+      padding: 6px !important;
+    }
+    .wa-nav-tab {
+      padding: 8px 10px !important;
+      font-size: 11.5px !important;
+      justify-content: flex-start !important;
+      min-height: 40px !important;
+    }
     .wa-hero-card {
       padding: 10px 12px;
     }
@@ -429,6 +544,169 @@
     .clean-table th, .clean-table td {
       padding: 5px 6px;
       font-size: 11px;
+    }
+
+    /* Queue Search & Toolbar Mobile */
+    .queue-search-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+    }
+    .queue-toolbar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+    }
+    .queue-filter-chips {
+      width: 100% !important;
+    }
+    .queue-pacing-controls {
+      flex-direction: column !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .queue-pacing-controls > div,
+    .queue-pacing-controls > label {
+      width: 100% !important;
+      justify-content: space-between !important;
+    }
+    .queue-pacing-controls select {
+      flex: 1 !important;
+    }
+    .queue-pacing-controls button {
+      width: 100% !important;
+      min-height: 40px !important;
+      font-size: 13px !important;
+      justify-content: center !important;
+    }
+
+    /* CUSTOMER QUEUE TABLE -> MOBILE RESPONSIVE CARD DECK */
+    .due-table-wrapper {
+      overflow-x: visible !important;
+    }
+    #dueCustomersTable thead {
+      display: none !important;
+    }
+    #dueCustomersTable, 
+    #dueCustomersTable tbody {
+      display: block !important;
+      width: 100% !important;
+    }
+    #dueCustomersTable tr.due-table-row {
+      display: grid !important;
+      grid-template-columns: auto 1fr auto !important;
+      gap: 6px 10px !important;
+      align-items: center !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      background: #090e1a !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 12px !important;
+      padding: 12px !important;
+      margin-bottom: 10px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+      transition: all 0.2s ease !important;
+    }
+    #dueCustomersTable tr.due-table-row.row-selected {
+      border-color: rgba(56, 189, 248, 0.5) !important;
+      background: rgba(14, 165, 233, 0.07) !important;
+      box-shadow: 0 4px 16px rgba(14, 165, 233, 0.15) !important;
+    }
+    #dueCustomersTable tr.due-table-row td {
+      border: none !important;
+      padding: 0 !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-chk {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-chk input {
+      width: 22px !important;
+      height: 22px !important;
+      cursor: pointer !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-name {
+      grid-column: 2 !important;
+      grid-row: 1 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      flex-wrap: wrap !important;
+      font-size: 14px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-due {
+      grid-column: 3 !important;
+      grid-row: 1 !important;
+      text-align: right !important;
+      justify-self: end !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-due strong {
+      font-size: 15px !important;
+      white-space: nowrap !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-phone {
+      grid-column: 1 / 3 !important;
+      grid-row: 2 !important;
+      font-size: 12.5px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-type {
+      grid-column: 3 !important;
+      grid-row: 2 !important;
+      text-align: right !important;
+      justify-self: end !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-plan {
+      grid-column: 1 / 3 !important;
+      grid-row: 3 !important;
+      font-size: 11.5px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-expiry {
+      grid-column: 3 !important;
+      grid-row: 3 !important;
+      text-align: right !important;
+      justify-self: end !important;
+      font-size: 11.5px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-location {
+      grid-column: 1 / -1 !important;
+      grid-row: 4 !important;
+      border-top: 1px dashed rgba(255, 255, 255, 0.06) !important;
+      padding-top: 5px !important;
+      font-size: 11.5px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-reminder {
+      grid-column: 1 / -1 !important;
+      grid-row: 5 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-action {
+      grid-column: 1 / -1 !important;
+      grid-row: 6 !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+      padding-top: 8px !important;
+      margin-top: 2px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-action .due-action-btns {
+      display: flex !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-action .due-action-btns .btn-due-single {
+      flex: 1 !important;
+      min-height: 38px !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+      justify-content: center !important;
+    }
+    #dueCustomersTable tr.due-table-row td.col-action .due-action-btns .btn-due-mute {
+      min-height: 38px !important;
+      padding: 0 14px !important;
+      font-size: 14px !important;
     }
 
     /* Logs Table Card Deck */
@@ -567,7 +845,7 @@
         <button type="button" class="btn-simulate" onclick="restartWhatsAppEngine()" id="btnRestartEngine" title="Restart OpenWA Session Engine">
           ⚡ Restart Session
         </button>
-        <button type="button" class="btn-simulate" onclick="openSettingsModal()">
+        <button type="button" class="btn-simulate" onclick="switchWaTopic('settings')">
           ⚙️ Settings &amp; Templates
         </button>
         <button type="button" class="btn-simulate" onclick="checkLiveStatus()" id="btnCheckStatus">
@@ -582,19 +860,19 @@
 
     <!-- TELEMETRY / STATS ROW -->
     <div class="telemetry-row">
-      <div class="tele-box">
+      <div class="tele-box" style="cursor: pointer;" onclick="switchWaTopic('logs')" title="Click to view all delivery logs">
         <span class="label">Total Dispatched / Logged</span>
         <span class="value text-cyan">{{ stats.total_logs }} Messages</span>
       </div>
-      <div class="tele-box">
+      <div class="tele-box" style="cursor: pointer;" onclick="switchWaTopic('logs')" title="Click to view delivered logs">
         <span class="label">Delivered Successfully</span>
         <span class="value text-emerald">{{ stats.sent_count }} Delivered</span>
       </div>
-      <div class="tele-box">
+      <div class="tele-box" style="cursor: pointer;" onclick="switchWaTopic('settings')" title="Click to configure night quiet shield">
         <span class="label">Protected by Night Shield</span>
         <span class="value" style="color: #fbbf24;">{{ stats.blocked_count }} Blocked</span>
       </div>
-      <div class="tele-box">
+      <div class="tele-box" style="cursor: pointer;" onclick="switchWaTopic('queue')" title="Click to view pending queue subscribers">
         <span class="label">Subscribers Due for Notice</span>
         <span class="value text-rose">{{ stats.due_count }} Pending</span>
       </div>
@@ -623,227 +901,75 @@
   </div>
   {% endif %}
 
-  <!-- NIGHT QUIET HOURS & DISPATCH PERMISSION SHIELD -->
-  <div class="night-shield-card {% if not is_night %}daytime{% endif %}">
-    <div style="display: flex; align-items: center; gap: 14px;">
-      {% if is_night %}
-      <span style="font-size: 24px;">🌙</span>
-      <div>
-        <div style="font-size: 13.5px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 8px;">
-          <span>NIGHT QUIET HOURS SHIELD ACTIVE</span>
-          <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
-        </div>
-        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-          Customer sleep protection enabled. Automated reminder cron jobs are blocked. Manual night sends require explicit confirmation.
-        </div>
-      </div>
-      {% else %}
-      <span style="font-size: 24px;">☀️</span>
-      <div>
-        <div style="font-size: 13.5px; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 8px;">
-          <span>DAYTIME NOTIFICATION WINDOW ACTIVE</span>
-          <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
-        </div>
-        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-          Safe sending hours. Due notices and payment receipts can be dispatched courteously to customers.
-        </div>
-      </div>
-      {% endif %}
-    </div>
+  <!-- TOPIC SUB-NAVIGATION BAR -->
+  <div class="wa-subnav-bar">
+    <button type="button" class="wa-nav-tab active" id="waNavTab_queue" onclick="switchWaTopic('queue')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Billing Queue</span>
+      <span class="tab-counter text-rose">{{ due_customers | length }}</span>
+    </button>
+    <button type="button" class="wa-nav-tab" id="waNavTab_composer" onclick="switchWaTopic('composer')">
+      <span class="tab-icon">✉️</span>
+      <span class="tab-label">Direct Composer</span>
+    </button>
+    <button type="button" class="wa-nav-tab" id="waNavTab_logs" onclick="switchWaTopic('logs')">
+      <span class="tab-icon">📜</span>
+      <span class="tab-label">Delivery Ledger</span>
+      <span class="tab-counter text-cyan">{{ stats.total_logs }}</span>
+    </button>
+    <button type="button" class="wa-nav-tab" id="waNavTab_settings" onclick="switchWaTopic('settings')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">Automation &amp; Templates</span>
+    </button>
+  </div>
 
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Auto-Dispatch:</span>
-        {% if wa_settings.auto_dispatch_enabled == '1' %}
-          <span class="badge-status running" style="font-size: 10px;">ENABLED</span>
+  <!-- TOPIC 1: SUBSCRIBER BILLING QUEUE -->
+  <div id="waTopic_queue" class="wa-topic-pane">
+
+    <!-- NIGHT QUIET HOURS & DISPATCH PERMISSION SHIELD -->
+    <div class="night-shield-card {% if not is_night %}daytime{% endif %}">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        {% if is_night %}
+        <span style="font-size: 24px;">🌙</span>
+        <div>
+          <div style="font-size: 13.5px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 8px;">
+            <span>NIGHT QUIET HOURS SHIELD ACTIVE</span>
+            <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            Customer sleep protection enabled. Automated reminder cron jobs are blocked. Manual night sends require explicit confirmation.
+          </div>
+        </div>
         {% else %}
-          <span class="badge-status stopped" style="font-size: 10px;">DISABLED (SAFE)</span>
+        <span style="font-size: 24px;">☀️</span>
+        <div>
+          <div style="font-size: 13.5px; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 8px;">
+            <span>DAYTIME NOTIFICATION WINDOW ACTIVE</span>
+            <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            Safe sending hours. Due notices and payment receipts can be dispatched courteously to customers.
+          </div>
+        </div>
         {% endif %}
       </div>
-      <button type="button" class="btn-simulate" style="font-size: 11px; padding: 5px 12px;" onclick="openSettingsModal()">
-        Configure Shield
-      </button>
-    </div>
-  </div>
 
-  <!-- WORKBENCH: COMPOSER (LEFT) + LIVE WHATSAPP BUBBLE (RIGHT) -->
-  <div class="composer-grid">
-
-    <!-- COMPOSER COLUMN -->
-    <div class="section-card">
-      <div class="section-card-header">
-        <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
-          <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-          <span>Direct Message Composer</span>
-        </div>
-        <span class="font-mono text-dim" style="font-size: 11px;">Manual &amp; Targeted Notices</span>
-      </div>
-
-      <div class="composer-body">
-
-        <!-- RECIPIENT LIVE SEARCH & SELECTION -->
-        <div class="form-group" style="position: relative;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <label class="form-label" for="custSearchInput" style="margin-bottom: 0;">1. Choose Recipient</label>
-            <span id="selectedCustBadge" style="display: none; font-size: 11px; background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.35); padding: 3px 8px; border-radius: 6px; font-weight: 700; align-items: center;">
-              <span id="selectedCustBadgeText">Selected</span>
-              <button type="button" onclick="clearSelectedCustomer()" style="background: none; border: none; color: #f87171; margin-left: 6px; cursor: pointer; font-size: 13px; font-weight: bold; padding: 0; line-height: 1;" title="Clear selection">&times;</button>
-            </span>
-          </div>
-
-          <div style="position: relative;">
-            <div style="display: flex; align-items: center; position: relative;">
-              <span style="position: absolute; left: 12px; color: var(--text-dim); font-size: 13px; pointer-events: none; z-index: 2;">
-                🔍
-              </span>
-              <input type="text"
-                     id="custSearchInput"
-                     class="form-control"
-                     style="padding-left: 36px; padding-right: 32px;"
-                     placeholder="Type subscriber name, phone, or room (min 2 chars)..."
-                     autocomplete="off"
-                     oninput="onCustSearchInput(this.value)"
-                     onkeydown="onCustSearchKeyDown(event)"
-                     onfocus="onCustSearchInput(this.value)" />
-              <button type="button"
-                      id="btnClearCustSearch"
-                      onclick="clearSelectedCustomer()"
-                      style="position: absolute; right: 10px; background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; display: none; z-index: 2;"
-                      title="Clear">&times;</button>
-            </div>
-
-            <!-- LIVE AUTOCOMPLETE DROPDOWN -->
-            <div id="custSuggestionsList"
-                 style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1050; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; max-height: 280px; overflow-y: auto; box-shadow: 0 14px 36px rgba(0,0,0,0.85);">
-            </div>
-          </div>
-          <input type="hidden" id="selectedCustId" value="" />
-        </div>
-
-        <!-- RECIPIENT PHONE NUMBER -->
-        <div class="form-group">
-          <label class="form-label" for="targetPhone">Recipient Mobile Number</label>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="font-mono" style="background:#090e1a; border:1px solid var(--border-subtle); padding:10px 12px; border-radius:8px; font-size:13px; color:#38bdf8;">+966</span>
-            <input type="text" id="targetPhone" class="form-control font-mono" placeholder="05XXXXXXXX or 5XXXXXXXX" oninput="onPhoneInput()">
-          </div>
-          <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
-            Auto-populated from subscriber search, or enter a standalone mobile number.
-          </div>
-        </div>
-
-        <!-- TEMPLATE PRESETS -->
-        <div class="form-group">
-          <label class="form-label">2. Template Presets</label>
-          <div class="chips-row" id="composerTemplateChips">
-            <button type="button" class="chip-btn active" onclick="loadTemplate('reminder')">💳 Due Reminder</button>
-            <button type="button" class="chip-btn" onclick="loadTemplate('receipt')">🧾 Payment Receipt</button>
-            <button type="button" class="chip-btn" onclick="loadTemplate('voucher')">🎟️ WiFi Voucher PIN</button>
-            <button type="button" class="chip-btn" onclick="loadTemplate('expiry')">⚠️ Expiry Notice</button>
-            <button type="button" class="chip-btn" onclick="loadTemplate('welcome')">🌐 Welcome</button>
-            <button type="button" class="chip-btn" onclick="loadTemplate('maintenance')">🛠️ Maintenance</button>
-            <button type="button" class="chip-btn" onclick="loadTemplate('blank')">✏️ Blank</button>
-          </div>
-        </div>
-
-        <!-- QUICK VARIABLE TAGS -->
-        <div class="form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label class="form-label">Insert Dynamic Tags</label>
-            <span class="text-dim" style="font-size: 11px;">Click tag to insert</span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-            <span class="tag-pill" onclick="insertTag('[NAME]')">[NAME]</span>
-            <span class="tag-pill" onclick="insertTag('[PHONE]')">[PHONE]</span>
-            <span class="tag-pill" onclick="insertTag('[PACKAGE]')">[PACKAGE]</span>
-            <span class="tag-pill" onclick="insertTag('[DUE_BALANCE]')">[DUE_BALANCE]</span>
-            <span class="tag-pill" onclick="insertTag('[EXPIRY_DATE]')">[EXPIRY_DATE]</span>
-            <span class="tag-pill" onclick="insertTag('[AMOUNT]')">[AMOUNT]</span>
-            <span class="tag-pill" onclick="insertTag('[PIN]')">[PIN]</span>
-            <span class="tag-pill" onclick="insertTag('[HELPLINE]')">[HELPLINE]</span>
-            <span class="tag-pill" onclick="insertTag('[MOVIES]')">[MOVIES]</span>
-          </div>
-        </div>
-
-        <!-- MESSAGE EDITOR -->
-        <div class="form-group">
-          <label class="form-label" for="messageEditor">3. Message Text</label>
-          <textarea id="messageEditor" class="form-control font-mono" rows="8" style="resize: vertical; font-size: 12.5px; line-height: 1.5;" oninput="updateLivePreview()"></textarea>
-          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-top: 4px;">
-            <span id="charCount">0 characters</span>
-            <span>Markdown: <code>*bold*</code>, <code>_italic_</code>, <code>`code`</code></span>
-          </div>
-        </div>
-
-        <!-- NIGHT FORCE OVERRIDE & DISPATCH ACTIONS -->
-        <div style="padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 14px;">
-          {% if is_night %}
-          <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="chkForceNight" style="width: 17px; height: 17px; accent-color: #f59e0b; cursor: pointer;">
-            <label for="chkForceNight" style="font-size: 12px; font-weight: 700; color: #fbbf24; cursor: pointer;">
-              🌙 I authorize sending this message during Night Quiet Hours
-            </label>
-          </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Auto-Dispatch:</span>
+          {% if wa_settings.auto_dispatch_enabled == '1' %}
+            <span class="badge-status running" style="font-size: 10px;">ENABLED</span>
+          {% else %}
+            <span class="badge-status stopped" style="font-size: 10px;">DISABLED (SAFE)</span>
           {% endif %}
-
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <button type="button" class="btn-simulate" onclick="sendAction(true)">
-              🛡️ Safe Simulate (Test Log)
-            </button>
-            <button type="button" class="btn-wa-send" onclick="sendAction(false)">
-              <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-              <span>Send WhatsApp Now</span>
-            </button>
-          </div>
         </div>
-
+        <button type="button" class="btn-simulate" style="font-size: 11px; padding: 5px 12px;" onclick="switchWaTopic('settings')">
+          Configure Shield
+        </button>
       </div>
     </div>
 
-    <!-- PREVIEW COLUMN: REALISTIC WHATSAPP PHONE BUBBLE -->
-    <div class="section-card" style="display: flex; flex-direction: column;">
-      <div class="section-card-header">
-        <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
-          <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
-          <span>Live Subscriber Phone Preview</span>
-        </div>
-        <span class="font-mono text-dim" style="font-size: 11px;">Real-Time Variable Rendering</span>
-      </div>
 
-      <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
-        <div class="wa-chat-container">
-          <!-- CHAT HEADER -->
-          <div class="wa-chat-header">
-            <div class="wa-chat-avatar">CN</div>
-            <div>
-              <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 5px;">
-                <span>Cyber Net</span>
-                <svg style="width: 14px; height: 14px; fill: #25d366;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              </div>
-              <div style="font-size: 11px; color: #25d366;">online &bull; Official ISP Gateway</div>
-            </div>
-          </div>
-
-          <!-- CHAT BUBBLE AREA -->
-          <div class="wa-chat-area">
-            <div class="wa-bubble-out">
-              <div id="waBubbleContent"></div>
-              <div class="wa-bubble-meta">
-                <span id="waBubbleTime">11:05 PM</span>
-                <span class="wa-ticks">✓✓</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top: 14px; padding: 12px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 12px; color: var(--text-dim);">
-          <strong style="color: #ffffff;">💡 Live Rendering Tip:</strong>
-          Any dynamic tags like <code>[NAME]</code>, <code>[PACKAGE]</code>, and <code>[DUE_BALANCE]</code> will automatically resolve to the selected customer's actual account records before dispatch.
-        </div>
-      </div>
-    </div>
-
-  </div>
 
   <!-- SUBSCRIBERS AWAITING BILL NOTICE (REVIEW-FIRST QUEUE) -->
   <div class="section-card">
@@ -860,11 +986,33 @@
       </div>
     </div>
 
+    <!-- QUEUE SEARCH & FILTERS ROW -->
+    <div class="queue-search-row">
+      <div style="position: relative; flex: 1;">
+        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 13px; pointer-events: none;">🔍</span>
+        <input type="text"
+               id="waDueCustSearch"
+               class="form-control font-mono"
+               style="padding-left: 36px; padding-right: 32px; font-size: 12.5px; height: 38px;"
+               placeholder="Filter queue by subscriber name, mobile, building, room, or package..."
+               oninput="filterDueCustomers(this.value)"
+               autocomplete="off">
+        <button type="button"
+                id="btnClearDueCustSearch"
+                onclick="clearDueCustSearch()"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; display: none;"
+                title="Clear filter">&times;</button>
+      </div>
+      <div style="font-size: 11.5px; color: var(--text-dim); white-space: nowrap; font-family: var(--font-mono);">
+        <span id="filteredDueCount">{{ due_customers | length }}</span> / {{ due_customers | length }} visible
+      </div>
+    </div>
+
     <!-- QUEUE ACTIONS & PACING TOOLBAR -->
-    <div style="padding: 10px 14px; background: rgba(255, 255, 255, 0.015); border-bottom: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+    <div class="queue-toolbar">
       
       <!-- QUICK SELECTION FILTERS -->
-      <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+      <div class="queue-filter-chips">
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectAllDue(true)">☑ Select All</button>
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectNeverReminded()">🟢 Select Never Reminded</button>
         <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectUnremindedOver3Days()">📅 Select Due (&gt;3d ago)</button>
@@ -873,7 +1021,7 @@
       </div>
 
       <!-- PACING & TEMPLATE CONTROLS -->
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <div class="queue-pacing-controls">
         <div style="display: flex; align-items: center; gap: 5px;">
           <label for="batchTemplate" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Template:</label>
           <select id="batchTemplate" class="form-control font-mono" style="padding: 4px 8px; font-size: 11.5px; width: 145px;">
@@ -910,8 +1058,8 @@
     </div>
 
     <!-- TABLE -->
-    <div style="overflow-x: auto;">
-      <table class="clean-table">
+    <div class="due-table-wrapper" style="overflow-x: auto;">
+      <table class="clean-table" id="dueCustomersTable">
         <thead>
           <tr>
             <th style="width: 36px; text-align: center;">
@@ -928,19 +1076,20 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="dueCustomersTbody">
           {% if not due_customers %}
-          <tr>
+          <tr class="empty-due-row">
             <td colspan="10" style="text-align: center; padding: 24px; color: var(--text-dim);">
               All active subscribers are currently settled &bull; 0 Overdue Balances
             </td>
           </tr>
           {% else %}
             {% for c in due_customers %}
-            <tr id="row-due-{{ c.id }}">
-              <td style="text-align: center;">
+            <tr id="row-due-{{ c.id }}" class="due-table-row" data-due-search="{{ c.name | lower }} {{ c.phone }} {{ c.building | lower }} {{ c.apartment }} {{ c.room }} {{ c.package_name | lower }}">
+              <td class="col-chk" style="text-align: center;">
                 <input type="checkbox"
                        class="due-cust-chk"
+                       id="chk-due-{{ c.id }}"
                        data-id="{{ c.id }}"
                        data-name="{{ c.name }}"
                        data-phone="{{ c.phone }}"
@@ -953,29 +1102,37 @@
                        onchange="updateBatchSelectionStats()"
                        style="accent-color: #38bdf8; cursor: pointer;">
               </td>
-              <td>
-                <strong style="color: #ffffff;">{{ c.name }}</strong>
+              <td class="col-name" data-label="Subscriber">
+                <label for="chk-due-{{ c.id }}" style="cursor: pointer; display: inline-flex; align-items: center; margin: 0;">
+                  <strong style="color: #ffffff;">{{ c.name }}</strong>
+                </label>
                 <span id="mute-badge-{{ c.id }}" class="badge-status" style="display: {{ 'none' if c.reminders_enabled else 'inline-block' }}; font-size: 9.5px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-left: 5px;">🔕 Muted</span>
               </td>
-              <td class="font-mono text-cyan">{{ c.phone }}</td>
-              <td class="text-dim" style="font-size: 11px;">
-                {{ c.building or 'HQ' }}, Apt {{ c.apartment or '1' }}, Room {{ c.room or '1' }}
+              <td class="col-phone" data-label="Mobile">
+                <span class="font-mono text-cyan">+{{ c.phone }}</span>
               </td>
-              <td>
+              <td class="col-location" data-label="Location">
+                <span class="text-dim" style="font-size: 11px;">
+                  📍 {{ c.building or 'HQ' }}, Apt {{ c.apartment or '1' }}, Room {{ c.room or '1' }}
+                </span>
+              </td>
+              <td class="col-plan" data-label="Plan">
                 <span class="badge-tag">{{ c.package_name }}</span>
               </td>
-              <td>
+              <td class="col-due" data-label="Balance Due">
                 <strong class="font-mono" style="color: #f87171; font-size: 13.5px;">{{ "%.2f"|format(c.effective_due) }} SAR</strong>
               </td>
-              <td class="font-mono text-dim" style="font-size: 11.5px;">{{ c.expiry_date or 'End of Month' }}</td>
-              <td>
+              <td class="col-expiry" data-label="Expiry Date">
+                <span class="font-mono text-dim" style="font-size: 11.5px;">{{ c.expiry_date or 'End of Month' }}</span>
+              </td>
+              <td class="col-type" data-label="Billing Type">
                 {% if c.customer_type == 'postpaid' %}
                   <span class="badge-status running" style="font-size: 10px;">POSTPAID</span>
                 {% else %}
                   <span class="badge-status" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">PREPAID</span>
                 {% endif %}
               </td>
-              <td>
+              <td class="col-reminder" data-label="Last Reminder">
                 {% if c.recently_notified %}
                   <span class="badge-status" style="font-size: 10px; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35);" title="Last sent {{ c.last_reminder_at }}">
                     ⚠️ {{ c.days_since_last_reminder }}d ago
@@ -990,12 +1147,12 @@
                   </span>
                 {% endif %}
               </td>
-              <td>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                  <button type="button" class="btn-simulate" style="font-size: 11px; padding: 4px 8px;" onclick="loadCustomerToComposer({{ c.id }})">
+              <td class="col-action" data-label="Action">
+                <div class="due-action-btns" style="display: flex; gap: 4px; align-items: center;">
+                  <button type="button" class="btn-simulate btn-due-single" style="font-size: 11px; padding: 4px 8px;" onclick="loadCustomerToComposer({{ c.id }})">
                     ✉️ Single
                   </button>
-                  <button type="button" id="mute-btn-{{ c.id }}" class="btn-simulate" style="font-size: 10.5px; padding: 4px 7px; color: {{ '#f87171' if c.reminders_enabled else '#22c55e' }};" onclick="toggleMuteCustomer({{ c.id }}, event)" title="{{ 'Mute automated notices' if c.reminders_enabled else 'Unmute notices' }}">
+                  <button type="button" id="mute-btn-{{ c.id }}" class="btn-simulate btn-due-mute" style="font-size: 10.5px; padding: 4px 7px; color: {{ '#f87171' if c.reminders_enabled else '#22c55e' }};" onclick="toggleMuteCustomer({{ c.id }}, event)" title="{{ 'Mute automated notices' if c.reminders_enabled else 'Unmute notices' }}">
                     {{ '🔕' if c.reminders_enabled else '🔔' }}
                   </button>
                 </div>
@@ -1007,6 +1164,192 @@
       </table>
     </div>
   </div>
+  </div><!-- /waTopic_queue -->
+
+  <!-- TOPIC 2: DIRECT MESSAGE COMPOSER -->
+  <div id="waTopic_composer" class="wa-topic-pane" style="display: none;">
+    <!-- WORKBENCH: COMPOSER (LEFT) + LIVE WHATSAPP BUBBLE (RIGHT) -->
+    <div class="composer-grid">
+
+      <!-- COMPOSER COLUMN -->
+      <div class="section-card">
+        <div class="section-card-header">
+          <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <span>Direct Message Composer</span>
+          </div>
+          <span class="font-mono text-dim" style="font-size: 11px;">Manual &amp; Targeted Notices</span>
+        </div>
+
+        <div class="composer-body">
+
+          <!-- RECIPIENT LIVE SEARCH & SELECTION -->
+          <div class="form-group" style="position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="form-label" for="custSearchInput" style="margin-bottom: 0;">1. Choose Recipient</label>
+              <span id="selectedCustBadge" style="display: none; font-size: 11px; background: rgba(37, 211, 102, 0.15); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.35); padding: 3px 8px; border-radius: 6px; font-weight: 700; align-items: center;">
+                <span id="selectedCustBadgeText">Selected</span>
+                <button type="button" onclick="clearSelectedCustomer()" style="background: none; border: none; color: #f87171; margin-left: 6px; cursor: pointer; font-size: 13px; font-weight: bold; padding: 0; line-height: 1;" title="Clear selection">&times;</button>
+              </span>
+            </div>
+
+            <div style="position: relative;">
+              <div style="display: flex; align-items: center; position: relative;">
+                <span style="position: absolute; left: 12px; color: var(--text-dim); font-size: 13px; pointer-events: none; z-index: 2;">
+                  🔍
+                </span>
+                <input type="text"
+                       id="custSearchInput"
+                       class="form-control"
+                       style="padding-left: 36px; padding-right: 32px;"
+                       placeholder="Type subscriber name, phone, or room (min 2 chars)..."
+                       autocomplete="off"
+                       oninput="onCustSearchInput(this.value)"
+                       onkeydown="onCustSearchKeyDown(event)"
+                       onfocus="onCustSearchInput(this.value)" />
+                <button type="button"
+                        id="btnClearCustSearch"
+                        onclick="clearSelectedCustomer()"
+                        style="position: absolute; right: 10px; background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; display: none; z-index: 2;"
+                        title="Clear">&times;</button>
+              </div>
+
+              <!-- LIVE AUTOCOMPLETE DROPDOWN -->
+              <div id="custSuggestionsList"
+                   style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1050; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; max-height: 280px; overflow-y: auto; box-shadow: 0 14px 36px rgba(0,0,0,0.85);">
+              </div>
+            </div>
+            <input type="hidden" id="selectedCustId" value="" />
+          </div>
+
+          <!-- RECIPIENT PHONE NUMBER -->
+          <div class="form-group">
+            <label class="form-label" for="targetPhone">Recipient Mobile Number</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="font-mono" style="background:#090e1a; border:1px solid var(--border-subtle); padding:10px 12px; border-radius:8px; font-size:13px; color:#38bdf8;">+966</span>
+              <input type="text" id="targetPhone" class="form-control font-mono" placeholder="05XXXXXXXX or 5XXXXXXXX" oninput="onPhoneInput()">
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+              Auto-populated from subscriber search, or enter a standalone mobile number.
+            </div>
+          </div>
+
+          <!-- TEMPLATE PRESETS -->
+          <div class="form-group">
+            <label class="form-label">2. Template Presets</label>
+            <div class="chips-row" id="composerTemplateChips">
+              <button type="button" class="chip-btn active" onclick="loadTemplate('reminder')">💳 Due Reminder</button>
+              <button type="button" class="chip-btn" onclick="loadTemplate('receipt')">🧾 Payment Receipt</button>
+              <button type="button" class="chip-btn" onclick="loadTemplate('voucher')">🎟️ WiFi Voucher PIN</button>
+              <button type="button" class="chip-btn" onclick="loadTemplate('expiry')">⚠️ Expiry Notice</button>
+              <button type="button" class="chip-btn" onclick="loadTemplate('welcome')">🌐 Welcome</button>
+              <button type="button" class="chip-btn" onclick="loadTemplate('maintenance')">🛠️ Maintenance</button>
+              <button type="button" class="chip-btn" onclick="loadTemplate('blank')">✏️ Blank</button>
+            </div>
+          </div>
+
+          <!-- QUICK VARIABLE TAGS -->
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label">Insert Dynamic Tags</label>
+              <span class="text-dim" style="font-size: 11px;">Click tag to insert</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+              <span class="tag-pill" onclick="insertTag('[NAME]')">[NAME]</span>
+              <span class="tag-pill" onclick="insertTag('[PHONE]')">[PHONE]</span>
+              <span class="tag-pill" onclick="insertTag('[PACKAGE]')">[PACKAGE]</span>
+              <span class="tag-pill" onclick="insertTag('[DUE_BALANCE]')">[DUE_BALANCE]</span>
+              <span class="tag-pill" onclick="insertTag('[EXPIRY_DATE]')">[EXPIRY_DATE]</span>
+              <span class="tag-pill" onclick="insertTag('[AMOUNT]')">[AMOUNT]</span>
+              <span class="tag-pill" onclick="insertTag('[PIN]')">[PIN]</span>
+              <span class="tag-pill" onclick="insertTag('[HELPLINE]')">[HELPLINE]</span>
+              <span class="tag-pill" onclick="insertTag('[MOVIES]')">[MOVIES]</span>
+            </div>
+          </div>
+
+          <!-- MESSAGE EDITOR -->
+          <div class="form-group">
+            <label class="form-label" for="messageEditor">3. Message Text</label>
+            <textarea id="messageEditor" class="form-control font-mono" rows="8" style="resize: vertical; font-size: 12.5px; line-height: 1.5;" oninput="updateLivePreview()"></textarea>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+              <span id="charCount">0 characters</span>
+              <span>Markdown: <code>*bold*</code>, <code>_italic_</code>, <code>`code`</code></span>
+            </div>
+          </div>
+
+          <!-- NIGHT FORCE OVERRIDE & DISPATCH ACTIONS -->
+          <div style="padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 14px;">
+            {% if is_night %}
+            <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px;">
+              <input type="checkbox" id="chkForceNight" style="width: 17px; height: 17px; accent-color: #f59e0b; cursor: pointer;">
+              <label for="chkForceNight" style="font-size: 12px; font-weight: 700; color: #fbbf24; cursor: pointer;">
+                🌙 I authorize sending this message during Night Quiet Hours
+              </label>
+            </div>
+            {% endif %}
+
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <button type="button" class="btn-simulate" onclick="sendAction(true)">
+                🛡️ Safe Simulate (Test Log)
+              </button>
+              <button type="button" class="btn-wa-send" onclick="sendAction(false)">
+                <svg style="width: 16px; height: 16px; fill: currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                <span>Send WhatsApp Now</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PREVIEW COLUMN: REALISTIC WHATSAPP PHONE BUBBLE -->
+      <div class="section-card" style="display: flex; flex-direction: column;">
+        <div class="section-card-header">
+          <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+            <span>Live Subscriber Phone Preview</span>
+          </div>
+          <span class="font-mono text-dim" style="font-size: 11px;">Real-Time Variable Rendering</span>
+        </div>
+
+        <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
+          <div class="wa-chat-container">
+            <!-- CHAT HEADER -->
+            <div class="wa-chat-header">
+              <div class="wa-chat-avatar">CN</div>
+              <div>
+                <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 5px;">
+                  <span>Cyber Net</span>
+                  <svg style="width: 14px; height: 14px; fill: #25d366;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+                <div style="font-size: 11px; color: #25d366;">online &bull; Official ISP Gateway</div>
+              </div>
+            </div>
+
+            <!-- CHAT BUBBLE AREA -->
+            <div class="wa-chat-area">
+              <div class="wa-bubble-out">
+                <div id="waBubbleContent"></div>
+                <div class="wa-bubble-meta">
+                  <span id="waBubbleTime">11:05 PM</span>
+                  <span class="wa-ticks">✓✓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; padding: 12px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 12px; color: var(--text-dim);">
+            <strong style="color: #ffffff;">💡 Live Rendering Tip:</strong>
+            Any dynamic tags like <code>[NAME]</code>, <code>[PACKAGE]</code>, and <code>[DUE_BALANCE]</code> will automatically resolve to the selected customer's actual account records before dispatch.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /waTopic_composer -->
+
+  <!-- TOPIC 3: DELIVERY LEDGER & OUTBOX -->
+  <div id="waTopic_logs" class="wa-topic-pane" style="display: none;">
 
   <!-- OUTBOX & MESSAGE DELIVERY LEDGER -->
   <div class="filter-bar">
@@ -1103,6 +1446,232 @@
       </table>
     </div>
   </div>
+  </div><!-- /waTopic_logs -->
+
+  <!-- TOPIC 4: AUTOMATION RULES & TEMPLATES HUB -->
+  <div id="waTopic_settings" class="wa-topic-pane" style="display: none;">
+    <form onsubmit="saveSettings(event)" id="inPageSettingsForm">
+
+      <!-- HEADER ACTION CARD -->
+      <div class="section-card" style="margin-bottom: 12px;">
+        <div class="section-card-header" style="flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">⚙️</span>
+            <div>
+              <h2 style="font-size: 15px; font-weight: 800; color: #ffffff; margin: 0;">
+                WhatsApp Automation Rules &amp; Multi-Stage Template Engine
+              </h2>
+              <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
+                Manage background cron schedules, sleep protection shield, and dynamic notification templates.
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn-wa-send" style="padding: 8px 22px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
+            💾 Save Configurations
+          </button>
+        </div>
+      </div>
+
+      <!-- ROW: SCHEDULER + QUIET HOURS -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+
+        <!-- CARD 1: MASTER AUTOMATED MESSAGING SWITCH & SCHEDULER -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <span style="font-size: 13px; font-weight: 700; color: #ffffff;">🤖 Automated Background Scheduler</span>
+            <span class="badge-status {% if wa_settings.auto_dispatch_enabled == '1' %}running{% else %}stopped{% endif %}" style="font-size: 10px;">
+              {{ 'ACTIVE' if wa_settings.auto_dispatch_enabled == '1' else 'DISABLED' }}
+            </span>
+          </div>
+          <div style="padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <label for="set_auto_dispatch" style="color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer;">Master Automation Switch</label>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                  Permits background worker to run daily bill reminders.
+                </div>
+              </div>
+              <select id="set_auto_dispatch" class="form-control" style="width: 145px; font-weight: 700;">
+                <option value="0" {% if wa_settings.auto_dispatch_enabled != '1' %}selected{% endif %}>DISABLED (Safe)</option>
+                <option value="1" {% if wa_settings.auto_dispatch_enabled == '1' %}selected{% endif %}>ENABLED</option>
+              </select>
+            </div>
+
+            <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div>
+                <label class="form-label" for="set_auto_time">Daily Run Time</label>
+                <input type="text" id="set_auto_time" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_time or '12:00' }}" placeholder="12:00">
+                <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Daily hour (HH:MM)</div>
+              </div>
+              <div>
+                <label class="form-label" for="set_auto_max">Daily Cap (Max msgs)</label>
+                <input type="number" id="set_auto_max" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_max_per_day or '25' }}" min="5" max="100">
+                <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Protects line health</div>
+              </div>
+              <div>
+                <label class="form-label" for="set_auto_dedupe">Min Days Between Notice</label>
+                <input type="number" id="set_auto_dedupe" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_dedupe_days or '3' }}" min="1" max="15">
+                <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Deduplication limit</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: NIGHT QUIET HOURS SHIELD -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <span style="font-size: 13px; font-weight: 700; color: #fbbf24;">🌙 Night Quiet Hours Shield</span>
+            <span class="badge-status {% if wa_settings.quiet_hours_enabled == '1' %}running{% else %}stopped{% endif %}" style="font-size: 10px;">
+              {{ 'PROTECTED' if wa_settings.quiet_hours_enabled == '1' else 'OFF' }}
+            </span>
+          </div>
+          <div style="padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="font-size: 11.5px; color: var(--text-muted);">
+              Protects subscriber sleep by automatically blocking dispatches during sleeping hours.
+            </div>
+            <div class="quiet-hours-grid">
+              <div>
+                <label class="form-label" for="set_quiet_enabled">Shield Status</label>
+                <select id="set_quiet_enabled" class="form-control">
+                  <option value="1" {% if wa_settings.quiet_hours_enabled == '1' %}selected{% endif %}>Active (Protected)</option>
+                  <option value="0" {% if wa_settings.quiet_hours_enabled == '0' %}selected{% endif %}>Disabled</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" for="set_quiet_start">Night Begins</label>
+                <input type="text" id="set_quiet_start" class="form-control font-mono" value="{{ wa_settings.quiet_hours_start or '22:00' }}" placeholder="22:00">
+              </div>
+              <div>
+                <label class="form-label" for="set_quiet_end">Morning Ends</label>
+                <input type="text" id="set_quiet_end" class="form-control font-mono" value="{{ wa_settings.quiet_hours_end or '09:00' }}" placeholder="09:00">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CARD 3: CONTACT HELPLINES & LOCAL PORTALS -->
+      <div class="section-card" style="margin-bottom: 12px;">
+        <div class="section-card-header">
+          <span style="font-size: 13px; font-weight: 700; color: #ffffff;">🌐 Customer Portals &amp; Support Contact</span>
+          <span class="font-mono text-dim" style="font-size: 11px;">Populates [HELPLINE], [MOVIES], and [FOOTBALL] tags</span>
+        </div>
+        <div style="padding: 14px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="set_support_phone">24/7 Support Hotline</label>
+              <input type="text" id="set_support_phone" class="form-control font-mono" value="{{ wa_settings.support_phone or '0597595059' }}">
+              <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 2px;">Tag: <code>[HELPLINE]</code></div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="set_movie_server">Free Movie Server URL</label>
+              <input type="text" id="set_movie_server" class="form-control font-mono" value="{{ wa_settings.movie_server or 'http://10.12.14.16:8082' }}">
+              <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 2px;">Tag: <code>[MOVIES]</code></div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="set_football_server">Live Football Server URL</label>
+              <input type="text" id="set_football_server" class="form-control font-mono" value="{{ wa_settings.football_server or 'http://10.12.14.16:8080' }}">
+              <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 2px;">Tag: <code>[FOOTBALL]</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: MULTI-STAGE TEMPLATES WITH TABBED NAVIGATION -->
+      <div class="section-card" style="margin-bottom: 12px;">
+        <div class="section-card-header" style="flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span style="font-size: 13px; font-weight: 700; color: #38bdf8;">📝 Multi-Stage WhatsApp Templates</span>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+              Templates dispatched at different lifecycle stages. Click each tab to customize.
+            </div>
+          </div>
+          <!-- TAB SWITCHER -->
+          <div class="chips-row" style="gap: 6px;">
+            <button type="button" class="chip-btn active" id="tabBtn_tpl_receipt" onclick="switchSettingsTplTab('receipt')">🧾 1. Receipt</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_reminder" onclick="switchSettingsTplTab('reminder')">💳 2. Due Notice</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_expiry" onclick="switchSettingsTplTab('expiry')">⚠️ 3. Expiry Alert</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_welcome" onclick="switchSettingsTplTab('welcome')">🌐 4. Welcome</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_maintenance" onclick="switchSettingsTplTab('maintenance')">🛠️ 5. Maintenance</button>
+          </div>
+        </div>
+        <div style="padding: 14px;">
+          <!-- TAB 1: PAYMENT RECEIPT -->
+          <div id="tabPane_tpl_receipt" class="settings-tpl-pane">
+            <label class="form-label" for="set_tpl_receipt">1. Payment Receipt Template (Dispatched upon cash collection on /balance)</label>
+            <textarea id="set_tpl_receipt" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_receipt }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[AMOUNT]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[RECEIPT_NO]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
+          </div>
+
+          <!-- TAB 2: DUE REMINDER -->
+          <div id="tabPane_tpl_reminder" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_reminder">2. Due &amp; Account Status Reminder Template</label>
+            <textarea id="set_tpl_reminder" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_reminder }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
+          </div>
+
+          <!-- TAB 3: SERVICE EXPIRY -->
+          <div id="tabPane_tpl_expiry" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_expiry">3. Expiry &amp; Service Cutoff Alert Template</label>
+            <textarea id="set_tpl_expiry" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_expiry }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code></div>
+          </div>
+
+          <!-- TAB 4: NEW SUBSCRIBER WELCOME -->
+          <div id="tabPane_tpl_welcome" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_welcome">4. New Subscriber Welcome / Provisioning Template</label>
+            <textarea id="set_tpl_welcome" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_welcome }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
+          </div>
+
+          <!-- TAB 5: MAINTENANCE -->
+          <div id="tabPane_tpl_maintenance" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_maintenance">5. Scheduled Optical Maintenance Announcement Template</label>
+            <textarea id="set_tpl_maintenance" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_maintenance }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[EXPIRY_DATE]</code>, <code>[HELPLINE]</code></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 5: DEDICATED OPENWA GATEWAY TELEMETRY & CONTROLS -->
+      <div class="section-card" style="margin-bottom: 16px;">
+        <div class="section-card-header">
+          <span style="font-size: 13px; font-weight: 700; color: #ffffff;">⚡ OpenWA Gateway Engine Controls</span>
+          <span class="font-mono text-emerald" style="font-size: 11px;">Container: ispv2_whatsapp (Port :2790)</span>
+        </div>
+        <div style="padding: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #ffffff;">
+              Line: +{{ wa_status.phone or 'Not Paired' }} &bull; Session: {{ wa_status.session_id }}
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
+              Re-link or restart the dedicated Node.js Chromium container if pairing goes stale.
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-simulate" style="background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8; font-weight: 700;" onclick="openQrModal()">
+              📲 Pair / Re-link QR
+            </button>
+            <button type="button" class="btn-simulate" onclick="restartWhatsAppEngine()">
+              ⚡ Restart Session
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM SAVE BAR -->
+      <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 12px 0;">
+        <button type="button" class="btn-simulate" onclick="switchWaTopic('queue')" style="padding: 9px 18px;">
+          Back to Queue
+        </button>
+        <button type="submit" class="btn-wa-send" style="padding: 9px 24px; font-size: 13px; font-weight: 800; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
+          💾 Save Configurations
+        </button>
+      </div>
+
+    </form>
+  </div><!-- /waTopic_settings -->
 
 </div>
 
@@ -1185,164 +1754,6 @@
         </button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- SETTINGS & TEMPLATES MODAL -->
-<div id="settingsModal" class="modal-overlay">
-  <div class="modal-container" style="max-width: 680px;">
-    <div class="modal-header">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 16px;">⚙️</span>
-        <h3 style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 0;">WhatsApp Settings &amp; Automation Hub</h3>
-      </div>
-      <button type="button" onclick="closeSettingsModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:22px; cursor:pointer;" aria-label="Close dialog">&times;</button>
-    </div>
-
-    <form onsubmit="saveSettings(event)" class="modal-form">
-      <div class="modal-body" style="padding: 16px 20px; gap: 14px;">
-
-        <!-- AUTO DISPATCH SAFETY TOGGLE & SCHEDULER CONTROLS -->
-        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <label for="set_auto_dispatch" style="color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer;">Master Automated Messaging Switch</label>
-              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
-                Controls whether background cron jobs are permitted to send notices automatically.
-              </div>
-            </div>
-            <select id="set_auto_dispatch" class="form-control" style="width: 145px; font-weight: 700;">
-              <option value="0" {% if wa_settings.auto_dispatch_enabled != '1' %}selected{% endif %}>DISABLED (Safe)</option>
-              <option value="1" {% if wa_settings.auto_dispatch_enabled == '1' %}selected{% endif %}>ENABLED</option>
-            </select>
-          </div>
-
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-            <div>
-              <label class="form-label" for="set_auto_time">Scheduled Run Time</label>
-              <input type="text" id="set_auto_time" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_time or '12:00' }}" placeholder="12:00">
-              <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Daily hour (HH:MM)</div>
-            </div>
-            <div>
-              <label class="form-label" for="set_auto_max">Daily Cap (Max msgs)</label>
-              <input type="number" id="set_auto_max" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_max_per_day or '25' }}" min="5" max="100">
-              <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Protects line health</div>
-            </div>
-            <div>
-              <label class="form-label" for="set_auto_dedupe">Min Days Between Notice</label>
-              <input type="number" id="set_auto_dedupe" class="form-control font-mono" value="{{ wa_settings.auto_dispatch_dedupe_days or '3' }}" min="1" max="15">
-              <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Deduplication limit</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- QUIET HOURS CONFIG -->
-        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 0;">
-          <strong style="color: #ffffff; font-size: 13px;">Night Quiet Hours Shield</strong>
-          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px;">
-            Blocks outbound dispatches during sleeping hours so subscribers are never disturbed.
-          </div>
-          <div class="quiet-hours-grid">
-            <div>
-              <label class="form-label" for="set_quiet_enabled">Shield Status</label>
-              <select id="set_quiet_enabled" class="form-control">
-                <option value="1" {% if wa_settings.quiet_hours_enabled == '1' %}selected{% endif %}>Active (Protected)</option>
-                <option value="0" {% if wa_settings.quiet_hours_enabled == '0' %}selected{% endif %}>Disabled</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label" for="set_quiet_start">Night Begins</label>
-              <input type="text" id="set_quiet_start" class="form-control font-mono" value="{{ wa_settings.quiet_hours_start or '22:00' }}" placeholder="22:00">
-            </div>
-            <div>
-              <label class="form-label" for="set_quiet_end">Morning Ends</label>
-              <input type="text" id="set_quiet_end" class="form-control font-mono" value="{{ wa_settings.quiet_hours_end or '09:00' }}" placeholder="09:00">
-            </div>
-          </div>
-        </div>
-
-        <!-- CONTACT & SERVERS -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="set_support_phone">Support Phone</label>
-            <input type="text" id="set_support_phone" class="form-control font-mono" value="{{ wa_settings.support_phone or '0597595059' }}">
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="set_movie_server">Free Movie Portal</label>
-            <input type="text" id="set_movie_server" class="form-control font-mono" value="{{ wa_settings.movie_server or 'http://10.12.14.16:8082' }}">
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="set_football_server">Live Football Portal</label>
-            <input type="text" id="set_football_server" class="form-control font-mono" value="{{ wa_settings.football_server or 'http://10.12.14.16:8080' }}">
-          </div>
-        </div>
-
-        <!-- MULTI-STAGE TEMPLATES WITH TABBED NAVIGATION -->
-        <div style="margin-top: 4px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 12px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">
-              📝 Multi-Stage WhatsApp Templates
-            </span>
-            <span style="font-size: 11px; color: var(--text-dim);">Click tab to view / edit</span>
-          </div>
-
-          <!-- TAB SWITCHER -->
-          <div class="chips-row" style="margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
-            <button type="button" class="chip-btn active" id="tabBtn_tpl_receipt" onclick="switchSettingsTplTab('receipt')">🧾 1. Receipt</button>
-            <button type="button" class="chip-btn" id="tabBtn_tpl_reminder" onclick="switchSettingsTplTab('reminder')">💳 2. Due Notice</button>
-            <button type="button" class="chip-btn" id="tabBtn_tpl_expiry" onclick="switchSettingsTplTab('expiry')">⚠️ 3. Expiry Alert</button>
-            <button type="button" class="chip-btn" id="tabBtn_tpl_welcome" onclick="switchSettingsTplTab('welcome')">🌐 4. Welcome</button>
-            <button type="button" class="chip-btn" id="tabBtn_tpl_maintenance" onclick="switchSettingsTplTab('maintenance')">🛠️ 5. Maintenance</button>
-          </div>
-
-          <!-- TAB 1: PAYMENT RECEIPT -->
-          <div id="tabPane_tpl_receipt" class="settings-tpl-pane">
-            <label class="form-label" for="set_tpl_receipt">1. Payment Receipt Template (Dispatched upon cash collection on /balance)</label>
-            <textarea id="set_tpl_receipt" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_receipt }}</textarea>
-            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[AMOUNT]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[RECEIPT_NO]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
-          </div>
-
-          <!-- TAB 2: DUE REMINDER -->
-          <div id="tabPane_tpl_reminder" class="settings-tpl-pane" style="display:none;">
-            <label class="form-label" for="set_tpl_reminder">2. Due &amp; Account Status Reminder Template</label>
-            <textarea id="set_tpl_reminder" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_reminder }}</textarea>
-            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
-          </div>
-
-          <!-- TAB 3: SERVICE EXPIRY -->
-          <div id="tabPane_tpl_expiry" class="settings-tpl-pane" style="display:none;">
-            <label class="form-label" for="set_tpl_expiry">3. Expiry &amp; Service Cutoff Alert Template</label>
-            <textarea id="set_tpl_expiry" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_expiry }}</textarea>
-            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code></div>
-          </div>
-
-          <!-- TAB 4: NEW SUBSCRIBER WELCOME -->
-          <div id="tabPane_tpl_welcome" class="settings-tpl-pane" style="display:none;">
-            <label class="form-label" for="set_tpl_welcome">4. New Subscriber Welcome / Provisioning Template</label>
-            <textarea id="set_tpl_welcome" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_welcome }}</textarea>
-            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
-          </div>
-
-          <!-- TAB 5: MAINTENANCE -->
-          <div id="tabPane_tpl_maintenance" class="settings-tpl-pane" style="display:none;">
-            <label class="form-label" for="set_tpl_maintenance">5. Scheduled Optical Maintenance Announcement Template</label>
-            <textarea id="set_tpl_maintenance" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_maintenance }}</textarea>
-            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[EXPIRY_DATE]</code>, <code>[HELPLINE]</code></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- FIXED STICKY MODAL FOOTER (ALWAYS VISIBLE) -->
-      <div class="modal-footer">
-        <button type="button" class="btn-simulate" onclick="closeSettingsModal()" style="padding: 8px 16px;">
-          Cancel
-        </button>
-        <button type="submit" class="btn-wa-send" style="padding: 8px 22px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
-          💾 Save Configurations
-        </button>
-      </div>
-    </form>
   </div>
 </div>
 
@@ -1446,9 +1857,84 @@
     expiry: "End of Month"
   };
 
+  // Topic sub-navigation engine
+  const VALID_WA_TOPICS = ['queue', 'composer', 'logs', 'settings'];
+
+  function switchWaTopic(topic) {
+    if (!VALID_WA_TOPICS.includes(topic)) topic = 'queue';
+    
+    VALID_WA_TOPICS.forEach(t => {
+      const tab = document.getElementById('waNavTab_' + t);
+      const pane = document.getElementById('waTopic_' + t);
+      if (tab) tab.classList.toggle('active', t === topic);
+      if (pane) pane.style.display = (t === topic) ? 'block' : 'none';
+    });
+
+    try {
+      if (history.replaceState) {
+        history.replaceState(null, null, '#' + topic);
+      } else {
+        window.location.hash = '#' + topic;
+      }
+    } catch (e) {}
+
+    if (topic === 'settings') {
+      switchSettingsTplTab('receipt');
+    }
+  }
+
+  function getInitialTopic() {
+    const hash = (window.location.hash || '').replace('#', '').trim();
+    if (VALID_WA_TOPICS.includes(hash)) {
+      return hash;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('filter') || params.has('search') || params.has('status')) {
+      return 'logs';
+    }
+    return 'queue';
+  }
+
+  // Queue live search filter
+  function filterDueCustomers(val) {
+    const q = (val || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('btnClearDueCustSearch');
+    if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+    const rows = document.querySelectorAll('#dueCustomersTable tr.due-table-row');
+    let count = 0;
+    rows.forEach(r => {
+      const text = (r.getAttribute('data-due-search') || '').toLowerCase();
+      const match = !q || text.includes(q);
+      r.style.display = match ? '' : 'none';
+      if (match) count++;
+    });
+
+    const counter = document.getElementById('filteredDueCount');
+    if (counter) counter.textContent = count;
+  }
+
+  function clearDueCustSearch() {
+    const input = document.getElementById('waDueCustSearch');
+    if (input) {
+      input.value = '';
+      filterDueCustomers('');
+      input.focus();
+    }
+  }
+
   // Init
   document.addEventListener('DOMContentLoaded', () => {
     loadTemplate('reminder');
+    const initialTopic = getInitialTopic();
+    switchWaTopic(initialTopic);
+  });
+
+  window.addEventListener('hashchange', () => {
+    const hash = (window.location.hash || '').replace('#', '').trim();
+    if (VALID_WA_TOPICS.includes(hash)) {
+      switchWaTopic(hash);
+    }
   });
 
   function loadTemplate(tplKey) {
@@ -1651,12 +2137,18 @@
   }
 
   function loadCustomerToComposer(custId) {
+    switchWaTopic('composer');
     const sub = ALL_SUBSCRIBERS.find(s => s.id === custId);
     if (sub) {
       selectSubscriber(sub);
     }
-    const composer = document.getElementById('custSearchInput') || document.getElementById('messageEditor');
-    if (composer) composer.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      const composer = document.getElementById('custSearchInput') || document.getElementById('messageEditor');
+      if (composer) {
+        composer.scrollIntoView({ behavior: 'smooth' });
+        composer.focus();
+      }
+    }, 50);
   }
 
   function onPhoneInput() {
@@ -1913,6 +2405,14 @@
 
 
   function updateBatchSelectionStats() {
+    const allRows = document.querySelectorAll('#dueCustomersTable tr.due-table-row');
+    allRows.forEach(row => {
+      const chk = row.querySelector('.due-cust-chk');
+      if (chk) {
+        row.classList.toggle('row-selected', chk.checked);
+      }
+    });
+
     const chks = document.querySelectorAll('.due-cust-chk:checked');
     let totalDue = 0;
     chks.forEach(c => {
@@ -2311,13 +2811,12 @@
     document.getElementById('viewMessageModal').classList.remove('open');
   }
 
-  // Settings Modal
+  // Settings Modal / Pane Navigation
   function openSettingsModal() {
-    switchSettingsTplTab('receipt');
-    document.getElementById('settingsModal').classList.add('open');
+    switchWaTopic('settings');
   }
   function closeSettingsModal() {
-    document.getElementById('settingsModal').classList.remove('open');
+    switchWaTopic('queue');
   }
 
   function switchSettingsTplTab(key) {
