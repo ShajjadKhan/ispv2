@@ -2,6 +2,14 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('cybernet_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } catch (e) {}
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CyberNet OS | Secure Administrator Access</title>
   
@@ -37,6 +45,49 @@
       --warning: #f59e0b;
       --danger: #ef4444;
       --danger-glow: rgba(239, 68, 68, 0.2);
+    }
+
+    html[data-theme="light"] {
+      --bg-canvas: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-border: #e2e8f0;
+      
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --primary-glow: rgba(2, 132, 199, 0.2);
+    }
+
+    html[data-theme="light"] .bg-ambient {
+      opacity: 0.35;
+    }
+    html[data-theme="light"] .login-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08) !important;
+    }
+    html[data-theme="light"] .brand-title,
+    html[data-theme="light"] .card-top-title {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .form-input {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .form-input:focus {
+      background: #ffffff !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16) !important;
+    }
+    html[data-theme="light"] .theme-toggle-login-btn {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
     }
 
     body {
@@ -417,6 +468,12 @@
 </head>
 <body>
 
+  <!-- Floating Day / Dark Mode Switcher -->
+  <button type="button" class="theme-toggle-login-btn" onclick="toggleTheme()" title="Toggle Day / Dark Mode" style="position:fixed; top:18px; right:18px; z-index:100; display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:var(--text-main); transition:all 0.2s;">
+    <span id="loginThemeIcon">☀️</span>
+    <span id="loginThemeText">Day Mode</span>
+  </button>
+
   <!-- Ambient Glow Background -->
   <div class="bg-ambient">
     <div class="ambient-circle-1"></div>
@@ -590,6 +647,24 @@
       arrowIcon.style.display = 'none';
       spinner.style.display = 'inline-block';
     }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      try { localStorage.setItem('cybernet_theme', newTheme); } catch(e){}
+      updateLoginThemeUI(newTheme);
+    }
+    function updateLoginThemeUI(t) {
+      const isLight = t === 'light';
+      const txt = document.getElementById('loginThemeText');
+      const icn = document.getElementById('loginThemeIcon');
+      if (txt) txt.textContent = isLight ? 'Dark Mode' : 'Day Mode';
+      if (icn) icn.textContent = isLight ? '🌙' : '☀️';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      updateLoginThemeUI(document.documentElement.getAttribute('data-theme') || 'dark');
+    });
   </script>
 
 </body>
