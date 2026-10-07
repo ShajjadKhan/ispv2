@@ -69,7 +69,7 @@ def get_whatsapp_gateway_status() -> Dict[str, Any]:
             data = r.json()
             status_val = data.get("status", "unknown")
             is_connected = status_val in ("ready", "CONNECTED")
-            needs_qr = status_val in ("scan_qr_code", "SCAN_QR_CODE", "initializing", "created")
+            needs_qr = status_val in ("scan_qr_code", "SCAN_QR_CODE", "initializing", "created", "qr_ready")
             return {
                 "connected": is_connected,
                 "needs_qr": needs_qr,
