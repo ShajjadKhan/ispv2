@@ -2861,11 +2861,11 @@
       <div class="date-range-filter-grid">
         <div class="form-group">
           <label for="reportStartDate">From Date</label>
-          <input type="date" class="form-input font-mono" id="reportStartDate">
+          <input type="text" class="form-input font-mono cyber-datepicker" id="reportStartDate" placeholder="YYYY-MM-DD" autocomplete="off">
         </div>
         <div class="form-group">
           <label for="reportEndDate">To Date</label>
-          <input type="date" class="form-input font-mono" id="reportEndDate">
+          <input type="text" class="form-input font-mono cyber-datepicker" id="reportEndDate" placeholder="YYYY-MM-DD" autocomplete="off">
         </div>
         <div>
           <button type="button" class="btn-quick-collect" style="padding: 10px 18px;" onclick="generateDateRangeReport()">
@@ -3103,7 +3103,7 @@
             </div>
             <div class="form-group">
               <label for="inputPrepaidDueDate">Validity Due Date</label>
-              <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="inputPrepaidDueDate" name="prepaid_due_date" placeholder="YYYY-MM-DD" autocomplete="off">
             </div>
           </div>
 
@@ -3126,7 +3126,7 @@
             <div class="modal-grid-2">
               <div class="form-group">
                 <label for="inputPostpaidDueDate">Due Date</label>
-                <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date">
+                <input type="text" class="form-input font-mono cyber-datepicker" id="inputPostpaidDueDate" name="postpaid_due_date" placeholder="YYYY-MM-DD" autocomplete="off">
               </div>
               <div class="form-group">
                 <label for="inputDueDay">Due Day of Month</label>
@@ -3273,7 +3273,7 @@
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustDueDate">Payment Due Date</label>
-              <input type="date" class="form-input font-mono" id="editCustDueDate" required style="color:#ffffff;">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustCredit">Credit Balance (SAR)</label>
@@ -3698,10 +3698,15 @@
 
   // Date Range Report Modal
   function openDateRangeReportModal() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = window.formatDateISO ? window.formatDateISO(new Date()) : new Date().toISOString().slice(0, 10);
     const firstDay = today.substring(0, 8) + '01';
-    document.getElementById('reportStartDate').value = firstDay;
-    document.getElementById('reportEndDate').value = today;
+    if (window.setPickerDate) {
+      window.setPickerDate('reportStartDate', firstDay);
+      window.setPickerDate('reportEndDate', today);
+    } else {
+      document.getElementById('reportStartDate').value = firstDay;
+      document.getElementById('reportEndDate').value = today;
+    }
 
     document.getElementById('dateRangeModal').classList.add('open');
     generateDateRangeReport();
@@ -3943,12 +3948,17 @@
       const today = new Date();
       const futureDate = new Date();
       futureDate.setDate(today.getDate() + 30);
-      const dateStr = futureDate.toISOString().split('T')[0];
+      const dateStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
 
-      const prepDateEl = document.getElementById('inputPrepaidDueDate');
-      if (prepDateEl) prepDateEl.value = dateStr;
-      const postDateEl = document.getElementById('inputPostpaidDueDate');
-      if (postDateEl) postDateEl.value = dateStr;
+      if (window.setPickerDate) {
+        window.setPickerDate('inputPrepaidDueDate', dateStr);
+        window.setPickerDate('inputPostpaidDueDate', dateStr);
+      } else {
+        const prepDateEl = document.getElementById('inputPrepaidDueDate');
+        if (prepDateEl) prepDateEl.value = dateStr;
+        const postDateEl = document.getElementById('inputPostpaidDueDate');
+        if (postDateEl) postDateEl.value = dateStr;
+      }
       const dueDayEl = document.getElementById('inputDueDay');
       if (dueDayEl) dueDayEl.value = futureDate.getDate();
       const postColEl = document.getElementById('inputPostpaidCollected');
@@ -4579,7 +4589,11 @@
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
       // Due date
-      document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+      if (window.setPickerDate) {
+        window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
+      } else {
+        document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+      }
 
       // Device limit
       document.getElementById('editCustMaxDevices').value = c.max_devices || 1;

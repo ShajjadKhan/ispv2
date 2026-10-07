@@ -3130,14 +3130,39 @@ def get_dashboard_metrics(
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # 1. Available Months for Selector Dropdown
-        cursor.execute("SELECT DISTINCT strftime('%Y-%m', collected_at) as m FROM collections WHERE collected_at IS NOT NULL AND length(collected_at) >= 7 ORDER BY m DESC")
-        db_months = [r["m"] for r in cursor.fetchall() if r["m"]]
-        if curr_month not in db_months:
-            db_months.insert(0, curr_month)
+        # 1. Available Months for Selector Dropdown (Standard International Gregorian Months)
+        months_set = set()
+        cursor.execute("SELECT DISTINCT strftime('%Y-%m', collected_at) as m FROM collections WHERE collected_at IS NOT NULL AND length(collected_at) >= 7")
+        for r in cursor.fetchall():
+            if r["m"]:
+                months_set.add(r["m"])
 
+        cursor.execute("SELECT DISTINCT substr(created_at, 1, 7) as m FROM customers WHERE created_at IS NOT NULL AND length(created_at) >= 7")
+        for r in cursor.fetchall():
+            if r["m"]:
+                months_set.add(r["m"])
+
+        # Also guarantee past 12 calendar months + current + next 2 months
+        cur_dt = datetime.now()
+        for i in range(-2, 12):
+            m_calc = cur_dt.month - i
+            y_calc = cur_dt.year
+            while m_calc <= 0:
+                m_calc += 12
+                y_calc -= 1
+            while m_calc > 12:
+                m_calc -= 12
+                y_calc += 1
+            months_set.add(f"{y_calc:04d}-{m_calc:02d}")
+
+        if curr_month not in months_set:
+            months_set.add(curr_month)
+        if target_month not in months_set:
+            months_set.add(target_month)
+
+        sorted_months = sorted(list(months_set), reverse=True)
         available_months = []
-        for m in db_months:
+        for m in sorted_months:
             try:
                 m_dt = datetime.strptime(m, "%Y-%m")
                 lbl = m_dt.strftime("%B %Y")

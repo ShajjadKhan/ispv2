@@ -1532,7 +1532,7 @@
 
             <div class="form-group">
               <label for="inputPrepaidDueDate">Payment Due Date / Expiry (Manual Entry)</label>
-              <input type="date" class="form-input font-mono" id="inputPrepaidDueDate" name="prepaid_due_date" required style="color:#ffffff;">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="inputPrepaidDueDate" name="prepaid_due_date" placeholder="YYYY-MM-DD" autocomplete="off">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually choose or enter the exact expiration / recharge due date.</span>
             </div>
           </div>
@@ -1583,7 +1583,7 @@
             <div class="modal-grid-2">
               <div class="form-group">
                 <label for="inputPostpaidDueDate">Payment Due Date (Manual Entry)</label>
-                <input type="date" class="form-input font-mono" id="inputPostpaidDueDate" name="postpaid_due_date" style="color:#ffffff;">
+                <input type="text" class="form-input font-mono cyber-datepicker" id="inputPostpaidDueDate" name="postpaid_due_date" placeholder="YYYY-MM-DD" autocomplete="off">
                 <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Manually select statement payment due date.</span>
               </div>
               <div class="form-group">
@@ -1597,12 +1597,12 @@
           <div class="modal-grid-2" style="margin-top:12px; padding:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:8px;">
             <div class="form-group" style="margin-bottom:0;">
               <label for="inputJoinDate">Customer Joining Date</label>
-              <input type="date" class="form-input font-mono" id="inputJoinDate" name="join_date" style="color:#ffffff;">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="inputJoinDate" name="join_date" placeholder="YYYY-MM-DD" autocomplete="off">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date joined ISP (auto-registered, editable)</span>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="inputBillingStartDate">Billing Cycle Start Date</label>
-              <input type="date" class="form-input font-mono" id="inputBillingStartDate" name="billing_start_date" style="color:#ffffff;">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="inputBillingStartDate" name="billing_start_date" placeholder="YYYY-MM-DD" autocomplete="off">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Calculation origin for billing ledger &amp; cycle</span>
             </div>
           </div>
@@ -1754,7 +1754,7 @@
       const tipExp = document.getElementById('secondaryExpiryTip');
       if (tipExp) tipExp.textContent = expiryDate || 'Active';
 
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = window.formatDateISO ? window.formatDateISO(new Date()) : new Date().toISOString().slice(0, 10);
       const isExp = Boolean(expiryDate && expiryDate.slice(0, 10) < todayStr);
       const warnBox = document.getElementById('secondaryExpiredWarning');
       const warnDate = document.getElementById('secondaryExpiredDate');
@@ -1815,19 +1815,25 @@
 
       // Default dates: 30 days from now
       const today = new Date();
+      const todayStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
       const futureDate = new Date();
       futureDate.setDate(today.getDate() + 30);
-      const dateStr = futureDate.toISOString().split('T')[0];
+      const dateStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
 
-      if (prepDate) prepDate.value = dateStr;
-      const postDateEl = document.getElementById('inputPostpaidDueDate');
-      if (postDateEl) postDateEl.value = dateStr;
-
-      const todayStr = today.toISOString().split('T')[0];
-      const joinDateEl = document.getElementById('inputJoinDate');
-      if (joinDateEl) joinDateEl.value = todayStr;
-      const bStartEl = document.getElementById('inputBillingStartDate');
-      if (bStartEl) bStartEl.value = todayStr;
+      if (window.setPickerDate) {
+        window.setPickerDate('inputPrepaidDueDate', dateStr);
+        window.setPickerDate('inputPostpaidDueDate', dateStr);
+        window.setPickerDate('inputJoinDate', todayStr);
+        window.setPickerDate('inputBillingStartDate', todayStr);
+      } else {
+        if (prepDate) prepDate.value = dateStr;
+        const postDateEl = document.getElementById('inputPostpaidDueDate');
+        if (postDateEl) postDateEl.value = dateStr;
+        const joinDateEl = document.getElementById('inputJoinDate');
+        if (joinDateEl) joinDateEl.value = todayStr;
+        const bStartEl = document.getElementById('inputBillingStartDate');
+        if (bStartEl) bStartEl.value = todayStr;
+      }
 
       const dueDayEl = document.getElementById('inputDueDay');
       if (dueDayEl) dueDayEl.value = futureDate.getDate();

@@ -145,8 +145,13 @@
     border-radius: 6px;
     padding: 5px 8px;
     font-size: 11.5px;
-    color: #ffffff;
+    color: var(--text-main);
     font-family: var(--font-mono);
+  }
+  html[data-theme="light"] .range-date-input {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
   }
 
   /* KPI METRICS GRID */
@@ -902,11 +907,11 @@
       <input type="hidden" name="range" value="custom">
       <div style="display:flex; align-items:center; gap:5px; width:100%; min-width:0;">
         <span style="font-size:10.5px; color:var(--text-dim);">From:</span>
-        <input type="date" name="start_date" class="range-date-input" value="{{ start_date }}" required>
+        <input type="text" name="start_date" class="range-date-input cyber-datepicker" value="{{ start_date }}" placeholder="YYYY-MM-DD" required autocomplete="off">
       </div>
       <div style="display:flex; align-items:center; gap:5px; width:100%; min-width:0;">
         <span style="font-size:10.5px; color:var(--text-dim);">To:</span>
-        <input type="date" name="end_date" class="range-date-input" value="{{ end_date }}" required>
+        <input type="text" name="end_date" class="range-date-input cyber-datepicker" value="{{ end_date }}" placeholder="YYYY-MM-DD" required autocomplete="off">
       </div>
       <button type="submit" class="btn-action-sm" style="padding:6px 12px; font-size:11.5px;">Apply</button>
     </form>

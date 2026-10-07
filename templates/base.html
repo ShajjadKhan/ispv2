@@ -18,9 +18,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
-  <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
   </noscript>
+  <!-- International Gregorian Flatpickr Datepicker -->
+  <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -319,6 +319,7 @@
     html[data-theme="light"] input[type="number"],
     html[data-theme="light"] input[type="password"],
     html[data-theme="light"] input[type="date"],
+    html[data-theme="light"] .cyber-datepicker,
     html[data-theme="light"] input[type="email"],
     html[data-theme="light"] select,
     html[data-theme="light"] textarea,
@@ -1330,6 +1331,171 @@
         width: 100%;
       }
     }
+    /* =========================================================
+       INTERNATIONAL GREGORIAN FLATPICKR STYLES (DARK & DAY MODE)
+       ========================================================= */
+    .cyber-datepicker {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 10px center !important;
+      background-size: 16px 16px !important;
+      padding-right: 34px !important;
+      cursor: pointer;
+    }
+    html[data-theme="light"] .cyber-datepicker {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") !important;
+    }
+
+    .flatpickr-calendar {
+      background: #0b1120 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 12px !important;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(56, 189, 248, 0.15) !important;
+      font-family: var(--font-sans) !important;
+      z-index: 999999 !important;
+      width: 308px !important;
+    }
+    .flatpickr-months {
+      background: #0f172a !important;
+      border-top-left-radius: 12px !important;
+      border-top-right-radius: 12px !important;
+      padding: 8px 4px !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .flatpickr-current-month {
+      font-size: 13.5px !important;
+      font-weight: 700 !important;
+      color: #f8fafc !important;
+      padding-top: 2px !important;
+    }
+    .flatpickr-current-month .numInputWrapper span.arrowUp:after {
+      border-bottom-color: #38bdf8 !important;
+    }
+    .flatpickr-current-month .numInputWrapper span.arrowDown:after {
+      border-top-color: #38bdf8 !important;
+    }
+    .flatpickr-current-month select.flatpickr-monthDropdown-months {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 6px !important;
+      font-weight: 700 !important;
+      padding: 2px 6px !important;
+    }
+    .flatpickr-current-month select.flatpickr-monthDropdown-months option {
+      background: #0b1120 !important;
+      color: #f8fafc !important;
+    }
+    .flatpickr-current-month input.cur-year {
+      color: #38bdf8 !important;
+      font-weight: 700 !important;
+      font-family: var(--font-mono) !important;
+    }
+    .flatpickr-months .flatpickr-prev-month,
+    .flatpickr-months .flatpickr-next-month {
+      fill: #94a3b8 !important;
+      color: #94a3b8 !important;
+      padding: 6px 10px !important;
+    }
+    .flatpickr-months .flatpickr-prev-month:hover svg,
+    .flatpickr-months .flatpickr-next-month:hover svg {
+      fill: #38bdf8 !important;
+    }
+    span.flatpickr-weekday {
+      color: #94a3b8 !important;
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+    }
+    .flatpickr-day {
+      color: #f1f5f9 !important;
+      border-radius: 8px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      height: 36px !important;
+      line-height: 36px !important;
+      border: 1px solid transparent !important;
+    }
+    .flatpickr-day.today {
+      border-color: #38bdf8 !important;
+      color: #38bdf8 !important;
+    }
+    .flatpickr-day:hover {
+      background: rgba(56, 189, 248, 0.18) !important;
+      border-color: rgba(56, 189, 248, 0.35) !important;
+      color: #ffffff !important;
+    }
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+      background: #0284c7 !important;
+      border-color: #38bdf8 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
+    }
+    .flatpickr-day.prevMonthDay,
+    .flatpickr-day.nextMonthDay {
+      color: rgba(148, 163, 184, 0.4) !important;
+    }
+
+    /* Light Theme (Day Mode) Flatpickr Styling */
+    html[data-theme="light"] .flatpickr-calendar {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12) !important;
+    }
+    html[data-theme="light"] .flatpickr-months {
+      background: #f8fafc !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .flatpickr-current-month {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .flatpickr-current-month select.flatpickr-monthDropdown-months {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    html[data-theme="light"] .flatpickr-current-month select.flatpickr-monthDropdown-months option {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .flatpickr-current-month input.cur-year {
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] .flatpickr-months .flatpickr-prev-month,
+    html[data-theme="light"] .flatpickr-months .flatpickr-next-month {
+      fill: #64748b !important;
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .flatpickr-months .flatpickr-prev-month:hover svg,
+    html[data-theme="light"] .flatpickr-months .flatpickr-next-month:hover svg {
+      fill: #0284c7 !important;
+    }
+    html[data-theme="light"] span.flatpickr-weekday {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .flatpickr-day {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .flatpickr-day.today {
+      border-color: #0284c7 !important;
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] .flatpickr-day:hover {
+      background: rgba(2, 132, 199, 0.1) !important;
+      border-color: rgba(2, 132, 199, 0.3) !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .flatpickr-day.selected {
+      background: #0284c7 !important;
+      border-color: #0284c7 !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="light"] .flatpickr-day.prevMonthDay,
+    html[data-theme="light"] .flatpickr-day.nextMonthDay {
+      color: #cbd5e1 !important;
+    }
   </style>
 
   {% block extra_head %}{% endblock %}
@@ -2145,6 +2311,108 @@
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
       updateThemeUI(currentTheme);
     });
+  </script>
+
+  <!-- International Gregorian Flatpickr Library & Helpers -->
+  <script src="/static/vendor/flatpickr/flatpickr.min.js"></script>
+  <script>
+    if (typeof flatpickr === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+      s.onload = () => { if (window.initCyberDatePickers) window.initCyberDatePickers(); };
+      document.head.appendChild(s);
+    }
+
+    // High-Precision International Local Gregorian Date Helpers (Never Off-By-One UTC bugs)
+    window.formatDateISO = function(d = new Date()) {
+      if (!(d instanceof Date) || isNaN(d.getTime())) d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    window.parseDateISO = function(str) {
+      if (!str) return new Date();
+      const clean = String(str).trim().slice(0, 10);
+      const parts = clean.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          return new Date(y, m, d);
+        }
+      }
+      const dt = new Date(str);
+      return isNaN(dt.getTime()) ? new Date() : dt;
+    };
+
+    window.getDaysDifference = function(targetDateStr) {
+      if (!targetDateStr) return 0;
+      const target = window.parseDateISO(targetDateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target - today;
+      return Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+    };
+
+    window.setPickerDate = function(elOrId, val) {
+      const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+      if (!el) return;
+      const isoStr = val instanceof Date ? window.formatDateISO(val) : (val ? String(val).trim().slice(0, 10) : '');
+      if (el._flatpickr) {
+        el._flatpickr.setDate(isoStr, false);
+      }
+      el.value = isoStr;
+    };
+
+    window.initCyberDatePickers = function(root = document) {
+      if (typeof flatpickr === 'undefined') return;
+      const selector = '.cyber-datepicker, input[type="date"]';
+      const els = (root && root.querySelectorAll) ? root.querySelectorAll(selector) : [];
+      els.forEach(el => {
+        if (el._flatpickr) return;
+        // Swap native type=date to type=text to completely block mobile OS Hijri popups
+        if (el.getAttribute('type') === 'date') {
+          el.setAttribute('type', 'text');
+        }
+        el.classList.add('cyber-datepicker');
+        if (!el.getAttribute('placeholder')) el.setAttribute('placeholder', 'YYYY-MM-DD');
+        el.setAttribute('autocomplete', 'off');
+
+        flatpickr(el, {
+          dateFormat: 'Y-m-d',
+          disableMobile: true, // Forces Flatpickr Gregorian calendar on iPhones and Android in Saudi Arabia
+          allowInput: true,
+          monthSelectorType: 'dropdown',
+          static: false,
+          onChange: function(selectedDates, dateStr) {
+            el.value = dateStr;
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      });
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      window.initCyberDatePickers();
+    });
+
+    // Auto-observe newly added DOM nodes (such as dynamic modals)
+    try {
+      const modalObserver = new MutationObserver(mutations => {
+        for (const m of mutations) {
+          if (m.type === 'childList' && m.addedNodes.length > 0) {
+            m.addedNodes.forEach(node => {
+              if (node.nodeType === 1) window.initCyberDatePickers(node);
+            });
+          }
+        }
+      });
+      modalObserver.observe(document.body, { childList: true, subtree: true });
+    } catch (e) {}
   </script>
 
   {% block extra_scripts %}{% endblock %}

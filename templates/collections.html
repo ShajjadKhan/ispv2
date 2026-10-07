@@ -1894,7 +1894,7 @@
           <label style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700; margin-bottom:6px; display:block;">
             Target Promise / Due Date
           </label>
-          <input type="date" class="form-input font-mono" id="promiseDatePicker" style="font-size:13px; color:#ffffff; padding:8px 12px; width:100%;" onchange="onPromiseDateChanged()">
+          <input type="text" class="form-input font-mono cyber-datepicker" id="promiseDatePicker" placeholder="YYYY-MM-DD" autocomplete="off" style="font-size:13px; padding:8px 12px; width:100%;" onchange="onPromiseDateChanged()">
         </div>
 
         <!-- Live Accrual Preview Card -->
@@ -2666,7 +2666,12 @@
     document.getElementById('promiseDaysInput').value = days;
     const d = new Date();
     d.setDate(d.getDate() + parseInt(days));
-    document.getElementById('promiseDatePicker').value = d.toISOString().split('T')[0];
+    const dateStr = window.formatDateISO ? window.formatDateISO(d) : d.toISOString().slice(0, 10);
+    if (window.setPickerDate) {
+      window.setPickerDate('promiseDatePicker', dateStr);
+    } else {
+      document.getElementById('promiseDatePicker').value = dateStr;
+    }
     calculatePromiseDebt();
   }
 
@@ -2674,18 +2679,19 @@
     const days = parseInt(document.getElementById('promiseDaysInput').value) || 1;
     const d = new Date();
     d.setDate(d.getDate() + days);
-    document.getElementById('promiseDatePicker').value = d.toISOString().split('T')[0];
+    const dateStr = window.formatDateISO ? window.formatDateISO(d) : d.toISOString().slice(0, 10);
+    if (window.setPickerDate) {
+      window.setPickerDate('promiseDatePicker', dateStr);
+    } else {
+      document.getElementById('promiseDatePicker').value = dateStr;
+    }
     calculatePromiseDebt();
   }
 
   function onPromiseDateChanged() {
     const val = document.getElementById('promiseDatePicker').value;
     if (!val) return;
-    const target = new Date(val);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diffTime = target - today;
-    const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    const diffDays = window.getDaysDifference ? window.getDaysDifference(val) : 1;
     document.getElementById('promiseDaysInput').value = diffDays;
     calculatePromiseDebt();
   }

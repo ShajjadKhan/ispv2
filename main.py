@@ -67,6 +67,12 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+# Mount static assets (Flatpickr vendor assets, local styles, etc.)
+from fastapi.staticfiles import StaticFiles
+STATIC_DIR = BASE_DIR / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 # Initialize database schema and auth engine
 database.init_db()
 auth_service.init_auth_schema()

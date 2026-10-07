@@ -1988,19 +1988,19 @@
           </div>
           <div class="form-group">
             <label for="addCustDueDate">Payment Due Date (Manual)</label>
-            <input type="date" class="form-input font-mono" id="addCustDueDate" required style="color:#ffffff;">
+            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
           </div>
         </div>
 
         <div class="modal-grid-2">
           <div class="form-group">
             <label for="addCustJoinDate">Customer Joining Date</label>
-            <input type="date" class="form-input font-mono" id="addCustJoinDate" style="color:#ffffff;">
+            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustJoinDate" placeholder="YYYY-MM-DD" autocomplete="off">
             <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date joined ISP (auto-registered, editable)</span>
           </div>
           <div class="form-group">
             <label for="addCustBillingStart">Billing Cycle Start Date</label>
-            <input type="date" class="form-input font-mono" id="addCustBillingStart" style="color:#ffffff;">
+            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustBillingStart" placeholder="YYYY-MM-DD" autocomplete="off">
             <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Calculation origin for billing ledger &amp; cycle</span>
           </div>
         </div>
@@ -2173,7 +2173,7 @@
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustDueDate">Payment Due Date</label>
-              <input type="date" class="form-input font-mono" id="editCustDueDate" required style="color:#ffffff;">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustCredit">Credit Balance (SAR)</label>
@@ -2328,7 +2328,7 @@
           <label for="promiseDatePicker" style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">
             Target Promise / Due Date
           </label>
-          <input type="date" class="form-input font-mono" id="promiseDatePicker" style="font-size:13px; color:#ffffff; padding:8px 12px;" onchange="onPromiseDateChanged()">
+          <input type="text" class="form-input font-mono cyber-datepicker" id="promiseDatePicker" placeholder="YYYY-MM-DD" autocomplete="off" style="font-size:13px; padding:8px 12px;" onchange="onPromiseDateChanged()">
         </div>
 
         <!-- Live Accrual Preview Card -->
@@ -2618,7 +2618,12 @@
     document.getElementById('promiseDaysInput').value = days;
     const d = new Date();
     d.setDate(d.getDate() + parseInt(days));
-    document.getElementById('promiseDatePicker').value = d.toISOString().split('T')[0];
+    const dateStr = window.formatDateISO ? window.formatDateISO(d) : d.toISOString().slice(0, 10);
+    if (window.setPickerDate) {
+      window.setPickerDate('promiseDatePicker', dateStr);
+    } else {
+      document.getElementById('promiseDatePicker').value = dateStr;
+    }
     calculatePromiseDebt();
   }
 
@@ -2626,18 +2631,19 @@
     const days = parseInt(document.getElementById('promiseDaysInput').value) || 1;
     const d = new Date();
     d.setDate(d.getDate() + days);
-    document.getElementById('promiseDatePicker').value = d.toISOString().split('T')[0];
+    const dateStr = window.formatDateISO ? window.formatDateISO(d) : d.toISOString().slice(0, 10);
+    if (window.setPickerDate) {
+      window.setPickerDate('promiseDatePicker', dateStr);
+    } else {
+      document.getElementById('promiseDatePicker').value = dateStr;
+    }
     calculatePromiseDebt();
   }
 
   function onPromiseDateChanged() {
     const val = document.getElementById('promiseDatePicker').value;
     if (!val) return;
-    const target = new Date(val);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diffTime = target - today;
-    const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    const diffDays = window.getDaysDifference ? window.getDaysDifference(val) : 1;
     document.getElementById('promiseDaysInput').value = diffDays;
     calculatePromiseDebt();
   }
@@ -3465,14 +3471,22 @@
 
   function openAddCustomerModal() {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
     const futureDate = new Date();
     futureDate.setDate(today.getDate() + 30);
-    document.getElementById('addCustDueDate').value = futureDate.toISOString().split('T')[0];
-    const joinDateEl = document.getElementById('addCustJoinDate');
-    if (joinDateEl) joinDateEl.value = todayStr;
-    const bStartEl = document.getElementById('addCustBillingStart');
-    if (bStartEl) bStartEl.value = todayStr;
+    const futureStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
+
+    if (window.setPickerDate) {
+      window.setPickerDate('addCustDueDate', futureStr);
+      window.setPickerDate('addCustJoinDate', todayStr);
+      window.setPickerDate('addCustBillingStart', todayStr);
+    } else {
+      document.getElementById('addCustDueDate').value = futureStr;
+      const joinDateEl = document.getElementById('addCustJoinDate');
+      if (joinDateEl) joinDateEl.value = todayStr;
+      const bStartEl = document.getElementById('addCustBillingStart');
+      if (bStartEl) bStartEl.value = todayStr;
+    }
     const initPayEl = document.getElementById('addCustInitialPay');
     if (initPayEl) initPayEl.value = '0.00';
     onAddPkgChange();
@@ -3592,7 +3606,11 @@
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
       // Due date
-      document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+      if (window.setPickerDate) {
+        window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
+      } else {
+        document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+      }
 
       // Device limit
       document.getElementById('editCustMaxDevices').value = c.max_devices || 1;
