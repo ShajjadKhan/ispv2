@@ -1428,7 +1428,7 @@
           <!-- GRAND TOTAL ROW -->
           <tr class="table-total-row">
             <td colspan="8">
-              <span style="font-size:13px; color:#ffffff; letter-spacing:0.04em;">FLEET GRAND TOTAL ({{ bs.total_active }} CYBERNET SUBSCRIBERS)</span>
+              <span style="font-size:13px; color:var(--text-main, #ffffff); letter-spacing:0.04em;">FLEET GRAND TOTAL ({{ bs.total_active }} CYBERNET SUBSCRIBERS)</span>
             </td>
             <td style="text-align:right;">
               <span class="font-mono" style="color:#f87171; font-size:14px; font-weight:800;">{{ "%.2f"|format(bs.grand_owed) }} SAR</span>
@@ -1450,7 +1450,7 @@
 
     <!-- FOOTER / LEGEND -->
     <div class="bal-footer-legend">
-      <span style="font-weight:700; color:#ffffff;">Status Legend:</span>
+      <span style="font-weight:700; color:var(--text-main, #ffffff);">Status Legend:</span>
       <span><span class="status-badge status-badge-owing">OWING</span> Unpaid balance remains (highest debt automatically at top)</span>
       <span><span class="status-badge status-badge-settled">SETTLED</span> Exact zero balance (no outstanding dues or advance credits)</span>
       <span><span class="status-badge status-badge-credit">CREDIT</span> Overpaid / Prepaid float held in customer wallet</span>
@@ -1602,9 +1602,9 @@
     {% endfor %}
 
     <!-- Mobile No Match Empty State -->
-    <div id="mBalanceNoMatchCard" style="display:none; background:#090e1a; border:1px dashed var(--border-subtle); border-radius:12px; padding:28px 16px; text-align:center; color:var(--text-dim);">
+    <div id="mBalanceNoMatchCard" style="display:none; background:var(--bg-card); border:1px dashed var(--border-subtle); border-radius:12px; padding:28px 16px; text-align:center; color:var(--text-dim);">
       <div style="font-size:28px; margin-bottom:8px; opacity:0.6;">🔍</div>
-      <strong style="color:#ffffff; font-size:14px; display:block;">No matching subscribers found</strong>
+      <strong style="color:var(--text-main, #ffffff); font-size:14px; display:block;">No matching subscribers found</strong>
       <div style="font-size:12px; margin-top:4px;">Try searching with another name, phone number, room, or reset filters.</div>
     </div>
 
@@ -1634,7 +1634,7 @@
 
     <!-- Mobile Status Legend -->
     <div class="bal-footer-legend" style="border-radius:10px; border:1px solid var(--border-subtle); padding:10px 12px; font-size:11px; flex-direction:column; align-items:flex-start; gap:8px;">
-      <span style="font-weight:700; color:#ffffff;">Status Legend:</span>
+      <span style="font-weight:700; color:var(--text-main, #ffffff);">Status Legend:</span>
       <div><span class="status-badge status-badge-owing">OWING</span> Unpaid debt due</div>
       <div><span class="status-badge status-badge-settled">SETTLED</span> Zero balance</div>
       <div><span class="status-badge status-badge-credit">CREDIT</span> Prepaid wallet float</div>
@@ -1694,11 +1694,11 @@
       </div>
 
       <!-- Customer Summary Card -->
-      <div id="collCustSummaryCard" style="background:#080e1b; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
+      <div id="collCustSummaryCard" style="background:var(--bg-card-header, #080e1b); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <div>
             <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Subscriber Account</div>
-            <div id="collCustNameLabel" style="font-size:15px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
+            <div id="collCustNameLabel" style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff); margin-top:2px;">—</div>
             <div id="collCustPhoneRoom" style="font-size:12px; color:var(--text-dim); margin-top:2px;">—</div>
           </div>
           <div id="collCurrentBalBadge" style="text-align:right;">
@@ -1790,15 +1790,15 @@
     <div class="bal-modal-body">
       <input type="hidden" id="remCustId" value="">
 
-      <div style="background:#080e1b; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
+      <div style="background:var(--bg-card-header, #080e1b); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
         <div style="font-size:12px; color:var(--text-dim);">Recipient:</div>
-        <div id="remCustNameText" style="font-size:15px; font-weight:800; color:#ffffff;">—</div>
+        <div id="remCustNameText" style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff);">—</div>
         <div id="remCustPhoneText" style="font-size:12px; font-family:var(--font-mono); color:#93c5fd; margin-top:2px;">—</div>
       </div>
 
       <div>
         <label style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Message Preview</label>
-        <textarea id="remMessagePreview" rows="8" readonly style="width:100%; background:#080e1b; border:1px solid rgba(148, 163, 184, 0.35); border-radius:8px; padding:10px 12px; color:#f8fafc; font-family:var(--font-mono); font-size:11.5px; line-height:1.45; resize:none;"></textarea>
+        <textarea id="remMessagePreview" rows="8" readonly style="width:100%; background:var(--bg-card, #080e1b); border:1px solid var(--border-subtle, rgba(148, 163, 184, 0.35)); border-radius:8px; padding:10px 12px; color:var(--text-main, #f8fafc); font-family:var(--font-mono); font-size:11.5px; line-height:1.45; resize:none;"></textarea>
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">

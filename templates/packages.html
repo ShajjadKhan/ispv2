@@ -1023,7 +1023,7 @@
               <tr>
                 <td colspan="9">
                   <div class="empty-state">
-                    <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Packages Configured</p>
+                    <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Packages Configured</p>
                     <p style="font-size:12px;">Click "Create Package" above to set up your bandwidth profiles.</p>
                   </div>
                 </td>
@@ -1125,7 +1125,7 @@
         {% endfor %}
       {% else %}
         <div class="empty-state">
-          <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Packages Configured</p>
+          <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Packages Configured</p>
           <p style="font-size:12px;">Click "Create Package" above to set up your bandwidth profiles.</p>
         </div>
       {% endif %}
@@ -1231,7 +1231,7 @@
         <div class="switch-row">
           <input type="checkbox" id="cPkgSync" checked>
           <div>
-            <div style="font-weight:700; color:#ffffff; font-size:13px;">⚡ Automatically provision on MikroTik Router immediately</div>
+            <div style="font-weight:700; color:var(--text-main, #ffffff); font-size:13px;">⚡ Automatically provision on MikroTik Router immediately</div>
             <div style="font-size:11.5px; color:var(--text-dim);">Creates or updates user profile on RouterOS via port 8728 API.</div>
           </div>
         </div>
@@ -1352,7 +1352,7 @@
         <div class="switch-row">
           <input type="checkbox" id="ePkgSync" checked>
           <div>
-            <div style="font-weight:700; color:#ffffff; font-size:13px;">⚡ Update on MikroTik Router immediately</div>
+            <div style="font-weight:700; color:var(--text-main, #ffffff); font-size:13px;">⚡ Update on MikroTik Router immediately</div>
             <div style="font-size:11.5px; color:var(--text-dim);">Pushes revised speed limits and device quotas to RouterOS.</div>
           </div>
         </div>

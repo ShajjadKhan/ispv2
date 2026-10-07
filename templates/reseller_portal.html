@@ -452,7 +452,7 @@
         <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       </div>
       <div>
-        <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:#fff;">{{ stats.active_customers }} <span style="font-size:13px; color:var(--text-dim); font-weight:500;">/ {{ stats.total_customers }}</span></div>
+        <div style="font-size:22px; font-weight:800; font-family:var(--font-mono); color:var(--text-main, #ffffff);">{{ stats.active_customers }} <span style="font-size:13px; color:var(--text-dim); font-weight:500;">/ {{ stats.total_customers }}</span></div>
         <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Active Agency Subscribers</div>
       </div>
     </div>
@@ -481,7 +481,7 @@
   <!-- FAST 1-CLICK RECHARGE POS -->
   <div class="pos-card" id="rechargePanel">
     <div class="pos-header">
-      <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+      <div style="font-size:15px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
         <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
         <span>⚡ 1-Click Fast Subscriber Recharge POS</span>
       </div>
@@ -498,7 +498,7 @@
             {% for c in customers %}
             <div class="suggest-item" onclick="selectPosCustomer({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}', '{{ c.package_name }}', {{ c.monthly_fee }}, '{{ c.expiry_date or c.due_date or '' }}')">
               <div>
-                <div style="font-weight:700; color:#fff;">{{ c.name }}</div>
+                <div style="font-weight:700; color:var(--text-main, #ffffff);">{{ c.name }}</div>
                 <div class="font-mono text-dim" style="font-size:11px;">{{ c.phone }} &bull; {{ c.package_name }}</div>
               </div>
               <div class="font-mono text-cyan" style="font-weight:700;">{{ "%.2f"|format(c.monthly_fee) }} SAR</div>
@@ -510,7 +510,7 @@
         <div id="selectedCustomerPanel" style="display:none; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:14px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
-              <div style="font-size:15px; font-weight:800; color:#fff;" id="posCustName">—</div>
+              <div style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff);" id="posCustName">—</div>
               <div class="font-mono text-dim" style="font-size:12px;" id="posCustPhone">—</div>
             </div>
             <span class="badge-tier active" id="posCustPackage">—</span>
@@ -538,7 +538,7 @@
       <!-- Right: POS Cost & Deduction Breakdown -->
       <div class="pos-calc-box">
         <div>
-          <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:14px; display:flex; align-items:center; gap:6px;">
+          <div style="font-size:14px; font-weight:700; color:var(--text-main, #ffffff); margin-bottom:14px; display:flex; align-items:center; gap:6px;">
             <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
             <span>Transaction Cost Breakdown</span>
           </div>
@@ -578,7 +578,7 @@
   <!-- MY SUBSCRIBERS DIRECTORY -->
   <div class="pos-card" id="customersPanel">
     <div class="pos-header">
-      <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+      <div style="font-size:15px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
         <svg style="width:18px; height:18px; fill:#c084fc;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         <span>My Agency Subscribers ({{ customers | length }})</span>
       </div>
@@ -611,13 +611,13 @@
             {% for c in customers %}
             <tr class="cust-row">
               <td data-label="Subscriber">
-                <div style="font-weight:700; color:#fff;">{{ c.name }}</div>
+                <div style="font-weight:700; color:var(--text-main, #ffffff);">{{ c.name }}</div>
                 <div class="font-mono text-dim" style="font-size:11px;">{{ c.phone }}</div>
               </td>
               <td data-label="Package">{{ c.package_name }}</td>
               <td data-label="Monthly Fee" class="font-mono text-cyan">{{ "%.2f"|format(c.monthly_fee) }} SAR</td>
               <td data-label="Expiry / Due Date">
-                <div class="font-mono" style="font-weight:600; color:#fff;">{{ c.expiry_date or c.due_date or '—' }}</div>
+                <div class="font-mono" style="font-weight:600; color:var(--text-main, #ffffff);">{{ c.expiry_date or c.due_date or '—' }}</div>
                 {% if c.days_remaining is not none %}
                   <div style="font-size:11px; color:{% if c.days_remaining < 0 %}#f87171{% elif c.days_remaining <= 3 %}#fbbf24{% else %}var(--text-dim){% endif %};">
                     {% if c.days_remaining < 0 %}Expired {{ c.days_remaining|abs }}d ago{% elif c.days_remaining == 0 %}Expires Today{% else %}{{ c.days_remaining }} days remaining{% endif %}
@@ -650,7 +650,7 @@
   <!-- WALLET LEDGER FEED -->
   <div class="pos-card" id="ledgerPanel">
     <div class="pos-header">
-      <div style="font-size:15px; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+      <div style="font-size:15px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
         <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
         <span>My Wallet Activity &amp; Deductions</span>
       </div>
@@ -752,7 +752,7 @@
     </div>
     <div class="modal-body" id="printableReceipt">
       <div style="text-align:center; padding-bottom:12px; border-bottom:1px dashed #475569;">
-        <div style="font-size:18px; font-weight:800; color:#fff;">CYBERNET INTERNET</div>
+        <div style="font-size:18px; font-weight:800; color:var(--text-main, #ffffff);">CYBERNET INTERNET</div>
         <div style="font-size:12px; color:var(--text-dim);">Authorized Partner Receipt</div>
         <div style="font-size:13px; font-weight:700; color:#38bdf8; margin-top:4px;">{{ stats.reseller.shop_name or stats.reseller.full_name }}</div>
       </div>
@@ -764,7 +764,7 @@
         </div>
         <div style="display:flex; justify-content:space-between;">
           <span style="color:var(--text-dim);">Subscriber:</span>
-          <span style="font-weight:700; color:#fff;" id="rcptCustomer">—</span>
+          <span style="font-weight:700; color:var(--text-main, #ffffff);" id="rcptCustomer">—</span>
         </div>
         <div style="display:flex; justify-content:space-between;">
           <span style="color:var(--text-dim);">Phone:</span>
@@ -779,7 +779,7 @@
           <span class="font-mono text-emerald" style="font-weight:700;" id="rcptExpiry">—</span>
         </div>
         <div style="display:flex; justify-content:space-between; border-top:1px dashed #475569; padding-top:8px; font-size:15px; font-weight:800;">
-          <span style="color:#fff;">Total Paid:</span>
+          <span style="color:var(--text-main, #ffffff);">Total Paid:</span>
           <span class="font-mono text-emerald" id="rcptAmount">— SAR</span>
         </div>
       </div>

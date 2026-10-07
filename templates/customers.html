@@ -1315,7 +1315,7 @@
                 </td>
                 <td>
                   <div class="cust-package-cell">
-                    <span style="font-weight:600; color:#ffffff;">{{ c.package_name }}</span>
+                    <span style="font-weight:600; color:var(--text-main, #ffffff);">{{ c.package_name }}</span>
                     <span class="font-mono text-cyan" style="font-size:11px; font-weight:700;">
                       ⚡ {{ c.effective_speed }}
                       {% if c.is_speed_custom %}
@@ -1439,7 +1439,7 @@
               <tr>
                 <td colspan="9">
                   <div class="empty-state">
-                    <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Customers Registered Yet</p>
+                    <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Customers Registered Yet</p>
                     <p style="font-size:12px;">Approve hotspot connection requests or click "Add Customer" above to register accounts.</p>
                   </div>
                 </td>
@@ -1618,7 +1618,7 @@
         {% endfor %}
       {% else %}
         <div class="empty-state">
-          <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Customers Registered Yet</p>
+          <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Customers Registered Yet</p>
           <p style="font-size:12px;">Approve hotspot connection requests or click "Add Customer" above to register accounts.</p>
         </div>
       {% endif %}
@@ -2221,9 +2221,9 @@
      COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder)
      ========================================================= -->
 <div class="modal-overlay" id="collectModal">
-  <div class="modal-box modal-box-lg" style="max-width: 680px; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
-    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
-      <h5 style="margin:0; font-size:16px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:8px;">
+  <div class="modal-box modal-box-lg" style="max-width: 680px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-subtle, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
+    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center;">
+      <h5 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
         <i class="fas fa-money-bill-wave" style="color:#10b981;"></i> Collect Payment
       </h5>
       <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
@@ -2233,11 +2233,11 @@
         <input type="hidden" id="coll_cid">
         <div id="coll_name" style="margin-bottom: 14px; font-weight: 700; font-size: 14px; color: #38bdf8;"></div>
         <div id="unpaidList"></div>
-        <hr class="divider" style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin: 16px 0 14px 0;">
+        <hr class="divider" style="border:none; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08)); margin: 16px 0 14px 0;">
         <div class="alert alert-info" style="margin-bottom: 16px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 10px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class="fas fa-calculator" style="color:#38bdf8;"></i>
-            <span style="font-size:13.5px; color:#ffffff;">Total to collect: <strong class="mono" id="totalAmt" style="font-size:18px; color:#34d399; font-weight:800;">0.00</strong> SAR</span>
+            <span style="font-size:13.5px; color:var(--text-main, #ffffff);">Total to collect: <strong class="mono" id="totalAmt" style="font-size:18px; color:#34d399; font-weight:800;">0.00</strong> SAR</span>
           </div>
           <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:12px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:3px 8px; border-radius:6px;">
             ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
@@ -2268,7 +2268,7 @@
           <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
         </div>
         <div>
-          <h3 style="margin:0; font-size:16.5px; color:#ffffff;">Extend Suspension (Grace Hold)</h3>
+          <h3 style="margin:0; font-size:16.5px; color:var(--text-main, #ffffff);">Extend Suspension (Grace Hold)</h3>
           <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-dim);">Hold MikroTik cut-off while daily debt continues accruing</p>
         </div>
       </div>
@@ -2296,9 +2296,9 @@
         </div>
 
         <!-- Customer Summary Header -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div style="background:var(--bg-card-header, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
-            <div style="font-size:14px; font-weight:800; color:#ffffff;" id="promiseCustName">—</div>
+            <div style="font-size:14px; font-weight:800; color:var(--text-main, #ffffff);" id="promiseCustName">—</div>
             <div style="font-size:11.5px; color:var(--text-dim); font-family:var(--font-mono);" id="promiseCustPhone">—</div>
           </div>
           <div style="text-align:right;">
@@ -2769,9 +2769,9 @@
 
       // 2. Month-by-Month Cycle Settlement Table
       html += `
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;">
-          <div style="padding:12px 14px; background:#0d1527; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <div style="font-size:12.5px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:6px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; overflow:hidden;">
+          <div style="padding:12px 14px; background:var(--bg-card-header, #0d1527); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:6px;">
               <svg style="width:15px; height:15px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
               <span>Cycle Settlement &amp; Waiver Breakdown</span>
             </div>
@@ -2794,7 +2794,7 @@
         html += `
           <div style="overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
-              <thead style="background:#090e1a; color:var(--text-dim); border-bottom:1px solid rgba(255,255,255,0.06);">
+              <thead style="background:var(--bg-card-header, #090e1a); color:var(--text-dim); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.06));">
                 <tr>
                   <th style="padding:8px 12px; width:75px; text-align:center;">✓ Settle</th>
                   <th style="padding:8px 12px;">Cycle Period</th>
@@ -2811,11 +2811,11 @@
           const isGrace = u.is_grace;
           const cycleLabel = isGrace ? `${u.label} <span class="badge" style="background:#f59e0b; color:#000; font-size:9.5px; padding:1px 5px; border-radius:4px; font-weight:700;">Grace (${u.grace_days}d)</span>` : u.label;
           html += `
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+            <tr style="border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.04));">
               <td style="padding:8px 12px; text-align:center;">
                 <input type="checkbox" class="settle-cb" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" checked onchange="updateSettlementTotals()" title="Check to mark this month settled (solves cycle, waives remainder)">
               </td>
-              <td style="padding:8px 12px; font-weight:700; color:#ffffff;">
+              <td style="padding:8px 12px; font-weight:700; color:var(--text-main, #ffffff);">
                 ${cycleLabel}
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono); color:var(--text-dim);">
@@ -3267,19 +3267,19 @@
       // Render summary KPI cards
       let html = `
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+          <div style="background:var(--bg-card-header, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:10px; padding:10px 12px;">
             <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Total Download</div>
             <div style="font-size:15px; font-weight:800; color:#34d399; font-family:var(--font-mono); margin-top:2px;">↓ ${data.total_download}</div>
           </div>
-          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+          <div style="background:var(--bg-card-header, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:10px; padding:10px 12px;">
             <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Total Upload</div>
             <div style="font-size:15px; font-weight:800; color:#38bdf8; font-family:var(--font-mono); margin-top:2px;">↑ ${data.total_upload}</div>
           </div>
-          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+          <div style="background:var(--bg-card-header, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:10px; padding:10px 12px;">
             <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Total Data Traffic</div>
-            <div style="font-size:15px; font-weight:800; color:#ffffff; font-family:var(--font-mono); margin-top:2px;">${data.total_traffic}</div>
+            <div style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff); font-family:var(--font-mono); margin-top:2px;">${data.total_traffic}</div>
           </div>
-          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+          <div style="background:var(--bg-card-header, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:10px; padding:10px 12px;">
             <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Live Session Status</div>
             <div style="margin-top:4px;">
               ${data.is_online 
@@ -3295,17 +3295,17 @@
       html += `<div style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px;">Per-Device Activity Breakdown (${data.devices.length})</div>`;
 
       if (!data.devices || data.devices.length === 0) {
-        html += `<div style="padding:16px; background:#090e1a; border-radius:10px; text-align:center; color:var(--text-dim); font-size:12px;">No devices authorized for this customer.</div>`;
+        html += `<div style="padding:16px; background:var(--bg-card-header, #090e1a); border-radius:10px; text-align:center; color:var(--text-dim); font-size:12px;">No devices authorized for this customer.</div>`;
       } else {
         html += `<div style="display:flex; flex-direction:column; gap:10px;">`;
         data.devices.forEach(d => {
           const isOnline = d.is_online;
           html += `
-            <div style="background:#090e1a; border:1px solid ${isOnline ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.06)'}; border-radius:10px; padding:12px 14px;">
+            <div style="background:var(--bg-card-header, #090e1a); border:1px solid ${isOnline ? 'rgba(52,211,153,0.3)' : 'var(--border-subtle, rgba(255,255,255,0.06))'}; border-radius:10px; padding:12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="font-mono text-cyan" style="font-weight:700; font-size:13px;">${d.mac_address}</span>
-                  <span style="font-size:12px; color:#ffffff; font-weight:600;">${d.host_name || d.device_name || 'Device'}</span>
+                  <span style="font-size:12px; color:var(--text-main, #ffffff); font-weight:600;">${d.host_name || d.device_name || 'Device'}</span>
                 </div>
                 <div>
                   ${isOnline 
@@ -3997,12 +3997,12 @@
           const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
           const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
 
-          html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
+          html += `<tr style="border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.04)); vertical-align:middle;">
             <td style="padding:10px 8px; text-align:center;">
               <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
             </td>
             <td style="padding:10px 8px;">
-              <div style="font-weight:700; color:#ffffff;">${mLabel}${graceBadge}</div>
+              <div style="font-weight:700; color:var(--text-main, #ffffff);">${mLabel}${graceBadge}</div>
               ${paidBadge}
               <div class="row-status-note" id="custRowNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
             </td>
@@ -4010,7 +4010,7 @@
               <span class="badge badge-red mono" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
             </td>
             <td style="padding:10px 8px; text-align:right;">
-              <input type="number" name="amounts[]" inputmode="decimal" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:#090e1a; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:6px 10px; text-align:right;" oninput="updateTotal()">
+              <input type="number" name="amounts[]" inputmode="decimal" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:6px; padding:6px 10px; text-align:right;" oninput="updateTotal()">
             </td>
           </tr>`;
         });

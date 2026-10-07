@@ -327,6 +327,7 @@
     html[data-theme="light"] .form-control,
     html[data-theme="light"] .search-input,
     html[data-theme="light"] .search-input-box,
+    html[data-theme="light"] .search-box,
     html[data-theme="light"] .month-picker-select {
       background: #ffffff !important;
       color: #0f172a !important;
@@ -335,7 +336,8 @@
     html[data-theme="light"] input::placeholder,
     html[data-theme="light"] textarea::placeholder,
     html[data-theme="light"] .search-input::placeholder,
-    html[data-theme="light"] .search-input-box::placeholder {
+    html[data-theme="light"] .search-input-box::placeholder,
+    html[data-theme="light"] .search-box::placeholder {
       color: #94a3b8 !important;
     }
     html[data-theme="light"] input:focus,
@@ -512,6 +514,723 @@
     html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8 !important;
     }
+
+    /* =========================================================
+       DAY MODE: HEROES, BANNERS & OPERATION WORKBENCHES
+       ========================================================= */
+    /* 1. Pending Wi-Fi Connection Requests Alert Hero Banner */
+    html[data-theme="light"] .pending-alert-banner {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef2f2 100%) !important;
+      border: 1px solid #f59e0b !important;
+      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.16) !important;
+    }
+    html[data-theme="light"] .pending-alert-banner span,
+    html[data-theme="light"] .pending-alert-banner div,
+    html[data-theme="light"] .pending-alert-banner strong {
+      color: #78350f !important;
+    }
+    html[data-theme="light"] .pending-alert-banner .badge-tier.overdue {
+      background: #fee2e2 !important;
+      color: #dc2626 !important;
+      border-color: #fca5a5 !important;
+    }
+    html[data-theme="light"] .pending-alert-banner .btn-approve,
+    html[data-theme="light"] .pending-alert-banner .btn-approve * {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+      color: #ffffff !important;
+    }
+
+    /* 2. Customer Collection & Summary Banner (Dashboard & Modals) */
+    html[data-theme="light"] .coll-cust-banner {
+      background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%) !important;
+      border: 1px solid #bae6fd !important;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.08) !important;
+    }
+    html[data-theme="light"] .coll-cust-banner #coll_name {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .coll-cust-banner .text-dim,
+    html[data-theme="light"] .coll-cust-banner div {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .coll-cust-banner span[style*="color:#38bdf8"] {
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] .coll-cust-banner span[style*="color:#fbbf24"] {
+      color: #d97706 !important;
+    }
+    html[data-theme="light"] .collect-summary-bar {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    }
+    html[data-theme="light"] .collect-summary-bar span,
+    html[data-theme="light"] .collect-summary-bar div {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .collect-summary-bar #totalAmt {
+      color: #059669 !important;
+    }
+
+    /* 3. Customer Edit Top Header Banner */
+    html[data-theme="light"] .edit-header-banner {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .banner-cust-name {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .banner-sub {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .banner-actions .btn-nav-back {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html[data-theme="light"] .banner-actions .btn-nav-back:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+
+    /* 4. Customer Usage Audit Top Banner */
+    html[data-theme="light"] .usage-header-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .usage-user-info h2 {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .usage-user-meta {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .usage-user-meta .text-white {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .range-bar {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+
+    /* 5. Gateway Fleet Operations & Hero Status Banner */
+    html[data-theme="light"] .fleet-banner-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .hero-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+    }
+    html[data-theme="light"] .hero-card h1,
+    html[data-theme="light"] #heroIdentity {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .hero-card .subtitle {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .hero-card strong {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .hero-details-grid {
+      border-top-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .hero-details-grid .detail-box .label {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .hero-details-grid .detail-box .value {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .fleet-card {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .fleet-card:hover {
+      background: #f1f5f9 !important;
+      border-color: rgba(2, 132, 199, 0.4) !important;
+    }
+    html[data-theme="light"] .fleet-card.active-router {
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 16px rgba(2, 132, 199, 0.16) !important;
+    }
+    html[data-theme="light"] .fleet-card strong,
+    html[data-theme="light"] .fleet-card .router-title {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .ports-board {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .port-box {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+
+    /* 6. WhatsApp Operations Hub & Night Shield Banners */
+    html[data-theme="light"] .wa-hero-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-theme="light"] .wa-hero-card h1 {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .wa-hero-card strong {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .wa-hero-card .telemetry-row {
+      border-top-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .wa-hero-card .tele-box .label {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .wa-hero-card .tele-box .value {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .night-shield-card {
+      background: #fffbeb !important;
+      border: 1px solid #fde68a !important;
+      color: #92400e !important;
+    }
+    html[data-theme="light"] .night-shield-card.daytime {
+      background: #ecfdf5 !important;
+      border: 1px solid #a7f3d0 !important;
+      color: #065f46 !important;
+    }
+
+    /* 7. OLT Chassis Status Banner */
+    html[data-theme="light"] .olt-chassis-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-theme="light"] .olt-chassis-card h1 {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .olt-chassis-card .chassis-details-grid,
+    html[data-theme="light"] .olt-chassis-card .telemetry-row {
+      border-top-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .olt-chassis-card .detail-box .label,
+    html[data-theme="light"] .olt-chassis-card .tele-box .label {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .olt-chassis-card .detail-box .value,
+    html[data-theme="light"] .olt-chassis-card .tele-box .value,
+    html[data-theme="light"] .olt-chassis-card strong {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .alarm-center-card {
+      background: #ffffff !important;
+      border: 1px solid #fecaca !important;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.08) !important;
+    }
+    html[data-theme="light"] .alarm-header {
+      background: #fef2f2 !important;
+      border-bottom: 1px solid #fecaca !important;
+    }
+    html[data-theme="light"] .alarm-header span {
+      color: #991b1b !important;
+    }
+    html[data-theme="light"] .alarm-item-box {
+      background: #ffffff !important;
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .pon-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03) !important;
+    }
+    html[data-theme="light"] .pon-card:hover {
+      background: #f8fafc !important;
+      border-color: #0284c7 !important;
+    }
+    html[data-theme="light"] .pon-card.active-port {
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.15) !important;
+    }
+
+    /* 8. Reseller Partner Portal Hero Banner */
+    html[data-theme="light"] .reseller-hero-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-theme="light"] .agency-info-title {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .agency-info-sub {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .wallet-chip-box {
+      background: #ecfdf5 !important;
+      border: 1px solid #a7f3d0 !important;
+    }
+    html[data-theme="light"] .wallet-chip-lbl {
+      color: #047857 !important;
+    }
+    html[data-theme="light"] .wallet-chip-val {
+      color: #065f46 !important;
+    }
+    html[data-theme="light"] .portal-stat-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .subscriber-picker-box {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .search-suggest-input {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .suggest-results-box {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+    }
+    html[data-theme="light"] .suggest-item:hover {
+      background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .calc-row.total-row {
+      color: #0f172a !important;
+      border-top-color: #e2e8f0 !important;
+    }
+
+    /* 9. Express POS Cash Collector Terminal & Financial Cards */
+    html[data-theme="light"] .express-pos-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-theme="light"] .pos-header-row {
+      border-bottom-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .pos-title {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .cust-pos-overview {
+      background: #f0f9ff !important;
+      border: 1px solid #bae6fd !important;
+    }
+    html[data-theme="light"] .pos-search-input {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .pos-suggestions-dropdown {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12) !important;
+    }
+    html[data-theme="light"] .pos-sug-header {
+      border-bottom-color: #e2e8f0 !important;
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .pos-sug-item {
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .pos-sug-item:hover,
+    html[data-theme="light"] .pos-sug-item.active {
+      background: #f0f9ff !important;
+    }
+    html[data-theme="light"] .pos-sug-name {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .bs-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .bs-card:hover {
+      background: #f8fafc !important;
+    }
+    html[data-theme="light"] .bs-card.active-bs-filter {
+      background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%) !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 16px rgba(2, 132, 199, 0.18) !important;
+    }
+    html[data-theme="light"] .bs-data-num {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .bs-data-sub {
+      border-top-color: #e2e8f0 !important;
+    }
+
+    /* 10. Balance Grand Total & Status Legend */
+    html[data-theme="light"] tr.table-total-row td {
+      background: #f8fafc !important;
+      border-top: 2px solid #0284c7 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] tr.table-total-row span {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .bal-footer-legend {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .bal-footer-legend span {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .bal-footer-legend strong,
+    html[data-theme="light"] .bal-footer-legend span[style*="font-weight:700"] {
+      color: #0f172a !important;
+    }
+
+    /* =========================================================
+       DAY MODE: MOBILE RESPONSIVE CARD DECKS (SMARTPHONES)
+       ========================================================= */
+    /* 11. Customer Directory Mobile Cards */
+    html[data-theme="light"] .cust-mobile-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .cust-mobile-card:hover {
+      border-color: #bae6fd !important;
+    }
+    html[data-theme="light"] .mobile-card-header {
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .mobile-cust-name {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .mobile-cust-sub {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .mobile-grid-item .m-lbl {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .mobile-grid-item .m-val {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .mobile-mac-list {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .cust-mac-item {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .cust-mac-addr {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .cust-mac-name {
+      color: #334155 !important;
+    }
+
+    /* 12. Balance Sheet Mobile Cards */
+    html[data-theme="light"] .bal-mobile-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .m-bal-header {
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .m-bal-name {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .m-bal-rank {
+      background: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-owing {
+      background: #fef2f2 !important;
+      border-color: #fecaca !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-credit {
+      background: #ecfdf5 !important;
+      border-color: #a7f3d0 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-settled {
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .m-bal-grid {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .m-bal-col .lbl {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .m-bal-col .val {
+      color: #0f172a !important;
+    }
+
+    /* 13. Approvals Desk Mobile Cards (Pending & Approved Devices) */
+    html[data-theme="light"] #pendingTable tr[id^="req-row-"],
+    html[data-theme="light"] .req-table-row {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] #pendingTable tr[id^="req-row-"][style*="239, 68, 68"],
+    html[data-theme="light"] #pendingTable tr[id^="req-row-"].random-mac-card {
+      border-left-color: #ef4444 !important;
+      background: #fff5f5 !important;
+    }
+    html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-phone,
+    html[data-theme="light"] .req-table-row td.td-phone {
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-mac,
+    html[data-theme="light"] .req-table-row td.td-mac,
+    html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-device,
+    html[data-theme="light"] .req-table-row td.td-device {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] #approvedDevicesSection tr.approved-dev-row {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] #approvedDevicesSection tr.approved-dev-row td[data-label="Customer Name"],
+    html[data-theme="light"] #approvedDevicesSection tr.approved-dev-row td:first-child {
+      color: #0f172a !important;
+    }
+
+    /* =========================================================
+       DAY MODE: MODALS, DETAILS PILLS & FLATPICKR DATEPICKER
+       ========================================================= */
+    html[data-theme="light"] .device-summary-pill {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .device-summary-pill .lbl {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .device-summary-pill .val {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .type-option-card {
+      background: #f8fafc !important;
+      border: 2px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .type-option-card .title {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .type-option-card .desc {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .type-option-card.selected {
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
+    }
+    html[data-theme="light"] .type-option-card.selected.prepaid-selected {
+      background: #ecfdf5 !important;
+      border-color: #10b981 !important;
+    }
+    html[data-theme="light"] .conditional-box {
+      background: #f8fafc !important;
+      border: 1px dashed #cbd5e1 !important;
+    }
+    html[data-theme="light"] .form-group label,
+    html[data-theme="light"] .modal-body label,
+    html[data-theme="light"] .form-label {
+      color: #334155 !important;
+    }
+    html[data-theme="light"] .btn-preset {
+      background: #f1f5f9 !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    html[data-theme="light"] .btn-preset:hover {
+      background: #e0f2fe !important;
+      border-color: #0284c7 !important;
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] #collAccountSummary,
+    html[data-theme="light"] #remAccountSummary {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] #collCustNameLabel,
+    html[data-theme="light"] #remCustNameText,
+    html[data-theme="light"] #dispCustName,
+    html[data-theme="light"] #modalRecipName,
+    html[data-theme="light"] #posCustName {
+      color: #0f172a !important;
+    }
+
+    /* Flatpickr International Gregorian Calendar Day Mode */
+    html[data-theme="light"] .flatpickr-calendar {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12) !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .flatpickr-months,
+    html[data-theme="light"] .flatpickr-month,
+    html[data-theme="light"] .flatpickr-current-month,
+    html[data-theme="light"] .flatpickr-weekdays,
+    html[data-theme="light"] span.flatpickr-weekday {
+      background: #f8fafc !important;
+      color: #334155 !important;
+    }
+    html[data-theme="light"] .flatpickr-day {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .flatpickr-day:hover {
+      background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .flatpickr-day.selected {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #0284c7 !important;
+    }
+
+    /* Empty States & No-Match Cards */
+    html[data-theme="light"] .empty-state,
+    html[data-theme="light"] [id$="NoMatchCard"],
+    html[data-theme="light"] .no-match-card,
+    html[data-theme="light"] #emptyPendingRow td {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .empty-state strong,
+    html[data-theme="light"] .empty-state p,
+    html[data-theme="light"] [id$="NoMatchCard"] strong,
+    html[data-theme="light"] #emptyPendingRow div {
+      color: #0f172a !important;
+    }
+
+    /* 14. Balance & Collections Executive Top Banners */
+    html[data-theme="light"] .bal-header-card,
+    html[data-theme="light"] .col-top-bar {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .bal-title-text h2,
+    html[data-theme="light"] .col-title-group h2 {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .period-pill-group {
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+    }
+    html[data-theme="light"] .period-pill {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .period-pill:hover {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .period-pill.active {
+      background: #ffffff !important;
+      color: #0284c7 !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 1px 4px rgba(2, 132, 199, 0.15) !important;
+    }
+
+    /* 15. Additional Mobile Cards & Row Decks */
+    html[data-theme="light"] #collectionsTable tr.ledger-row,
+    html[data-theme="light"] #subscribersTable tr.cust-row,
+    html[data-theme="light"] .collect-table tr.collect-month-row,
+    html[data-theme="light"] #customersPanel .clean-table tr.cust-row,
+    html[data-theme="light"] #ledgerPanel .clean-table tr.ledger-row,
+    html[data-theme="light"] #onuTable tr[data-search],
+    html[data-theme="light"] .olt-ledger-table tr.ledger-row,
+    html[data-theme="light"] .pkg-mobile-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .pkg-m-header {
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .pkg-m-name {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .pkg-m-grid {
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .pkg-m-lbl {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .pkg-m-val {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .pkg-m-profile-pill {
+      background: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    /* =========================================================
+       DAY MODE: UNIVERSAL DARK BACKGROUND INTERCEPTION
+       ========================================================= */
+    /* Converts inline dark containers into crisp Day Mode cards */
+    html[data-theme="light"] [style*="background:#070a12" i],
+    html[data-theme="light"] [style*="background: #070a12" i],
+    html[data-theme="light"] [style*="background:#080e1b" i],
+    html[data-theme="light"] [style*="background: #080e1b" i],
+    html[data-theme="light"] [style*="background:#090e1a" i],
+    html[data-theme="light"] [style*="background: #090e1a" i],
+    html[data-theme="light"] [style*="background:#0b1120" i],
+    html[data-theme="light"] [style*="background: #0b1120" i],
+    html[data-theme="light"] [style*="background:#0f172a" i],
+    html[data-theme="light"] [style*="background: #0f172a" i],
+    html[data-theme="light"] [style*="background:#111827" i],
+    html[data-theme="light"] [style*="background: #111827" i],
+    html[data-theme="light"] [style*="background:#111a2e" i],
+    html[data-theme="light"] [style*="background: #111a2e" i],
+    html[data-theme="light"] [style*="background:#131d36" i],
+    html[data-theme="light"] [style*="background: #131d36" i],
+    html[data-theme="light"] [style*="background:#17233f" i],
+    html[data-theme="light"] [style*="background: #17233f" i] {
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    /* =========================================================
+       DAY MODE: UNIVERSAL INLINE WHITE TEXT RESCUE
+       ========================================================= */
+    /* Target elements with inline color:#fff across the entire DOM tree,
+       while protecting buttons, action icons, tags and badges */
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#fff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #fff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#ffffff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #ffffff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:white" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: white" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *) {
+      color: #0f172a !important;
+    }
+
+    /* Keep button text crisp and white on saturated colored buttons */
+    html[data-theme="light"] .btn-primary,
+    html[data-theme="light"] .btn-primary *,
+    html[data-theme="light"] .btn-save-master,
+    html[data-theme="light"] .btn-save-master *,
+    html[data-theme="light"] .btn-quick-collect,
+    html[data-theme="light"] .btn-quick-collect *,
+    html[data-theme="light"] .btn-add-customer,
+    html[data-theme="light"] .btn-add-customer *,
+    html[data-theme="light"] .btn-approve:not([disabled]),
+    html[data-theme="light"] .btn-approve:not([disabled]) *,
+    html[data-theme="light"] .btn-delete-perm,
+    html[data-theme="light"] .btn-delete-perm *,
+    html[data-theme="light"] .btn-bal-primary,
+    html[data-theme="light"] .btn-bal-primary *,
+    html[data-theme="light"] .btn-bal-collect,
+    html[data-theme="light"] .btn-bal-collect *,
+    html[data-theme="light"] button[type="submit"]:not(.btn-cancel):not(.btn-tbl-sm),
+    html[data-theme="light"] button[type="submit"]:not(.btn-cancel):not(.btn-tbl-sm) * {
+      color: #ffffff !important;
+    }
+
 
     body {
       font-family: var(--font-sans);

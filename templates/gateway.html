@@ -553,13 +553,13 @@
   <!-- FLEET OPERATIONS BANNER & ADD BUTTON -->
   <div class="fleet-banner-card">
     <div>
-      <h1 style="font-size: 19px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+      <h1 style="font-size: 19px; font-weight: 800; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 10px;">
         <span>MikroTik Multi-Gateway Fleet</span>
         <span class="badge-vlan">VLAN Roaming Engine</span>
       </h1>
       <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
         {% if routers | length > 1 %}
-          Total: <strong style="color:#ffffff;">{{ routers | length }} Gateway Routers Configured</strong> &bull; Select a router to inspect its live ports, metrics, and roaming leases.
+          Total: <strong style="color:var(--text-main, #ffffff);">{{ routers | length }} Gateway Routers Configured</strong> &bull; Select a router to inspect its live ports, metrics, and roaming leases.
         {% else %}
           Primary Gateway Active &bull; Devices authorized on this gateway automatically roam with zero login interruption.
         {% endif %}
@@ -587,7 +587,7 @@
           <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
         </div>
         <div>
-          <div style="font-size: 14px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 14px; font-weight: 800; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
             <span>{{ r.name }}</span>
             {% if selected_router and selected_router.id == r.id %}
               <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 1px 6px; border-radius: 4px; font-weight: 700;">SELECTED</span>
@@ -616,7 +616,7 @@
         </div>
         <div>
           <span class="text-dim">CPU:</span>
-          <span style="color:#ffffff;">{% if selected_router and r.id == selected_router.id %}{{ router.cpu_load }}{% else %}{{ r.cpu_usage }}{% endif %}%</span>
+          <span style="color:var(--text-main, #ffffff);">{% if selected_router and r.id == selected_router.id %}{{ router.cpu_load }}{% else %}{{ r.cpu_usage }}{% endif %}%</span>
         </div>
         <div>
           <span class="text-dim">Uptime:</span>
@@ -655,12 +655,12 @@
           <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
         </div>
         <div class="router-title-group">
-          <h1 id="heroIdentity" style="font-size: 20px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h1 id="heroIdentity" style="font-size: 20px; font-weight: 800; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <span>{{ selected_router.name }}</span>
             <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">({{ router.model }})</span>
           </h1>
           <div class="subtitle" style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap;">
-            <span>Identity: <strong style="color:#ffffff;">{{ router.identity }}</strong></span>
+            <span>Identity: <strong style="color:var(--text-main, #ffffff);">{{ router.identity }}</strong></span>
             <span>&bull;</span>
             <span>RouterOS {{ router.version }}</span>
             <span>&bull;</span>
@@ -728,7 +728,7 @@
   <!-- HARDWARE PORTS VISUALIZER (DYNAMIC FOR CONNECTED ROUTER) -->
   <div class="section-card">
     <div class="section-card-header">
-      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
         <span>Hardware Ports &amp; Uplinks ({{ selected_router.name if selected_router else 'Primary' }})</span>
       </div>
@@ -745,7 +745,7 @@
         <div class="port-box {% if iface.running %}is-active{% endif %} {% if iface.media_type == 'sfp' or 'sfp' in iface.name|lower %}is-sfp{% endif %}" id="port-box-{{ iface.name }}">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span class="font-mono" style="font-size: 13px; font-weight: 800; color: #ffffff;">{{ iface.name }}</span>
+              <span class="font-mono" style="font-size: 13px; font-weight: 800; color: var(--text-main, #ffffff);">{{ iface.name }}</span>
               {% if iface.media_type == 'sfp' or 'sfp' in iface.name|lower %}
                 <span class="badge-port-type sfp">SFP</span>
               {% elif iface.media_type == 'wireless' or 'wlan' in iface.name|lower %}
@@ -759,7 +759,7 @@
 
           <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); display: flex; justify-content: space-between; align-items: center;">
             <span class="text-dim">Role:</span>
-            <span style="color:#ffffff; font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:115px;" title="{{ iface.comment or iface.type }}">
+            <span style="color:var(--text-main, #ffffff); font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:115px;" title="{{ iface.comment or iface.type }}">
               {{ iface.comment or ( 'Fiber SFP Uplink' if ('sfp' in iface.name|lower or iface.media_type == 'sfp') else (iface.type | upper if iface.type else 'Ethernet') ) }}
             </span>
           </div>
@@ -791,7 +791,7 @@
   <!-- ACTIVE HOTSPOT HOSTS & ROAMING STATUS -->
   <div class="section-card">
     <div class="section-card-header">
-      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #10b981;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 18h-2v-2h2v2zm1-5h-4v-2h4v2zm2-5H8V8h8v2z"/></svg>
         <span>Connected Devices &amp; Bypassed Roaming Leases ({{ selected_router.name if selected_router else 'Primary' }})</span>
       </div>
@@ -846,7 +846,7 @@
 <div id="addRouterModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-header">
-      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">➕ Add MikroTik Router to Fleet</h3>
+      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main, #ffffff);">➕ Add MikroTik Router to Fleet</h3>
       <button type="button" onclick="closeAddRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <form onsubmit="submitAddRouter(event)">
@@ -915,7 +915,7 @@
 <div id="editRouterModal" class="modal-overlay">
   <div class="modal-container">
     <div class="modal-header">
-      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Edit MikroTik Router Settings</h3>
+      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main, #ffffff);">✏️ Edit MikroTik Router Settings</h3>
       <button type="button" onclick="closeEditRouterModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <form onsubmit="submitEditRouter(event)">
@@ -979,7 +979,7 @@
     <div class="modal-header">
       <div style="display:flex; align-items:center; gap:8px;">
         <svg style="width:18px; height:18px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-        <span id="queuesModalTitle" style="font-weight: 700; font-size: 15px; color: #ffffff;">Bandwidth Queues</span>
+        <span id="queuesModalTitle" style="font-weight: 700; font-size: 15px; color: var(--text-main, #ffffff);">Bandwidth Queues</span>
       </div>
       <button type="button" class="btn-close-modal" onclick="closeRouterQueuesModal()">&times;</button>
     </div>
@@ -1209,7 +1209,7 @@
         container.innerHTML = `
           <div style="text-align:center; padding:30px 16px; background:rgba(255,255,255,0.02); border:1px dashed var(--border-subtle); border-radius:12px;">
             <div style="font-size:28px; margin-bottom:8px;">⚡</div>
-            <div style="font-weight:700; color:#ffffff; font-size:14px; margin-bottom:4px;">No Active Queues (Full Wire-Speed)</div>
+            <div style="font-weight:700; color:var(--text-main, #ffffff); font-size:14px; margin-bottom:4px;">No Active Queues (Full Wire-Speed)</div>
             <p style="font-size:12px; color:var(--text-dim); max-width:440px; margin:0 auto; line-height:1.5;">
               All authorized devices are currently operating with zero throttling (Unlimited). Speed limit queues will appear here automatically when a subscriber or package speed profile is configured.
             </p>
