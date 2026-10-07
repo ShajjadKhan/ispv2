@@ -363,11 +363,18 @@
     border: 1px solid rgba(37, 211, 102, 0.3);
     border-radius: 16px;
     width: 100%;
-    max-width: 600px;
+    max-width: 660px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-    max-height: 90vh;
+    max-height: 88vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
   }
   .modal-header {
@@ -377,6 +384,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
   }
   .modal-body {
     padding: 20px;
@@ -384,6 +392,18 @@
     flex-direction: column;
     gap: 14px;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .modal-footer {
+    padding: 14px 20px;
+    background: var(--bg-card-header);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
   }
 
   .quiet-hours-grid {
@@ -715,7 +735,7 @@
         <!-- TEMPLATE PRESETS -->
         <div class="form-group">
           <label class="form-label">2. Template Presets</label>
-          <div class="chips-row">
+          <div class="chips-row" id="composerTemplateChips">
             <button type="button" class="chip-btn active" onclick="loadTemplate('reminder')">💳 Due Reminder</button>
             <button type="button" class="chip-btn" onclick="loadTemplate('receipt')">🧾 Payment Receipt</button>
             <button type="button" class="chip-btn" onclick="loadTemplate('voucher')">🎟️ WiFi Voucher PIN</button>
@@ -1170,16 +1190,20 @@
 
 <!-- SETTINGS & TEMPLATES MODAL -->
 <div id="settingsModal" class="modal-overlay">
-  <div class="modal-container">
+  <div class="modal-container" style="max-width: 680px;">
     <div class="modal-header">
-      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">⚙️ WhatsApp Settings &amp; Templates</h3>
-      <button type="button" onclick="closeSettingsModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 16px;">⚙️</span>
+        <h3 style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 0;">WhatsApp Settings &amp; Automation Hub</h3>
+      </div>
+      <button type="button" onclick="closeSettingsModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:22px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
-    <form onsubmit="saveSettings(event)">
-      <div class="modal-body">
+
+    <form onsubmit="saveSettings(event)" class="modal-form">
+      <div class="modal-body" style="padding: 16px 20px; gap: 14px;">
 
         <!-- AUTO DISPATCH SAFETY TOGGLE & SCHEDULER CONTROLS -->
-        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 0;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
               <label for="set_auto_dispatch" style="color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer;">Master Automated Messaging Switch</label>
@@ -1187,7 +1211,7 @@
                 Controls whether background cron jobs are permitted to send notices automatically.
               </div>
             </div>
-            <select id="set_auto_dispatch" class="form-control" style="width: 140px;">
+            <select id="set_auto_dispatch" class="form-control" style="width: 145px; font-weight: 700;">
               <option value="0" {% if wa_settings.auto_dispatch_enabled != '1' %}selected{% endif %}>DISABLED (Safe)</option>
               <option value="1" {% if wa_settings.auto_dispatch_enabled == '1' %}selected{% endif %}>ENABLED</option>
             </select>
@@ -1213,7 +1237,7 @@
         </div>
 
         <!-- QUIET HOURS CONFIG -->
-        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+        <div class="form-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 0;">
           <strong style="color: #ffffff; font-size: 13px;">Night Quiet Hours Shield</strong>
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px;">
             Blocks outbound dispatches during sleeping hours so subscribers are never disturbed.
@@ -1238,59 +1262,85 @@
         </div>
 
         <!-- CONTACT & SERVERS -->
-        <div class="support-server-grid">
-          <div class="form-group">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="set_support_phone">Support Phone</label>
             <input type="text" id="set_support_phone" class="form-control font-mono" value="{{ wa_settings.support_phone or '0597595059' }}">
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="set_movie_server">Free Movie Portal</label>
             <input type="text" id="set_movie_server" class="form-control font-mono" value="{{ wa_settings.movie_server or 'http://10.12.14.16:8082' }}">
           </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="set_football_server">Live Football Portal</label>
+            <input type="text" id="set_football_server" class="form-control font-mono" value="{{ wa_settings.football_server or 'http://10.12.14.16:8080' }}">
+          </div>
         </div>
 
-        <!-- TEMPLATES ACCORDION / CARDS -->
-        <div style="margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
-          <div style="font-size: 12px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">
-            📝 Multi-Stage WhatsApp Templates
+        <!-- MULTI-STAGE TEMPLATES WITH TABBED NAVIGATION -->
+        <div style="margin-top: 4px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: 700; color: #38bdf8; text-transform: uppercase;">
+              📝 Multi-Stage WhatsApp Templates
+            </span>
+            <span style="font-size: 11px; color: var(--text-dim);">Click tab to view / edit</span>
           </div>
 
-          <!-- TEMPLATE: PAYMENT RECEIPT -->
-          <div class="form-group">
-            <label class="form-label" for="set_tpl_receipt">1. Payment Receipt Template (Used upon billing collection)</label>
-            <textarea id="set_tpl_receipt" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_receipt }}</textarea>
+          <!-- TAB SWITCHER -->
+          <div class="chips-row" style="margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+            <button type="button" class="chip-btn active" id="tabBtn_tpl_receipt" onclick="switchSettingsTplTab('receipt')">🧾 1. Receipt</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_reminder" onclick="switchSettingsTplTab('reminder')">💳 2. Due Notice</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_expiry" onclick="switchSettingsTplTab('expiry')">⚠️ 3. Expiry Alert</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_welcome" onclick="switchSettingsTplTab('welcome')">🌐 4. Welcome</button>
+            <button type="button" class="chip-btn" id="tabBtn_tpl_maintenance" onclick="switchSettingsTplTab('maintenance')">🛠️ 5. Maintenance</button>
           </div>
 
-          <!-- TEMPLATE: DUE REMINDER -->
-          <div class="form-group">
-            <label class="form-label" for="set_tpl_reminder">2. Due & Account Status Reminder Template</label>
-            <textarea id="set_tpl_reminder" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_reminder }}</textarea>
+          <!-- TAB 1: PAYMENT RECEIPT -->
+          <div id="tabPane_tpl_receipt" class="settings-tpl-pane">
+            <label class="form-label" for="set_tpl_receipt">1. Payment Receipt Template (Dispatched upon cash collection on /balance)</label>
+            <textarea id="set_tpl_receipt" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_receipt }}</textarea>
+            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[AMOUNT]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[RECEIPT_NO]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
           </div>
 
-          <!-- TEMPLATE: SERVICE EXPIRY -->
-          <div class="form-group">
-            <label class="form-label" for="set_tpl_expiry">3. Expiry & Service Cutoff Alert Template</label>
-            <textarea id="set_tpl_expiry" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_expiry }}</textarea>
+          <!-- TAB 2: DUE REMINDER -->
+          <div id="tabPane_tpl_reminder" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_reminder">2. Due &amp; Account Status Reminder Template</label>
+            <textarea id="set_tpl_reminder" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_reminder }}</textarea>
+            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
           </div>
 
-          <!-- TEMPLATE: NEW SUBSCRIBER WELCOME -->
-          <div class="form-group">
+          <!-- TAB 3: SERVICE EXPIRY -->
+          <div id="tabPane_tpl_expiry" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_expiry">3. Expiry &amp; Service Cutoff Alert Template</label>
+            <textarea id="set_tpl_expiry" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_expiry }}</textarea>
+            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code></div>
+          </div>
+
+          <!-- TAB 4: NEW SUBSCRIBER WELCOME -->
+          <div id="tabPane_tpl_welcome" class="settings-tpl-pane" style="display:none;">
             <label class="form-label" for="set_tpl_welcome">4. New Subscriber Welcome / Provisioning Template</label>
-            <textarea id="set_tpl_welcome" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_welcome }}</textarea>
+            <textarea id="set_tpl_welcome" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_welcome }}</textarea>
+            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
           </div>
 
-          <!-- TEMPLATE: MAINTENANCE -->
-          <div class="form-group">
-            <label class="form-label" for="set_tpl_maintenance">5. Scheduled Maintenance Announcement Template</label>
-            <textarea id="set_tpl_maintenance" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_maintenance }}</textarea>
+          <!-- TAB 5: MAINTENANCE -->
+          <div id="tabPane_tpl_maintenance" class="settings-tpl-pane" style="display:none;">
+            <label class="form-label" for="set_tpl_maintenance">5. Scheduled Optical Maintenance Announcement Template</label>
+            <textarea id="set_tpl_maintenance" class="form-control font-mono" rows="6" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_maintenance }}</textarea>
+            <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 4px;">Dynamic tags: <code>[EXPIRY_DATE]</code>, <code>[HELPLINE]</code></div>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
-          <button type="button" class="btn-simulate" onclick="closeSettingsModal()">Cancel</button>
-          <button type="submit" class="btn-wa-send">Save Configurations</button>
-        </div>
+      </div>
 
+      <!-- FIXED STICKY MODAL FOOTER (ALWAYS VISIBLE) -->
+      <div class="modal-footer">
+        <button type="button" class="btn-simulate" onclick="closeSettingsModal()" style="padding: 8px 16px;">
+          Cancel
+        </button>
+        <button type="submit" class="btn-wa-send" style="padding: 8px 22px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
+          💾 Save Configurations
+        </button>
       </div>
     </form>
   </div>
@@ -1402,8 +1452,10 @@
   });
 
   function loadTemplate(tplKey) {
-    document.querySelectorAll('.chips-row .chip-btn').forEach(btn => btn.classList.remove('active'));
-    event && event.target && event.target.classList.add('active');
+    document.querySelectorAll('#composerTemplateChips .chip-btn').forEach(btn => btn.classList.remove('active'));
+    if (window.event && window.event.target && window.event.target.classList.contains('chip-btn')) {
+      window.event.target.classList.add('active');
+    }
 
     const raw = TEMPLATES[tplKey] || "";
     document.getElementById('messageEditor').value = raw;
@@ -2261,10 +2313,21 @@
 
   // Settings Modal
   function openSettingsModal() {
+    switchSettingsTplTab('receipt');
     document.getElementById('settingsModal').classList.add('open');
   }
   function closeSettingsModal() {
     document.getElementById('settingsModal').classList.remove('open');
+  }
+
+  function switchSettingsTplTab(key) {
+    const tabs = ['receipt', 'reminder', 'expiry', 'welcome', 'maintenance'];
+    tabs.forEach(k => {
+      const btn = document.getElementById('tabBtn_tpl_' + k);
+      const pane = document.getElementById('tabPane_tpl_' + k);
+      if (btn) btn.classList.toggle('active', k === key);
+      if (pane) pane.style.display = (k === key) ? 'block' : 'none';
+    });
   }
 
   async function saveSettings(e) {
