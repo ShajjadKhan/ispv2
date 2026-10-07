@@ -22,4 +22,5 @@ backups/
 # Local diagnostics and runtime markers
 diagnostics/antigravity_*/
 diagnostics/backups_*/
+whatsapp_data/
 *.trigger

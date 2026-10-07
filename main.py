@@ -3959,9 +3959,23 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
 
 @app.get("/api/whatsapp/status")
 async def api_whatsapp_status():
-    """Returns real-time session state of the OpenWA container."""
+    """Returns real-time session state of the dedicated ISPv2 OpenWA container."""
     status = whatsapp_service.get_whatsapp_gateway_status()
     return JSONResponse(status)
+
+
+@app.get("/api/whatsapp/qr")
+async def api_whatsapp_qr():
+    """Returns real-time pairing QR code for the dedicated ISPv2 WhatsApp bot."""
+    qr_data = whatsapp_service.get_whatsapp_qr_code()
+    return JSONResponse(qr_data)
+
+
+@app.post("/api/whatsapp/session/start")
+async def api_whatsapp_session_start():
+    """Initiates or re-starts the ispv2-bot session in the dedicated container."""
+    res = whatsapp_service.start_whatsapp_session()
+    return JSONResponse(res)
 
 
 @app.post("/api/whatsapp/send")
@@ -3969,6 +3983,7 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
     """
     Dispatches a manual or automated WhatsApp message with safety guardrails.
     Checks quiet night hours to prevent waking customers unless explicitly overridden.
+    Enforces strict Sandbox Shield in test mode (only 0597595059 allowed).
     """
     clean_p = whatsapp_service.format_phone(req.phone)
     if not clean_p:
@@ -4025,9 +4040,12 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
             "log_id": log_id
         }
 
-    # Live dispatch via OpenWA container
+    # Live dispatch via dedicated OpenWA container
     ok, err = whatsapp_service.send_whatsapp_raw(clean_p, req.message)
-    status_str = "sent" if ok else "failed"
+    if not ok and "SANDBOX SHIELD" in str(err):
+        status_str = "blocked_sandbox"
+    else:
+        status_str = "sent" if ok else "failed"
 
     log_id = database.log_whatsapp_message(
         phone=clean_p,
@@ -4043,10 +4061,10 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
     if ok:
         return {"success": True, "status": "sent", "log_id": log_id, "phone": clean_p}
     else:
-        return JSONResponse(status_code=502, content={
+        return JSONResponse(status_code=403 if status_str == "blocked_sandbox" else 500, content={
             "success": False,
-            "status": "failed",
-            "error": err or "Failed to dispatch via OpenWA container.",
+            "status": status_str,
+            "error": err,
             "log_id": log_id
         })
 

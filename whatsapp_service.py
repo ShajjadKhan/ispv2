@@ -19,14 +19,18 @@ from typing import Dict, Any, Optional, Tuple
 
 logger = logging.getLogger("whatsapp_service")
 
-# OpenWA container configuration
-OPENWA_URL = os.getenv("OPENWA_URL", "http://127.0.0.1:2785")
+# OpenWA Dedicated Container Configuration for ISPv2
+OPENWA_URL = os.getenv("OPENWA_URL", "http://127.0.0.1:2790")
 OPENWA_API_KEY = os.getenv("OPENWA_API_KEY", "dev-admin-key")
-OPENWA_SESSION_ID = os.getenv("OPENWA_SESSION_ID", "8cc17322-a9d3-4b88-89ac-d4d95fb57ff4")
+OPENWA_SESSION_ID = os.getenv("OPENWA_SESSION_ID", "abba0f1a-573b-4107-8fc4-3e8000668e92")
 
 DEFAULT_SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "0597595059")
 DEFAULT_MOVIE_SERVER = os.getenv("MOVIE_SERVER", "http://10.12.14.16:8082")
 DEFAULT_FOOTBALL_SERVER = os.getenv("FOOTBALL_SERVER", "http://10.12.14.16:8080")
+
+# STRICT TEST SANDBOX SAFETY SHIELD
+# Only this authorized phone number may receive test messages during sandbox mode.
+ALLOWED_TEST_PHONE = "966597595059"
 
 
 def format_phone(raw: str) -> str:
@@ -45,8 +49,18 @@ def format_phone(raw: str) -> str:
     return p
 
 
+def is_sandbox_active() -> bool:
+    """
+    Checks whether the safety sandbox mode is active.
+    Defaults to True (active) unless WHATSAPP_SANDBOX_MODE is explicitly set to false/0.
+    """
+    env_val = os.getenv("WHATSAPP_SANDBOX_MODE", "true").lower().strip()
+    return env_val not in ("false", "0", "no", "disabled")
+
+
 def get_whatsapp_gateway_status() -> Dict[str, Any]:
-    """Queries the local OpenWA container for live session state."""
+    """Queries the dedicated OpenWA container for live session state."""
+    sandbox = is_sandbox_active()
     try:
         url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}"
         headers = {"X-API-Key": OPENWA_API_KEY}
@@ -55,37 +69,90 @@ def get_whatsapp_gateway_status() -> Dict[str, Any]:
             data = r.json()
             status_val = data.get("status", "unknown")
             is_connected = status_val in ("ready", "CONNECTED")
+            needs_qr = status_val in ("scan_qr_code", "SCAN_QR_CODE", "initializing", "created")
             return {
                 "connected": is_connected,
+                "needs_qr": needs_qr,
                 "status": status_val,
-                "phone": data.get("phone", "966594266584"),
-                "name": data.get("pushName") or data.get("name") or "Cyber Net",
+                "phone": data.get("phone"),
+                "name": data.get("pushName") or data.get("name") or "CyberNet Bot",
                 "session_id": OPENWA_SESSION_ID,
                 "connected_at": data.get("connectedAt"),
-                "last_active": data.get("lastActive"),
+                "last_active": data.get("lastActive") or data.get("lastActiveAt"),
                 "openwa_url": OPENWA_URL,
+                "sandbox_mode": sandbox,
+                "allowed_test_phone": ALLOWED_TEST_PHONE,
                 "error": None
             }
         return {
             "connected": False,
+            "needs_qr": False,
             "status": f"HTTP {r.status_code}",
             "phone": None,
-            "name": "Cyber Net",
+            "name": "CyberNet Bot",
             "session_id": OPENWA_SESSION_ID,
             "openwa_url": OPENWA_URL,
+            "sandbox_mode": sandbox,
+            "allowed_test_phone": ALLOWED_TEST_PHONE,
             "error": r.text
         }
     except Exception as e:
         logger.warning(f"Failed to query OpenWA status: {e}")
         return {
             "connected": False,
+            "needs_qr": False,
             "status": "offline",
             "phone": None,
-            "name": "Cyber Net",
+            "name": "CyberNet Bot",
             "session_id": OPENWA_SESSION_ID,
             "openwa_url": OPENWA_URL,
+            "sandbox_mode": sandbox,
+            "allowed_test_phone": ALLOWED_TEST_PHONE,
             "error": str(e)
         }
+
+
+def get_whatsapp_qr_code() -> Dict[str, Any]:
+    """Fetches the active pairing QR code for the dedicated ISPv2 session."""
+    try:
+        url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/qr"
+        headers = {"X-API-Key": OPENWA_API_KEY}
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "success": True,
+                "qr": data.get("qrCode"),
+                "status": data.get("status", "scan_qr_code")
+            }
+        return {
+            "success": False,
+            "error": f"HTTP {r.status_code}: {r.text}",
+            "qr": None
+        }
+    except Exception as e:
+        logger.warning(f"Failed to fetch QR code: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "qr": None
+        }
+
+
+def start_whatsapp_session() -> Dict[str, Any]:
+    """Requests OpenWA to start or re-initialize the ispv2-bot session."""
+    try:
+        url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/start"
+        headers = {"X-API-Key": OPENWA_API_KEY}
+        r = requests.post(url, headers=headers, timeout=10)
+        return {
+            "success": r.status_code in (200, 201),
+            "status_code": r.status_code,
+            "response": r.json() if r.status_code in (200, 201) else r.text
+        }
+    except Exception as e:
+        logger.exception(f"Error starting WhatsApp session: {e}")
+        return {"success": False, "error": str(e)}
 
 
 def is_night_quiet_hours(start_str: str = "22:00", end_str: str = "09:00") -> Tuple[bool, str]:
@@ -151,10 +218,29 @@ def render_message_template(
 
 
 def send_whatsapp_raw(phone: str, text: str) -> Tuple[bool, Optional[str]]:
-    """Dispatches raw text message directly to OpenWA container."""
+    """
+    Dispatches raw text message directly to OpenWA container with strict safety gates.
+    ENFORCES HARDCODED TEST SANDBOX SHIELD:
+    If sandbox mode is active, only ALLOWED_TEST_PHONE (0597595059) is permitted.
+    All other phone numbers are strictly blocked and forbidden from receiving messages.
+    """
     clean_phone = format_phone(phone)
     if not clean_phone:
         return False, "Invalid phone number format"
+
+    # =========================================================================
+    # STRICT SAFETY SHIELD: TEST NUMBER RESTRICTION (0597595059 ONLY)
+    # =========================================================================
+    if is_sandbox_active():
+        allowed_clean = format_phone(ALLOWED_TEST_PHONE)
+        if clean_phone != allowed_clean:
+            shield_err = (
+                f"🛡️ SANDBOX SHIELD ACTIVE: Outgoing message to {phone} ({clean_phone}) "
+                f"was BLOCKED. During testing, messaging client numbers is strictly prohibited. "
+                f"Only authorized test number 0597595059 is permitted."
+            )
+            logger.warning(shield_err)
+            return False, shield_err
 
     chat_id = f"{clean_phone}@c.us"
     url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/messages/send-text"
