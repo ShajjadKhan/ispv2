@@ -932,6 +932,8 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
 
         cursor.execute("SELECT * FROM connection_requests WHERE id = ?", (req_id,))
         req = dict(cursor.fetchone())
+        if existing_cust:
+            req["customer_name"] = existing_cust["name"]
         return (req, False, bool(is_secondary))
 
 
@@ -963,13 +965,7 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, 
                     "message": f"Your internet subscription expired on {exp_display}. Please renew your plan to restore internet access."
                 }
             if cust.get("status") == "active":
-                return {
-                    "status": "approved",
-                    "customer_name": cust.get("name", ""),
-                    "phone": cust.get("phone", phone_clean),
-                    "mac": mac_upper,
-                    "message": f"Device authorized. Welcome {cust['name']}!"
-                }
+                return {"status": "approved", "message": f"Device authorized. Welcome {cust['name']}!"}
 
         # 2. Check if phone belongs to an existing customer who is expired
         if phone_clean:
@@ -1006,33 +1002,10 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, 
                 "message": "Device access has been revoked or removed. Please contact administrator."
             }
 
-        existing_cust = get_customer_by_phone(phone_clean) if phone_clean else None
-        cust_name = existing_cust.get("name") if existing_cust else None
-        wa_settings = get_whatsapp_settings()
-        support_phone = wa_settings.get("support_phone", "0597595059")
-
-        if req["status"] == "rejected":
-            return {
-                "status": "rejected",
-                "is_secondary": bool(req.get("is_secondary")),
-                "request_id": req.get("id"),
-                "phone": req.get("phone") or phone_clean,
-                "mac": mac_upper,
-                "customer_name": cust_name,
-                "support_phone": support_phone,
-                "message": "Connection request was not approved by network administrator."
-            }
-
         return {
             "status": req["status"],
             "is_secondary": bool(req["is_secondary"]),
-            "request_id": req.get("id"),
-            "phone": req.get("phone") or phone_clean,
-            "mac": mac_upper,
-            "created_at": req.get("created_at"),
-            "customer_name": cust_name,
-            "support_phone": support_phone,
-            "message": "Awaiting administrator approval." if req["status"] == "pending" else f"Request {req['status']}."
+            "message": "Awaiting admin approval."
         }
 
 
@@ -1506,6 +1479,58 @@ def reject_connection(req_id: int) -> bool:
         """, (now_str, req_id))
         conn.commit()
         return cursor.rowcount > 0
+
+
+def update_request_subscriber_details(
+    req_id: Optional[int] = None,
+    phone: Optional[str] = "",
+    mac: Optional[str] = "",
+    customer_name: str = "",
+    room_location: str = ""
+) -> Optional[Dict[str, Any]]:
+    """
+    Updates customer_name and notes (room location) for a pending connection request
+    submitted via the captive portal confirmation screen.
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    name_clean = (customer_name or "").strip()
+    room_clean = (room_location or "").strip()
+    mac_upper = (mac or "").strip().upper()
+    phone_clean = (phone or "").strip()
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        target_id = req_id
+        if not target_id:
+            if mac_upper:
+                row = cursor.execute(
+                    "SELECT id FROM connection_requests WHERE UPPER(mac_address) = ? AND status = 'pending' ORDER BY id DESC LIMIT 1",
+                    (mac_upper,)
+                ).fetchone()
+                if row:
+                    target_id = row["id"]
+            if not target_id and phone_clean:
+                row = cursor.execute(
+                    "SELECT id FROM connection_requests WHERE phone = ? AND status = 'pending' ORDER BY id DESC LIMIT 1",
+                    (phone_clean,)
+                ).fetchone()
+                if row:
+                    target_id = row["id"]
+
+        if not target_id:
+            return None
+
+        cursor.execute("""
+            UPDATE connection_requests
+            SET customer_name = COALESCE(NULLIF(?, ''), customer_name),
+                notes = COALESCE(NULLIF(?, ''), notes),
+                updated_at = ?
+            WHERE id = ?
+        """, (name_clean, room_clean, now, target_id))
+        conn.commit()
+
+        row = cursor.execute("SELECT * FROM connection_requests WHERE id = ?", (target_id,)).fetchone()
+        return dict(row) if row else None
 
 
 def revoke_customer_device(mac: str) -> Optional[Dict[str, Any]]:

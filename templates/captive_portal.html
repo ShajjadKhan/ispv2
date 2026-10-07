@@ -856,6 +856,33 @@
             </table>
           </div>
 
+          <!-- Collect Name & Room for New/Unregistered Subscribers -->
+          <div id="confCollectDetailsCard" style="display:none; background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; text-align: left;">
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:6px;">
+              <span style="font-size:15px;">⚡</span>
+              <span style="font-size:12.5px; font-weight:800; color:#38bdf8;">Speed Up Activation</span>
+            </div>
+            <div style="font-size:11.5px; color:#94a3b8; line-height:1.4; margin-bottom:10px;">
+              Help the operator identify you and activate your connection immediately:
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div>
+                <label style="display:block; font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:3px;">Full Name</label>
+                <input type="text" id="confInputName" placeholder="e.g. Naseem Khan" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #334155; border-radius:7px; padding:8px 10px; color:#fff; font-size:12.5px; outline:none;" />
+              </div>
+              <div>
+                <label style="display:block; font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:3px;">Room / Flat / Building Location</label>
+                <input type="text" id="confInputRoom" placeholder="e.g. B2 Room 5" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #334155; border-radius:7px; padding:8px 10px; color:#fff; font-size:12.5px; outline:none;" />
+              </div>
+              <button type="button" id="btnConfSaveDetails" onclick="submitSubscriberDetails()" style="margin-top:2px; background:linear-gradient(135deg, #0284c7, #0369a1); border:none; border-radius:7px; padding:8px 12px; color:#fff; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <span>Save Details &amp; Notify Operator</span>
+              </button>
+              <div id="confDetailsSuccess" style="display:none; font-size:11.5px; color:#34d399; font-weight:700; text-align:center; padding:4px 0;">
+                ✓ Details sent to operator!
+              </div>
+            </div>
+          </div>
+
           <!-- 3-Step Live Progress -->
           <div class="stepper-box">
             <div class="step-item">
@@ -1267,11 +1294,82 @@
         cardTitle.textContent = data.is_secondary_device ? "Secondary Device Request Confirmed" : "Request Confirmed & Queued";
       }
 
+      const detailsCard = document.getElementById("confCollectDetailsCard");
+      if (detailsCard) {
+        if (data.is_secondary_device || data.customer_name) {
+          detailsCard.style.display = "none";
+        } else {
+          detailsCard.style.display = "block";
+        }
+      }
+
       updateWhatsAppLinks(data.request_id, data.phone || submittedPhone, data.mac || detectedMac);
       startElapsedTimer();
 
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(() => checkStatus(data.mac || detectedMac, data.phone || submittedPhone), 3000);
+    }
+
+    async function submitSubscriberDetails() {
+      const nameInput = document.getElementById("confInputName");
+      const roomInput = document.getElementById("confInputRoom");
+      const btn = document.getElementById("btnConfSaveDetails");
+      const succMsg = document.getElementById("confDetailsSuccess");
+
+      const nameVal = (nameInput ? nameInput.value : "").trim();
+      const roomVal = (roomInput ? roomInput.value : "").trim();
+
+      if (!nameVal && !roomVal) {
+        alert("Please enter your name or room location.");
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "<span>Saving...</span>";
+      }
+
+      const phoneEl = document.getElementById('phoneInput');
+      const phoneToUse = submittedPhone || (phoneEl ? phoneEl.value.trim() : "");
+
+      try {
+        const resp = await fetch("/api/hotspot/update-subscriber-details", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: phoneToUse,
+            mac: detectedMac,
+            customer_name: nameVal,
+            room_location: roomVal
+          })
+        });
+        const res = await resp.json();
+        if (res.success) {
+          if (succMsg) {
+            succMsg.style.display = "block";
+            succMsg.textContent = "✓ Details sent! Waiting for activation...";
+          }
+          const dispAccount = document.getElementById("confDispAccount");
+          if (dispAccount && nameVal) {
+            dispAccount.innerHTML = `<strong style="color:#38bdf8;">${nameVal}</strong>` + (roomVal ? (` <span style="font-size:10px; color:#cbd5e1;">(Room ${roomVal})</span>`) : '');
+          }
+          if (btn) btn.style.display = "none";
+          if (nameInput) nameInput.disabled = true;
+          if (roomInput) roomInput.disabled = true;
+        } else {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "<span>Save Details &amp; Notify Operator</span>";
+          }
+          alert(res.message || "Failed to save details");
+        }
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = "<span>Save Details &amp; Notify Operator</span>";
+        }
+        console.error("Error updating details:", err);
+      }
     }
 
     function showFailedState(msg) {

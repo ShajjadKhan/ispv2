@@ -4254,7 +4254,7 @@
       } else {
         tbody.innerHTML = requests.map(req => {
           const isRandom = !!req.is_random_mac;
-          const safeName = (req.existing_customer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const safeName = (req.existing_customer_name || req.customer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const safePhone = (req.phone || '');
           const safeNotes = (req.existing_customer_notes || req.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -4287,7 +4287,7 @@
                  <span>Review</span>
                </button>
                <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`
-            : `<button type="button" class="btn-approve" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', ${JSON.stringify(req.existing_customer_name || '')}, 0, 1, 0, '', '', ${JSON.stringify(req.notes || '')})">
+            : `<button type="button" class="btn-approve" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', ${JSON.stringify(req.existing_customer_name || req.customer_name || '')}, 0, 1, 0, '', '', ${JSON.stringify(req.notes || '')})">
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                  <span>Approve</span>
                </button>
@@ -4307,6 +4307,20 @@
                      <button type="button" class="btn-copy-phone" onclick="copyPhone('${safePhone}', this, event)" title="Copy Phone Number: ${safePhone}" aria-label="Copy phone number">${copyBtnSvg}</button>
                    </span>
                    <span style="font-size:10px; font-weight:700; background:rgba(16,185,129,0.12); color:#34d399; border:1px solid rgba(16,185,129,0.25); padding:1px 5px; border-radius:4px;">Registered</span>
+                 </div>
+               </div>`
+            : safeName
+            ? `<div class="pending-sub-cell">
+                 <div class="pending-sub-name" style="font-weight:800; color:var(--text-main, #ffffff); font-size:13.5px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                   <span>${safeName}</span>
+                   ${safeNotes ? `<span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); padding:1px 5px; border-radius:4px; font-weight:600;" title="Room / Note: ${safeNotes}">🚪 ${safeNotes}</span>` : ''}
+                 </div>
+                 <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
+                   <span class="phone-wrap">
+                     <span class="phone-val font-mono" style="font-size:12px; color:#94a3b8; font-weight:600;">${safePhone}</span>
+                     <button type="button" class="btn-copy-phone" onclick="copyPhone('${safePhone}', this, event)" title="Copy Phone Number: ${safePhone}" aria-label="Copy phone number">${copyBtnSvg}</button>
+                   </span>
+                   <span style="font-size:10px; font-weight:700; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 5px; border-radius:4px;">New Customer</span>
                  </div>
                </div>`
             : `<div class="pending-sub-cell">

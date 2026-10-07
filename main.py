@@ -559,6 +559,14 @@ class HotspotSubmitRequest(BaseModel):
     device_model: Optional[str] = None
 
 
+class UpdateSubscriberDetailsRequest(BaseModel):
+    req_id: Optional[int] = None
+    phone: Optional[str] = ""
+    mac: Optional[str] = ""
+    customer_name: Optional[str] = ""
+    room_location: Optional[str] = ""
+
+
 class ApproveConnectionPayload(BaseModel):
     name: str
     billing_type: Optional[str] = "prepaid"  # 'prepaid' or 'postpaid'
@@ -926,6 +934,7 @@ PUBLIC_EXACT_PATHS = {
 PUBLIC_PREFIXES = (
     "/static/",
     "/api/hotspot/submit",
+    "/api/hotspot/update-subscriber-details",
     "/api/hotspot/check-status",
     "/api/hotspot/detect-mac",
     "/api/hotspot/validate-mac",
@@ -2321,40 +2330,26 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             mac_address=mac_clean,
             comment=comment_str
         )
-        existing_cust = database.get_customer_by_phone(phone_clean)
-        cust_name = existing_cust.get("name") if existing_cust else (req_dict.get("customer_name") or "")
         return JSONResponse(
             content={
                 "success": True,
                 "status": "approved",
                 "is_secondary_device": False,
-                "customer_name": cust_name,
-                "phone": phone_clean,
-                "mac": mac_clean,
-                "message": f"Welcome back{' ' + cust_name if cust_name else ''}! Your device is authorized."
+                "message": "Welcome back! Your device is authorized."
             },
             headers={"Access-Control-Allow-Origin": "*"}
         )
-
-    existing_cust = database.get_customer_by_phone(phone_clean)
-    cust_name = existing_cust.get("name") if existing_cust else None
-    cust_room = f"{existing_cust.get('building', '')} {existing_cust.get('apartment', '')} {existing_cust.get('room', '')}".strip() if existing_cust else ""
-    wa_settings = database.get_whatsapp_settings()
-    support_phone = wa_settings.get("support_phone", "0597595059")
 
     return JSONResponse(
         content={
             "success": True,
             "status": "pending",
             "request_id": req_dict.get("id"),
+            "customer_name": req_dict.get("customer_name") or "",
             "phone": phone_clean,
             "mac": mac_clean,
-            "is_secondary_device": bool(is_secondary),
-            "customer_name": cust_name,
-            "customer_room": cust_room,
-            "support_phone": support_phone,
-            "created_at": req_dict.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "message": f"Connection request #{req_dict.get('id', '')} confirmed and queued for administrator approval."
+            "is_secondary_device": is_secondary,
+            "message": "Waiting for Administrator approval..."
         },
         headers={"Access-Control-Allow-Origin": "*"}
     )
@@ -2362,6 +2357,57 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
 
 @app.options("/api/hotspot/submit")
 async def hotspot_submit_options():
+    return JSONResponse(
+        content="OK",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        }
+    )
+
+
+@app.post("/api/hotspot/update-subscriber-details")
+async def hotspot_update_subscriber_details(payload: UpdateSubscriberDetailsRequest):
+    """
+    Called by captive portal confirmation screen when subscriber submits name and room.
+    Saves details to the pending request and reflects them in the live admin dashboard.
+    """
+    try:
+        updated = database.update_request_subscriber_details(
+            req_id=payload.req_id,
+            phone=payload.phone,
+            mac=payload.mac,
+            customer_name=payload.customer_name or "",
+            room_location=payload.room_location or ""
+        )
+        if not updated:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Pending request not found"},
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "Details saved successfully",
+                "request_id": updated["id"],
+                "customer_name": updated.get("customer_name") or "",
+                "room_location": updated.get("notes") or ""
+            },
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+    except Exception as e:
+        logger.error(f"Error updating subscriber details: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": str(e)},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
+
+@app.options("/api/hotspot/update-subscriber-details")
+async def hotspot_update_subscriber_details_options():
     return JSONResponse(
         content="OK",
         headers={
