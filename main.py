@@ -3985,87 +3985,98 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
     Checks quiet night hours to prevent waking customers unless explicitly overridden.
     Enforces strict Sandbox Shield in test mode (only 0597595059 allowed).
     """
-    clean_p = whatsapp_service.format_phone(req.phone)
-    if not clean_p:
-        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid phone number."})
+    try:
+        clean_p = whatsapp_service.format_phone(req.phone)
+        if not clean_p:
+            return JSONResponse(status_code=400, content={"success": False, "error": "Invalid phone number."})
 
-    wa_settings = database.get_whatsapp_settings()
-    quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
-    is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
-        wa_settings.get("quiet_hours_start", "22:00"),
-        wa_settings.get("quiet_hours_end", "09:00")
-    )
-
-    # Resolve customer name if customer_id supplied
-    resolved_name = None
-    if req.customer_id:
-        cust = database.get_customer_by_id(req.customer_id)
-        if cust:
-            resolved_name = cust.get("name")
-
-    # Safety Guard: Night Quiet Hours protection
-    if quiet_enabled and is_night and not req.force_night and not req.simulate:
-        database.log_whatsapp_message(
-            phone=clean_p,
-            message_body=req.message,
-            message_type=req.message_type or "manual",
-            status="blocked_night",
-            error_message=f"Dispatch blocked by Night Quiet Hours shield ({quiet_desc})",
-            customer_id=req.customer_id,
-            customer_name=resolved_name,
-            sent_by="admin"
+        wa_settings = database.get_whatsapp_settings()
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "09:00")
         )
-        return JSONResponse(status_code=403, content={
-            "success": False,
-            "status": "blocked_night",
-            "error": f"Night Quiet Hours Shield is ACTIVE: {quiet_desc}. Enable 'Confirm Night Send' if this is an authorized emergency."
-        })
 
-    # Simulation / Test mode
-    if req.simulate:
+        # Resolve customer name if customer_id supplied
+        resolved_name = None
+        if req.customer_id:
+            try:
+                cust = database.get_customer_by_id(req.customer_id)
+                if cust:
+                    resolved_name = cust.get("name")
+            except Exception as e:
+                logger.warning(f"Failed to resolve customer name for id {req.customer_id}: {e}")
+
+        # Safety Guard: Night Quiet Hours protection
+        if quiet_enabled and is_night and not req.force_night and not req.simulate:
+            database.log_whatsapp_message(
+                phone=clean_p,
+                message_body=req.message,
+                message_type=req.message_type or "manual",
+                status="blocked_night",
+                error_message=f"Dispatch blocked by Night Quiet Hours shield ({quiet_desc})",
+                customer_id=req.customer_id,
+                customer_name=resolved_name,
+                sent_by="admin"
+            )
+            return JSONResponse(status_code=403, content={
+                "success": False,
+                "status": "blocked_night",
+                "error": f"Night Quiet Hours Shield is ACTIVE: {quiet_desc}. Enable 'Confirm Night Send' if this is an authorized emergency."
+            })
+
+        # Simulation / Test mode
+        if req.simulate:
+            log_id = database.log_whatsapp_message(
+                phone=clean_p,
+                message_body=req.message,
+                message_type=req.message_type or "manual",
+                status="simulated",
+                error_message=None,
+                customer_id=req.customer_id,
+                customer_name=resolved_name,
+                sent_by="admin"
+            )
+            return {
+                "success": True,
+                "status": "simulated",
+                "message": "Message preview simulated & logged. No WhatsApp network message dispatched.",
+                "log_id": log_id
+            }
+
+        # Live dispatch via dedicated OpenWA container
+        ok, err = whatsapp_service.send_whatsapp_raw(clean_p, req.message)
+        if not ok and "SANDBOX SHIELD" in str(err):
+            status_str = "blocked_sandbox"
+        else:
+            status_str = "sent" if ok else "failed"
+
         log_id = database.log_whatsapp_message(
             phone=clean_p,
             message_body=req.message,
             message_type=req.message_type or "manual",
-            status="simulated",
-            error_message=None,
+            status=status_str,
+            error_message=err,
             customer_id=req.customer_id,
             customer_name=resolved_name,
             sent_by="admin"
         )
-        return {
-            "success": True,
-            "status": "simulated",
-            "message": "Message preview simulated & logged. No WhatsApp network message dispatched.",
-            "log_id": log_id
-        }
 
-    # Live dispatch via dedicated OpenWA container
-    ok, err = whatsapp_service.send_whatsapp_raw(clean_p, req.message)
-    if not ok and "SANDBOX SHIELD" in str(err):
-        status_str = "blocked_sandbox"
-    else:
-        status_str = "sent" if ok else "failed"
-
-    log_id = database.log_whatsapp_message(
-        phone=clean_p,
-        message_body=req.message,
-        message_type=req.message_type or "manual",
-        status=status_str,
-        error_message=err,
-        customer_id=req.customer_id,
-        customer_name=resolved_name,
-        sent_by="admin"
-    )
-
-    if ok:
-        return {"success": True, "status": "sent", "log_id": log_id, "phone": clean_p}
-    else:
-        return JSONResponse(status_code=403 if status_str == "blocked_sandbox" else 500, content={
+        if ok:
+            return {"success": True, "status": "sent", "log_id": log_id, "phone": clean_p}
+        else:
+            return JSONResponse(status_code=403 if status_str == "blocked_sandbox" else 500, content={
+                "success": False,
+                "status": status_str,
+                "error": err,
+                "log_id": log_id
+            })
+    except Exception as e:
+        logger.exception(f"Unhandled error in api_whatsapp_send: {e}")
+        return JSONResponse(status_code=500, content={
             "success": False,
-            "status": status_str,
-            "error": err,
-            "log_id": log_id
+            "status": "error",
+            "error": f"Internal dispatch exception: {str(e)}"
         })
 
 

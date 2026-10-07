@@ -677,6 +677,15 @@ def get_customer_by_phone(phone: str) -> Optional[Dict[str, Any]]:
         return dict(row) if row else None
 
 
+def get_customer_by_id(customer_id: int) -> Optional[Dict[str, Any]]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+
 
 def is_customer_expired(cust: Optional[Dict[str, Any]], today_str: Optional[str] = None) -> Tuple[bool, str, Optional[str]]:
     """

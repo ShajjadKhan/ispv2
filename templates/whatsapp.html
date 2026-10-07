@@ -1492,20 +1492,26 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        const textErr = await res.text().catch(() => '');
+        throw new Error(`Server HTTP ${res.status}: ${textErr.slice(0, 120) || res.statusText}`);
+      }
 
-      if (data.success) {
+      if (data && data.success) {
         if (simulate) {
           cyberToast('🛡️ Simulation Success: Message preview logged into audit ledger. No actual network dispatch made.');
         } else {
           cyberToast('✅ WhatsApp message dispatched successfully!');
         }
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 1500);
       } else {
-        cyberToast('Dispatch error: ' + (data.error || 'Failed'));
+        cyberToast('Dispatch error: ' + (data && data.error ? data.error : 'Failed to dispatch message'));
       }
     } catch (err) {
-      cyberToast('Network error: ' + err.message);
+      cyberToast('Dispatch notice: ' + err.message);
     }
   }
 
