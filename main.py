@@ -221,23 +221,36 @@ async def whatsapp_auto_dispatch_loop():
             if last_run == today_str:
                 continue
 
-            # Check scheduled hour (e.g. "12:00")
+            # Check scheduled hour (e.g. "12:00") and quiet hours boundary
             sched_time = wa_settings.get("auto_dispatch_time", "12:00")
+            quiet_end = wa_settings.get("quiet_hours_end", "09:00")
             current_time = now.strftime("%H:%M")
-            if current_time != sched_time:
-                continue
 
             # Quiet hours shield protection
             quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
             is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
                 wa_settings.get("quiet_hours_start", "22:00"),
-                wa_settings.get("quiet_hours_end", "09:00")
+                quiet_end
             )
-            if quiet_enabled and is_night:
-                logger.warning(f"[WhatsApp Auto-Scheduler] Skipping scheduled dispatch: {quiet_desc}")
+
+            # Trigger condition:
+            # 1. Normal run: Exact scheduled time reached during daytime
+            # 2. Morning Catch-Up: If scheduled run occurred during night, automatically trigger when morning shield opens (quiet_hours_end)
+            is_scheduled_time = (current_time == sched_time)
+            is_morning_catchup = (current_time == quiet_end and not is_night and last_run != today_str)
+
+            if not is_scheduled_time and not is_morning_catchup:
                 continue
 
-            logger.info(f"[WhatsApp Auto-Scheduler] Starting daily automated reminder dispatch for {today_str}...")
+            if quiet_enabled and is_night:
+                logger.warning(
+                    f"[WhatsApp Auto-Scheduler] Dispatch delayed by Night Shield ({quiet_desc}). "
+                    f"Will automatically execute upon morning shield opening at {quiet_end}."
+                )
+                continue
+
+            run_reason = "Morning Catch-Up (Delayed by Night Shield)" if is_morning_catchup else "Daily Schedule"
+            logger.info(f"[WhatsApp Auto-Scheduler] Starting {run_reason} automated reminder dispatch for {today_str}...")
 
             due_custs = database.get_due_customers_for_whatsapp()
             try:
