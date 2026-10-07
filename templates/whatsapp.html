@@ -1666,7 +1666,7 @@
           <div id="tabPane_tpl_receipt" class="settings-tpl-pane">
             <label class="form-label" for="set_tpl_receipt">1. Payment Receipt Template (Dispatched upon cash collection on /balance)</label>
             <textarea id="set_tpl_receipt" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_receipt }}</textarea>
-            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[AMOUNT]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[RECEIPT_NO]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[AMOUNT]</code>, <code>[ACCOUNT_STATUS]</code>, <code>[PENDING_DEBT]</code>, <code>[PREVIOUS_DEBT]</code>, <code>[PAYMENT_METHOD]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[RECEIPT_NO]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
           </div>
 
           <!-- TAB 2: DUE REMINDER -->
@@ -2270,20 +2270,38 @@
     // Character count
     document.getElementById('charCount').textContent = `${raw.length} characters`;
 
+    const sampleDue = parseFloat(currentCustData.due || 0);
+    let sampleStatus = '';
+    if (sampleDue > 0.01) {
+      sampleStatus = `⚠️ *Account Status: Partial Payment*\n  • Total Debt Prior  : *${(sampleDue + 30).toFixed(2)} SAR*\n  • Amount Paid Today : *30.00 SAR*\n  • *Pending Debt Remaining : ${sampleDue.toFixed(2)} SAR* ⚠️\n  _(Please settle remaining balance at your earliest convenience)_`;
+    } else {
+      sampleStatus = '✨ *Account Status: Fully Paid & Settled (0.00 SAR Due) ✅*';
+    }
+
     // Replace tags with current customer data
     let rendered = raw
       .replaceAll('[NAME]', currentCustData.name || 'Valued Subscriber')
       .replaceAll('[PHONE]', pInput || currentCustData.phone || '05XXXXXXXX')
       .replaceAll('[PACKAGE]', currentCustData.package || 'High-Speed Fiber')
-      .replaceAll('[AMOUNT]', currentCustData.due || '100.00')
-      .replaceAll('[DUE_BALANCE]', currentCustData.due || '100.00')
+      .replaceAll('[AMOUNT]', currentCustData.due || '30.00')
+      .replaceAll('[DUE_BALANCE]', currentCustData.due || '30.00')
       .replaceAll('[EXPIRY_DATE]', currentCustData.expiry || 'End of Month')
       .replaceAll('[PIN]', '992144')
       .replaceAll('[RECEIPT_NO]', 'REC-' + new Date().toISOString().slice(0,10).replace(/-/g,''))
       .replaceAll('[HELPLINE]', '{{ wa_settings.support_phone or "0597595059" }}')
       .replaceAll('[MOVIES]', '{{ wa_settings.movie_server or "http://10.12.14.16:8082" }}')
       .replaceAll('[FOOTBALL]', '{{ wa_settings.football_server or "http://10.12.14.16:8080" }}')
-      .replaceAll('[COMPANY_NAME]', 'CyberNet ISP');
+      .replaceAll('[COMPANY_NAME]', 'CyberNet ISP')
+      .replaceAll('[ACCOUNT_STATUS]', sampleStatus)
+      .replaceAll('[PENDING_DEBT]', sampleDue > 0.01 ? sampleDue.toFixed(2) : '0.00')
+      .replaceAll('[REMAINING_DEBT]', sampleDue > 0.01 ? sampleDue.toFixed(2) : '0.00')
+      .replaceAll('[PREVIOUS_DEBT]', (sampleDue + 30).toFixed(2))
+      .replaceAll('[PAYMENT_METHOD]', 'Cash');
+
+    // Legacy fallback in preview
+    if (!raw.includes('[ACCOUNT_STATUS]')) {
+      rendered = rendered.replace('✨ *Account Status:* Fully Paid & Settled ✅', sampleStatus);
+    }
 
     // Basic markdown conversion (*bold*, _italic_, `code`)
     let html = escapeHtml(rendered);

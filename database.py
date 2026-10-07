@@ -499,7 +499,7 @@ def init_db():
                 ("movie_server", "http://10.12.14.16:8082"),
                 ("football_server", "http://10.12.14.16:8080"),
                 ("template_reminder", "📶 *CYBERNET ACCOUNT STATUS*\nAssalamu Alaikum *[NAME]*!\n\n📦 Plan: *[PACKAGE]*\n📅 Valid Until: *[EXPIRY_DATE]*\n💰 Due Balance: *[DUE_BALANCE] SAR*\n\nPlease recharge on time to prevent service interruption. 🙏\n\n🎬 Free Movies: [MOVIES]\n⚽ Live Football: [FOOTBALL]\n\n📞 Support (24/7): [HELPLINE]"),
-                ("template_receipt", "✅ *CYBERNET PAYMENT RECEIPT*\n\nCustomer : *[NAME]*\nReceipt #: `[RECEIPT_NO]`\n\n💳 *Payment Details:*\n  • Amount Paid Today : *[AMOUNT] SAR*\n  • Plan              : [PACKAGE]\n  • Service Active To : *[EXPIRY_DATE]*\n\n✨ *Account Status:* Fully Paid & Settled ✅\n\n🎁 *Free for our customers:*\n  🎬 Movies: [MOVIES]\n  ⚽ Live Football: [FOOTBALL]\n\n📞 Support (24/7): [HELPLINE]\n\nThank you for your payment! 🙏"),
+                ("template_receipt", "✅ *CYBERNET PAYMENT RECEIPT*\n\nCustomer : *[NAME]*\nReceipt #: `[RECEIPT_NO]`\n\n💳 *Payment Details:*\n  • Amount Paid Today : *[AMOUNT] SAR* ([PAYMENT_METHOD])\n  • Plan              : [PACKAGE]\n  • Service Active To : *[EXPIRY_DATE]*\n\n[ACCOUNT_STATUS]\n\n🎁 *Free for our customers:*\n  🎬 Movies: [MOVIES]\n  ⚽ Live Football: [FOOTBALL]\n\n📞 Support (24/7): [HELPLINE]\n\nThank you for your payment! 🙏"),
                 ("template_voucher", "🌐 *CyberNet Internet Voucher*\n\nHello *[NAME]*,\nHere is your internet recharge PIN:\n\n🎟️ *Voucher PIN:* `[PIN]`\n📦 *Package:* [PACKAGE]\n💰 *Amount:* [AMOUNT] SAR\n\nTo activate, enter this PIN on the WiFi popup or visit:\nhttp://10.20.30.1:8088/hotspot/login\n\n🎬 Movies: [MOVIES]\n⚽ Live Football: [FOOTBALL]\n📞 Support: [HELPLINE]"),
                 ("template_expiry", "⚠️ *CyberNet Service Alert*\n\nDear *[NAME]*,\nYour internet subscription expired on *[EXPIRY_DATE]*.\nTo restore your high-speed access immediately, please recharge your plan.\n\n💳 *Due Amount:* [DUE_BALANCE] SAR\n\nContact our team or visit http://10.20.30.1:8088/hotspot/login to recharge via voucher.\nSupport: [HELPLINE]"),
                 ("template_maintenance", "🛠️ *CyberNet Maintenance Announcement*\n\nDear Subscribers,\nPlease be informed that scheduled optical network optimization will take place on *[EXPIRY_DATE]* for 30 minutes.\n\nWe apologize for any temporary inconvenience and appreciate your patience!\nSupport: [HELPLINE]")
@@ -5725,7 +5725,7 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
             cur_d += timedelta(days=1)
 
         total_owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
-        total_paid = round(sum(float(cr["amount"] or 0.0) for cr in collections if float(cr["amount"] or 0.0) > 0), 2)
+        total_paid = round(sum(float(cr["amount"] or 0.0) + float(cr.get("waived_amount") or 0.0) for cr in collections), 2)
         balance = round(total_paid - total_owed, 2)
         status_label = "CREDIT" if balance > 0 else ("SETTLED" if balance == 0 else "OWING")
 

@@ -376,10 +376,10 @@ def dispatch_payment_receipt_whatsapp(
             "Customer : *[NAME]*\n"
             "Receipt #: `[RECEIPT_NO]`\n\n"
             "💳 *Payment Details:*\n"
-            "  • Amount Paid Today : *[AMOUNT] SAR*\n"
+            "  • Amount Paid Today : *[AMOUNT] SAR* ([PAYMENT_METHOD])\n"
             "  • Plan              : [PACKAGE]\n"
             "  • Service Active To : *[EXPIRY_DATE]*\n\n"
-            "✨ *Account Status:* Fully Paid & Settled ✅\n\n"
+            "[ACCOUNT_STATUS]\n\n"
             "🎁 *Free for our customers:*\n"
             "  🎬 Movies: [MOVIES]\n"
             "  ⚽ Live Football: [FOOTBALL]\n\n"
@@ -388,31 +388,53 @@ def dispatch_payment_receipt_whatsapp(
         )
 
         rec_num = receipt_no or f"COL-{datetime.now().strftime('%Y%m%d%H%M')}"
+        clean_paid = float(amount_paid or 0.0)
         
-        due_val = 0.0
+        pending_debt = 0.0
+        previous_debt = 0.0
+        credit_bal = 0.0
         try:
             hist = database.get_balance_customer_history(customer_id=customer_id)
             metrics = hist.get("metrics", {})
-            cur_bal = metrics.get("balance", 0.0)
-            if cur_bal < 0:
-                due_val = abs(cur_bal)
-        except Exception:
-            due_val = 0.0
+            cur_bal = float(metrics.get("balance", 0.0))
+            if cur_bal < -0.01:
+                pending_debt = round(abs(cur_bal), 2)
+                previous_debt = round(pending_debt + clean_paid, 2)
+            elif cur_bal > 0.01:
+                credit_bal = round(cur_bal, 2)
+                previous_debt = round(max(0.0, clean_paid - credit_bal), 2)
+            else:
+                pending_debt = 0.0
+                previous_debt = round(clean_paid, 2)
+        except Exception as be:
+            logger.warning(f"Could not calculate full balance ledger for receipt #{customer_id}: {be}")
+            pending_debt = 0.0
+            previous_debt = clean_paid
+
+        # Double check customer credit balance if not reflected in cur_bal
+        if credit_bal <= 0.01 and cust.get("credit_balance"):
+            try:
+                credit_bal = round(float(cust["credit_balance"]), 2)
+            except Exception:
+                pass
 
         msg = whatsapp_service.render_message_template(
             template_str=template_str,
             customer_name=cust.get("name", ""),
             phone=phone,
             package_name=cust.get("package_name") or "Standard Internet",
-            due_balance=due_val,
+            due_balance=pending_debt,
             expiry_date=cust.get("expiry_date") or cust.get("due_date") or "Active",
             receipt_no=rec_num,
-            amount_paid=float(amount_paid),
+            amount_paid=clean_paid,
             support_phone=wa_settings.get("support_phone", "0597595059"),
             movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
             football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
             collector_name=collector,
-            payment_method=payment_type.replace("_", " ").title()
+            payment_method=payment_type.replace("_", " ").title(),
+            pending_debt=pending_debt,
+            previous_debt=previous_debt,
+            credit_balance=credit_bal
         )
 
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)

@@ -265,15 +265,43 @@ def render_message_template(
     movie_server: str = DEFAULT_MOVIE_SERVER,
     football_server: str = DEFAULT_FOOTBALL_SERVER,
     collector_name: str = "",
-    payment_method: str = ""
+    payment_method: str = "",
+    pending_debt: float = 0.0,
+    previous_debt: float = 0.0,
+    credit_balance: float = 0.0,
+    account_status: str = ""
 ) -> str:
-    """Replaces standard dynamic tags in WhatsApp message templates."""
+    """
+    Replaces standard dynamic tags in WhatsApp message templates, including
+    intelligent accounting ledger breakdown for partial payments, full settlements,
+    and advance credits.
+    """
     msg = template_str
+    clean_paid = float(amount_paid or 0.0)
+    clean_pending = float(pending_debt or 0.0)
+    clean_prev = float(previous_debt or 0.0)
+    clean_credit = float(credit_balance or 0.0)
+
+    # Dynamic Account Status generation if not explicitly provided
+    if not account_status:
+        if clean_pending > 0.01:
+            account_status = (
+                f"⚠️ *Account Status: Partial Payment*\n"
+                f"  • Total Debt Prior  : *{clean_prev:.2f} SAR*\n"
+                f"  • Amount Paid Today : *{clean_paid:.2f} SAR*\n"
+                f"  • *Pending Debt Remaining : {clean_pending:.2f} SAR* ⚠️\n"
+                f"  _(Please settle remaining balance at your earliest convenience)_"
+            )
+        elif clean_credit > 0.01:
+            account_status = f"🌟 *Account Status: Paid in Full (+{clean_credit:.2f} SAR Advance Credit) ✅*"
+        else:
+            account_status = "✨ *Account Status: Fully Paid & Settled (0.00 SAR Due) ✅*"
+
     replacements = {
         "[NAME]": customer_name or "Valued Subscriber",
         "[PHONE]": phone or "",
         "[PACKAGE]": package_name or "High-Speed Fiber",
-        "[AMOUNT]": f"{amount_paid:.2f}" if amount_paid > 0 else f"{due_balance:.2f}",
+        "[AMOUNT]": f"{clean_paid:.2f}" if clean_paid > 0 else f"{due_balance:.2f}",
         "[DUE_BALANCE]": f"{due_balance:.2f}",
         "[EXPIRY_DATE]": str(expiry_date or "End of Month"),
         "[PIN]": pin or "N/A",
@@ -283,10 +311,31 @@ def render_message_template(
         "[FOOTBALL]": football_server,
         "[COLLECTOR]": collector_name or "Admin",
         "[PAYMENT_METHOD]": payment_method or "Cash",
-        "[COMPANY_NAME]": "CyberNet ISP"
+        "[COMPANY_NAME]": "CyberNet ISP",
+        "[ACCOUNT_STATUS]": account_status,
+        "[PENDING_DEBT]": f"{clean_pending:.2f}",
+        "[REMAINING_DEBT]": f"{clean_pending:.2f}",
+        "[PREVIOUS_DEBT]": f"{clean_prev:.2f}",
+        "[CREDIT_BALANCE]": f"{clean_credit:.2f}",
+        "[DATE]": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
     for tag, val in replacements.items():
         msg = msg.replace(tag, str(val))
+
+    # Backward compatibility: Replace legacy hardcoded 'Fully Paid & Settled' in templates
+    # if the template didn't use the explicit [ACCOUNT_STATUS] tag
+    if "[ACCOUNT_STATUS]" not in template_str:
+        legacy_needles = [
+            "✨ *Account Status:* Fully Paid & Settled ✅",
+            "*Account Status:* Fully Paid & Settled ✅",
+            "✨ *Account Status:* Fully Paid & Settled",
+            "*Account Status:* Fully Paid & Settled"
+        ]
+        for needle in legacy_needles:
+            if needle in msg:
+                msg = msg.replace(needle, account_status)
+                break
+
     return msg
 
 
