@@ -2,6 +2,14 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('cybernet_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } catch (e) {}
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}CyberNet OS | Clean Operations Dashboard{% endblock %}</title>
   
@@ -42,6 +50,466 @@
       
       --sidebar-width: 224px;
       --topbar-height: 48px;
+    }
+
+    /* =========================================================
+       DAY MODE (LIGHT THEME) SYSTEM ARCHITECTURE
+       ========================================================= */
+    html[data-theme="light"] {
+      --bg-canvas: #f1f5f9;
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --bg-card-header: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --border-accent: rgba(2, 132, 199, 0.35);
+      
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      --primary: #0284c7;
+      --primary-glow: rgba(2, 132, 199, 0.12);
+      --success: #059669;
+      --success-glow: rgba(5, 150, 105, 0.14);
+      --warning: #d97706;
+      --danger: #dc2626;
+    }
+
+    /* Day / Dark Mode Smooth Transitions */
+    body, .app-sidebar, .top-bar, .control-header-card, .toolbar-card, .panel-card,
+    .section-card, .stat-card, .kpi-card, .meter-card, .clean-table, .clean-table th,
+    .clean-table td, .modal-box, .cyber-confirm-box, input, select, textarea, .theme-toggle-btn {
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Theme Toggle Buttons & Switch Controls */
+    .theme-toggle-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .theme-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .theme-toggle-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    html[data-theme="dark"] .theme-icon-moon { display: none !important; }
+    html[data-theme="dark"] .theme-icon-sun { display: inline-block !important; color: #fbbf24; }
+    html[data-theme="light"] .theme-icon-sun { display: none !important; }
+    html[data-theme="light"] .theme-icon-moon { display: inline-block !important; color: #0284c7; }
+
+    /* Sidebar Theme Switcher */
+    .sidebar-theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .sidebar-theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-accent);
+    }
+    html[data-theme="light"] .sidebar-theme-toggle {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    html[data-theme="light"] .sidebar-theme-toggle:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    .sidebar-theme-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .theme-indicator-icon {
+      font-size: 14px;
+      line-height: 1;
+    }
+    .theme-switch-track {
+      width: 36px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+    html[data-theme="light"] .theme-switch-track {
+      background: #0284c7;
+      border-color: #0284c7;
+    }
+    .theme-switch-thumb {
+      width: 14px;
+      height: 14px;
+      background: #ffffff;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Day Mode Deep Component Overrides */
+    html[data-theme="light"] body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+    }
+    html[data-theme="light"] .top-bar {
+      background-color: rgba(255, 255, 255, 0.92);
+      border-bottom-color: #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    html[data-theme="light"] .app-sidebar {
+      background-color: #ffffff;
+      border-right-color: #e2e8f0;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
+    }
+    html[data-theme="light"] .brand-header,
+    html[data-theme="light"] .sidebar-footer {
+      border-color: #e2e8f0;
+    }
+    html[data-theme="light"] .brand-title {
+      color: #0f172a;
+    }
+    html[data-theme="light"] .brand-subtitle,
+    html[data-theme="light"] .nav-section-title,
+    html[data-theme="light"] .breadcrumb-tag,
+    html[data-theme="light"] .server-tag {
+      color: #64748b;
+    }
+    html[data-theme="light"] .server-tag strong {
+      color: #0f172a;
+    }
+    html[data-theme="light"] .nav-item {
+      color: #475569;
+    }
+    html[data-theme="light"] .nav-item:hover {
+      color: #0f172a;
+      background-color: #f1f5f9;
+    }
+    html[data-theme="light"] .nav-item.active {
+      color: #0284c7;
+      background-color: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.28);
+    }
+    html[data-theme="light"] .nav-badge-pill {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    /* Day Mode High-Contrast Typography */
+    html[data-theme="light"] .page-heading,
+    html[data-theme="light"] h1,
+    html[data-theme="light"] h2,
+    html[data-theme="light"] h3,
+    html[data-theme="light"] h4,
+    html[data-theme="light"] .header-info-title,
+    html[data-theme="light"] .panel-title,
+    html[data-theme="light"] .section-card-title,
+    html[data-theme="light"] .card-title,
+    html[data-theme="light"] .meter-title,
+    html[data-theme="light"] .modal-title,
+    html[data-theme="light"] .kpi-main-number,
+    html[data-theme="light"] .stat-data .num,
+    html[data-theme="light"] .cust-name,
+    html[data-theme="light"] .req-name,
+    html[data-theme="light"] .req-phone,
+    html[data-theme="light"] .col-name,
+    html[data-theme="light"] .col-amount,
+    html[data-theme="light"] .pkg-name,
+    html[data-theme="light"] .pkg-price,
+    html[data-theme="light"] .router-title,
+    html[data-theme="light"] .wa-title,
+    html[data-theme="light"] .cyber-confirm-title,
+    html[data-theme="light"] .cyber-toast-title,
+    html[data-theme="light"] .text-white {
+      color: #0f172a !important;
+    }
+
+    html[data-theme="light"] .text-cyan { color: #0284c7 !important; }
+    html[data-theme="light"] .text-emerald { color: #059669 !important; }
+    html[data-theme="light"] .text-amber { color: #d97706 !important; }
+    html[data-theme="light"] .text-rose { color: #dc2626 !important; }
+    html[data-theme="light"] .text-muted { color: #475569 !important; }
+
+    /* Day Mode Cards, Panels & Decks */
+    html[data-theme="light"] .control-header-card,
+    html[data-theme="light"] .toolbar-card,
+    html[data-theme="light"] .panel-card,
+    html[data-theme="light"] .section-card,
+    html[data-theme="light"] .stat-card,
+    html[data-theme="light"] .kpi-card,
+    html[data-theme="light"] .meter-card,
+    html[data-theme="light"] .fleet-banner-card,
+    html[data-theme="light"] .tier-filter-deck,
+    html[data-theme="light"] .router-card,
+    html[data-theme="light"] .wa-card,
+    html[data-theme="light"] .ports-board {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+    }
+    html[data-theme="light"] .kpi-card:hover,
+    html[data-theme="light"] .stat-card:hover {
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08), 0 0 12px rgba(2, 132, 199, 0.12) !important;
+      border-color: rgba(2, 132, 199, 0.4) !important;
+    }
+    html[data-theme="light"] .stat-card.active-card-filter,
+    html[data-theme="light"] .stat-card.active-app-filter {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.1) 0%, #ffffff 100%) !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 16px rgba(2, 132, 199, 0.18) !important;
+    }
+    html[data-theme="light"] .panel-header,
+    html[data-theme="light"] .section-card-header,
+    html[data-theme="light"] .card-header {
+      background: #f8fafc !important;
+      border-bottom-color: #e2e8f0 !important;
+    }
+
+    /* Day Mode Tables */
+    html[data-theme="light"] .clean-table th {
+      background: #f8fafc !important;
+      color: #475569 !important;
+      border-bottom-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .clean-table td {
+      background: #ffffff !important;
+      color: #1e293b !important;
+      border-bottom-color: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .clean-table tr:hover td {
+      background: #f8fafc !important;
+    }
+    html[data-theme="light"] .clean-table tr.active td {
+      background: rgba(2, 132, 199, 0.05) !important;
+    }
+
+    /* Day Mode Inputs, Controls & Filters */
+    html[data-theme="light"] input[type="text"],
+    html[data-theme="light"] input[type="tel"],
+    html[data-theme="light"] input[type="number"],
+    html[data-theme="light"] input[type="password"],
+    html[data-theme="light"] input[type="date"],
+    html[data-theme="light"] input[type="email"],
+    html[data-theme="light"] select,
+    html[data-theme="light"] textarea,
+    html[data-theme="light"] .form-input,
+    html[data-theme="light"] .form-control,
+    html[data-theme="light"] .search-input,
+    html[data-theme="light"] .search-input-box,
+    html[data-theme="light"] .month-picker-select {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html[data-theme="light"] input::placeholder,
+    html[data-theme="light"] textarea::placeholder,
+    html[data-theme="light"] .search-input::placeholder,
+    html[data-theme="light"] .search-input-box::placeholder {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="light"] input:focus,
+    html[data-theme="light"] select:focus,
+    html[data-theme="light"] textarea:focus,
+    html[data-theme="light"] .form-input:focus,
+    html[data-theme="light"] .form-control:focus,
+    html[data-theme="light"] .search-input-box:focus {
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16) !important;
+    }
+    html[data-theme="light"] .search-wrapper {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    html[data-theme="light"] .btn-refresh,
+    html[data-theme="light"] .theme-toggle-btn,
+    html[data-theme="light"] .mobile-menu-toggle {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .btn-refresh:hover,
+    html[data-theme="light"] .theme-toggle-btn:hover,
+    html[data-theme="light"] .mobile-menu-toggle:hover {
+      background: #e2e8f0 !important;
+      border-color: #94a3b8 !important;
+    }
+    html[data-theme="light"] .mobile-sidebar-close-btn {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+    }
+
+    html[data-theme="light"] .filter-btn,
+    html[data-theme="light"] .tier-pill-btn,
+    html[data-theme="light"] .tab-btn {
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+      border-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .filter-btn:hover,
+    html[data-theme="light"] .tier-pill-btn:hover,
+    html[data-theme="light"] .tab-btn:hover {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .filter-btn.active,
+    html[data-theme="light"] .tab-btn.active {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #0284c7 !important;
+    }
+    html[data-theme="light"] .tier-pill-btn.active {
+      background: rgba(2, 132, 199, 0.12) !important;
+      color: #0284c7 !important;
+      border-color: #0284c7 !important;
+    }
+    html[data-theme="light"] .tier-pill-btn.danger-pill.active {
+      background: rgba(220, 38, 38, 0.12) !important;
+      color: #dc2626 !important;
+      border-color: #dc2626 !important;
+    }
+    html[data-theme="light"] .tier-pill-btn.warning-pill.active {
+      background: rgba(217, 119, 6, 0.12) !important;
+      color: #d97706 !important;
+      border-color: #d97706 !important;
+    }
+    html[data-theme="light"] .tier-count-badge {
+      background: rgba(0, 0, 0, 0.08) !important;
+      color: inherit !important;
+    }
+
+    /* Day Mode Modals & Toasts */
+    html[data-theme="light"] .modal-overlay,
+    html[data-theme="light"] .cyber-confirm-overlay {
+      background: rgba(15, 23, 42, 0.5) !important;
+      backdrop-filter: blur(6px) !important;
+    }
+    html[data-theme="light"] .modal-container,
+    html[data-theme="light"] .modal-box,
+    html[data-theme="light"] .modal-box-lg,
+    html[data-theme="light"] .cyber-confirm-box {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .modal-header,
+    html[data-theme="light"] .cyber-confirm-head {
+      background: #f8fafc !important;
+      border-bottom-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .modal-footer,
+    html[data-theme="light"] .cyber-confirm-foot {
+      background: #f8fafc !important;
+      border-top-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .modal-body,
+    html[data-theme="light"] .cyber-confirm-body {
+      background: #ffffff !important;
+      color: #334155 !important;
+    }
+    html[data-theme="light"] .btn-close-modal,
+    html[data-theme="light"] .btn-modal-close,
+    html[data-theme="light"] .cyber-toast-close {
+      color: #64748b !important;
+    }
+    html[data-theme="light"] .btn-close-modal:hover,
+    html[data-theme="light"] .btn-modal-close:hover {
+      color: #0f172a !important;
+      background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .cyber-toast {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12) !important;
+    }
+    html[data-theme="light"] .cyber-toast-message {
+      color: #475569 !important;
+    }
+
+    html[data-theme="light"] .btn-report-modal {
+      background: rgba(2, 132, 199, 0.08) !important;
+      color: #0284c7 !important;
+      border-color: rgba(2, 132, 199, 0.28) !important;
+    }
+    html[data-theme="light"] .btn-report-modal:hover {
+      background: rgba(2, 132, 199, 0.16) !important;
+      color: #0369a1 !important;
+      border-color: #0284c7 !important;
+    }
+    html[data-theme="light"] .speed-pill-btn.active {
+      background: rgba(2, 132, 199, 0.12) !important;
+      color: #0284c7 !important;
+      border-color: #0284c7 !important;
+    }
+    html[data-theme="light"] .bal-room-badge {
+      background: rgba(2, 132, 199, 0.1) !important;
+      color: #0284c7 !important;
+      border-color: rgba(2, 132, 199, 0.25) !important;
+    }
+    html[data-theme="light"] .theme-cyan .kpi-icon-pill {
+      background: rgba(2, 132, 199, 0.12) !important;
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] .theme-cyan .kpi-progress-fill {
+      background: #0284c7 !important;
+    }
+
+    /* Day Mode Tracks, Status & Scrollbars */
+    html[data-theme="light"] .meter-bar-track,
+    html[data-theme="light"] .kpi-progress-bar {
+      background: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .status-pill {
+      background: #ecfdf5 !important;
+      color: #047857 !important;
+      border-color: rgba(5, 150, 105, 0.35) !important;
+    }
+    html[data-theme="light"] .status-pill.offline {
+      background: #fef2f2 !important;
+      color: #b91c1c !important;
+      border-color: rgba(220, 38, 38, 0.35) !important;
+    }
+    html[data-theme="light"] ::-webkit-scrollbar-track {
+      background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] ::-webkit-scrollbar-thumb {
+      background: #cbd5e1 !important;
+    }
+    html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8 !important;
     }
 
     body {
@@ -658,6 +1126,12 @@
       .btn-refresh span {
         display: none;
       }
+      .theme-toggle-btn {
+        padding: 4px 8px;
+      }
+      .theme-toggle-btn .theme-toggle-label {
+        display: none;
+      }
       .content-container {
         padding: 8px 8px;
       }
@@ -1007,6 +1481,16 @@
           <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
         </a>
       </div>
+      <!-- Day / Dark Mode Switcher -->
+      <div class="sidebar-theme-toggle" onclick="toggleTheme()" title="Toggle Day / Dark Mode">
+        <div class="sidebar-theme-info">
+          <span class="theme-indicator-icon">☀️</span>
+          <span id="sidebarThemeText">Day Mode</span>
+        </div>
+        <div class="theme-switch-track">
+          <div class="theme-switch-thumb"></div>
+        </div>
+      </div>
       <div class="server-tag">
         <span style="color:#10b981;">●</span> Server Port: <strong>9911</strong>
       </div>
@@ -1048,6 +1532,13 @@
           <span class="pulse-dot"></span>
           <span id="topStatusText">{% if router.connected %}MikroTik Online ({{ router.latency_ms }} ms){% else %}Disconnected{% endif %}</span>
         </div>
+
+        <!-- Day / Dark Mode Toggle Button -->
+        <button type="button" id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Day / Dark Mode" title="Switch to Day Mode">
+          <svg class="theme-icon-sun" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0z"/></svg>
+          <svg class="theme-icon-moon" viewBox="0 0 24 24"><path d="M12.3 2a10 10 0 0 0-1.9 19.8 10 10 0 0 0 11.6-11.6A10 10 0 0 0 12.3 2zm-1.1 17.8A8 8 0 0 1 9 4.3a8.1 8.1 0 0 0 10.7 10.7 8 8 0 0 1-8.5 4.8z"/></svg>
+          <span class="theme-toggle-label" id="themeToggleText">Day Mode</span>
+        </button>
 
         <button type="button" class="btn-refresh" onclick="triggerManualRefresh()">
           <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
@@ -1623,6 +2114,36 @@
           wrapper.appendChild(tbl);
         }
       });
+    });
+
+    // Day Mode / Dark Mode Theme Controller
+    function updateThemeUI(theme) {
+      const isLight = theme === 'light';
+      const topText = document.getElementById('themeToggleText');
+      if (topText) topText.textContent = isLight ? 'Dark Mode' : 'Day Mode';
+      const topBtn = document.getElementById('themeToggleBtn');
+      if (topBtn) topBtn.setAttribute('title', isLight ? 'Switch to Dark Mode' : 'Switch to Day Mode');
+      const sideText = document.getElementById('sidebarThemeText');
+      if (sideText) sideText.textContent = isLight ? 'Dark Mode' : 'Day Mode';
+      const sideIcon = document.querySelector('.theme-indicator-icon');
+      if (sideIcon) sideIcon.textContent = isLight ? '🌙' : '☀️';
+      const sideThumb = document.querySelector('.theme-switch-thumb');
+      if (sideThumb) sideThumb.style.transform = isLight ? 'translateX(16px)' : 'translateX(0)';
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      try {
+        localStorage.setItem('cybernet_theme', newTheme);
+      } catch (e) {}
+      updateThemeUI(newTheme);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      updateThemeUI(currentTheme);
     });
   </script>
 
