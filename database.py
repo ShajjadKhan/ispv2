@@ -2191,12 +2191,13 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id, name, phone, pppoe_username FROM customers WHERE id = ?", (customer_id,))
-        cust = cursor.fetchone()
-        if not cust:
+        row = cursor.fetchone()
+        if not row:
             return False, [], "", "", ""
 
-        cust_name = cust["name"]
-        cust_phone = cust["phone"]
+        cust = dict(row)
+        cust_name = cust.get("name") or ""
+        cust_phone = cust.get("phone") or ""
         cust_pppoe_user = cust.get("pppoe_username") or ""
 
         # 1. Fetch all MAC addresses of devices registered to this customer
