@@ -823,20 +823,76 @@
 
   </div>
 
-  <!-- SUBSCRIBERS AWAITING BILL NOTICE (ACTIONABLE QUEUE) -->
+  <!-- SUBSCRIBERS AWAITING BILL NOTICE (REVIEW-FIRST QUEUE) -->
   <div class="section-card">
-    <div class="section-card-header">
-      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+    <div class="section-card-header" style="flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #fbbf24;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        <span>Subscribers with Outstanding / Upcoming Balances (Notice Assistant)</span>
+        <span style="font-size: 14px; font-weight: 700; color: #ffffff;">Subscribers Awaiting Bill Notice (Review &amp; Dispatch Queue)</span>
       </div>
-      <span class="font-mono text-dim" style="font-size: 12px;">Total: {{ due_customers | length }} Subscriber(s) Eligible for Due Notice</span>
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 12px;">
+        <span class="font-mono text-dim">Total: {{ due_customers | length }} Eligible</span>
+        <span id="batchSelectionBadge" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700; font-family: var(--font-mono);">
+          <span id="batchCount">0</span> selected (<span id="batchSum">0.00</span> SAR)
+        </span>
+      </div>
     </div>
 
+    <!-- QUEUE ACTIONS & PACING TOOLBAR -->
+    <div style="padding: 10px 14px; background: rgba(255, 255, 255, 0.015); border-bottom: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+      
+      <!-- QUICK SELECTION FILTERS -->
+      <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectAllDue(true)">☑ Select All</button>
+        <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectNeverReminded()">🟢 Select Never Reminded</button>
+        <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px;" onclick="selectUnremindedOver3Days()">📅 Select Due (&gt;3d ago)</button>
+        <button type="button" class="chip-btn" style="padding: 4px 10px; font-size: 11.5px; color: var(--text-muted);" onclick="clearBatchSelection()">Clear</button>
+      </div>
+
+      <!-- PACING & TEMPLATE CONTROLS -->
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 5px;">
+          <label for="batchTemplate" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Template:</label>
+          <select id="batchTemplate" class="form-control font-mono" style="padding: 4px 8px; font-size: 11.5px; width: 140px;">
+            <option value="reminder">💳 Due Reminder</option>
+            <option value="expiry">⚠️ Expiry Notice</option>
+            <option value="maintenance">🛠️ Maintenance</option>
+          </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 5px;">
+          <label for="batchPacing" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Pacing:</label>
+          <select id="batchPacing" class="form-control font-mono" style="padding: 4px 8px; font-size: 11.5px; width: 155px;">
+            <option value="5" selected>⏱️ 5s (Safe Anti-Ban)</option>
+            <option value="3">⏱️ 3s (Fast)</option>
+            <option value="8">⏱️ 8s (High Protection)</option>
+            <option value="10">⏱️ 10s (Maximum Safety)</option>
+          </select>
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--text-dim); cursor: pointer; user-select: none;">
+          <input type="checkbox" id="chkDedupe" checked style="accent-color: #38bdf8;">
+          <span>Skip if sent &lt;3d</span>
+        </label>
+
+        <button type="button" id="btnSimBatch" class="btn-simulate" style="padding: 6px 12px; font-size: 11.5px;" onclick="startBatchDispatch(true)" disabled>
+          🛡️ Simulate
+        </button>
+        <button type="button" id="btnStartBatch" class="btn-wa-send" style="padding: 6px 14px; font-size: 11.5px;" onclick="startBatchDispatch(false)" disabled>
+          🚀 Dispatch Selected
+        </button>
+      </div>
+
+    </div>
+
+    <!-- TABLE -->
     <div style="overflow-x: auto;">
       <table class="clean-table">
         <thead>
           <tr>
+            <th style="width: 36px; text-align: center;">
+              <input type="checkbox" id="masterDueChk" onchange="onSelectAllDueChange(this)" style="accent-color: #38bdf8; cursor: pointer;">
+            </th>
             <th>Subscriber Name</th>
             <th>Mobile</th>
             <th>Location</th>
@@ -844,19 +900,34 @@
             <th>Balance Due</th>
             <th>Expiry Date</th>
             <th>Billing Type</th>
+            <th>Last Reminder</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {% if not due_customers %}
           <tr>
-            <td colspan="8" style="text-align: center; padding: 24px; color: var(--text-dim);">
+            <td colspan="10" style="text-align: center; padding: 24px; color: var(--text-dim);">
               All active subscribers are currently settled &bull; 0 Overdue Balances
             </td>
           </tr>
           {% else %}
             {% for c in due_customers %}
-            <tr>
+            <tr id="row-due-{{ c.id }}">
+              <td style="text-align: center;">
+                <input type="checkbox"
+                       class="due-cust-chk"
+                       data-id="{{ c.id }}"
+                       data-name="{{ c.name }}"
+                       data-phone="{{ c.phone }}"
+                       data-due="{{ c.effective_due }}"
+                       data-package="{{ c.package_name }}"
+                       data-expiry="{{ c.expiry_date or 'End of Month' }}"
+                       data-recent="{{ 'true' if c.recently_notified else 'false' }}"
+                       data-hassent="{{ 'true' if c.last_reminder_at else 'false' }}"
+                       onchange="updateBatchSelectionStats()"
+                       style="accent-color: #38bdf8; cursor: pointer;">
+              </td>
               <td>
                 <strong style="color: #ffffff;">{{ c.name }}</strong>
               </td>
@@ -879,8 +950,23 @@
                 {% endif %}
               </td>
               <td>
+                {% if c.recently_notified %}
+                  <span class="badge-status" style="font-size: 10px; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35);" title="Last sent {{ c.last_reminder_at }}">
+                    ⚠️ {{ c.days_since_last_reminder }}d ago
+                  </span>
+                {% elif c.last_reminder_at %}
+                  <span class="badge-status" style="font-size: 10px; background: rgba(148, 163, 184, 0.12); color: #94a3b8;" title="Last sent {{ c.last_reminder_at }}">
+                    📅 {{ c.days_since_last_reminder }}d ago
+                  </span>
+                {% else %}
+                  <span class="badge-status" style="font-size: 10px; background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.35);">
+                    🟢 Never Sent
+                  </span>
+                {% endif %}
+              </td>
+              <td>
                 <button type="button" class="btn-simulate" style="font-size: 11px; padding: 4px 10px;" onclick="loadCustomerToComposer({{ c.id }})">
-                  ✉️ Compose Notice
+                  ✉️ Single
                 </button>
               </td>
             </tr>
@@ -1127,6 +1213,83 @@
 
       </div>
     </form>
+  </div>
+</div>
+
+<!-- BATCH DISPATCH PROGRESS MODAL -->
+<div id="batchProgressModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 650px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="batchModalIcon" style="font-size: 18px;">🚀</span>
+        <div>
+          <h3 id="batchModalTitle" style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 0;">Paced WhatsApp Batch Dispatch</h3>
+          <div id="batchModalSubtitle" style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+            Sequential dispatching with anti-ban pacing and real-time audit ledger logging
+          </div>
+        </div>
+      </div>
+      <button type="button" id="btnHeaderCloseBatch" onclick="closeBatchModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+
+      <!-- PROGRESS BAR -->
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+          <span style="color: #ffffff; font-weight: 700;" id="batchProgressLabel">Progress: 0 of 0</span>
+          <span class="font-mono" style="color: #38bdf8; font-weight: 700;" id="batchProgressPct">0%</span>
+        </div>
+        <div style="height: 10px; background: rgba(0, 0, 0, 0.5); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div id="batchProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #25d366); transition: width 0.3s ease;"></div>
+        </div>
+        <div id="batchPacingTimer" style="font-size: 11px; color: #fbbf24; font-family: var(--font-mono); margin-top: 8px; display: flex; align-items: center; gap: 6px; min-height: 16px;"></div>
+      </div>
+
+      <!-- METRIC CARDS -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Total</div>
+          <div class="font-mono" id="bmTotal" style="font-size: 16px; font-weight: 800; color: #ffffff;">0</div>
+        </div>
+        <div style="background: rgba(34,197,94,0.05); border: 1px solid rgba(34,197,94,0.25); border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10px; color: #22c55e; text-transform: uppercase;">Dispatched</div>
+          <div class="font-mono" id="bmSent" style="font-size: 16px; font-weight: 800; color: #22c55e;">0</div>
+        </div>
+        <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10px; color: #38bdf8; text-transform: uppercase;">Sandbox Block</div>
+          <div class="font-mono" id="bmBlocked" style="font-size: 16px; font-weight: 800; color: #38bdf8;">0</div>
+        </div>
+        <div style="background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.25); border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10px; color: #fbbf24; text-transform: uppercase;">Dedupe Skip</div>
+          <div class="font-mono" id="bmSkipped" style="font-size: 16px; font-weight: 800; color: #fbbf24;">0</div>
+        </div>
+      </div>
+
+      <!-- LIVE TERMINAL LOGS -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Live Dispatch Audit Feed</span>
+          <span style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);" id="batchCurrentItem"></span>
+        </div>
+        <div id="batchLogBox" style="background: #030712; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 12px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.6; height: 180px; overflow-y: auto; color: #e2e8f0; white-space: pre-wrap;"></div>
+      </div>
+
+      <!-- FOOTER BUTTONS -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+        <div style="font-size: 11px; color: var(--text-muted);">
+          <span id="batchFooterNote">Pacing active &bull; Anti-ban delay protects WhatsApp line</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btnAbortBatch" class="btn-simulate" style="border-color: rgba(239,68,68,0.4); color: #ef4444;" onclick="abortBatchDispatch()">
+            🛑 Stop / Abort
+          </button>
+          <button type="button" id="btnFinishBatch" class="btn-wa-send" style="display: none;" onclick="closeBatchModal(true)">
+            ✅ Done &amp; Refresh
+          </button>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -1513,6 +1676,282 @@
     } catch (err) {
       cyberToast('Dispatch notice: ' + err.message);
     }
+  }
+
+  // =========================================================================
+  // REVIEW-FIRST DAILY QUEUE & PACED BATCH DISPATCH ENGINE
+  // =========================================================================
+  let isBatchRunning = false;
+  let abortBatchRequested = false;
+
+  function onSelectAllDueChange(masterChk) {
+    const chks = document.querySelectorAll('.due-cust-chk');
+    chks.forEach(c => c.checked = masterChk.checked);
+    updateBatchSelectionStats();
+  }
+
+  function selectAllDue(checkAll) {
+    const chks = document.querySelectorAll('.due-cust-chk');
+    chks.forEach(c => c.checked = checkAll);
+    const master = document.getElementById('masterDueChk');
+    if (master) master.checked = checkAll;
+    updateBatchSelectionStats();
+  }
+
+  function selectNeverReminded() {
+    const chks = document.querySelectorAll('.due-cust-chk');
+    let anyChecked = false;
+    chks.forEach(c => {
+      const hasSent = c.getAttribute('data-hassent') === 'true';
+      c.checked = !hasSent;
+      if (c.checked) anyChecked = true;
+    });
+    const master = document.getElementById('masterDueChk');
+    if (master) master.checked = anyChecked;
+    updateBatchSelectionStats();
+  }
+
+  function selectUnremindedOver3Days() {
+    const chks = document.querySelectorAll('.due-cust-chk');
+    let anyChecked = false;
+    chks.forEach(c => {
+      const isRecent = c.getAttribute('data-recent') === 'true';
+      c.checked = !isRecent;
+      if (c.checked) anyChecked = true;
+    });
+    const master = document.getElementById('masterDueChk');
+    if (master) master.checked = anyChecked;
+    updateBatchSelectionStats();
+  }
+
+  function clearBatchSelection() {
+    selectAllDue(false);
+  }
+
+  function updateBatchSelectionStats() {
+    const chks = document.querySelectorAll('.due-cust-chk:checked');
+    let totalDue = 0;
+    chks.forEach(c => {
+      totalDue += parseFloat(c.getAttribute('data-due') || 0);
+    });
+    const countEl = document.getElementById('batchCount');
+    const sumEl = document.getElementById('batchSum');
+    if (countEl) countEl.textContent = chks.length;
+    if (sumEl) sumEl.textContent = totalDue.toFixed(2);
+
+    const btnStart = document.getElementById('btnStartBatch');
+    const btnSim = document.getElementById('btnSimBatch');
+    if (btnStart) btnStart.disabled = chks.length === 0;
+    if (btnSim) btnSim.disabled = chks.length === 0;
+  }
+
+  function openBatchModal(total, skipped, isSimulate) {
+    document.getElementById('batchModalIcon').textContent = isSimulate ? '🛡️' : '🚀';
+    document.getElementById('batchModalTitle').textContent = isSimulate ? 'Batch WhatsApp Simulation (Dry Run)' : 'Paced WhatsApp Batch Dispatch';
+    document.getElementById('batchProgressLabel').textContent = `Progress: 0 of ${total}`;
+    document.getElementById('batchProgressPct').textContent = '0%';
+    document.getElementById('batchProgressBar').style.width = '0%';
+    document.getElementById('batchPacingTimer').textContent = '';
+    document.getElementById('batchLogBox').innerHTML = '';
+    document.getElementById('bmTotal').textContent = total;
+    document.getElementById('bmSent').textContent = '0';
+    document.getElementById('bmBlocked').textContent = '0';
+    document.getElementById('bmSkipped').textContent = skipped;
+    document.getElementById('btnAbortBatch').style.display = 'inline-flex';
+    document.getElementById('btnFinishBatch').style.display = 'none';
+    document.getElementById('btnHeaderCloseBatch').style.display = 'none';
+    document.getElementById('batchProgressModal').classList.add('open');
+  }
+
+  function closeBatchModal(shouldReload = false) {
+    if (isBatchRunning) {
+      if (!confirm('A batch dispatch is currently running. Do you want to stop it and close?')) return;
+      abortBatchRequested = true;
+    }
+    document.getElementById('batchProgressModal').classList.remove('open');
+    if (shouldReload) {
+      window.location.reload();
+    }
+  }
+
+  function abortBatchDispatch() {
+    if (!isBatchRunning) return;
+    abortBatchRequested = true;
+    logBatchTerminal('⚠️ Abort requested by user. Terminating queue after current item...');
+    const btn = document.getElementById('btnAbortBatch');
+    if (btn) { btn.disabled = true; btn.textContent = 'Stopping...'; }
+  }
+
+  function logBatchTerminal(msg) {
+    const box = document.getElementById('batchLogBox');
+    if (!box) return;
+    const now = new Date().toTimeString().slice(0, 8);
+    box.innerHTML += `<div><span style="color:#64748b;">[${now}]</span> ${escapeHtml(msg)}</div>`;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function updateBatchProgress(doneCount, total, sentCount, blockedCount, skippedCount, errorCount) {
+    const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+    document.getElementById('batchProgressPct').textContent = `${pct}%`;
+    document.getElementById('batchProgressBar').style.width = `${pct}%`;
+    document.getElementById('batchProgressLabel').textContent = `Progress: ${doneCount} of ${total}`;
+    document.getElementById('bmSent').textContent = sentCount;
+    document.getElementById('bmBlocked').textContent = blockedCount;
+    document.getElementById('bmSkipped').textContent = skippedCount;
+  }
+
+  function setBatchPacingCountdown(text) {
+    const el = document.getElementById('batchPacingTimer');
+    if (el) el.textContent = text;
+  }
+
+  function finishBatchModal(sentCount, blockedCount, skippedCount, errorCount, isSimulate) {
+    setBatchPacingCountdown('');
+    logBatchTerminal('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logBatchTerminal(`🏁 Queue finished: ${sentCount} succeeded, ${blockedCount} sandbox blocked, ${skippedCount} dedupe skipped, ${errorCount} errors.`);
+    document.getElementById('btnAbortBatch').style.display = 'none';
+    document.getElementById('btnFinishBatch').style.display = 'inline-flex';
+    document.getElementById('btnHeaderCloseBatch').style.display = 'inline-block';
+    document.getElementById('batchFooterNote').textContent = 'Dispatch completed & recorded in audit ledger.';
+  }
+
+  async function startBatchDispatch(simulate = false) {
+    const chks = Array.from(document.querySelectorAll('.due-cust-chk:checked'));
+    if (chks.length === 0) {
+      cyberToast('Please select at least one subscriber from the queue.');
+      return;
+    }
+
+    const dedupeActive = document.getElementById('chkDedupe').checked;
+    const pacingSeconds = parseInt(document.getElementById('batchPacing').value, 10) || 5;
+    const templateKey = document.getElementById('batchTemplate').value || 'reminder';
+
+    if (IS_NIGHT && !simulate) {
+      const confirmNight = await cyberConfirm(
+        "Night Quiet Hours Shield is ACTIVE (10:00 PM - 09:00 AM).\n\nDispatching notifications during sleeping hours may disturb customers.\n\nAre you sure you want to proceed?",
+        { title: 'Night Hours Alert', okText: 'Proceed Anyway', danger: true }
+      );
+      if (!confirmNight) return;
+    }
+
+    // Filter queue
+    let queue = [];
+    let skippedCount = 0;
+    chks.forEach(c => {
+      const isRecent = c.getAttribute('data-recent') === 'true';
+      if (dedupeActive && isRecent) {
+        skippedCount++;
+      } else {
+        queue.push({
+          id: parseInt(c.getAttribute('data-id'), 10),
+          name: c.getAttribute('data-name'),
+          phone: c.getAttribute('data-phone'),
+          due: parseFloat(c.getAttribute('data-due') || 0),
+          package: c.getAttribute('data-package'),
+          expiry: c.getAttribute('data-expiry')
+        });
+      }
+    });
+
+    if (queue.length === 0 && skippedCount > 0) {
+      cyberToast(`All ${skippedCount} selected subscriber(s) were notified within the last 3 days. Uncheck 'Skip if sent <3d' to override.`);
+      return;
+    }
+
+    openBatchModal(queue.length, skippedCount, simulate);
+    isBatchRunning = true;
+    abortBatchRequested = false;
+
+    let sentCount = 0;
+    let blockedCount = 0;
+    let errorCount = 0;
+
+    logBatchTerminal(`Starting ${simulate ? 'Simulation' : 'Paced Dispatch'} for ${queue.length} subscriber(s) [${pacingSeconds}s Anti-Ban Delay]...`);
+    if (skippedCount > 0) {
+      logBatchTerminal(`⏩ Skipped ${skippedCount} subscriber(s) (reminded <3 days ago).`);
+    }
+
+    for (let i = 0; i < queue.length; i++) {
+      if (abortBatchRequested) {
+        logBatchTerminal(`🛑 Dispatch canceled by administrator at item ${i + 1} of ${queue.length}.`);
+        break;
+      }
+
+      const sub = queue[i];
+      document.getElementById('batchCurrentItem').textContent = `Item ${i + 1} of ${queue.length}: ${sub.name}`;
+
+      // Build message from selected template
+      const rawTpl = TEMPLATES[templateKey] || TEMPLATES['reminder'];
+      const msg = rawTpl
+        .replaceAll('[NAME]', sub.name || 'Valued Subscriber')
+        .replaceAll('[PHONE]', sub.phone || '')
+        .replaceAll('[PACKAGE]', sub.package || 'High-Speed Fiber')
+        .replaceAll('[AMOUNT]', sub.due.toFixed(2))
+        .replaceAll('[DUE_BALANCE]', sub.due.toFixed(2))
+        .replaceAll('[EXPIRY_DATE]', sub.expiry || 'End of Month')
+        .replaceAll('[PIN]', '992144')
+        .replaceAll('[RECEIPT_NO]', 'REC-' + new Date().toISOString().slice(0,10).replace(/-/g,''))
+        .replaceAll('[HELPLINE]', '{{ wa_settings.support_phone or "0597595059" }}')
+        .replaceAll('[MOVIES]', '{{ wa_settings.movie_server or "http://10.12.14.16:8082" }}')
+        .replaceAll('[FOOTBALL]', '{{ wa_settings.football_server or "http://10.12.14.16:8080" }}')
+        .replaceAll('[COMPANY_NAME]', 'CyberNet ISP');
+
+      logBatchTerminal(`[${i + 1}/${queue.length}] Dispatching to ${sub.name} (${sub.phone})...`);
+
+      try {
+        const res = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: sub.phone,
+            message: msg,
+            message_type: templateKey,
+            customer_id: sub.id,
+            force_night: true,
+            simulate: simulate
+          })
+        });
+
+        let data;
+        try { data = await res.json(); } catch(e) { data = { success: false, error: 'Server parse error' }; }
+
+        if (data && data.success) {
+          if (data.status === 'simulated') {
+            sentCount++;
+            logBatchTerminal(`  ↳ 🛡️ Simulated & logged to outbox ledger.`);
+          } else {
+            sentCount++;
+            logBatchTerminal(`  ↳ ✅ Dispatched to WhatsApp successfully!`);
+          }
+        } else {
+          if (data && data.status === 'blocked_sandbox') {
+            blockedCount++;
+            logBatchTerminal(`  ↳ 🛡️ Blocked by Sandbox Shield: Client number protected during test mode.`);
+          } else {
+            errorCount++;
+            logBatchTerminal(`  ↳ ❌ Dispatch notice: ${data.error || 'Failed'}`);
+          }
+        }
+      } catch (err) {
+        errorCount++;
+        logBatchTerminal(`  ↳ ❌ Network error: ${err.message}`);
+      }
+
+      updateBatchProgress(i + 1, queue.length, sentCount, blockedCount, skippedCount, errorCount);
+
+      // Anti-Ban Pacing Delay (if not last item and not aborted)
+      if (i < queue.length - 1 && !abortBatchRequested) {
+        for (let s = pacingSeconds; s > 0; s--) {
+          if (abortBatchRequested) break;
+          setBatchPacingCountdown(`⏱️ Anti-Ban Pacing Delay: Waiting ${s}s before next dispatch...`);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        setBatchPacingCountdown('');
+      }
+    }
+
+    isBatchRunning = false;
+    finishBatchModal(sentCount, blockedCount, skippedCount, errorCount, simulate);
   }
 
   // QR Pairing Modal Logic

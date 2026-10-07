@@ -4055,8 +4055,30 @@ def get_due_customers_for_whatsapp() -> List[Dict[str, Any]]:
     """
     Returns active subscribers with overdue, expiring, or pending monthly bills,
     formatted specifically for the WhatsApp reminder assistant.
+    Attaches last reminder timestamp from whatsapp_logs for smart deduplication.
     """
     all_custs = get_all_customers()
+
+    # Query last reminder timestamps
+    last_sent_map = {}
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT customer_id, MAX(created_at) as last_sent, status
+                FROM whatsapp_logs
+                WHERE customer_id IS NOT NULL
+                GROUP BY customer_id
+            """)
+            for r in cursor.fetchall():
+                row_dict = dict(r)
+                cid = row_dict.get("customer_id")
+                if cid:
+                    last_sent_map[cid] = {"last_sent": row_dict.get("last_sent"), "status": row_dict.get("status")}
+    except Exception as e:
+        logger.warning(f"Failed to query last whatsapp reminder map: {e}")
+
+    now = datetime.now()
     due_list = []
     for c in all_custs:
         b_type = c.get("billing_type", "prepaid")
@@ -4084,6 +4106,26 @@ def get_due_customers_for_whatsapp() -> List[Dict[str, Any]]:
             c["building"] = c.get("building") or "HQ / Plant"
             c["apartment"] = c.get("apartment") or "1"
             c["room"] = c.get("room") or "1"
+
+            # Attach reminder history
+            last_info = last_sent_map.get(c.get("id"))
+            if last_info and last_info.get("last_sent"):
+                c["last_reminder_at"] = last_info["last_sent"]
+                c["last_reminder_status"] = last_info["status"]
+                try:
+                    last_dt = datetime.strptime(str(last_info["last_sent"])[:19], "%Y-%m-%d %H:%M:%S")
+                    diff_days = (now - last_dt).total_seconds() / 86400.0
+                    c["days_since_last_reminder"] = round(diff_days, 1)
+                    c["recently_notified"] = diff_days < 3.0
+                except Exception:
+                    c["days_since_last_reminder"] = None
+                    c["recently_notified"] = False
+            else:
+                c["last_reminder_at"] = None
+                c["last_reminder_status"] = None
+                c["days_since_last_reminder"] = None
+                c["recently_notified"] = False
+
             due_list.append(c)
 
     due_list.sort(key=lambda x: x["effective_due"], reverse=True)
