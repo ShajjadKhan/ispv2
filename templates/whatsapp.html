@@ -879,9 +879,9 @@
     </div>
   </div>
 
-  <!-- STRICT TEST SANDBOX SAFETY BANNER -->
+  <!-- DYNAMIC OPERATING MODE & SAFETY BANNER -->
   {% if wa_status.sandbox_mode %}
-  <div style="background: linear-gradient(90deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 12px;">
+  <div style="background: linear-gradient(90deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 12px;">
       <span style="font-size: 22px;">🛡️</span>
       <div>
@@ -895,8 +895,36 @@
         </div>
       </div>
     </div>
-    <div style="font-size: 11.5px; color: #38bdf8; font-weight: 700; white-space: nowrap;">
-      Dedicated Port: 2790 ✅
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" class="btn-simulate" style="font-size: 11px; padding: 5px 12px; font-weight: 700;" onclick="switchWaTopic('settings')">
+        ⚙️ Mode Settings
+      </button>
+      <div style="font-size: 11.5px; color: #38bdf8; font-weight: 700; white-space: nowrap;">
+        Dedicated Port: 2790 ✅
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div style="background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(239, 68, 68, 0.45); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 22px;">🚀</span>
+      <div>
+        <div style="font-size: 13px; font-weight: 800; color: #f87171; display: flex; align-items: center; gap: 8px;">
+          <span>LIVE PRODUCTION MODE ACTIVE</span>
+          <span style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; font-size: 10.5px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">REAL SUBSCRIBERS UNLOCKED</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Safety sandbox is <strong>OFF</strong>. Outbound messages from the Billing Queue and Composer will dispatch directly to <strong>real subscribers' WhatsApp numbers</strong>.
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" class="btn-simulate" style="border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; font-size: 11px; padding: 5px 12px; font-weight: 700;" onclick="quickEnableSandbox()">
+        🛡️ Re-enable Sandbox Shield
+      </button>
+      <div style="font-size: 11.5px; color: #22c55e; font-weight: 700; white-space: nowrap;">
+        Gateway Live ✅
+      </div>
     </div>
   </div>
   {% endif %}
@@ -1469,6 +1497,43 @@
           <button type="submit" class="btn-wa-send" style="padding: 8px 22px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
             💾 Save Configurations
           </button>
+        </div>
+      </div>
+
+      <!-- CARD 0: OPERATING MODE & SAFETY SANDBOX SHIELD CONTROL -->
+      <div class="section-card" style="margin-bottom: 12px; border: 1px solid {% if wa_settings.sandbox_mode == '0' %}rgba(239, 68, 68, 0.45){% else %}rgba(56, 189, 248, 0.35){% endif %}; background: {% if wa_settings.sandbox_mode == '0' %}rgba(239, 68, 68, 0.04){% else %}rgba(14, 165, 233, 0.04){% endif %};">
+        <div class="section-card-header" style="flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">{% if wa_settings.sandbox_mode == '0' %}🚀{% else %}🛡️{% endif %}</span>
+            <div>
+              <span style="font-size: 13.5px; font-weight: 700; color: #ffffff;">Operating Mode &amp; Dispatch Safety Control</span>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 1px;">
+                Toggle between test sandbox (safe developer line) and live customer dispatching.
+              </div>
+            </div>
+          </div>
+          <span class="badge-status" id="sandboxModeBadge" style="font-size: 10.5px; {% if wa_settings.sandbox_mode == '0' %}background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);{% else %}background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35);{% endif %}">
+            {{ 'LIVE PRODUCTION (REAL SUBSCRIBERS)' if wa_settings.sandbox_mode == '0' else 'TEST SANDBOX ACTIVE (0597595059 ONLY)' }}
+          </span>
+        </div>
+        <div style="padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="max-width: 650px;">
+              <label for="set_sandbox_mode" style="color: #ffffff; font-size: 13px; font-weight: 700; cursor: pointer;">
+                Dispatch Environment
+              </label>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.45;">
+                <span style="color: #38bdf8; font-weight: 700;">🛡️ Sandbox Mode:</span> Intercepts all dispatches to shield clients. Messages are permitted strictly to authorized test phone <code style="color: #ffffff;">0597595059</code>.<br>
+                <span style="color: #f87171; font-weight: 700;">🚀 Live Production:</span> Real-world dispatching. Messages from queue, composer, or automated cron will be delivered directly to real subscribers.
+              </div>
+            </div>
+            <div>
+              <select id="set_sandbox_mode" class="form-control" style="width: 280px; font-weight: 700; height: 40px; font-size: 12.5px; border-color: {% if wa_settings.sandbox_mode == '0' %}#f87171{% else %}#38bdf8{% endif %};" onchange="onSandboxModeSelectChange(this)">
+                <option value="1" {% if wa_settings.sandbox_mode != '0' %}selected{% endif %}>🛡️ Test Sandbox (0597595059 Only)</option>
+                <option value="0" {% if wa_settings.sandbox_mode == '0' %}selected{% endif %}>🚀 Live Production (Real Subscribers)</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2829,9 +2894,76 @@
     });
   }
 
+  async function onSandboxModeSelectChange(selectEl) {
+    const badge = document.getElementById('sandboxModeBadge');
+    if (selectEl.value === '0') {
+      const confirmProd = await cyberConfirm(
+        "⚠️ CRITICAL CAUTION: SWITCHING TO LIVE PRODUCTION MODE\n\n" +
+        "When Live Production mode is saved:\n" +
+        "• Outgoing WhatsApp notices will be delivered directly to REAL subscribers.\n" +
+        "• The 0597595059 test lock will be deactivated.\n\n" +
+        "Are you sure you want to select Live Production mode?",
+        { title: 'Unlock Live Production', okText: 'Yes, Select Production', danger: true }
+      );
+      if (!confirmProd) {
+        selectEl.value = '1';
+        return;
+      }
+      selectEl.style.borderColor = '#f87171';
+      if (badge) {
+        badge.textContent = 'LIVE PRODUCTION (UNSAVED)';
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+        badge.style.color = '#f87171';
+        badge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      }
+    } else {
+      selectEl.style.borderColor = '#38bdf8';
+      if (badge) {
+        badge.textContent = 'TEST SANDBOX (UNSAVED)';
+        badge.style.background = 'rgba(56, 189, 248, 0.15)';
+        badge.style.color = '#38bdf8';
+        badge.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+      }
+    }
+  }
+
+  async function quickEnableSandbox() {
+    try {
+      const res = await fetch('/api/whatsapp/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox_mode: '1' })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        cyberToast('🛡️ Sandbox Shield activated! Real subscribers are now 100% protected.');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        cyberToast('Notice: ' + ((data && data.error) || 'Failed to update mode'));
+      }
+    } catch (e) {
+      cyberToast('Error activating sandbox: ' + e.message);
+    }
+  }
+
   async function saveSettings(e) {
     e.preventDefault();
+    const sandboxSelect = document.getElementById('set_sandbox_mode');
+    const sandboxVal = sandboxSelect ? sandboxSelect.value : '1';
+
+    if (sandboxVal === '0') {
+      const confirmFinal = await cyberConfirm(
+        "🚀 FINAL CONFIRMATION: SAVE AS LIVE PRODUCTION?\n\n" +
+        "You are about to save settings in LIVE PRODUCTION MODE.\n" +
+        "Real subscribers will begin receiving WhatsApp messages.\n\n" +
+        "Proceed with saving?",
+        { title: 'Save Live Production', okText: 'Save Production Mode', danger: true }
+      );
+      if (!confirmFinal) return;
+    }
+
     const payload = {
+      sandbox_mode: sandboxVal,
       auto_dispatch_enabled: document.getElementById('set_auto_dispatch').value,
       auto_dispatch_time: document.getElementById('set_auto_time') ? document.getElementById('set_auto_time').value.trim() : '12:00',
       auto_dispatch_max_per_day: document.getElementById('set_auto_max') ? document.getElementById('set_auto_max').value.trim() : '25',

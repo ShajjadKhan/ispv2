@@ -52,10 +52,21 @@ def format_phone(raw: str) -> str:
 def is_sandbox_active() -> bool:
     """
     Checks whether the safety sandbox mode is active.
-    Defaults to True (active) unless WHATSAPP_SANDBOX_MODE is explicitly set to false/0.
+    Checks SQLite database configuration table 'whatsapp_settings' first.
+    Falls back to WHATSAPP_SANDBOX_MODE environment variable if not set in DB.
+    Defaults to True (active safety) to strictly protect real subscribers.
     """
+    try:
+        import database
+        db_settings = database.get_whatsapp_settings()
+        db_val = db_settings.get("sandbox_mode")
+        if db_val is not None:
+            return str(db_val).lower().strip() not in ("false", "0", "no", "disabled", "off")
+    except Exception as e:
+        logger.debug(f"Could not read sandbox_mode from database: {e}")
+
     env_val = os.getenv("WHATSAPP_SANDBOX_MODE", "true").lower().strip()
-    return env_val not in ("false", "0", "no", "disabled")
+    return env_val not in ("false", "0", "no", "disabled", "off")
 
 
 def get_whatsapp_gateway_status() -> Dict[str, Any]:

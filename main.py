@@ -784,6 +784,7 @@ class WhatsAppSettingsRequest(BaseModel):
     template_expiry: Optional[str] = None
     template_welcome: Optional[str] = None
     template_maintenance: Optional[str] = None
+    sandbox_mode: Optional[str] = None
 
 
 

@@ -4007,6 +4007,8 @@ def get_whatsapp_settings() -> Dict[str, str]:
                 "📞 *Support (24/7):* [HELPLINE]\n\n"
                 "Welcome to the CyberNet family! 🙏"
             )
+        if "sandbox_mode" not in res:
+            res["sandbox_mode"] = "1"
         return res
 
 
