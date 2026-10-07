@@ -1056,7 +1056,7 @@
                 {% if req.is_secondary and req.existing_customer_name %}
                   <div style="display:flex; flex-direction:column; gap:2px;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                      <span class="pending-sub-name" style="font-weight:800; font-size:13.5px; color:var(--text-main, #ffffff); letter-spacing:-0.01em;">{{ req.existing_customer_name }}</span>
+                      <span style="font-weight:800; font-size:13.5px; color:#ffffff; letter-spacing:-0.01em;">{{ req.existing_customer_name }}</span>
                       <span class="badge" style="background:rgba(52, 211, 153, 0.18); color:#34d399; border:1px solid rgba(52, 211, 153, 0.35); font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:4px; text-transform:uppercase;">EXISTING SUBSCRIBER</span>
                     </div>
                     {% if req.existing_customer_notes %}
@@ -1083,7 +1083,7 @@
                       <span style="width:6px; height:6px; border-radius:50%; background:#38bdf8; display:inline-block;"></span>
                       <span>New Subscriber</span>
                     </div>
-                    <span class="phone-wrap font-mono" style="font-size:12.5px; color:var(--text-main, #ffffff); font-weight:700; margin-top:1px;">
+                    <span class="phone-wrap font-mono" style="font-size:12.5px; color:#ffffff; font-weight:700; margin-top:1px;">
                       <span class="phone-val text-cyan">{{ req.phone }}</span>
                       <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
                         <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1128,7 +1128,7 @@
                     </div>
                     {% if req.existing_customer_name %}
                       <div style="font-size:11.5px; color:#38bdf8; font-weight:700; line-height:1.2;">
-                        Adding for: <span class="pending-added-name" style="color:var(--text-main, #ffffff);">{{ req.existing_customer_name }}</span>
+                        Adding for: <span style="color:#ffffff;">{{ req.existing_customer_name }}</span>
                       </div>
                     {% endif %}
                     <span class="font-mono" style="font-size:11px; color:{% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}#f87171{% else %}#34d399{% endif %}; font-weight:700;">
@@ -1158,7 +1158,7 @@
                       Reject
                     </button>
                   {% elif req.is_secondary %}
-                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ (req.existing_customer_name or '') | escape }}')" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
+                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ (req.existing_customer_name or '') | escape }}', this)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
@@ -1186,7 +1186,7 @@
               <td colspan="7">
                 <div class="empty-state">
                   <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-                  <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Pending Connection Requests</p>
+                  <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Pending Connection Requests</p>
                   <p style="font-size:12px;">When a user submits their phone number on the captive portal popup, it will appear here instantly for your review.</p>
                 </div>
               </td>
@@ -1227,9 +1227,9 @@
           {% if approved_customers %}
             {% for cust in approved_customers %}
             <tr class="approved-dev-row" data-billing="{{ cust.billing_type }}">
-              <td data-label="Customer Name" style="font-weight:700; color:var(--text-main, #ffffff);">
+              <td data-label="Customer Name" style="font-weight:700; color:#ffffff;">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  <a href="/customers/{{ cust.customer_id }}/edit" style="color:var(--text-main, #ffffff); font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
+                  <a href="/customers/{{ cust.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
                     {{ cust.customer_name }}
                   </a>
                   {% if cust.notes %}
@@ -1368,7 +1368,7 @@
                 <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 <span>Existing Active Subscriber</span>
               </div>
-              <div style="font-size:16px; font-weight:800; color:var(--text-main, #ffffff);" id="secondaryCustName">Customer</div>
+              <div style="font-size:16px; font-weight:800; color:#ffffff;" id="secondaryCustName">Customer</div>
             </div>
             <span class="badge" style="background:rgba(52, 211, 153, 0.2); color:#34d399; border:1px solid rgba(52, 211, 153, 0.4); font-size:11.5px; font-weight:700; padding:4px 10px; white-space:nowrap;" id="secondarySlotBadge">Device 4 of 4</span>
           </div>
@@ -2007,8 +2007,12 @@
     }
   }
 
-  async function quickApproveSecondary(reqId, custName) {
-    if (!(await cyberConfirm(`Authorize extra device for ${custName || 'this customer'} immediately?\n\nBilling is already active, internet will be activated right away without collecting any new fee.`, { title: 'Authorize Extra Device', okText: 'Authorize Device' }))) return;
+  async function quickApproveSecondary(reqId, custName, btnElement) {
+    const btn = btnElement || (typeof event !== 'undefined' && event && event.currentTarget) || (typeof event !== 'undefined' && event && event.target && event.target.closest('button'));
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<svg style="width:13px; height:13px; animation:spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Authorizing...</span>';
+    }
 
     try {
       const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
@@ -2022,14 +2026,26 @@
       });
       const res = await resp.json();
       if (res.success) {
-        location.reload();
+        cyberToast(`Extra device for ${custName || 'subscriber'} authorized successfully!`, 'success');
+        const row = document.getElementById('req-row-' + reqId);
+        if (row) row.remove();
+        setTimeout(() => location.reload(), 300);
       } else {
         cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'), 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> <span>Quick Authorize</span>';
+        }
       }
     } catch (err) {
-      cyberToast('Error: ' + err.message, 'error');
+      cyberToast('Error authorizing device: ' + err.message, 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> <span>Quick Authorize</span>';
+      }
     }
   }
+  window.quickApproveSecondary = quickApproveSecondary;
 
   async function rejectRequest(reqId) {
     if (!(await cyberConfirm('Are you sure you want to reject this connection request?', { title: 'Reject Request', okText: 'Reject Request', danger: true }))) return;

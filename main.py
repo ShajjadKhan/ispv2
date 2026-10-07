@@ -2321,22 +2321,40 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             mac_address=mac_clean,
             comment=comment_str
         )
+        existing_cust = database.get_customer_by_phone(phone_clean)
+        cust_name = existing_cust.get("name") if existing_cust else (req_dict.get("customer_name") or "")
         return JSONResponse(
             content={
                 "success": True,
                 "status": "approved",
                 "is_secondary_device": False,
-                "message": "Welcome back! Your device is authorized."
+                "customer_name": cust_name,
+                "phone": phone_clean,
+                "mac": mac_clean,
+                "message": f"Welcome back{' ' + cust_name if cust_name else ''}! Your device is authorized."
             },
             headers={"Access-Control-Allow-Origin": "*"}
         )
+
+    existing_cust = database.get_customer_by_phone(phone_clean)
+    cust_name = existing_cust.get("name") if existing_cust else None
+    cust_room = f"{existing_cust.get('building', '')} {existing_cust.get('apartment', '')} {existing_cust.get('room', '')}".strip() if existing_cust else ""
+    wa_settings = database.get_whatsapp_settings()
+    support_phone = wa_settings.get("support_phone", "0597595059")
 
     return JSONResponse(
         content={
             "success": True,
             "status": "pending",
-            "is_secondary_device": is_secondary,
-            "message": "Waiting for Administrator approval..."
+            "request_id": req_dict.get("id"),
+            "phone": phone_clean,
+            "mac": mac_clean,
+            "is_secondary_device": bool(is_secondary),
+            "customer_name": cust_name,
+            "customer_room": cust_room,
+            "support_phone": support_phone,
+            "created_at": req_dict.get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "message": f"Connection request #{req_dict.get('id', '')} confirmed and queued for administrator approval."
         },
         headers={"Access-Control-Allow-Origin": "*"}
     )

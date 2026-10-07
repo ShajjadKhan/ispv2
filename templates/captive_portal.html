@@ -412,6 +412,248 @@
       line-height: 1.5;
     }
 
+    /* Confirmation & Status State Styles */
+    .confirm-card {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: left;
+      margin-top: 14px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+    }
+    .confirm-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .confirm-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #34d399;
+      flex-shrink: 0;
+    }
+    .confirm-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+    .confirm-sub {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+    .confirm-receipt {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .confirm-details-table {
+      width: 100%;
+      font-size: 11.5px;
+      border-collapse: separate;
+      border-spacing: 0 5px;
+    }
+    .confirm-details-table td {
+      padding: 2px 4px;
+      vertical-align: middle;
+    }
+    .confirm-details-table td:first-child {
+      color: #94a3b8;
+      font-weight: 600;
+      width: 36%;
+    }
+    .confirm-details-table td:last-child {
+      color: #f8fafc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-weight: 700;
+    }
+    .btn-edit-inline {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 10.5px;
+      cursor: pointer;
+      margin-left: 6px;
+      font-family: inherit;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-edit-inline:hover {
+      background: rgba(56, 189, 248, 0.3);
+    }
+    .badge-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .badge-pill-pending {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #93c5fd;
+    }
+    .pulse-dot-small {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3b82f6;
+      box-shadow: 0 0 6px #3b82f6;
+      animation: pulseDot 1.5s infinite;
+    }
+    .stepper-box {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 11.5px;
+      padding: 4px 0;
+    }
+    .step-dot {
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .step-done {
+      background: #10b981;
+      color: #ffffff;
+    }
+    .step-active {
+      background: #3b82f6;
+      color: #ffffff;
+      animation: pulseDot 1.5s infinite;
+    }
+    .pulse-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .spinner-mini {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    .delayed-hint-box {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      margin-top: 10px;
+      text-align: left;
+      line-height: 1.4;
+    }
+    .btn-wa-direct {
+      width: 100%;
+      background: #25d366;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+      transition: background 0.2s;
+    }
+    .btn-wa-direct:hover {
+      background: #1ebc57;
+    }
+    .failed-card {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1.5px solid rgba(239, 68, 68, 0.5);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: left;
+      margin-top: 14px;
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+    }
+    .failed-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .failed-icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.25);
+      border: 1px solid rgba(239, 68, 68, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f87171;
+      font-size: 18px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .failed-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fca5a5;
+      line-height: 1.2;
+    }
+    .failed-desc {
+      font-size: 12px;
+      color: #fecaca;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    .failed-points {
+      font-size: 11.5px;
+      color: #fca5a5;
+      line-height: 1.6;
+      margin: 8px 0 14px 14px;
+      padding: 0;
+    }
+
     /* Universal Accessible Focus Indicator */
     :focus-visible {
       outline: 2px solid #38bdf8 !important;
@@ -569,11 +811,163 @@
       {% endif %}
 
       <!-- 4. PENDING / APPROVED LIVE STATUS -->
-      <div id="statusSection" role="status" aria-live="polite" class="status-card">
-        <div id="statusSpinner" class="spinner"></div>
-        <div id="statusTitle" class="status-title" data-i18n="status_waiting_title">Waiting for Approval...</div>
-        <div id="statusMsg" class="status-msg" data-i18n="status_waiting_msg">
-          Your connection request has been sent to the network administrator. Your device will connect automatically once approved.
+      <!-- STATE A: SUBMISSION CONFIRMED & QUEUED -->
+      <div id="boxRequestConfirmation" role="status" aria-live="polite" style="display:none;">
+        <div class="confirm-card">
+          <div class="confirm-header">
+            <div class="confirm-icon-wrap">
+              <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div>
+              <div class="confirm-title" id="confCardTitle">Request Confirmed & Queued</div>
+              <div class="confirm-sub" id="confCardSub">Your connection request is queued for administrator authorization.</div>
+            </div>
+          </div>
+
+          <div class="confirm-receipt">
+            <table class="confirm-details-table">
+              <tr>
+                <td>Mobile Number:</td>
+                <td>
+                  <span id="confDispPhone" class="highlight-val">05XXXXXXXX</span>
+                  <button type="button" class="btn-edit-inline" onclick="editSubmittedPhone()" title="Correct phone number">✏️ Edit</button>
+                </td>
+              </tr>
+              <tr>
+                <td>Subscriber:</td>
+                <td id="confDispAccount">Standard Device</td>
+              </tr>
+              <tr>
+                <td>Device MAC:</td>
+                <td id="confDispMac">XX:XX:XX:XX:XX:XX</td>
+              </tr>
+              <tr>
+                <td>Status:</td>
+                <td>
+                  <span id="confDispStatusBadge" class="badge-status-pill badge-pill-pending">
+                    <span class="pulse-dot-small"></span> Awaiting Approval
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>Submitted:</td>
+                <td id="confDispTimer" style="font-size:11px;color:#94a3b8;">Just now</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- 3-Step Live Progress -->
+          <div class="stepper-box">
+            <div class="step-item">
+              <span class="step-dot step-done">✓</span>
+              <span style="color:#f8fafc;font-weight:600;">1. Mobile Number Verified & Sent</span>
+            </div>
+            <div class="step-item">
+              <span class="step-dot step-done">✓</span>
+              <span style="color:#f8fafc;font-weight:600;">2. Dispatched to Network Operator</span>
+            </div>
+            <div class="step-item">
+              <span class="step-dot step-active">⏳</span>
+              <span style="color:#93c5fd;font-weight:700;" id="confStep3Text">3. Network Access Authorization...</span>
+            </div>
+          </div>
+
+          <div class="pulse-status-bar">
+            <div class="spinner-mini"></div>
+            <span id="confLiveStatusText">Checking activation status with gateway...</span>
+          </div>
+
+          <!-- Delayed Notice after 40 seconds -->
+          <div id="confDelayedNotice" style="display:none;" class="delayed-hint-box">
+            <span>⚡ Need instant activation? Tap WhatsApp below to message the operator directly!</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+            <a id="btnConfWhatsApp" href="https://wa.me/966597595059" target="_blank" class="btn-wa-direct">
+              <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.28-2.42 5.84-1.56 1.56-3.64 2.41-5.84 2.41-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.31a8.16 8.16 0 0 1-1.25-4.48c0-4.54 3.7-8.24 8.24-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.43 1.03 2.6c.13.17 1.77 2.7 4.28 3.78.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.17-.48-.29z"/></svg>
+              <span>Request Fast Approval on WhatsApp</span>
+            </a>
+
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-submit" style="flex:1;height:42px;background:rgba(255,255,255,0.08);font-size:12px;" onclick="checkStatusNow()">
+                <span>🔄 Check Status</span>
+              </button>
+              <button type="button" class="btn-submit" style="flex:1;height:42px;background:rgba(255,255,255,0.08);font-size:12px;" onclick="editSubmittedPhone()">
+                <span>✏️ Change Number</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE B: REQUEST DECLINED / FAILED -->
+      <div id="boxRequestFailed" role="status" aria-live="assertive" style="display:none;">
+        <div class="failed-card">
+          <div class="failed-header">
+            <div class="failed-icon-wrap">✕</div>
+            <div>
+              <div class="failed-title">Connection Request Not Approved</div>
+              <div class="failed-sub" style="font-size:11.5px;color:#fca5a5;">Your request was declined or could not be activated.</div>
+            </div>
+          </div>
+          <div class="failed-desc" id="failedReasonText">
+            The administrator did not approve this device request.
+          </div>
+          <ul class="failed-points">
+            <li>Phone number may not match an active subscriber profile.</li>
+            <li>Subscriber account may have expired or pending balance.</li>
+            <li>Maximum allowed devices for this plan has been reached.</li>
+          </ul>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button type="button" class="btn-submit" onclick="editSubmittedPhone()">
+              <span>🔄 Try Again / Enter Another Number</span>
+            </button>
+            <a id="btnFailedWhatsApp" href="https://wa.me/966597595059" target="_blank" class="btn-wa-direct">
+              <svg style="width:18px;height:18px;fill:currentColor" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.28-2.42 5.84-1.56 1.56-3.64 2.41-5.84 2.41-1.42 0-2.82-.37-4.06-1.07l-.29-.17-3.12.82.83-3.04-.19-.31a8.16 8.16 0 0 1-1.25-4.48c0-4.54 3.7-8.24 8.24-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.15.17-.25.25-.42.08-.17.04-.32-.02-.45-.06-.13-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.43 1.03 2.6c.13.17 1.77 2.7 4.28 3.78.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.15-1.18-.06-.1-.23-.17-.48-.29z"/></svg>
+              <span>Chat with Administrator on WhatsApp</span>
+            </a>
+            <a href="tel:0597595059" class="btn-submit" style="background:rgba(255,255,255,0.08);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <span>📞 Call Support: 0597595059</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE C: SUBSCRIPTION EXPIRED -->
+      <div id="boxSubscriptionExpired" role="status" aria-live="polite" style="display:none;">
+        <div class="failed-card" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.5);">
+          <div class="failed-header">
+            <div class="failed-icon-wrap" style="background:rgba(245,158,11,0.25);border-color:rgba(245,158,11,0.6);color:#fbbf24;">⚠️</div>
+            <div>
+              <div class="failed-title" style="color:#fde68a;">Internet Subscription Expired</div>
+              <div class="failed-sub" style="font-size:11.5px;color:#fde68a;">Renewal required to restore Wi-Fi connectivity.</div>
+            </div>
+          </div>
+          <div class="failed-desc" id="expiredReasonText" style="color:#fef3c7;">
+            Your internet subscription has expired. Please contact administration or recharge your plan.
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a id="btnExpiredWhatsApp" href="https://wa.me/966597595059" target="_blank" class="btn-wa-direct">
+              <span>💳 Renew Plan via WhatsApp</span>
+            </a>
+            <button type="button" class="btn-submit" style="background:rgba(255,255,255,0.08);" onclick="editSubmittedPhone()">
+              <span>🔄 Try Another Phone Number</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE D: INTERNET ACTIVATED & GRANTED -->
+      <div id="boxApprovedOnline" role="status" aria-live="polite" style="display:none;margin-top:16px;">
+        <div class="confirm-card" style="background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.5);text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🎉</div>
+          <strong id="approvedTitle" style="font-size:17px;color:#10b981;display:block;margin-bottom:6px;">Internet Access Activated!</strong>
+          <span id="approvedSubtitle" style="font-size:13px;color:#d1fae5;line-height:1.4;display:block;">Your device is now authorized and connected.</span>
+          <div id="approvedCountdown" style="font-size:11.5px;color:#6ee7b7;margin-top:8px;">Starting your connection in 2 seconds...</div>
+          <button type="button" class="btn-submit" style="background:#10b981;margin-top:14px;" onclick="finishLogin()">
+            <span>🚀 Start Browsing Now</span>
+          </button>
         </div>
       </div>
 
@@ -736,23 +1130,238 @@
           return;
         }
 
-        // Show pending polling screen
-        showPendingState(phone, mac);
+        if (res.status === 'pending') {
+          showConfirmation(res);
+          return;
+        }
+
+        if (res.status === 'rejected' || res.status === 'declined') {
+          showFailedState(res.message);
+          return;
+        }
 
       } catch (err) {
         console.error('Portal submit error:', err);
-        // If network error, still start polling in case submission succeeded
-        showPendingState(phone, mac);
+        showConfirmation({
+          phone: phone,
+          mac: mac,
+          request_id: "Queued",
+          message: "Request queued. Connecting to gateway..."
+        });
       }
     }
 
-    function showPendingState(phone, mac) {
-      document.getElementById('hotspotForm').style.display = 'none';
-      document.getElementById('statusSection').style.display = 'block';
+    let submissionStartTime = null;
+    let timerInterval = null;
+    let supportContact = "0597595059";
 
-      // Start 3-second status polling
+    function formatTimeAgo(seconds) {
+      if (seconds < 5) return "Just now";
+      if (seconds < 60) return seconds + "s ago";
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return m + "m " + s + "s ago";
+    }
+
+    function startElapsedTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      submissionStartTime = Date.now();
+      const timerEl = document.getElementById("confDispTimer");
+      const delayedBox = document.getElementById("confDelayedNotice");
+      if (timerEl) timerEl.textContent = "Just now";
+      if (delayedBox) delayedBox.style.display = "none";
+
+      timerInterval = setInterval(() => {
+        if (!submissionStartTime) return;
+        const elapsedSec = Math.floor((Date.now() - submissionStartTime) / 1000);
+        if (timerEl) timerEl.textContent = formatTimeAgo(elapsedSec);
+
+        if (elapsedSec >= 40 && delayedBox) {
+          delayedBox.style.display = "block";
+        }
+      }, 1000);
+    }
+
+    function stopElapsedTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function editSubmittedPhone() {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      stopElapsedTimer();
+
+      const boxConf = document.getElementById("boxRequestConfirmation");
+      if (boxConf) boxConf.style.display = "none";
+      const boxFail = document.getElementById("boxRequestFailed");
+      if (boxFail) boxFail.style.display = "none";
+      const boxExp = document.getElementById("boxSubscriptionExpired");
+      if (boxExp) boxExp.style.display = "none";
+      const boxAppr = document.getElementById("boxApprovedOnline");
+      if (boxAppr) boxAppr.style.display = "none";
+
+      const form = document.getElementById("hotspotForm");
+      if (form) form.style.display = "block";
+      const input = document.getElementById("phoneInput");
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    function updateWhatsAppLinks(reqId, phone, mac) {
+      let cleanSupport = supportContact.replace(/[^0-9]/g, "");
+      if (cleanSupport.startsWith("0")) cleanSupport = "966" + cleanSupport.slice(1);
+      if (!cleanSupport.startsWith("966")) cleanSupport = "966" + cleanSupport;
+
+      const text = `Assalamu Alaikum CyberNet Admin. I submitted connection request on Wi-Fi portal.\n📱 Phone: ${phone}\n📡 MAC: ${mac}\n${reqId ? ('🎫 Ticket: #' + reqId + '\n') : ''}Please approve my connection.`;
+      const link = `https://wa.me/${cleanSupport}?text=${encodeURIComponent(text)}`;
+
+      const btn1 = document.getElementById("btnConfWhatsApp");
+      if (btn1) btn1.href = link;
+      const btn2 = document.getElementById("btnFailedWhatsApp");
+      if (btn2) btn2.href = link;
+      const btn3 = document.getElementById("btnExpiredWhatsApp");
+      if (btn3) btn3.href = `https://wa.me/${cleanSupport}?text=${encodeURIComponent('Assalamu Alaikum CyberNet Admin. My Wi-Fi plan is expired for phone ' + phone + '. Please help me renew.')}`;
+    }
+
+    function showConfirmation(data) {
+      const form = document.getElementById('hotspotForm');
+      if (form) form.style.display = 'none';
+      const boxFail = document.getElementById("boxRequestFailed");
+      if (boxFail) boxFail.style.display = "none";
+      const boxExp = document.getElementById("boxSubscriptionExpired");
+      if (boxExp) boxExp.style.display = "none";
+      const boxAppr = document.getElementById("boxApprovedOnline");
+      if (boxAppr) boxAppr.style.display = "none";
+
+      const card = document.getElementById("boxRequestConfirmation");
+      if (card) card.style.display = "block";
+
+      if (data.support_phone) supportContact = data.support_phone;
+
+      const phoneEl = document.getElementById('phoneInput');
+      const submittedPhone = (phoneEl ? phoneEl.value.trim() : "") || data.phone || "";
+
+      const dispPhone = document.getElementById("confDispPhone");
+      if (dispPhone) dispPhone.textContent = data.phone || submittedPhone;
+
+      const dispMac = document.getElementById("confDispMac");
+      if (dispMac) dispMac.textContent = (data.mac || detectedMac).toUpperCase();
+
+      const dispAccount = document.getElementById("confDispAccount");
+      if (dispAccount) {
+        if (data.is_secondary_device) {
+          dispAccount.innerHTML = (data.customer_name ? (`<strong style="color:#38bdf8;">${data.customer_name}</strong>`) : 'Existing Account') + ' <span style="font-size:10px;color:#f59e0b;font-weight:700;">(Secondary Device)</span>';
+        } else if (data.customer_name) {
+          dispAccount.innerHTML = `<strong style="color:#34d399;">${data.customer_name}</strong>`;
+        } else {
+          dispAccount.textContent = 'New Customer Registration';
+        }
+      }
+
+      const cardTitle = document.getElementById("confCardTitle");
+      if (cardTitle) {
+        cardTitle.textContent = data.is_secondary_device ? "Secondary Device Request Confirmed" : "Request Confirmed & Queued";
+      }
+
+      updateWhatsAppLinks(data.request_id, data.phone || submittedPhone, data.mac || detectedMac);
+      startElapsedTimer();
+
       if (pollInterval) clearInterval(pollInterval);
-      pollInterval = setInterval(() => checkStatus(mac, phone), 3000);
+      pollInterval = setInterval(() => checkStatus(data.mac || detectedMac, data.phone || submittedPhone), 3000);
+    }
+
+    function showFailedState(msg) {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      stopElapsedTimer();
+
+      const form = document.getElementById('hotspotForm');
+      if (form) form.style.display = 'none';
+      const boxConf = document.getElementById("boxRequestConfirmation");
+      if (boxConf) boxConf.style.display = "none";
+      const boxExp = document.getElementById("boxSubscriptionExpired");
+      if (boxExp) boxExp.style.display = "none";
+      const boxAppr = document.getElementById("boxApprovedOnline");
+      if (boxAppr) boxAppr.style.display = "none";
+
+      const card = document.getElementById("boxRequestFailed");
+      if (card) card.style.display = "block";
+
+      const reasonEl = document.getElementById("failedReasonText");
+      if (reasonEl && msg) reasonEl.textContent = msg;
+
+      const phoneEl = document.getElementById('phoneInput');
+      updateWhatsAppLinks("", phoneEl ? phoneEl.value.trim() : "", detectedMac);
+    }
+
+    function showExpiredState(msg, dateStr) {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      stopElapsedTimer();
+
+      const form = document.getElementById('hotspotForm');
+      if (form) form.style.display = 'none';
+      const boxConf = document.getElementById("boxRequestConfirmation");
+      if (boxConf) boxConf.style.display = "none";
+      const boxFail = document.getElementById("boxRequestFailed");
+      if (boxFail) boxFail.style.display = "none";
+      const boxAppr = document.getElementById("boxApprovedOnline");
+      if (boxAppr) boxAppr.style.display = "none";
+
+      const card = document.getElementById("boxSubscriptionExpired");
+      if (card) card.style.display = "block";
+
+      const msgEl = document.getElementById("expiredReasonText");
+      if (msgEl) {
+        msgEl.textContent = msg || ("Your subscription expired" + (dateStr ? (" on " + dateStr) : "") + ". Please renew your plan to restore internet access.");
+      }
+
+      const phoneEl = document.getElementById('phoneInput');
+      updateWhatsAppLinks("", phoneEl ? phoneEl.value.trim() : "", detectedMac);
+    }
+
+    function showApprovedState(msg, name) {
+      if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      stopElapsedTimer();
+
+      const form = document.getElementById('hotspotForm');
+      if (form) form.style.display = 'none';
+      const boxConf = document.getElementById("boxRequestConfirmation");
+      if (boxConf) boxConf.style.display = "none";
+      const boxFail = document.getElementById("boxRequestFailed");
+      if (boxFail) boxFail.style.display = "none";
+      const boxExp = document.getElementById("boxSubscriptionExpired");
+      if (boxExp) boxExp.style.display = "none";
+
+      const box = document.getElementById("boxApprovedOnline");
+      if (box) box.style.display = "block";
+
+      const subEl = document.getElementById("approvedSubtitle");
+      if (subEl) {
+        subEl.textContent = name ? (`Welcome ${name}! Your plan is active and device is connected.`) : (msg || "Your plan is ready and device is connected.");
+      }
+
+      let count = 2;
+      const countEl = document.getElementById("approvedCountdown");
+      const cdInt = setInterval(() => {
+        count--;
+        if (countEl) countEl.textContent = `Starting your connection in ${Math.max(0, count)}s...`;
+        if (count <= 0) {
+          clearInterval(cdInt);
+          finishLogin();
+        }
+      }, 1000);
+    }
+
+    function finishLogin() {
+      const redirectLink = document.getElementById('linkLoginOnly') ? document.getElementById('linkLoginOnly').value : '';
+      if (redirectLink && redirectLink.startsWith('http')) {
+        window.location.href = redirectLink;
+      } else {
+        window.location.href = "http://www.google.com";
+      }
     }
 
     async function checkStatus(mac, phone) {
@@ -763,53 +1372,43 @@
 
         if (res.status === 'random_mac_blocked') {
           if (pollInterval) clearInterval(pollInterval);
-          document.getElementById('statusSection').style.display = 'none';
           showMacTypeNotification(mac, res.message || "Please change your MAC type to 'Device MAC' to connect.");
           return;
         }
 
         if (res.status === 'expired') {
-          if (pollInterval) clearInterval(pollInterval);
-          showExpiredState(res.message);
+          showExpiredState(res.message, res.expiry_date);
           return;
         }
 
         if (res.status === 'approved') {
-          if (pollInterval) clearInterval(pollInterval);
-          showApprovedState(res.message || "You are now connected to high-speed internet.");
-        } else if (res.status === 'rejected') {
-          if (pollInterval) clearInterval(pollInterval);
-          document.getElementById('statusSpinner').style.display = 'none';
-          document.getElementById('statusTitle').innerText = "Connection Rejected";
-          document.getElementById('statusTitle').style.color = '#f87171';
-          document.getElementById('statusMsg').innerText = res.message || "Your request was rejected by the administrator.";
+          showApprovedState(res.message, res.customer_name || res.name);
+          return;
+        }
+
+        if (res.status === 'rejected' || res.status === 'declined') {
+          showFailedState(res.message || "Your connection request was declined by the administrator.");
+          return;
+        }
+
+        if (res.status === 'revoked' || res.status === 'blocked') {
+          showFailedState(res.message || "Device access was revoked by network administrator.");
+          return;
+        }
+
+        if (res.status === 'pending') {
+          const statusText = document.getElementById("confLiveStatusText");
+          if (statusText) statusText.textContent = `Request active in queue${res.request_id ? (' (#REQ-' + res.request_id + ')') : ''}. Waiting for operator approval...`;
         }
       } catch (err) {
         console.warn('Status poll retry:', err);
       }
     }
 
-    function showExpiredState(msg) {
-      document.getElementById('hotspotForm').style.display = 'none';
-      document.getElementById('statusSection').style.display = 'block';
-      document.getElementById('statusSpinner').style.display = 'none';
-      document.getElementById('statusTitle').innerText = "Subscription Expired";
-      document.getElementById('statusTitle').style.color = '#ef4444';
-      document.getElementById('statusMsg').innerText = msg || "Your internet subscription has expired. Please contact administrator to renew your plan.";
-    }
-
-    function showApprovedState(msg) {
-      document.getElementById('hotspotForm').style.display = 'none';
-      document.getElementById('statusSection').style.display = 'block';
-      document.getElementById('statusSpinner').style.borderTopColor = '#34d399';
-      document.getElementById('statusTitle').innerText = "Internet Access Granted!";
-      document.getElementById('statusTitle').style.color = '#34d399';
-      document.getElementById('statusMsg').innerText = msg || "You are now connected to high-speed internet.";
-
-      const redirectLink = document.getElementById('linkLoginOnly').value;
-      if (redirectLink && redirectLink.startsWith('http')) {
-        setTimeout(() => { window.location.href = redirectLink; }, 1500);
-      }
+    function checkStatusNow() {
+      const phoneEl = document.getElementById('phoneInput');
+      const phone = (phoneEl ? phoneEl.value.trim() : "");
+      checkStatus(detectedMac, phone);
     }
 
     // Auto-detect if this client's hardware MAC is already an active authorized device

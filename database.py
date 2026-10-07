@@ -963,7 +963,13 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, 
                     "message": f"Your internet subscription expired on {exp_display}. Please renew your plan to restore internet access."
                 }
             if cust.get("status") == "active":
-                return {"status": "approved", "message": f"Device authorized. Welcome {cust['name']}!"}
+                return {
+                    "status": "approved",
+                    "customer_name": cust.get("name", ""),
+                    "phone": cust.get("phone", phone_clean),
+                    "mac": mac_upper,
+                    "message": f"Device authorized. Welcome {cust['name']}!"
+                }
 
         # 2. Check if phone belongs to an existing customer who is expired
         if phone_clean:
@@ -1000,10 +1006,33 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, 
                 "message": "Device access has been revoked or removed. Please contact administrator."
             }
 
+        existing_cust = get_customer_by_phone(phone_clean) if phone_clean else None
+        cust_name = existing_cust.get("name") if existing_cust else None
+        wa_settings = get_whatsapp_settings()
+        support_phone = wa_settings.get("support_phone", "0597595059")
+
+        if req["status"] == "rejected":
+            return {
+                "status": "rejected",
+                "is_secondary": bool(req.get("is_secondary")),
+                "request_id": req.get("id"),
+                "phone": req.get("phone") or phone_clean,
+                "mac": mac_upper,
+                "customer_name": cust_name,
+                "support_phone": support_phone,
+                "message": "Connection request was not approved by network administrator."
+            }
+
         return {
             "status": req["status"],
             "is_secondary": bool(req["is_secondary"]),
-            "message": "Awaiting admin approval."
+            "request_id": req.get("id"),
+            "phone": req.get("phone") or phone_clean,
+            "mac": mac_upper,
+            "created_at": req.get("created_at"),
+            "customer_name": cust_name,
+            "support_phone": support_phone,
+            "message": "Awaiting administrator approval." if req["status"] == "pending" else f"Request {req['status']}."
         }
 
 
