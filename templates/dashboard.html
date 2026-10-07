@@ -2301,7 +2301,7 @@
       <table class="clean-table" id="pendingTable">
         <thead>
           <tr>
-            <th>Phone Number</th>
+            <th>Subscriber / Phone</th>
             <th>Device MAC Address</th>
             <th>IP Address</th>
             <th>Type</th>
@@ -2314,7 +2314,34 @@
           {% if pending_requests %}
             {% for req in pending_requests %}
             <tr id="req-row-{{ req.id }}" class="req-table-row {% if req.is_random_mac %}random-mac-card{% endif %}" {% if req.is_random_mac %}style="background: rgba(239, 68, 68, 0.04); border-left: 3px solid #ef4444;"{% endif %}>
-              <td data-label="Phone Number" class="font-mono text-white td-phone" style="font-weight:700;">{{ req.phone }}</td>
+              <td data-label="Subscriber / Phone" class="td-phone">
+                {% if req.is_secondary and req.existing_customer_name %}
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                      <span style="font-weight:800; font-size:13.5px; color:#ffffff; letter-spacing:-0.01em;">{{ req.existing_customer_name }}</span>
+                      <span class="badge" style="background:rgba(52, 211, 153, 0.18); color:#34d399; border:1px solid rgba(52, 211, 153, 0.35); font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:4px; text-transform:uppercase;">EXISTING SUBSCRIBER</span>
+                    </div>
+                    {% if req.existing_customer_notes %}
+                      <div style="font-size:11px; color:#38bdf8; font-weight:500;">
+                        🚪 {{ req.existing_customer_notes }}
+                      </div>
+                    {% endif %}
+                    <span class="phone-wrap font-mono" style="font-size:11.5px; color:var(--text-muted); margin-top:1px;">
+                      <span class="phone-val text-cyan" style="font-weight:600;">{{ req.phone }}</span>
+                    </span>
+                  </div>
+                {% else %}
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <div style="font-weight:700; font-size:12.5px; color:#94a3b8; display:flex; align-items:center; gap:5px;">
+                      <span style="width:6px; height:6px; border-radius:50%; background:#38bdf8; display:inline-block;"></span>
+                      <span>New Subscriber</span>
+                    </div>
+                    <span class="phone-wrap font-mono" style="font-size:12.5px; color:#ffffff; font-weight:700; margin-top:1px;">
+                      <span class="phone-val text-cyan">{{ req.phone }}</span>
+                    </span>
+                  </div>
+                {% endif %}
+              </td>
               <td data-label="Device MAC" class="font-mono td-mac">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span class="text-cyan" style="font-weight:700;">{{ req.mac_address }}</span>
@@ -2334,8 +2361,13 @@
                 {% if req.is_secondary %}
                   <div style="display:flex; flex-direction:column; gap:3px;">
                     <span class="tag-device-type secondary" title="Existing customer: {{ req.existing_customer_name }}">
-                      Secondary Device
+                      + Secondary Device
                     </span>
+                    {% if req.existing_customer_name %}
+                      <div style="font-size:11.5px; color:#38bdf8; font-weight:700; line-height:1.2;">
+                        Adding for: <span style="color:#ffffff;">{{ req.existing_customer_name }}</span>
+                      </div>
+                    {% endif %}
                     <span class="font-mono" style="font-size:11px; color:{% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}#f87171{% else %}#34d399{% endif %}; font-weight:700;">
                       {% if (req.current_device_count or 0) >= (req.customer_max_devices or 1) %}
                         ⚠ Limit ({{ req.current_device_count }}/{{ req.customer_max_devices }})
@@ -2363,11 +2395,11 @@
                       Reject
                     </button>
                   {% elif req.is_secondary %}
-                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ req.existing_customer_name or '' }}')" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="1-Click Quick Authorize (No Billing)">
+                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ (req.existing_customer_name or '') | escape }}')" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
@@ -4201,8 +4233,8 @@
 
           const typeCol = req.is_secondary
             ? `<div style="display:flex; flex-direction:column; gap:3px;">
-                 <span class="tag-device-type secondary" title="Existing customer: ${req.existing_customer_name || ''}">Secondary Device</span>
-                 ${req.existing_customer_name ? `<div style="font-size:11px; color:#fbbf24; font-weight:700;">For: ${req.existing_customer_name}</div>` : ''}
+                 <span class="tag-device-type secondary" title="Existing customer: ${req.existing_customer_name || ''}">+ Secondary Device</span>
+                 ${req.existing_customer_name ? `<div style="font-size:11.5px; color:#38bdf8; font-weight:700; line-height:1.2;">Adding for: <span style="color:#ffffff;">${safeName}</span></div>` : ''}
                  <span class="font-mono" style="font-size:11px; color:${(req.current_device_count || 0) >= (req.customer_max_devices || 1) ? '#f87171' : '#34d399'}; font-weight:700;">
                    ${(req.current_device_count || 0) >= (req.customer_max_devices || 1) ? `⚠ Limit (${req.current_device_count}/${req.customer_max_devices})` : `Device ${(req.current_device_count || 0) + 1} of ${req.customer_max_devices || 1}`}
                  </span>

@@ -688,10 +688,49 @@ def get_packages(active_only: bool = False) -> List[Dict[str, Any]]:
         return pkgs
 
 
+def get_phone_lookup_variants(raw: Optional[str]) -> List[str]:
+    """Generates all standard Saudi mobile phone number variants for robust matching."""
+    if not raw:
+        return []
+    cleaned = str(raw).strip()
+    digits = re.sub(r"[^0-9]", "", cleaned)
+    variants = set()
+    if cleaned:
+        variants.add(cleaned)
+    if digits:
+        variants.add(digits)
+        # 12 digits: e.g. 966509817404
+        if digits.startswith("966") and len(digits) == 12:
+            variants.add("0" + digits[3:])     # 0509817404
+            variants.add(digits[3:])          # 509817404
+            variants.add("+" + digits)        # +966509817404
+        # 10 digits: e.g. 0509817404
+        elif digits.startswith("0") and len(digits) == 10:
+            variants.add("966" + digits[1:])  # 966509817404
+            variants.add(digits[1:])          # 509817404
+            variants.add("+966" + digits[1:]) # +966509817404
+        # 9 digits: e.g. 509817404
+        elif digits.startswith("5") and len(digits) == 9:
+            variants.add("0" + digits)        # 0509817404
+            variants.add("966" + digits)      # 966509817404
+            variants.add("+966" + digits)     # +966509817404
+        elif len(digits) >= 9:
+            last9 = digits[-9:]
+            if last9.startswith("5"):
+                variants.add("0" + last9)
+                variants.add("966" + last9)
+                variants.add(last9)
+    return list(variants)
+
+
 def get_customer_by_phone(phone: str) -> Optional[Dict[str, Any]]:
+    variants = get_phone_lookup_variants(phone)
+    if not variants:
+        return None
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM customers WHERE phone = ?", (phone,))
+        placeholders = ",".join("?" for _ in variants)
+        cursor.execute(f"SELECT * FROM customers WHERE phone IN ({placeholders}) ORDER BY id DESC LIMIT 1", variants)
         row = cursor.fetchone()
         return dict(row) if row else None
 
@@ -1031,6 +1070,34 @@ def get_pending_requests() -> List[Dict[str, Any]]:
         for r in rows:
             r["is_random_mac"] = is_randomized_mac(r.get("mac_address", ""))
             r["device_model"] = parse_clean_device_model(r.get("device_model", ""))
+            
+            # Robust fallback: If SQL join missed customer due to phone variant formatting, match via get_customer_by_phone
+            if not r.get("existing_customer_name") and r.get("phone"):
+                matched_cust = get_customer_by_phone(r["phone"])
+                if matched_cust:
+                    cid = matched_cust["id"]
+                    r["customer_id"] = cid
+                    r["existing_customer_name"] = matched_cust["name"]
+                    r["existing_customer_notes"] = matched_cust.get("notes") or ""
+                    r["existing_billing_type"] = matched_cust.get("billing_type") or "prepaid"
+                    r["existing_package_name"] = matched_cust.get("package_name") or ""
+                    r["existing_expiry_date"] = matched_cust.get("expiry_date") or ""
+                    r["existing_due_date"] = matched_cust.get("due_date") or ""
+                    r["existing_customer_status"] = matched_cust.get("status") or "active"
+                    r["customer_max_devices"] = matched_cust.get("max_devices") or 1
+                    r["existing_speed_limit"] = matched_cust.get("speed_limit") or ""
+                    r["existing_monthly_fee"] = matched_cust.get("monthly_fee") or 0.0
+                    try:
+                        c_cnt = cursor.execute("SELECT COUNT(*) FROM customer_devices WHERE customer_id = ? AND status = 'approved'", (cid,)).fetchone()[0]
+                        r["current_device_count"] = c_cnt or 0
+                    except Exception:
+                        r["current_device_count"] = 0
+                    try:
+                        cursor.execute("UPDATE connection_requests SET customer_id = ?, is_secondary = 1 WHERE id = ?", (cid, r["id"]))
+                        conn.commit()
+                    except Exception:
+                        pass
+
             r["existing_customer_notes"] = r.get("existing_customer_notes") or r.get("notes") or ""
             if r.get("existing_customer_name") or r.get("customer_id"):
                 r["is_secondary"] = 1
@@ -1138,9 +1205,17 @@ def approve_connection(
         if is_randomized_mac(mac):
             raise ValueError(f"Cannot approve connection for request #{req_id}: MAC '{mac}' is a randomized MAC address. Customer must connect using physical Device MAC.")
 
-        # Check if customer already exists
-        cursor.execute("SELECT * FROM customers WHERE phone = ?", (phone,))
-        cust_row = cursor.fetchone()
+        # Check if customer already exists (by request customer_id or robust phone lookup)
+        cust_row = None
+        req_cid = req.get("customer_id")
+        if req_cid:
+            cursor.execute("SELECT * FROM customers WHERE id = ?", (req_cid,))
+            cust_row = cursor.fetchone()
+        if not cust_row:
+            cust_dict = get_customer_by_phone(phone)
+            if cust_dict:
+                cursor.execute("SELECT * FROM customers WHERE id = ?", (cust_dict["id"],))
+                cust_row = cursor.fetchone()
 
         is_existing = cust_row is not None
         is_secondary_req = bool(is_secondary or req.get("is_secondary") or is_existing)
@@ -1168,7 +1243,15 @@ def approve_connection(
             if current_dev_cnt >= new_max_devices:
                 new_max_devices = current_dev_cnt + 1
 
-            update_name = name.strip() if (name and not name.startswith("Customer 05")) else cust["name"]
+            clean_name = (name or "").strip()
+            is_generic_placeholder = (
+                not clean_name or
+                clean_name.lower() in ("customer", "customer name", "new customer", "unknown") or
+                clean_name.startswith("Customer 05") or
+                clean_name.startswith("Customer 966") or
+                clean_name.startswith("Customer 5")
+            )
+            update_name = cust["name"] if is_generic_placeholder else clean_name
 
             # Expiration and status resolution:
             # If admin passed an explicit future due_date, extend validity
