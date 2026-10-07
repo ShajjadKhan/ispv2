@@ -322,6 +322,15 @@
     accent-color: #38bdf8;
     box-sizing: border-box;
   }
+  html[data-theme="dark"] .edit-page-container input,
+  html[data-theme="dark"] .edit-page-container select {
+    color-scheme: dark;
+  }
+  .edit-page-container input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+    cursor: pointer;
+    opacity: 0.8;
+  }
   html[data-theme="light"] .edit-page-container input[type="date"],
   html[data-theme="light"] .edit-page-container .cyber-datepicker {
     background: #ffffff !important;
