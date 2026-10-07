@@ -22,7 +22,47 @@ logger = logging.getLogger("whatsapp_service")
 # OpenWA Dedicated Container Configuration for ISPv2
 OPENWA_URL = os.getenv("OPENWA_URL", "http://127.0.0.1:2790")
 OPENWA_API_KEY = os.getenv("OPENWA_API_KEY", "dev-admin-key")
-OPENWA_SESSION_ID = os.getenv("OPENWA_SESSION_ID", "abba0f1a-573b-4107-8fc4-3e8000668e92")
+DEFAULT_OPENWA_SESSION_ID = os.getenv("OPENWA_SESSION_ID", "5d393908-58b1-4d36-93e4-69decc3ed193")
+
+_cached_session_id: Optional[str] = None
+
+
+def get_openwa_session_id(force_refresh: bool = False) -> str:
+    """
+    Dynamically discovers the active session ID from OpenWA container.
+    If multiple sessions exist, prioritizes 'ispv2-bot'.
+    If no sessions exist, automatically creates a new 'ispv2-bot' session.
+    Caches the ID in memory to minimize overhead.
+    """
+    global _cached_session_id
+    if _cached_session_id and not force_refresh:
+        return _cached_session_id
+
+    try:
+        url = f"{OPENWA_URL}/api/sessions"
+        headers = {"X-API-Key": OPENWA_API_KEY}
+        r = requests.get(url, headers=headers, timeout=4)
+        if r.status_code == 200:
+            sessions = r.json()
+            if isinstance(sessions, list) and len(sessions) > 0:
+                for s in sessions:
+                    if s.get("name") == "ispv2-bot":
+                        _cached_session_id = s.get("id")
+                        return _cached_session_id
+                _cached_session_id = sessions[0].get("id")
+                return _cached_session_id
+            elif isinstance(sessions, list) and len(sessions) == 0:
+                cr = requests.post(url, json={"name": "ispv2-bot"}, headers=headers, timeout=5)
+                if cr.status_code in (200, 201):
+                    new_session = cr.json()
+                    _cached_session_id = new_session.get("id")
+                    requests.post(f"{OPENWA_URL}/api/sessions/{_cached_session_id}/start", headers=headers, timeout=5)
+                    return _cached_session_id
+    except Exception as e:
+        logger.warning(f"Failed to auto-discover OpenWA session ID: {e}")
+
+    configured = os.getenv("OPENWA_SESSION_ID", "").strip()
+    return configured or DEFAULT_OPENWA_SESSION_ID
 
 DEFAULT_SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "0597595059")
 DEFAULT_MOVIE_SERVER = os.getenv("MOVIE_SERVER", "http://10.12.14.16:8082")
@@ -72,10 +112,16 @@ def is_sandbox_active() -> bool:
 def get_whatsapp_gateway_status() -> Dict[str, Any]:
     """Queries the dedicated OpenWA container for live session state."""
     sandbox = is_sandbox_active()
+    session_id = get_openwa_session_id()
     try:
-        url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}"
+        url = f"{OPENWA_URL}/api/sessions/{session_id}"
         headers = {"X-API-Key": OPENWA_API_KEY}
         r = requests.get(url, headers=headers, timeout=4)
+        if r.status_code == 404:
+            session_id = get_openwa_session_id(force_refresh=True)
+            url = f"{OPENWA_URL}/api/sessions/{session_id}"
+            r = requests.get(url, headers=headers, timeout=4)
+
         if r.status_code == 200:
             data = r.json()
             status_val = data.get("status", "unknown")
@@ -87,7 +133,7 @@ def get_whatsapp_gateway_status() -> Dict[str, Any]:
                 "status": status_val,
                 "phone": data.get("phone"),
                 "name": data.get("pushName") or data.get("name") or "CyberNet Bot",
-                "session_id": OPENWA_SESSION_ID,
+                "session_id": session_id,
                 "connected_at": data.get("connectedAt"),
                 "last_active": data.get("lastActive") or data.get("lastActiveAt"),
                 "openwa_url": OPENWA_URL,
@@ -101,7 +147,7 @@ def get_whatsapp_gateway_status() -> Dict[str, Any]:
             "status": f"HTTP {r.status_code}",
             "phone": None,
             "name": "CyberNet Bot",
-            "session_id": OPENWA_SESSION_ID,
+            "session_id": session_id,
             "openwa_url": OPENWA_URL,
             "sandbox_mode": sandbox,
             "allowed_test_phone": ALLOWED_TEST_PHONE,
@@ -115,7 +161,7 @@ def get_whatsapp_gateway_status() -> Dict[str, Any]:
             "status": "offline",
             "phone": None,
             "name": "CyberNet Bot",
-            "session_id": OPENWA_SESSION_ID,
+            "session_id": session_id,
             "openwa_url": OPENWA_URL,
             "sandbox_mode": sandbox,
             "allowed_test_phone": ALLOWED_TEST_PHONE,
@@ -125,10 +171,17 @@ def get_whatsapp_gateway_status() -> Dict[str, Any]:
 
 def get_whatsapp_qr_code() -> Dict[str, Any]:
     """Fetches the active pairing QR code for the dedicated ISPv2 session."""
+    session_id = get_openwa_session_id()
     try:
-        url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/qr"
+        url = f"{OPENWA_URL}/api/sessions/{session_id}/qr"
         headers = {"X-API-Key": OPENWA_API_KEY}
         r = requests.get(url, headers=headers, timeout=5)
+
+        if r.status_code == 404:
+            session_id = get_openwa_session_id(force_refresh=True)
+            url = f"{OPENWA_URL}/api/sessions/{session_id}/qr"
+            r = requests.get(url, headers=headers, timeout=5)
+
         if r.status_code == 200:
             data = r.json()
             return {
@@ -185,8 +238,9 @@ def get_whatsapp_qr_code() -> Dict[str, Any]:
 
 def start_whatsapp_session() -> Dict[str, Any]:
     """Requests OpenWA to start or re-initialize the ispv2-bot session."""
+    session_id = get_openwa_session_id()
     try:
-        url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/start"
+        url = f"{OPENWA_URL}/api/sessions/{session_id}/start"
         headers = {"X-API-Key": OPENWA_API_KEY}
         r = requests.post(url, headers=headers, timeout=10)
         return {
@@ -199,29 +253,56 @@ def start_whatsapp_session() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
+def reset_and_relink_whatsapp_session() -> Dict[str, Any]:
+    """
+    Completely purges any existing WhatsApp session from OpenWA,
+    creates a brand new ispv2-bot session, and starts it to generate a fresh QR code.
+    This guarantees any previous WhatsApp account is logged out and removed.
+    """
+    global _cached_session_id
+    headers = {"X-API-Key": OPENWA_API_KEY}
+    current_id = get_openwa_session_id()
+
+    # 1. Stop and Delete old session if it exists
+    if current_id:
+        try:
+            requests.post(f"{OPENWA_URL}/api/sessions/{current_id}/stop", headers=headers, timeout=6)
+        except Exception:
+            pass
+        try:
+            requests.delete(f"{OPENWA_URL}/api/sessions/{current_id}", headers=headers, timeout=8)
+        except Exception as e:
+            logger.warning(f"Could not delete old session {current_id}: {e}")
+
+    _cached_session_id = None
+
+    # 2. Create fresh session
+    try:
+        cr = requests.post(f"{OPENWA_URL}/api/sessions", json={"name": "ispv2-bot"}, headers=headers, timeout=8)
+        if cr.status_code in (200, 201):
+            session_data = cr.json()
+            new_id = session_data.get("id")
+            _cached_session_id = new_id
+
+            # 3. Start fresh session
+            requests.post(f"{OPENWA_URL}/api/sessions/{new_id}/start", headers=headers, timeout=8)
+            return {
+                "success": True,
+                "session_id": new_id,
+                "message": "Session reset successfully. A new QR code is generating..."
+            }
+        else:
+            return {"success": False, "error": f"Failed to create new session: {cr.text}"}
+    except Exception as e:
+        logger.exception(f"Error resetting WhatsApp session: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def restart_whatsapp_session() -> Dict[str, Any]:
     """
-    Phase 5: Restarts the dedicated OpenWA session: terminates existing instance
-    and launches a fresh session so a new pairing QR code can be generated.
+    Restarts / resets the dedicated OpenWA session to provide a clean QR code.
     """
-    try:
-        headers = {"X-API-Key": OPENWA_API_KEY}
-        # 1. Stop existing session
-        try:
-            requests.post(f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/stop", headers=headers, timeout=6)
-        except Exception as se:
-            logger.warning(f"Notice while stopping session before restart: {se}")
-
-        # 2. Start session
-        r = requests.post(f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/start", headers=headers, timeout=12)
-        return {
-            "success": r.status_code in (200, 201),
-            "status_code": r.status_code,
-            "response": r.json() if r.status_code in (200, 201) else r.text
-        }
-    except Exception as e:
-        logger.exception(f"Error restarting WhatsApp session: {e}")
-        return {"success": False, "error": str(e)}
+    return reset_and_relink_whatsapp_session()
 
 
 def is_night_quiet_hours(start_str: str = "22:00", end_str: str = "09:00") -> Tuple[bool, str]:
@@ -364,8 +445,9 @@ def send_whatsapp_raw(phone: str, text: str) -> Tuple[bool, Optional[str]]:
             logger.warning(shield_err)
             return False, shield_err
 
+    session_id = get_openwa_session_id()
     chat_id = f"{clean_phone}@c.us"
-    url = f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/messages/send-text"
+    url = f"{OPENWA_URL}/api/sessions/{session_id}/messages/send-text"
     headers = {
         "Content-Type": "application/json",
         "X-API-Key": OPENWA_API_KEY

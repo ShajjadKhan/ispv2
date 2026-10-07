@@ -4463,6 +4463,13 @@ async def api_whatsapp_session_restart():
     return JSONResponse(res)
 
 
+@app.post("/api/whatsapp/session/reset")
+async def api_whatsapp_session_reset():
+    """Purges current WhatsApp session and creates a fresh session for pairing a new phone."""
+    res = whatsapp_service.reset_and_relink_whatsapp_session()
+    return JSONResponse(res)
+
+
 @app.post("/api/whatsapp/send")
 async def api_whatsapp_send(req: WhatsAppSendRequest):
     """
