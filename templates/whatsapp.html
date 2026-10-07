@@ -527,16 +527,21 @@
             <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">(Automated &amp; Manual Messaging Gateway)</span>
           </h1>
           <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px;">
-            <span>Line: <strong style="color: #ffffff;">+{{ wa_status.phone or '966594266584' }}</strong> ({{ wa_status.name }})</span>
+            <span>Line: <strong style="color: #ffffff;">+{{ wa_status.phone or 'Not Paired' }}</strong> ({{ wa_status.name }})</span>
             <span>&bull;</span>
-            <span class="font-mono text-emerald">OpenWA Engine :2785</span>
+            <span class="font-mono text-emerald">Dedicated Gateway :2790</span>
             <span>&bull;</span>
-            <span>Session: <code class="font-mono text-dim">{{ wa_status.session_id }}</code></span>
+            <span>Session: <code class="font-mono text-dim">{{ wa_status.session_id[:8] }}...</code></span>
           </div>
         </div>
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px;">
+        {% if not wa_status.connected %}
+        <button type="button" class="btn-simulate" style="background: rgba(14, 165, 233, 0.2); border-color: #0ea5e9; color: #38bdf8; font-weight: 700;" onclick="openQrModal()">
+          📲 Scan QR to Pair
+        </button>
+        {% endif %}
         <button type="button" class="btn-simulate" onclick="openSettingsModal()">
           ⚙️ Settings &amp; Templates
         </button>
@@ -544,8 +549,8 @@
           🔄 Refresh Status
         </button>
         <div class="status-pill" style="font-size: 12px; padding: 6px 14px; background: rgba(37, 211, 102, 0.15); border-color: rgba(37, 211, 102, 0.3);">
-          <span class="pulse-dot" style="background-color: #25d366; box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);"></span>
-          <span id="gatewayStatusText" style="color: #25d366;">{{ wa_status.status | upper }}</span>
+          <span class="pulse-dot" style="background-color: {% if wa_status.connected %}#25d366{% else %}#f59e0b{% endif %}; box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);"></span>
+          <span id="gatewayStatusText" style="color: {% if wa_status.connected %}#25d366{% else %}#f59e0b{% endif %};">{{ wa_status.status | upper }}</span>
         </div>
       </div>
     </div>
@@ -570,6 +575,28 @@
       </div>
     </div>
   </div>
+
+  <!-- STRICT TEST SANDBOX SAFETY BANNER -->
+  {% if wa_status.sandbox_mode %}
+  <div style="background: linear-gradient(90deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 22px;">🛡️</span>
+      <div>
+        <div style="font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+          <span>SAFETY TEST SANDBOX ACTIVE</span>
+          <span style="background: rgba(56, 189, 248, 0.2); color: #7dd3fc; font-size: 10.5px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">CLIENTS PROTECTED</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Testing mode strictly intercepts all dispatches. Outgoing messages can <strong>only</strong> be sent to authorized developer phone:
+          <strong style="color: #ffffff; font-family: var(--font-mono); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">0597595059</strong>. Client numbers are 100% blocked.
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 11.5px; color: #38bdf8; font-weight: 700; white-space: nowrap;">
+      Dedicated Port: 2790 ✅
+    </div>
+  </div>
+  {% endif %}
 
   <!-- NIGHT QUIET HOURS & DISPATCH PERMISSION SHIELD -->
   <div class="night-shield-card {% if not is_night %}daytime{% endif %}">
@@ -956,6 +983,42 @@
   </div>
 </div>
 
+<!-- PAIR QR CODE MODAL -->
+<div id="qrModal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 440px; text-align: center;">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: #ffffff;">📲 Pair WhatsApp Bot (Dedicated Line)</h3>
+      <button type="button" onclick="closeQrModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 14px;">
+      <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+        Open WhatsApp on test phone <strong style="color:#ffffff;">0597595059</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Linked Devices</strong> &rarr; <strong>Link a Device</strong> &rarr; Scan this QR:
+      </p>
+      
+      <div id="qrContainer" style="background: #ffffff; padding: 12px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); display: inline-block;">
+        <div id="qrLoading" style="width: 240px; height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #090e1a; font-size: 13px; font-weight: 600;">
+          <div style="font-size: 24px; margin-bottom: 8px;">⏳</div>
+          Generating QR Code...
+        </div>
+        <img id="qrImage" src="" alt="WhatsApp Pairing QR" style="display: none; width: 240px; height: 240px; border-radius: 8px;" />
+      </div>
+
+      <div id="qrStatusBadge" style="font-size: 11.5px; color: var(--text-dim); font-family: var(--font-mono);">
+        Gateway Port: :2790 | Session: ispv2-bot
+      </div>
+
+      <div style="display: flex; gap: 10px; width: 100%; justify-content: center; margin-top: 6px;">
+        <button type="button" class="btn-simulate" onclick="fetchLiveQr(true)" id="btnRefreshQr">
+          🔄 Refresh QR Code
+        </button>
+        <button type="button" class="btn-simulate" onclick="closeQrModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS & TEMPLATES MODAL -->
 <div id="settingsModal" class="modal-overlay">
   <div class="modal-container">
@@ -1213,6 +1276,52 @@
       }
     } catch (err) {
       cyberToast('Network error: ' + err.message);
+    }
+  }
+
+  // QR Pairing Modal Logic
+  let qrPollInterval = null;
+
+  function openQrModal() {
+    document.getElementById('qrModal').classList.add('open');
+    fetchLiveQr();
+    if (qrPollInterval) clearInterval(qrPollInterval);
+    qrPollInterval = setInterval(fetchLiveQr, 12000);
+  }
+
+  function closeQrModal() {
+    document.getElementById('qrModal').classList.remove('open');
+    if (qrPollInterval) {
+      clearInterval(qrPollInterval);
+      qrPollInterval = null;
+    }
+  }
+
+  async function fetchLiveQr(manual = false) {
+    const img = document.getElementById('qrImage');
+    const loading = document.getElementById('qrLoading');
+    const btn = document.getElementById('btnRefreshQr');
+    if (manual && btn) { btn.disabled = true; btn.textContent = 'Refreshing...'; }
+
+    try {
+      const res = await fetch('/api/whatsapp/qr');
+      const data = await res.json();
+      if (data.success && data.qr) {
+        img.src = data.qr;
+        img.style.display = 'block';
+        loading.style.display = 'none';
+        document.getElementById('qrStatusBadge').innerHTML = `<span style="color: #25d366;">● Live QR Ready — Scan from WhatsApp</span>`;
+      } else {
+        loading.innerHTML = `<div style="color: #f59e0b; padding: 10px;">${data.error || 'Initializing WhatsApp engine...'}</div>`;
+        loading.style.display = 'flex';
+        img.style.display = 'none';
+      }
+    } catch (e) {
+      loading.innerHTML = `<div style="color: #ef4444; padding: 10px;">Failed to load QR: ${e.message}</div>`;
+      loading.style.display = 'flex';
+      img.style.display = 'none';
+    } finally {
+      if (manual && btn) { btn.disabled = false; btn.textContent = '🔄 Refresh QR Code'; }
     }
   }
 
