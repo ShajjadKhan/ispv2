@@ -540,21 +540,22 @@
         </div>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 10px;">
-        {% if not wa_status.connected %}
-        <button type="button" class="btn-simulate" style="background: rgba(14, 165, 233, 0.2); border-color: #0ea5e9; color: #38bdf8; font-weight: 700;" onclick="openQrModal()">
-          📲 Scan QR to Pair
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn-simulate" style="background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8; font-weight: 700;" onclick="openQrModal()">
+          📲 Pair / Re-link Phone
         </button>
-        {% endif %}
+        <button type="button" class="btn-simulate" onclick="restartWhatsAppEngine()" id="btnRestartEngine" title="Restart OpenWA Session Engine">
+          ⚡ Restart Session
+        </button>
         <button type="button" class="btn-simulate" onclick="openSettingsModal()">
           ⚙️ Settings &amp; Templates
         </button>
         <button type="button" class="btn-simulate" onclick="checkLiveStatus()" id="btnCheckStatus">
           🔄 Refresh Status
         </button>
-        <div class="status-pill" style="font-size: 12px; padding: 6px 14px; background: rgba(37, 211, 102, 0.15); border-color: rgba(37, 211, 102, 0.3);">
-          <span class="pulse-dot" style="background-color: {% if wa_status.connected %}#25d366{% else %}#f59e0b{% endif %}; box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);"></span>
-          <span id="gatewayStatusText" style="color: {% if wa_status.connected %}#25d366{% else %}#f59e0b{% endif %};">{{ wa_status.status | upper }}</span>
+        <div id="gatewayStatusPill" class="status-pill" style="font-size: 12px; padding: 6px 14px; background: {% if wa_status.connected %}rgba(37, 211, 102, 0.15){% else %}rgba(245, 158, 11, 0.15){% endif %}; border-color: {% if wa_status.connected %}rgba(37, 211, 102, 0.3){% else %}rgba(245, 158, 11, 0.3){% endif %};">
+          <span id="gatewayPulseDot" class="pulse-dot" style="background-color: {% if wa_status.connected %}#25d366{% else %}#f59e0b{% endif %};"></span>
+          <span id="gatewayStatusText" style="color: {% if wa_status.connected %}#25d366{% else %}#f59e0b{% endif %}; font-weight: 700;">{{ wa_status.status | upper }}</span>
         </div>
       </div>
     </div>
@@ -1106,6 +1107,7 @@
 </div>
 
 <!-- PAIR QR CODE MODAL -->
+<!-- PAIR QR CODE MODAL -->
 <div id="qrModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 440px; text-align: center;">
     <div class="modal-header">
@@ -1113,10 +1115,35 @@
       <button type="button" onclick="closeQrModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
     </div>
     <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 14px;">
-      <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+
+      <!-- ACTIVE SESSION CARD (Shown when already authenticated) -->
+      <div id="qrActiveBanner" style="display: none; background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.28); border-radius: 12px; padding: 20px 16px; text-align: center; width: 100%;">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(34, 197, 94, 0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 24px;">
+          ✅
+        </div>
+        <div style="font-size: 16px; font-weight: 800; color: #4ade80;">Bot is Online &amp; Paired</div>
+        <div id="qrActivePhone" style="font-size: 14px; color: #ffffff; font-weight: 700; margin-top: 6px; font-family: var(--font-mono);">
+          +{{ wa_status.phone or '' }}
+        </div>
+        <div id="qrActiveName" style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">
+          {{ wa_status.name or 'CyberNet Bot' }}
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-muted); margin: 12px 0 0; line-height: 1.4;">
+          This session is currently active and authenticated. To change numbers or generate a new QR code, click Disconnect below.
+        </p>
+        <div style="margin-top: 14px;">
+          <button type="button" class="btn-simulate" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; font-size: 12px;" onclick="confirmRestartAndRelink()">
+            ⚠️ Disconnect &amp; Re-link New Phone
+          </button>
+        </div>
+      </div>
+
+      <!-- PAIRING INSTRUCTIONS (Shown when QR is needed) -->
+      <p id="qrInstructionText" style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
         Open WhatsApp on test phone <strong style="color:#ffffff;">0597595059</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Linked Devices</strong> &rarr; <strong>Link a Device</strong> &rarr; Scan this QR:
       </p>
       
+      <!-- QR CONTAINER -->
       <div id="qrContainer" style="background: #ffffff; padding: 12px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); display: inline-block;">
         <div id="qrLoading" style="width: 240px; height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #090e1a; font-size: 13px; font-weight: 600;">
           <div style="font-size: 24px; margin-bottom: 8px;">⏳</div>
@@ -2062,14 +2089,14 @@
     finishBatchModal(sentCount, blockedCount, skippedCount, errorCount, simulate);
   }
 
-  // QR Pairing Modal Logic
+  // Phase 5: QR Pairing Modal Logic & Session Management
   let qrPollInterval = null;
 
   function openQrModal() {
     document.getElementById('qrModal').classList.add('open');
     fetchLiveQr();
     if (qrPollInterval) clearInterval(qrPollInterval);
-    qrPollInterval = setInterval(fetchLiveQr, 12000);
+    qrPollInterval = setInterval(fetchLiveQr, 4000);
   }
 
   function closeQrModal() {
@@ -2083,19 +2110,40 @@
   async function fetchLiveQr(manual = false) {
     const img = document.getElementById('qrImage');
     const loading = document.getElementById('qrLoading');
+    const qrContainer = document.getElementById('qrContainer');
+    const activeBanner = document.getElementById('qrActiveBanner');
+    const qrInstruction = document.getElementById('qrInstructionText');
     const btn = document.getElementById('btnRefreshQr');
     if (manual && btn) { btn.disabled = true; btn.textContent = 'Refreshing...'; }
 
     try {
       const res = await fetch('/api/whatsapp/qr');
       const data = await res.json();
-      if (data.success && data.qr) {
+
+      if (data.success && data.already_authenticated) {
+        if (activeBanner) activeBanner.style.display = 'block';
+        if (qrContainer) qrContainer.style.display = 'none';
+        if (qrInstruction) qrInstruction.style.display = 'none';
+        if (document.getElementById('qrActivePhone')) {
+          document.getElementById('qrActivePhone').textContent = data.phone ? `+${data.phone}` : 'Connected';
+        }
+        if (document.getElementById('qrActiveName')) {
+          document.getElementById('qrActiveName').textContent = data.name || 'CyberNet Bot';
+        }
+        document.getElementById('qrStatusBadge').innerHTML = `<span style="color: #25d366;">● Status: READY &bull; Session Active</span>`;
+        updateGatewayStatusBadge('ready', data.phone, data.name);
+      } else if (data.success && data.qr) {
+        if (activeBanner) activeBanner.style.display = 'none';
+        if (qrContainer) qrContainer.style.display = 'inline-block';
+        if (qrInstruction) qrInstruction.style.display = 'block';
         img.src = data.qr;
         img.style.display = 'block';
         loading.style.display = 'none';
-        document.getElementById('qrStatusBadge').innerHTML = `<span style="color: #25d366;">● Live QR Ready — Scan from WhatsApp</span>`;
+        document.getElementById('qrStatusBadge').innerHTML = `<span style="color: #25d366;">● Live QR Ready &bull; Scan from WhatsApp</span>`;
       } else {
-        loading.innerHTML = `<div style="color: #f59e0b; padding: 10px;">${data.error || 'Initializing WhatsApp engine...'}</div>`;
+        if (activeBanner) activeBanner.style.display = 'none';
+        if (qrContainer) qrContainer.style.display = 'inline-block';
+        loading.innerHTML = `<div style="color: #f59e0b; padding: 10px;">${data.error || 'Initializing session...'}</div>`;
         loading.style.display = 'flex';
         img.style.display = 'none';
       }
@@ -2108,23 +2156,94 @@
     }
   }
 
+  async function confirmRestartAndRelink() {
+    if (!confirm("Are you sure you want to disconnect this WhatsApp session and generate a new QR code?")) {
+      return;
+    }
+    const activeBanner = document.getElementById('qrActiveBanner');
+    const qrContainer = document.getElementById('qrContainer');
+    const loading = document.getElementById('qrLoading');
+    const img = document.getElementById('qrImage');
+
+    if (activeBanner) activeBanner.style.display = 'none';
+    if (qrContainer) qrContainer.style.display = 'inline-block';
+    loading.innerHTML = '<div style="font-size:24px; margin-bottom:8px;">⏳</div>Restarting session engine...';
+    loading.style.display = 'flex';
+    img.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/whatsapp/session/restart', { method: 'POST' });
+      const data = await res.json();
+      cyberToast('Session restarted. Fetching fresh QR code...');
+      setTimeout(fetchLiveQr, 2000);
+    } catch (e) {
+      cyberToast('Error restarting session: ' + e.message);
+    }
+  }
+
+  async function restartWhatsAppEngine() {
+    const btn = document.getElementById('btnRestartEngine');
+    if (btn) { btn.disabled = true; btn.textContent = 'Restarting...'; }
+    try {
+      const res = await fetch('/api/whatsapp/session/restart', { method: 'POST' });
+      const data = await res.json();
+      cyberToast(data.success ? 'WhatsApp Session restarted successfully!' : ('Restart note: ' + (data.error || 'Done')));
+      setTimeout(checkLiveStatus, 2500);
+    } catch (e) {
+      cyberToast('Network error: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '⚡ Restart Session'; }
+    }
+  }
+
+  function updateGatewayStatusBadge(status, phone, name) {
+    const isConn = (status === 'ready' || status === 'connected');
+    const textEl = document.getElementById('gatewayStatusText');
+    const dotEl = document.getElementById('gatewayPulseDot');
+    const pillEl = document.getElementById('gatewayStatusPill');
+    const navBadge = document.getElementById('navWaBadge');
+
+    if (textEl) {
+      textEl.textContent = (status || 'UNKNOWN').toUpperCase();
+      textEl.style.color = isConn ? '#25d366' : '#f59e0b';
+    }
+    if (dotEl) {
+      dotEl.style.backgroundColor = isConn ? '#25d366' : '#f59e0b';
+    }
+    if (pillEl) {
+      pillEl.style.backgroundColor = isConn ? 'rgba(37, 211, 102, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+      pillEl.style.borderColor = isConn ? 'rgba(37, 211, 102, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+    }
+    if (navBadge) {
+      navBadge.textContent = isConn ? 'ONLINE' : 'NEEDS QR';
+      navBadge.style.color = isConn ? '#25d366' : '#f59e0b';
+    }
+  }
+
   // Live session check
   async function checkLiveStatus() {
     const btn = document.getElementById('btnCheckStatus');
-    btn.disabled = true;
-    btn.textContent = 'Checking...';
+    if (btn) { btn.disabled = true; btn.textContent = 'Checking...'; }
     try {
       const res = await fetch('/api/whatsapp/status');
       const data = await res.json();
-      document.getElementById('gatewayStatusText').textContent = (data.status || 'unknown').toUpperCase();
-      cyberToast(`Gateway Status: ${data.status}\nPhone: ${data.phone || 'N/A'}\nName: ${data.name || 'N/A'}`);
+      updateGatewayStatusBadge(data.status, data.phone, data.name);
+      cyberToast(`Gateway Status: ${data.status}\nPhone: ${data.phone ? '+' + data.phone : 'N/A'}\nName: ${data.name || 'N/A'}`);
     } catch (err) {
       cyberToast('Failed to connect to WhatsApp Gateway: ' + err.message);
     } finally {
-      btn.disabled = false;
-      btn.textContent = '🔄 Refresh Status';
+      if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh Status'; }
     }
   }
+
+  // Periodic health check every 30 seconds
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      const data = await res.json();
+      updateGatewayStatusBadge(data.status, data.phone, data.name);
+    } catch (e) {}
+  }, 30000);
 
   // View Log Modal
   function viewFullMessage(id, phone, name, time, status) {

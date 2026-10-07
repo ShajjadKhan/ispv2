@@ -4335,6 +4335,13 @@ async def api_whatsapp_session_start():
     return JSONResponse(res)
 
 
+@app.post("/api/whatsapp/session/restart")
+async def api_whatsapp_session_restart():
+    """Phase 5: Restarts the ispv2-bot session in the dedicated container."""
+    res = whatsapp_service.restart_whatsapp_session()
+    return JSONResponse(res)
+
+
 @app.post("/api/whatsapp/send")
 async def api_whatsapp_send(req: WhatsAppSendRequest):
     """

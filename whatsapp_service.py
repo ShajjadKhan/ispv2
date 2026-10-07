@@ -123,19 +123,52 @@ def get_whatsapp_qr_code() -> Dict[str, Any]:
             return {
                 "success": True,
                 "qr": data.get("qrCode"),
-                "status": data.get("status", "scan_qr_code")
+                "status": data.get("status", "scan_qr_code"),
+                "already_authenticated": False
             }
+
+        # Check if session is already authenticated (no QR required)
+        if r.status_code == 400 and "already authenticated" in r.text.lower():
+            status_data = get_whatsapp_gateway_status()
+            return {
+                "success": True,
+                "already_authenticated": True,
+                "status": "ready",
+                "phone": status_data.get("phone"),
+                "name": status_data.get("name"),
+                "qr": None,
+                "message": "Session is already authenticated. No QR code needed."
+            }
+
+        # If session is not found or not initialized, try starting it
+        if r.status_code in (404, 400):
+            try:
+                start_whatsapp_session()
+                r2 = requests.get(url, headers=headers, timeout=5)
+                if r2.status_code == 200:
+                    d2 = r2.json()
+                    return {
+                        "success": True,
+                        "qr": d2.get("qrCode"),
+                        "status": d2.get("status", "scan_qr_code"),
+                        "already_authenticated": False
+                    }
+            except Exception:
+                pass
+
         return {
             "success": False,
             "error": f"HTTP {r.status_code}: {r.text}",
-            "qr": None
+            "qr": None,
+            "already_authenticated": False
         }
     except Exception as e:
         logger.warning(f"Failed to fetch QR code: {e}")
         return {
             "success": False,
             "error": str(e),
-            "qr": None
+            "qr": None,
+            "already_authenticated": False
         }
 
 
@@ -152,6 +185,31 @@ def start_whatsapp_session() -> Dict[str, Any]:
         }
     except Exception as e:
         logger.exception(f"Error starting WhatsApp session: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def restart_whatsapp_session() -> Dict[str, Any]:
+    """
+    Phase 5: Restarts the dedicated OpenWA session: terminates existing instance
+    and launches a fresh session so a new pairing QR code can be generated.
+    """
+    try:
+        headers = {"X-API-Key": OPENWA_API_KEY}
+        # 1. Stop existing session
+        try:
+            requests.post(f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/stop", headers=headers, timeout=6)
+        except Exception as se:
+            logger.warning(f"Notice while stopping session before restart: {se}")
+
+        # 2. Start session
+        r = requests.post(f"{OPENWA_URL}/api/sessions/{OPENWA_SESSION_ID}/start", headers=headers, timeout=12)
+        return {
+            "success": r.status_code in (200, 201),
+            "status_code": r.status_code,
+            "response": r.json() if r.status_code in (200, 201) else r.text
+        }
+    except Exception as e:
+        logger.exception(f"Error restarting WhatsApp session: {e}")
         return {"success": False, "error": str(e)}
 
 
