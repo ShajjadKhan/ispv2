@@ -1172,7 +1172,9 @@
     /* =========================================================
        DAY MODE: UNIVERSAL DARK BACKGROUND INTERCEPTION
        ========================================================= */
-    /* Converts inline dark containers into crisp Day Mode cards */
+    /* Converts inline dark containers and modal blocks into crisp Day Mode cards */
+    html[data-theme="light"] [style*="background:#030712" i],
+    html[data-theme="light"] [style*="background: #030712" i],
     html[data-theme="light"] [style*="background:#070a12" i],
     html[data-theme="light"] [style*="background: #070a12" i],
     html[data-theme="light"] [style*="background:#080e1b" i],
@@ -1181,32 +1183,228 @@
     html[data-theme="light"] [style*="background: #090e1a" i],
     html[data-theme="light"] [style*="background:#0b1120" i],
     html[data-theme="light"] [style*="background: #0b1120" i],
+    html[data-theme="light"] [style*="background:#0b1326" i],
+    html[data-theme="light"] [style*="background: #0b1326" i],
+    html[data-theme="light"] [style*="background:#0b141a" i],
+    html[data-theme="light"] [style*="background: #0b141a" i],
+    html[data-theme="light"] [style*="background:#0b1425" i],
+    html[data-theme="light"] [style*="background: #0b1425" i],
+    html[data-theme="light"] [style*="background:#0c1322" i],
+    html[data-theme="light"] [style*="background: #0c1322" i],
+    html[data-theme="light"] [style*="background:#0d1527" i],
+    html[data-theme="light"] [style*="background: #0d1527" i],
     html[data-theme="light"] [style*="background:#0f172a" i],
     html[data-theme="light"] [style*="background: #0f172a" i],
+    html[data-theme="light"] [style*="background:#0f1c36" i],
+    html[data-theme="light"] [style*="background: #0f1c36" i],
     html[data-theme="light"] [style*="background:#111827" i],
     html[data-theme="light"] [style*="background: #111827" i],
     html[data-theme="light"] [style*="background:#111a2e" i],
     html[data-theme="light"] [style*="background: #111a2e" i],
+    html[data-theme="light"] [style*="background:#111a33" i],
+    html[data-theme="light"] [style*="background: #111a33" i],
     html[data-theme="light"] [style*="background:#131d36" i],
     html[data-theme="light"] [style*="background: #131d36" i],
+    html[data-theme="light"] [style*="background:#13203b" i],
+    html[data-theme="light"] [style*="background: #13203b" i],
+    html[data-theme="light"] [style*="background:#15162b" i],
+    html[data-theme="light"] [style*="background: #15162b" i],
+    html[data-theme="light"] [style*="background:#17233a" i],
+    html[data-theme="light"] [style*="background: #17233a" i],
     html[data-theme="light"] [style*="background:#17233f" i],
-    html[data-theme="light"] [style*="background: #17233f" i] {
+    html[data-theme="light"] [style*="background: #17233f" i],
+    html[data-theme="light"] [style*="background:#1c1c38" i],
+    html[data-theme="light"] [style*="background: #1c1c38" i],
+    html[data-theme="light"] [style*="background:#1e293b" i],
+    html[data-theme="light"] [style*="background: #1e293b" i],
+    html[data-theme="light"] [style*="background:#202c33" i],
+    html[data-theme="light"] [style*="background: #202c33" i],
+    html[data-theme="light"] [style*="background: rgba(15, 23, 42" i],
+    html[data-theme="light"] [style*="background:rgba(15, 23, 42" i],
+    html[data-theme="light"] [style*="background:rgba(15,23,42" i],
+    html[data-theme="light"] [style*="background: rgba(11, 17, 32" i],
+    html[data-theme="light"] [style*="background:rgba(11, 17, 32" i],
+    html[data-theme="light"] [style*="background:rgba(11,17,32" i],
+    html[data-theme="light"] [style*="background: rgba(3, 7, 18" i],
+    html[data-theme="light"] [style*="background:rgba(3, 7, 18" i],
+    html[data-theme="light"] [style*="background:rgba(3,7,18" i],
+    html[data-theme="light"] [style*="background: rgba(0, 0, 0, 0.25)" i],
+    html[data-theme="light"] [style*="background:rgba(0,0,0,0.25)" i] {
       background: #f8fafc !important;
       border-color: #e2e8f0 !important;
     }
 
     /* =========================================================
-       DAY MODE: UNIVERSAL INLINE WHITE TEXT RESCUE
+       DAY MODE: UNIVERSAL INLINE WHITE & PALE TEXT RESCUE
        ========================================================= */
-    /* Target elements with inline color:#fff across the entire DOM tree,
-       while protecting buttons, action icons, tags and badges */
+    /* Target elements with inline white, slate-100 or pale colors across the entire DOM tree,
+       while strictly protecting saturated buttons, action icons, tags and status badges */
     html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#fff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
     html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #fff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
     html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#ffffff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
     html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #ffffff" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
     html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:white" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
-    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: white" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *) {
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: white" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#f8fafc" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #f8fafc" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#f1f5f9" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #f1f5f9" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#e2e8f0" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #e2e8f0" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#cbd5e1" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #cbd5e1" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:#e9edef" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: #e9edef" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color: rgba(255, 255, 255" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:rgba(255, 255, 255" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *),
+    html[data-theme="light"] :is(h1, h2, h3, h4, h5, h6, p, span, div, strong, td, th, a, label, b, li)[style*="color:rgba(255,255,255" i]:not(.btn *):not(.btn-action-sm *):not(.badge *):not(button *):not([class*="btn-"] *):not(.tag-device-type *) {
       color: #0f172a !important;
+    }
+
+    /* =========================================================
+       DAY MODE: COMPREHENSIVE HERO BANNERS & OPERATION CARDS
+       ========================================================= */
+    /* WhatsApp Safety & Operating Mode Banners */
+    html[data-theme="light"] .wa-safety-banner,
+    html[data-theme="light"] .wa-safety-banner.sandbox-mode {
+      background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%) !important;
+      border: 1px solid #bae6fd !important;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08) !important;
+    }
+    html[data-theme="light"] .wa-safety-banner.live-mode {
+      background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%) !important;
+      border: 1px solid #fecaca !important;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.08) !important;
+    }
+    html[data-theme="light"] .wa-safety-banner div,
+    html[data-theme="light"] .wa-safety-banner span {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .wa-safety-banner.sandbox-mode strong {
+      color: #0284c7 !important;
+    }
+    html[data-theme="light"] .wa-safety-banner.live-mode strong {
+      color: #dc2626 !important;
+    }
+    html[data-theme="light"] .night-shield-card.daytime [style*="color: #34d399" i],
+    html[data-theme="light"] .night-shield-card.daytime [style*="color:#34d399" i] {
+      color: #047857 !important;
+    }
+    html[data-theme="light"] .night-shield-card:not(.daytime) [style*="color: #fbbf24" i],
+    html[data-theme="light"] .night-shield-card:not(.daytime) [style*="color:#fbbf24" i] {
+      color: #92400e !important;
+    }
+    html[data-theme="light"] #batchLogBox {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] #dueCustomersTable tr.due-table-row {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] #dueCustomersTable tr.due-table-row.row-selected {
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
+    }
+
+    /* Balance Sheet Mobile Hero Boxes */
+    html[data-theme="light"] .m-bal-hero-box.hero-owing {
+      background: #fef2f2 !important;
+      border: 1px solid #fecaca !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-owing .m-bal-hero-lbl,
+    html[data-theme="light"] .m-bal-hero-box.hero-owing .m-bal-hero-val {
+      color: #dc2626 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-credit {
+      background: #ecfdf5 !important;
+      border: 1px solid #a7f3d0 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-credit .m-bal-hero-lbl,
+    html[data-theme="light"] .m-bal-hero-box.hero-credit .m-bal-hero-val {
+      color: #059669 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-settled {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-box.hero-settled .m-bal-hero-lbl,
+    html[data-theme="light"] .m-bal-hero-box.hero-settled .m-bal-hero-val {
+      color: #475569 !important;
+    }
+    html[data-theme="light"] .m-bal-hero-sub {
+      color: #64748b !important;
+    }
+
+    /* Customer Usage Visualizer & Activity Cards */
+    html[data-theme="light"] .hourly-chart-card,
+    html[data-theme="light"] .dev-stat-card,
+    html[data-theme="light"] .usage-table-card,
+    html[data-theme="light"] .session-mobile-card,
+    html[data-theme="light"] .session-audit-card,
+    html[data-theme="light"] .usage-kpi-grid .kpi-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    }
+    html[data-theme="light"] .kpi-val,
+    html[data-theme="light"] .sec-heading h3,
+    html[data-theme="light"] .dev-stat-name,
+    html[data-theme="light"] .hourly-item .bar-label {
+      color: #0f172a !important;
+    }
+
+    /* Customer Edit Form, Controls & Danger Zone */
+    html[data-theme="light"] .b-picker-card {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .b-picker-card:hover {
+      background: #f8fafc !important;
+      border-color: #94a3b8 !important;
+    }
+    html[data-theme="light"] .queue-preview-box {
+      background: #f0f9ff !important;
+      border: 1px solid #bae6fd !important;
+    }
+    html[data-theme="light"] .queue-preview-box .q-info span {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .stepper-control {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    html[data-theme="light"] .stepper-btn {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .device-card-row {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] .device-card-row .dev-mac {
+      color: #0f172a !important;
+    }
+    html[data-theme="light"] .edit-sticky-footer {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+    }
+    html[data-theme="light"] .danger-zone-card {
+      background: #fef2f2 !important;
+      border: 1px solid #fecaca !important;
+    }
+    html[data-theme="light"] .danger-zone-card h3,
+    html[data-theme="light"] .danger-zone-card p,
+    html[data-theme="light"] .danger-zone-card span {
+      color: #7f1d1d !important;
+    }
+    html[data-theme="light"] .danger-zone-card .btn-delete-perm,
+    html[data-theme="light"] .danger-zone-card .btn-delete-perm * {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+      color: #ffffff !important;
     }
 
     /* Keep button text crisp and white on saturated colored buttons */

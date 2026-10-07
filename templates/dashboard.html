@@ -2050,6 +2050,16 @@
     color: #34d399 !important;
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
   }
+  .btn-review-req {
+    background: #1e293b;
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+  html[data-theme="light"] .btn-review-req {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
 </style>
 {% endblock %}
 
@@ -2427,7 +2437,7 @@
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve btn-review-req" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
@@ -2451,7 +2461,7 @@
               <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-dim);">
                 <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                   <svg style="width: 32px; height: 32px; fill: #64748b;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-                  <div style="font-weight: 700; color: #cbd5e1; font-size: 14px;">No Pending Join Requests</div>
+                  <div style="font-weight: 700; color: var(--text-main); font-size: 14px;">No Pending Join Requests</div>
                   <div style="font-size: 12px; color: var(--text-dim); max-width: 480px;">When a subscriber attempts to log in on the captive portal, their request and verified physical Device MAC will appear here immediately for 1-click activation.</div>
                 </div>
               </td>
@@ -3020,13 +3030,13 @@
             </div>
           </div>
 
-          <div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.45;">
+          <div style="margin-top:12px; font-size:12px; color:var(--text-muted); line-height:1.45;">
             💡 <strong>No billing required:</strong> This extra phone connects under the subscriber's existing active account. All existing subscription dates, monthly rates, and package settings remain untouched.
           </div>
 
           <!-- Customer Note / Room Number for Secondary Device -->
           <div style="margin-top:12px;">
-            <label for="secondaryCustNotes" style="font-size:11px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center;">
+            <label for="secondaryCustNotes" style="font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center;">
               <span>Customer Note / Room # / Flat</span>
               <span style="font-size:10.5px; color:#94a3b8;">Optional</span>
             </label>
@@ -3040,7 +3050,7 @@
               <span>Collect additional payment / deposit today (Optional)</span>
             </label>
             <div id="secondaryExtraFeeBox" style="display:none; margin-top:10px;">
-              <label style="font-size:11px; color:#cbd5e1;">Amount Collected Today (SAR)</label>
+              <label style="font-size:11px; color:var(--text-dim);">Amount Collected Today (SAR)</label>
               <input type="number" step="0.01" class="form-input font-mono" id="inputSecondaryExtraFee" value="0.00" placeholder="0.00" style="margin-top:4px;">
             </div>
           </div>
@@ -4256,7 +4266,7 @@
             <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-dim);">
               <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                 <svg style="width: 32px; height: 32px; fill: #64748b;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-                <div style="font-weight: 700; color: #cbd5e1; font-size: 14px;">No Pending Join Requests</div>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 14px;">No Pending Join Requests</div>
                 <div style="font-size: 12px; color: var(--text-dim); max-width: 480px;">When a subscriber attempts to log in on the captive portal, their request and verified physical Device MAC will appear here immediately for 1-click activation.</div>
               </div>
             </td>
@@ -4290,9 +4300,9 @@
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                  <span>Quick Authorize</span>
                </button>
-               <button type="button" class="btn-approve" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', '${req.existing_customer_name || ''}', 1, ${req.customer_max_devices || 1}, ${req.current_device_count || 0}, '${req.existing_package_name || ''}', '${req.existing_expiry_date || ''}', (req.existing_customer_notes || req.notes || ''))" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+               <button type="button" class="btn-approve btn-review-req" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', '${req.existing_customer_name || ''}', 1, ${req.customer_max_devices || 1}, ${req.current_device_count || 0}, '${req.existing_package_name || ''}', '${req.existing_expiry_date || ''}', (req.existing_customer_notes || req.notes || ''))" title="Review Subscriber & Authorize">
                  <span>Review</span>
-               </button>
+               </button>`
                <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`
             : `<button type="button" class="btn-approve" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', '${req.existing_customer_name || ''}', 0, 1, 0, '', '', (req.notes || ''))">
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>

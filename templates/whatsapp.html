@@ -599,8 +599,8 @@
       align-items: center !important;
       width: 100% !important;
       box-sizing: border-box !important;
-      background: #090e1a !important;
-      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      background: var(--bg-card, #090e1a) !important;
+      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08)) !important;
       border-radius: 12px !important;
       padding: 12px !important;
       margin-bottom: 10px !important;
@@ -810,6 +810,15 @@
       gap: 6px;
     }
   }
+
+  .wa-safety-banner.sandbox-mode {
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+  .wa-safety-banner.live-mode {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+  }
 </style>
 {% endblock %}
 
@@ -881,7 +890,7 @@
 
   <!-- DYNAMIC OPERATING MODE & SAFETY BANNER -->
   {% if wa_status.sandbox_mode %}
-  <div style="background: linear-gradient(90deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div class="wa-safety-banner sandbox-mode" style="border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 12px;">
       <span style="font-size: 22px;">🛡️</span>
       <div>
@@ -905,7 +914,7 @@
     </div>
   </div>
   {% else %}
-  <div style="background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(239, 68, 68, 0.45); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+  <div class="wa-safety-banner live-mode" style="border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 12px;">
       <span style="font-size: 22px;">🚀</span>
       <div>
