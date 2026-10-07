@@ -329,6 +329,184 @@ async def startup_event():
     asyncio.create_task(whatsapp_auto_dispatch_loop())
 
 
+# =========================================================
+# Phase 4: Structured WhatsApp Notification Dispatchers
+# =========================================================
+def dispatch_payment_receipt_whatsapp(
+    customer_id: int,
+    amount_paid: float,
+    receipt_no: Optional[str] = None,
+    collector: str = "Admin",
+    payment_type: str = "cash",
+    notes: str = ""
+) -> Dict[str, Any]:
+    """
+    Phase 4: Formats and dispatches an official digital WhatsApp receipt for payments,
+    honoring the sandbox shield, template formatting, and audit ledger.
+    """
+    try:
+        cust = database.get_customer_profile(customer_id)
+        if not cust or not cust.get("phone"):
+            c_raw = database.get_customer_by_id(customer_id)
+            if not c_raw or not c_raw.get("phone"):
+                return {"sent": False, "status": "no_phone", "error": "Customer phone number not found"}
+            cust = c_raw
+
+        phone = cust.get("phone")
+        clean_phone = whatsapp_service.format_phone(phone)
+        if not clean_phone:
+            return {"sent": False, "status": "invalid_phone", "error": f"Invalid phone format: {phone}"}
+
+        wa_settings = database.get_whatsapp_settings()
+        template_str = wa_settings.get("template_receipt") or (
+            "✅ *CYBERNET PAYMENT RECEIPT*\n\n"
+            "Customer : *[NAME]*\n"
+            "Receipt #: `[RECEIPT_NO]`\n\n"
+            "💳 *Payment Details:*\n"
+            "  • Amount Paid Today : *[AMOUNT] SAR*\n"
+            "  • Plan              : [PACKAGE]\n"
+            "  • Service Active To : *[EXPIRY_DATE]*\n\n"
+            "✨ *Account Status:* Fully Paid & Settled ✅\n\n"
+            "🎁 *Free for our customers:*\n"
+            "  🎬 Movies: [MOVIES]\n"
+            "  ⚽ Live Football: [FOOTBALL]\n\n"
+            "📞 Support (24/7): [HELPLINE]\n\n"
+            "Thank you for your payment! 🙏"
+        )
+
+        rec_num = receipt_no or f"COL-{datetime.now().strftime('%Y%m%d%H%M')}"
+        
+        due_val = 0.0
+        try:
+            hist = database.get_balance_customer_history(customer_id=customer_id)
+            metrics = hist.get("metrics", {})
+            cur_bal = metrics.get("balance", 0.0)
+            if cur_bal < 0:
+                due_val = abs(cur_bal)
+        except Exception:
+            due_val = 0.0
+
+        msg = whatsapp_service.render_message_template(
+            template_str=template_str,
+            customer_name=cust.get("name", ""),
+            phone=phone,
+            package_name=cust.get("package_name") or "Standard Internet",
+            due_balance=due_val,
+            expiry_date=cust.get("expiry_date") or cust.get("due_date") or "Active",
+            receipt_no=rec_num,
+            amount_paid=float(amount_paid),
+            support_phone=wa_settings.get("support_phone", "0597595059"),
+            movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
+            football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
+            collector_name=collector,
+            payment_method=payment_type.replace("_", " ").title()
+        )
+
+        ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
+        if not ok and "SANDBOX SHIELD" in str(err):
+            status_str = "blocked_sandbox"
+        else:
+            status_str = "sent" if ok else "failed"
+
+        database.log_whatsapp_message(
+            phone=clean_phone,
+            message_body=msg,
+            message_type="receipt",
+            status=status_str,
+            error_message=err,
+            customer_id=customer_id,
+            customer_name=cust.get("name"),
+            sent_by=f"collector_{collector}"
+        )
+
+        return {
+            "sent": ok,
+            "status": status_str,
+            "error": err,
+            "message_text": msg,
+            "phone": clean_phone
+        }
+    except Exception as e:
+        logger.exception(f"Error dispatching WhatsApp payment receipt for customer #{customer_id}: {e}")
+        return {"sent": False, "status": "error", "error": str(e)}
+
+
+def dispatch_welcome_notice_whatsapp(
+    customer: Dict[str, Any],
+    connection_type: str = "hotspot",
+    pppoe_user: Optional[str] = None,
+    pppoe_pass: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Phase 4: Sends welcome onboarding notice when approving a subscriber.
+    """
+    try:
+        phone = customer.get("phone")
+        if not phone:
+            return {"sent": False, "status": "no_phone", "error": "Customer phone not provided"}
+
+        clean_phone = whatsapp_service.format_phone(phone)
+        if not clean_phone:
+            return {"sent": False, "status": "invalid_phone", "error": f"Invalid phone format: {phone}"}
+
+        wa_settings = database.get_whatsapp_settings()
+        template_str = wa_settings.get("template_welcome") or (
+            "🌐 *WELCOME TO CYBERNET HIGH-SPEED FIBER*\n\n"
+            "Assalamu Alaikum *[NAME]*!\n\n"
+            "Your internet connection is now active and ready to use.\n"
+            "📦 *Plan:* [PACKAGE]\n"
+            "📅 *Expiry / Renewal:* [EXPIRY_DATE]\n\n"
+            "🎁 *Complimentary Local Portals:*\n"
+            "  🎬 Free Movies: [MOVIES]\n"
+            "  ⚽ Live Football: [FOOTBALL]\n\n"
+            "📞 *Support (24/7):* [HELPLINE]\n\n"
+            "Welcome to the CyberNet family! 🙏"
+        )
+
+        msg = whatsapp_service.render_message_template(
+            template_str=template_str,
+            customer_name=customer.get("name", ""),
+            phone=phone,
+            package_name=customer.get("package_name") or "High-Speed Fiber",
+            due_balance=0.0,
+            expiry_date=customer.get("due_date") or customer.get("expiry_date") or "Active",
+            support_phone=wa_settings.get("support_phone", "0597595059"),
+            movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
+            football_server=wa_settings.get("football_server", "http://10.12.14.16:8080")
+        )
+
+        if connection_type == "pppoe" and pppoe_user:
+            msg += f"\n\n🔑 *PPPoE Credentials:*\n• User: `{pppoe_user}`\n• Pass: `{pppoe_pass or 'cyber123'}`"
+
+        ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
+        if not ok and "SANDBOX SHIELD" in str(err):
+            status_str = "blocked_sandbox"
+        else:
+            status_str = "sent" if ok else "failed"
+
+        database.log_whatsapp_message(
+            phone=clean_phone,
+            message_body=msg,
+            message_type="welcome",
+            status=status_str,
+            error_message=err,
+            customer_id=customer.get("id"),
+            customer_name=customer.get("name"),
+            sent_by="system_approval"
+        )
+
+        return {
+            "sent": ok,
+            "status": status_str,
+            "error": err,
+            "message_text": msg,
+            "phone": clean_phone
+        }
+    except Exception as e:
+        logger.exception(f"Error dispatching WhatsApp welcome notice: {e}")
+        return {"sent": False, "status": "error", "error": str(e)}
+
+
 
 # =========================================================
 # Pydantic Request Models
@@ -360,6 +538,7 @@ class ApproveConnectionPayload(BaseModel):
     pppoe_password: Optional[str] = None
     pppoe_profile: Optional[str] = None
     pppoe_remote_ip: Optional[str] = None
+    send_whatsapp: Optional[bool] = False
 
 
 class RevokeDevicePayload(BaseModel):
@@ -502,6 +681,7 @@ class RecordPaymentPayload(BaseModel):
     extend_days: int = 30
     notes: Optional[str] = "Manual Service Renewal"
     advance_mode: Optional[str] = "credit"  # "credit" or "months"
+    send_whatsapp: Optional[bool] = False
 
 
 class ApplyCreditPayload(BaseModel):
@@ -525,6 +705,7 @@ class BalanceCollectPayload(BaseModel):
     notes: Optional[str] = ""
     collector: Optional[str] = None
     month_year: Optional[str] = None
+    send_whatsapp: Optional[bool] = True
 
 
 class BalanceReminderPayload(BaseModel):
@@ -601,6 +782,7 @@ class WhatsAppSettingsRequest(BaseModel):
     template_receipt: Optional[str] = None
     template_voucher: Optional[str] = None
     template_expiry: Optional[str] = None
+    template_welcome: Optional[str] = None
     template_maintenance: Optional[str] = None
 
 
@@ -2395,6 +2577,16 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         is_active = (customer.get("status") == "active") and not customer.get("is_expired")
         notes_str = f" [{customer['notes'].strip()}]" if customer.get("notes") and customer["notes"].strip() else ""
 
+        # 4. Optional Phase 4 WhatsApp Welcome Delivery
+        wa_welcome_res = None
+        if getattr(payload, "send_whatsapp", False):
+            wa_welcome_res = dispatch_welcome_notice_whatsapp(
+                customer=customer,
+                connection_type=customer.get("connection_type", "hotspot"),
+                pppoe_user=payload.pppoe_username,
+                pppoe_pass=payload.pppoe_password
+            )
+
         if customer.get("connection_type") == "pppoe":
             pp_user = customer.get("pppoe_username") or customer.get("phone")
             pp_pass = customer.get("pppoe_password") or "cyber123"
@@ -2416,7 +2608,8 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
                 "message": f"Customer '{payload.name}' approved! PPPoE account provisioned across MikroTik fleet.",
                 "customer": customer,
                 "mikrotik_synced": mt_ok,
-                "fleet_results": fleet_res
+                "fleet_results": fleet_res,
+                "whatsapp_welcome": wa_welcome_res
             }
         elif is_active:
             cust_billing_label = customer.get("billing_type", "POSTPAID").upper()
@@ -2435,7 +2628,8 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
                 "message": f"Customer '{payload.name}' approved! Internet activated across MikroTik fleet.",
                 "customer": customer,
                 "mikrotik_synced": mt_ok,
-                "fleet_results": fleet_res
+                "fleet_results": fleet_res,
+                "whatsapp_welcome": wa_welcome_res
             }
         else:
             try:
@@ -2447,7 +2641,8 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
                 "message": f"Device registered for '{payload.name}', but subscriber subscription is EXPIRED. Internet access will remain cut until renewed.",
                 "customer": customer,
                 "mikrotik_synced": False,
-                "fleet_results": {}
+                "fleet_results": {},
+                "whatsapp_welcome": wa_welcome_res
             }
 
     except Exception as e:
@@ -3229,7 +3424,17 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
                         comment=f"CyberNet: {cust_profile.get('phone')} ({cust_profile.get('name')})",
                         rate_limit=cust_profile.get("effective_speed")
                     )
-        return {"success": True, "result": res}
+        wa_receipt_res = None
+        if getattr(payload, "send_whatsapp", False):
+            wa_receipt_res = dispatch_payment_receipt_whatsapp(
+                customer_id=customer_id,
+                amount_paid=payload.amount,
+                receipt_no=f"QC-{customer_id}-{datetime.now().strftime('%m%d%H%M')}",
+                collector="Admin",
+                payment_type="cash",
+                notes=payload.notes or "Quick Collect"
+            )
+        return {"success": True, "result": res, "whatsapp_receipt": wa_receipt_res}
     except Exception as e:
         logger.exception(f"Error recording quick collect for customer #{customer_id}: {e}")
         return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
@@ -3349,6 +3554,19 @@ async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
         except Exception as me:
             logger.warning(f"Could not restore access after balance collection for #{payload.customer_id}: {me}")
 
+        # Dispatch WhatsApp receipt if requested (Phase 4)
+        wa_receipt_res = None
+        if getattr(payload, "send_whatsapp", False):
+            wa_receipt_res = dispatch_payment_receipt_whatsapp(
+                customer_id=payload.customer_id,
+                amount_paid=payload.amount,
+                receipt_no=f"COL-{res.get('collection_id', datetime.now().strftime('%Y%m%d%H%M'))}",
+                collector=collector,
+                payment_type=payload.payment_type or "cash",
+                notes=payload.notes or ""
+            )
+            res["whatsapp_receipt"] = wa_receipt_res
+
         return res
     except Exception as e:
         logger.exception(f"Error in api_balance_collect for #{payload.customer_id}: {e}")
@@ -3408,8 +3626,24 @@ async def api_balance_send_reminder(payload: BalanceReminderPayload, request: Re
                 success, err = whatsapp_service.send_whatsapp_raw(norm_phone, msg)
                 if success:
                     sent_via_openwa = True
-                else:
+                    status_str = "sent"
+                elif "SANDBOX SHIELD" in str(err):
+                    status_str = "blocked_sandbox"
                     error_msg = err
+                else:
+                    status_str = "failed"
+                    error_msg = err
+
+                database.log_whatsapp_message(
+                    phone=norm_phone,
+                    message_body=msg,
+                    message_type="reminder",
+                    status=status_str,
+                    error_message=err,
+                    customer_id=payload.customer_id,
+                    customer_name=cust_name,
+                    sent_by="admin_balance"
+                )
             except Exception as wex:
                 error_msg = str(wex)
 
@@ -3652,21 +3886,17 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
                     except Exception as me:
                         logger.warning(f"Could not bind MAC {mac} after settlement: {me}")
 
-        # Dispatch WhatsApp receipt if requested
-        if payload.send_whatsapp and cust and cust.get("phone"):
-            try:
-                wa_text = f"✅ *PAYMENT RECEIPT*\n\n"
-                wa_text += f"Customer: {cust['name']}\n"
-                wa_text += f"Collected Amount: {res['total_collected']:.2f} SAR\n"
-                if res['total_waived'] > 0:
-                    wa_text += f"Waived Discount: {res['total_waived']:.2f} SAR\n"
-                if res.get("settled_months"):
-                    wa_text += f"Settled Period(s): {', '.join(res['settled_months'])}\n"
-                wa_text += f"Status: Active (Due: {cust.get('due_date') or 'Settled'})\n\n"
-                wa_text += "Thank you for your business!"
-                whatsapp_service.send_whatsapp_raw(cust["phone"], wa_text)
-            except Exception as we:
-                logger.warning(f"WhatsApp receipt failed: {we}")
+        # Dispatch WhatsApp receipt if requested (Phase 4)
+        wa_receipt_res = None
+        if payload.send_whatsapp:
+            wa_receipt_res = dispatch_payment_receipt_whatsapp(
+                customer_id=customer_id,
+                amount_paid=res['total_collected'],
+                receipt_no=f"SETTLE-{customer_id}-{datetime.now().strftime('%m%d%H%M')}",
+                collector=session_user,
+                notes=payload.notes or "Cycle Settlement"
+            )
+            res["whatsapp_receipt"] = wa_receipt_res
 
         return JSONResponse(content={
             "success": True,

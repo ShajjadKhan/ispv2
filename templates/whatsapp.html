@@ -719,6 +719,7 @@
             <button type="button" class="chip-btn" onclick="loadTemplate('receipt')">🧾 Payment Receipt</button>
             <button type="button" class="chip-btn" onclick="loadTemplate('voucher')">🎟️ WiFi Voucher PIN</button>
             <button type="button" class="chip-btn" onclick="loadTemplate('expiry')">⚠️ Expiry Notice</button>
+            <button type="button" class="chip-btn" onclick="loadTemplate('welcome')">🌐 Welcome</button>
             <button type="button" class="chip-btn" onclick="loadTemplate('maintenance')">🛠️ Maintenance</button>
             <button type="button" class="chip-btn" onclick="loadTemplate('blank')">✏️ Blank</button>
           </div>
@@ -854,9 +855,10 @@
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 5px;">
           <label for="batchTemplate" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Template:</label>
-          <select id="batchTemplate" class="form-control font-mono" style="padding: 4px 8px; font-size: 11.5px; width: 140px;">
+          <select id="batchTemplate" class="form-control font-mono" style="padding: 4px 8px; font-size: 11.5px; width: 145px;">
             <option value="reminder">💳 Due Reminder</option>
             <option value="expiry">⚠️ Expiry Notice</option>
+            <option value="welcome">🌐 Welcome Notice</option>
             <option value="maintenance">🛠️ Maintenance</option>
           </select>
         </div>
@@ -1220,16 +1222,41 @@
           </div>
         </div>
 
-        <!-- TEMPLATE: DUE REMINDER -->
-        <div class="form-group">
-          <label class="form-label" for="set_tpl_reminder">Default Due Reminder Template</label>
-          <textarea id="set_tpl_reminder" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_reminder }}</textarea>
-        </div>
+        <!-- TEMPLATES ACCORDION / CARDS -->
+        <div style="margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+          <div style="font-size: 12px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">
+            📝 Multi-Stage WhatsApp Templates
+          </div>
 
-        <!-- TEMPLATE: PAYMENT RECEIPT -->
-        <div class="form-group">
-          <label class="form-label" for="set_tpl_receipt">Default Payment Receipt Template</label>
-          <textarea id="set_tpl_receipt" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_receipt }}</textarea>
+          <!-- TEMPLATE: PAYMENT RECEIPT -->
+          <div class="form-group">
+            <label class="form-label" for="set_tpl_receipt">1. Payment Receipt Template (Used upon billing collection)</label>
+            <textarea id="set_tpl_receipt" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_receipt }}</textarea>
+          </div>
+
+          <!-- TEMPLATE: DUE REMINDER -->
+          <div class="form-group">
+            <label class="form-label" for="set_tpl_reminder">2. Due & Account Status Reminder Template</label>
+            <textarea id="set_tpl_reminder" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_reminder }}</textarea>
+          </div>
+
+          <!-- TEMPLATE: SERVICE EXPIRY -->
+          <div class="form-group">
+            <label class="form-label" for="set_tpl_expiry">3. Expiry & Service Cutoff Alert Template</label>
+            <textarea id="set_tpl_expiry" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_expiry }}</textarea>
+          </div>
+
+          <!-- TEMPLATE: NEW SUBSCRIBER WELCOME -->
+          <div class="form-group">
+            <label class="form-label" for="set_tpl_welcome">4. New Subscriber Welcome / Provisioning Template</label>
+            <textarea id="set_tpl_welcome" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_welcome }}</textarea>
+          </div>
+
+          <!-- TEMPLATE: MAINTENANCE -->
+          <div class="form-group">
+            <label class="form-label" for="set_tpl_maintenance">5. Scheduled Maintenance Announcement Template</label>
+            <textarea id="set_tpl_maintenance" class="form-control font-mono" rows="4" style="font-size:12px;">{{ wa_settings.template_maintenance }}</textarea>
+          </div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
@@ -1328,6 +1355,7 @@
     receipt: {{ wa_settings.template_receipt | tojson }},
     voucher: {{ wa_settings.template_voucher | tojson }},
     expiry: {{ wa_settings.template_expiry | tojson }},
+    welcome: {{ wa_settings.template_welcome | tojson }},
     maintenance: {{ wa_settings.template_maintenance | tojson }},
     blank: ""
   };
@@ -2132,8 +2160,12 @@
       quiet_hours_end: document.getElementById('set_quiet_end').value.trim(),
       support_phone: document.getElementById('set_support_phone').value.trim(),
       movie_server: document.getElementById('set_movie_server').value.trim(),
+      football_server: document.getElementById('set_football_server') ? document.getElementById('set_football_server').value.trim() : '',
+      template_receipt: document.getElementById('set_tpl_receipt').value.trim(),
       template_reminder: document.getElementById('set_tpl_reminder').value.trim(),
-      template_receipt: document.getElementById('set_tpl_receipt').value.trim()
+      template_expiry: document.getElementById('set_tpl_expiry') ? document.getElementById('set_tpl_expiry').value.trim() : '',
+      template_welcome: document.getElementById('set_tpl_welcome') ? document.getElementById('set_tpl_welcome').value.trim() : '',
+      template_maintenance: document.getElementById('set_tpl_maintenance') ? document.getElementById('set_tpl_maintenance').value.trim() : ''
     };
 
     try {

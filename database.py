@@ -506,14 +506,15 @@ def init_db():
             ]
             cursor.executemany("INSERT INTO whatsapp_settings (key, value) VALUES (?, ?)", default_wa_settings)
 
-        # Seed Phase 3 automated scheduler settings if not present
-        auto_scheduler_defaults = [
+        # Seed Phase 3 & 4 settings if not present
+        extra_settings_defaults = [
             ("auto_dispatch_time", "12:00"),
             ("auto_dispatch_max_per_day", "25"),
             ("auto_dispatch_dedupe_days", "3"),
-            ("auto_dispatch_last_run", "")
+            ("auto_dispatch_last_run", ""),
+            ("template_welcome", "🌐 *WELCOME TO CYBERNET HIGH-SPEED FIBER*\n\nAssalamu Alaikum *[NAME]*!\n\nYour internet connection is now active and ready to use.\n📦 *Plan:* [PACKAGE]\n📅 *Expiry / Renewal:* [EXPIRY_DATE]\n\n🎁 *Complimentary Local Portals:*\n  🎬 Free Movies: [MOVIES]\n  ⚽ Live Football: [FOOTBALL]\n\n📞 *Support (24/7):* [HELPLINE]\n\nWelcome to the CyberNet family! 🙏")
         ]
-        for k, v in auto_scheduler_defaults:
+        for k, v in extra_settings_defaults:
             cursor.execute("INSERT OR IGNORE INTO whatsapp_settings (key, value) VALUES (?, ?)", (k, v))
 
 
@@ -3992,7 +3993,21 @@ def get_whatsapp_settings() -> Dict[str, str]:
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT key, value FROM whatsapp_settings")
-        return {r["key"]: r["value"] for r in cursor.fetchall()}
+        res = {r["key"]: r["value"] for r in cursor.fetchall()}
+        if "template_welcome" not in res:
+            res["template_welcome"] = (
+                "🌐 *WELCOME TO CYBERNET HIGH-SPEED FIBER*\n\n"
+                "Assalamu Alaikum *[NAME]*!\n\n"
+                "Your internet connection is now active and ready to use.\n"
+                "📦 *Plan:* [PACKAGE]\n"
+                "📅 *Expiry / Renewal:* [EXPIRY_DATE]\n\n"
+                "🎁 *Complimentary Local Portals:*\n"
+                "  🎬 Free Movies: [MOVIES]\n"
+                "  ⚽ Live Football: [FOOTBALL]\n\n"
+                "📞 *Support (24/7):* [HELPLINE]\n\n"
+                "Welcome to the CyberNet family! 🙏"
+            )
+        return res
 
 
 def update_whatsapp_settings(updates: Dict[str, str]) -> Dict[str, str]:

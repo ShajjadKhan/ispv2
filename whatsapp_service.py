@@ -194,7 +194,9 @@ def render_message_template(
     amount_paid: float = 0.0,
     support_phone: str = DEFAULT_SUPPORT_PHONE,
     movie_server: str = DEFAULT_MOVIE_SERVER,
-    football_server: str = DEFAULT_FOOTBALL_SERVER
+    football_server: str = DEFAULT_FOOTBALL_SERVER,
+    collector_name: str = "",
+    payment_method: str = ""
 ) -> str:
     """Replaces standard dynamic tags in WhatsApp message templates."""
     msg = template_str
@@ -210,6 +212,8 @@ def render_message_template(
         "[HELPLINE]": support_phone,
         "[MOVIES]": movie_server,
         "[FOOTBALL]": football_server,
+        "[COLLECTOR]": collector_name or "Admin",
+        "[PAYMENT_METHOD]": payment_method or "Cash",
         "[COMPANY_NAME]": "CyberNet ISP"
     }
     for tag, val in replacements.items():
