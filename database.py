@@ -4019,10 +4019,22 @@ def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:
             status = item.get("status")
             item["distance_km"] = round(int(item.get("distance_m") or 0) / 1000, 2)
             
-            if status in ("los", "offline") or rx <= -30.0:
-                item["diag_title"] = "Optical Loss of Signal (LOS / Fiber Break)" if status in ("los", "offline") else f"Critical Low Optical Signal ({rx:.1f} dBm)"
+            if status in ("power_off", "dying_gasp"):
+                item["diag_title"] = "Subscriber Power Disconnected (Dying Gasp)"
+                item["diag_severity"] = "warning"
+                item["diag_badge"] = "POWER OFF"
+                item["diag_solution"] = "Customer premise ONT is turned off or power adapter unplugged."
+                item["signal_color"] = "#fbbf24"
+            elif status in ("los", "offline"):
+                item["diag_title"] = "Optical Loss of Signal (LOS / Fiber Break)"
                 item["diag_severity"] = "critical"
-                item["diag_badge"] = "CRITICAL FIBER BREAK" if status in ("los", "offline") else "CRITICAL LOW SIGNAL"
+                item["diag_badge"] = "CRITICAL FIBER BREAK"
+                item["diag_solution"] = "Inspect drop cable, optical splitter port, or customer fiber wall socket."
+                item["signal_color"] = "#f87171"
+            elif rx <= -30.0:
+                item["diag_title"] = f"Critical Low Optical Signal ({rx:.1f} dBm)"
+                item["diag_severity"] = "critical"
+                item["diag_badge"] = "CRITICAL LOW SIGNAL"
                 item["diag_solution"] = "Inspect drop cable, optical splitter port, or customer fiber wall socket."
                 item["signal_color"] = "#f87171"
             elif rx < -27.0:
@@ -4030,12 +4042,6 @@ def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:
                 item["diag_severity"] = "warning"
                 item["diag_badge"] = "HIGH LOSS WARNING"
                 item["diag_solution"] = "Fiber bend or dirty connector. Clean SC/APC connector with fiber pen."
-                item["signal_color"] = "#fbbf24"
-            elif status in ("power_off", "dying_gasp"):
-                item["diag_title"] = "Subscriber Power Disconnected (Dying Gasp)"
-                item["diag_severity"] = "warning"
-                item["diag_badge"] = "POWER OFF"
-                item["diag_solution"] = "Customer premise ONT is turned off or power adapter unplugged."
                 item["signal_color"] = "#fbbf24"
             else:
                 item["diag_title"] = item.get("last_error") or "Unknown Warning"
