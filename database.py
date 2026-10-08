@@ -4663,11 +4663,12 @@ def get_collections_hub_data(
         month_collected = round(float(month_row["total"] or 0.0), 2)
         month_tx_count = int(month_row["tx_count"] or 0)
 
-        # 3. Customer Credit Liabilities (Total credit held across all customer wallets)
+        # 3. Customer Credit Liabilities (Total positive advance credit held across customer wallets)
         cursor.execute("""
-            SELECT COALESCE(SUM(credit_balance), 0.0) as total_credit,
+            SELECT COALESCE(SUM(CASE WHEN credit_balance > 0 THEN credit_balance ELSE 0.0 END), 0.0) as total_credit,
                    COUNT(CASE WHEN credit_balance > 0 THEN 1 END) as credit_holders_count
             FROM customers
+            WHERE status != 'deleted'
         """)
         credit_row = cursor.fetchone()
         total_credit_held = round(float(credit_row["total_credit"] or 0.0), 2)
@@ -4680,11 +4681,18 @@ def get_collections_hub_data(
             days_rem = c.get("days_remaining")
             status = c.get("status", "active")
             is_grace = bool(c.get("is_grace_held"))
-            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace
+            wallet_credit = float(c.get("credit_balance") or 0.0)
+            has_debt = (wallet_credit < 0)
+            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace or has_debt
             if is_due:
                 fee = float(c.get("monthly_fee") or 0.0)
-                wallet_credit = float(c.get("credit_balance") or 0.0)
-                net_needed = max(0.0, round(fee - wallet_credit, 2))
+                # If cycle is due (days_rem <= 3, suspended, or grace), net_needed is monthly fee minus wallet credit
+                # If cycle renewal is in the future (> 3 days), only existing debt arrears is immediately due
+                if (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace:
+                    net_needed = max(0.0, round(fee - wallet_credit, 2))
+                else:
+                    net_needed = round(abs(wallet_credit), 2)
+
                 c_copy = dict(c)
                 if is_grace:
                     daily_r = round(fee / 30.0, 4)
@@ -4696,11 +4704,12 @@ def get_collections_hub_data(
                     net_needed = max(0.0, round((fee + accrued_amt) - wallet_credit, 2))
                     c_copy["accrued_grace_amount"] = accrued_amt
                 c_copy["net_due_amount"] = net_needed
+                c_copy["has_debt_arrears"] = has_debt
                 c_copy["can_settle_from_credit"] = (wallet_credit >= fee and fee > 0)
                 due_customers_queue.append(c_copy)
 
         def due_sort_key(item):
-            # Grace hold (0), Suspended (1), expired (2), due today (3), due soon (4)
+            # Grace hold (0), Suspended (1), expired (2), large debt arrears (3), due today (4), due soon (5)
             if item.get("is_grace_held"):
                 return (0, 0)
             if item.get("status") == "suspended":
@@ -4708,9 +4717,12 @@ def get_collections_hub_data(
             d = item.get("days_remaining")
             if d is not None and d < 0:
                 return (2, d)
+            wc = float(item.get("credit_balance") or 0.0)
+            if wc < 0:
+                return (3, wc)
             if d == 0:
-                return (3, 0)
-            return (4, d or 999)
+                return (4, 0)
+            return (5, d or 999)
 
         due_customers_queue.sort(key=due_sort_key)
         outstanding_receivable = round(sum(item["net_due_amount"] for item in due_customers_queue), 2)
@@ -4718,7 +4730,8 @@ def get_collections_hub_data(
 
         projected_monthly_revenue = round(sum(float(c.get("monthly_fee") or 0.0) for c in all_customers if c.get("status") == "active"), 2)
         total_cycle_revenue = round(month_collected + outstanding_receivable, 2)
-        collection_efficiency = round((month_collected / total_cycle_revenue * 100), 1) if total_cycle_revenue > 0 else 100.0
+        target_revenue = projected_monthly_revenue if projected_monthly_revenue > 0 else total_cycle_revenue
+        collection_efficiency = round((month_collected / target_revenue * 100), 1) if target_revenue > 0 else 100.0
 
         # 5. Filtered Ledger Records
         where_clauses = ["1=1"]
