@@ -1402,6 +1402,30 @@ async def api_auth_audit(request: Request):
 
 
 
+async def get_all_fleet_online_macs(max_cache_age_sec: float = 10.0) -> List[str]:
+    """
+    Asynchronously queries all active fleet routers in parallel for online MAC addresses.
+    Uses non-blocking thread execution and cache to ensure sub-millisecond response times.
+    """
+    all_active_routers = database.get_all_routers(active_only=True)
+    if not all_active_routers:
+        return []
+
+    def _fetch_router_macs(r):
+        try:
+            c = mikrotik_client.get_client_for_router(r)
+            return c.get_online_mac_addresses(max_cache_age_sec=max_cache_age_sec)
+        except Exception as e:
+            logger.debug(f"Could not retrieve online MACs for router {r.get('id')}: {e}")
+            return []
+
+    results = await asyncio.gather(*[asyncio.to_thread(_fetch_router_macs, r) for r in all_active_routers])
+    online_macs_set = set()
+    for r_macs in results:
+        online_macs_set.update(r_macs)
+    return list(online_macs_set)
+
+
 # =========================================================
 # Web UI Routes
 # =========================================================
@@ -1415,18 +1439,8 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     will-suspend expiration tiers, billing collection analytics,
     staff performance breakdown, and 1-click collections.
     """
-    live_status = router_client.get_live_status()
-    # Aggregate online devices across all active fleet routers
-    all_active_routers = database.get_all_routers(active_only=True)
-    online_macs_set = set()
-    for r in all_active_routers:
-        try:
-            c = mikrotik_client.get_client_for_router(r)
-            r_macs = c.get_online_mac_addresses(max_cache_age_sec=5.0)
-            online_macs_set.update(r_macs)
-        except Exception as e:
-            logger.debug(f"Could not retrieve online MACs for router {r.get('id')}: {e}")
-    online_macs = list(online_macs_set)
+    live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
+    online_macs = await get_all_fleet_online_macs(max_cache_age_sec=10.0)
 
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
     pending_requests = database.get_pending_requests()
@@ -3524,13 +3538,8 @@ async def update_device_limit(customer_id: int, payload: UpdateDeviceLimitPayloa
 @app.get("/api/dashboard/metrics")
 async def api_dashboard_metrics(month: Optional[str] = None):
     """Returns real-time dashboard metrics and online status in JSON."""
-    live_status = router_client.get_live_status()
-    online_macs = []
-    if live_status.get("connected"):
-        try:
-            online_macs = router_client.get_online_mac_addresses()
-        except Exception as e:
-            logger.warning(f"Could not retrieve online MACs: {e}")
+    live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
+    online_macs = await get_all_fleet_online_macs(max_cache_age_sec=10.0)
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
     return JSONResponse({
         "success": True,

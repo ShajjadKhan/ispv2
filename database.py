@@ -2228,18 +2228,25 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
         # 3. Delete collections / ledger records for this customer
         cursor.execute("DELETE FROM collections WHERE customer_id = ?", (customer_id,))
 
-        # 4. Revoke and disassociate connection requests
+        # 4. Delete traffic and session history
+        cursor.execute("DELETE FROM customer_traffic_daily WHERE customer_id = ?", (customer_id,))
+        cursor.execute("DELETE FROM customer_traffic_hourly WHERE customer_id = ?", (customer_id,))
+        cursor.execute("DELETE FROM customer_connection_sessions WHERE customer_id = ?", (customer_id,))
+        cursor.execute("DELETE FROM customer_promises WHERE customer_id = ?", (customer_id,))
+        cursor.execute("DELETE FROM customer_suspensions WHERE customer_id = ?", (customer_id,))
+
+        # 5. Revoke and disassociate connection requests
         cursor.execute("UPDATE connection_requests SET status = 'revoked', customer_id = NULL, updated_at = ? WHERE customer_id = ?", (now_str, customer_id))
         for m in macs:
             cursor.execute("UPDATE connection_requests SET status = 'revoked', updated_at = ? WHERE UPPER(mac_address) = ?", (now_str, m))
 
-        # 5. Disassociate assigned ONUs
+        # 6. Disassociate assigned ONUs
         cursor.execute("UPDATE onus SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
 
-        # 6. Disassociate WhatsApp logs
+        # 7. Disassociate WhatsApp logs
         cursor.execute("UPDATE whatsapp_logs SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
 
-        # 7. Delete customer record
+        # 8. Delete customer record
         cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
 
         conn.commit()
