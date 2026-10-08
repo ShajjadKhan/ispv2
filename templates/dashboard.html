@@ -702,6 +702,66 @@
     gap: 3px;
   }
 
+  .badge-roaming-pill {
+    font-size: 10px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1.5px 6.5px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  html[data-theme="light"] .badge-roaming-pill {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #a7f3d0 !important;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.15) !important;
+  }
+
+  .badge-router-tag {
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 5.5px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .badge-router-tag {
+    background: #f0f9ff !important;
+    color: #0369a1 !important;
+    border-color: #bae6fd !important;
+  }
+
+  .badge-online-pill {
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .badge-online-pill {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+  }
+
   .tag-device-type {
     display: inline-flex;
     align-items: center;
@@ -2110,7 +2170,12 @@
       </div>
       <div class="kpi-val-group">
         <div class="kpi-main-number">{{ metrics.online_devices }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.total_approved_devices }}</span></div>
-        <div class="kpi-sub-text">{{ metrics.active_subscribers_online }} subscribers online now</div>
+        <div class="kpi-sub-text">
+          <span>{{ metrics.active_subscribers_online }} subscribers online</span>
+          {% if metrics.roaming_online_count %}
+            &bull; <span style="color:#10b981; font-weight:700;" title="{{ metrics.roaming_online_count }} subscribers roaming across fleet routers">🔄 {{ metrics.roaming_online_count }} roaming</span>
+          {% endif %}
+        </div>
       </div>
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.connectivity_rate }}%;"></div>
@@ -2548,6 +2613,15 @@
                   <div>
                     <div style="font-weight: 700; color: #ffffff; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       <span>{{ c.name }}</span>
+                      <span class="cust-roaming-badge-container">
+                        {% if c.active_router_short_name and c.is_online %}
+                          {% if c.is_roaming %}
+                            <span class="badge-roaming-pill" title="{{ c.roaming_label or 'Roaming across fleet routers' }}">🔄 {{ c.active_router_short_name }} ROAMING</span>
+                          {% else %}
+                            <span class="badge-router-tag" title="Connected to {{ c.active_router_name or c.active_router_short_name }}">● {{ c.active_router_short_name }}</span>
+                          {% endif %}
+                        {% endif %}
+                      </span>
                       {% if c.notes %}
                         <span style="font-size:10px; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.35); padding:1px 6px; border-radius:4px; font-weight:600; white-space:nowrap;" title="Room / Note: {{ c.notes }}">🚪 {{ c.notes }}</span>
                       {% endif %}
@@ -2561,20 +2635,34 @@
               </td>
               <td data-label="Bound MAC">
                 {% if c.primary_mac %}
-                  <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <div style="display: flex; align-items: center; gap: 5px;">
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="display: flex; align-items: center; gap: 5px; flex-wrap:wrap;">
                       <span class="font-mono text-cyan" style="font-size: 12px; font-weight:700;">{{ c.primary_mac }}</span>
                       {% if c.primary_mac_is_random %}
                         <span class="tag-mac-warn" title="Random MAC detected">⚠ RANDOM</span>
                       {% else %}
                         <span class="tag-mac-ok" title="Verified Physical Device MAC">✓ DEVICE MAC</span>
                       {% endif %}
+                      <span class="cust-mac-status-tag">
+                        {% if c.is_online %}
+                          {% if c.is_roaming %}
+                            <span class="badge-roaming-pill" style="font-size:9.5px; padding:1px 5px;" title="{{ c.roaming_label }}">🔄 {{ c.active_router_short_name or 'MK' }} ROAM</span>
+                          {% else %}
+                            <span class="badge-online-pill" style="font-size:9.5px; padding:1px 5px;">ONLINE • {{ c.active_router_short_name or 'MK' }}</span>
+                          {% endif %}
+                        {% endif %}
+                      </span>
                     </div>
-                    <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; flex-wrap:wrap;">
                       <span>{{ c.devices_count }} device{% if c.devices_count > 1 %}s{% endif %}</span>
                       {% if c.devices_count > 1 %}
                         <span style="color: #38bdf8; font-weight: 600;">(+{{ c.devices_count - 1 }} more)</span>
                       {% endif %}
+                      <span class="cust-live-ip-tag">
+                        {% if c.live_ip %}
+                          <span class="font-mono text-emerald" style="font-size: 10px; font-weight:600;" title="Live IP Address">IP: {{ c.live_ip }}</span>
+                        {% endif %}
+                      </span>
                     </div>
                   </div>
                 {% else %}
@@ -4415,8 +4503,83 @@
     }
   }
 
-  // Poll pending requests every 6 seconds
+  // Real-time live dashboard subscriber telemetry & roaming refresh poller (every 15s)
+  async function refreshDashboardDeviceTelemetry() {
+    try {
+      const resp = await fetch('/api/customers/live-devices');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!data || !data.customers) return;
+
+      for (const [custId, cInfo] of Object.entries(data.customers)) {
+        const row = document.getElementById(`cust-row-${custId}`);
+        if (!row) continue;
+
+        const isOnline = Boolean(cInfo.is_online || (cInfo.online_count > 0));
+        row.setAttribute('data-online', isOnline ? 'true' : 'false');
+
+        // 1. Update pulse dot
+        const pulseDot = row.querySelector('.pulse-dot');
+        if (pulseDot) {
+          if (isOnline) {
+            pulseDot.style.backgroundColor = '#10b981';
+            pulseDot.style.boxShadow = '0 0 8px #10b981';
+            pulseDot.style.animation = '';
+            pulseDot.title = 'Device Online on MikroTik Router';
+          } else {
+            pulseDot.style.backgroundColor = '#64748b';
+            pulseDot.style.boxShadow = 'none';
+            pulseDot.style.animation = 'none';
+            pulseDot.title = 'Offline';
+          }
+        }
+
+        // 2. Update roaming badge next to name
+        const roamingContainer = row.querySelector('.cust-roaming-badge-container');
+        if (roamingContainer) {
+          if (isOnline && cInfo.active_router_short_name) {
+            if (cInfo.is_roaming) {
+              roamingContainer.innerHTML = `<span class="badge-roaming-pill" title="${cInfo.roaming_label || 'Roaming across fleet routers'}">🔄 ${cInfo.active_router_short_name} ROAMING</span>`;
+            } else {
+              roamingContainer.innerHTML = `<span class="badge-router-tag" title="Connected to ${cInfo.active_router_name || cInfo.active_router_short_name}">● ${cInfo.active_router_short_name}</span>`;
+            }
+          } else {
+            roamingContainer.innerHTML = '';
+          }
+        }
+
+        // 3. Update Bound MAC cell status tag & live IP
+        const macStatusTag = row.querySelector('.cust-mac-status-tag');
+        if (macStatusTag) {
+          if (isOnline) {
+            if (cInfo.is_roaming) {
+              macStatusTag.innerHTML = `<span class="badge-roaming-pill" style="font-size:9.5px; padding:1px 5px;" title="${cInfo.roaming_label || ''}">🔄 ${cInfo.active_router_short_name || 'MK'} ROAM</span>`;
+            } else {
+              macStatusTag.innerHTML = `<span class="badge-online-pill" style="font-size:9.5px; padding:1px 5px;">ONLINE • ${cInfo.active_router_short_name || 'MK'}</span>`;
+            }
+          } else {
+            macStatusTag.innerHTML = '';
+          }
+        }
+
+        const liveIpTag = row.querySelector('.cust-live-ip-tag');
+        if (liveIpTag) {
+          if (cInfo.live_ip) {
+            liveIpTag.innerHTML = `<span class="font-mono text-emerald" style="font-size: 10px; font-weight:600;" title="Live IP Address">IP: ${cInfo.live_ip}</span>`;
+          } else {
+            liveIpTag.innerHTML = '';
+          }
+        }
+      }
+    } catch (err) {
+      console.debug('Dashboard telemetry poll error:', err);
+    }
+  }
+
+  // Poll pending requests every 6 seconds, and telemetry every 15 seconds
   window.pendingRequestsInterval = setInterval(refreshPendingRequests, 6000);
+  window.dashboardTelemetryInterval = setInterval(refreshDashboardDeviceTelemetry, 15000);
+  window.addEventListener('focus', () => { refreshDashboardDeviceTelemetry(); });
 
   // =========================================================
   // CUSTOMER DETAILS MODAL
@@ -4439,20 +4602,25 @@
       sub.innerHTML = `Phone: <strong class="font-mono text-cyan">${c.phone}</strong> &bull; Status: <span class="badge-tier ${c.status === 'active' ? 'active' : 'suspended'}">${c.status.toUpperCase()}</span>`;
 
       const devicesHtml = (c.devices && c.devices.length > 0)
-        ? c.devices.map(d => `
+        ? c.devices.map(d => {
+            const isOnline = (d.state === 'online') || d.is_online;
+            const rTag = d.router_short_name ? (d.is_roaming ? `<span class="badge-roaming-pill" style="font-size:9.5px; padding:1px 5px;" title="${d.roaming_label || ''}">🔄 ${d.router_short_name} ROAM</span>` : `<span class="badge-router-tag" style="font-size:9.5px; padding:1px 5px;" title="${d.router_name || ''}">● ${d.router_short_name}</span>`) : '';
+            const statusBadge = isOnline ? `<span class="badge-online-pill" style="font-size:10px;">ONLINE</span> ${rTag}` : (d.state === 'recent' ? `<span style="font-size:10px; color:#f59e0b; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:1px 5px; border-radius:4px;">RECENT</span> ${rTag}` : `<span style="font-size:10px; color:#94a3b8; background:rgba(148,163,184,0.1); border:1px solid rgba(148,163,184,0.25); padding:1px 5px; border-radius:4px;">OFFLINE</span>`);
+            const liveIp = d.live_ip || d.ip_address || '—';
+            return `
             <tr>
               <td class="font-mono text-cyan" style="font-weight:700;">
-                <div style="display:flex; align-items:center; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                   <span>${d.mac_address}</span>
                   ${d.is_random_mac ? '<span class="tag-mac-warn">⚠ RANDOM</span>' : '<span class="tag-mac-ok">✓ DEVICE MAC</span>'}
                 </div>
               </td>
-              <td>${d.device_name || 'Standard Device'}</td>
-              <td class="font-mono text-dim">${d.ip_address || '—'}</td>
-              <td><span class="badge-tier active">APPROVED</span></td>
+              <td>${d.friendly_name || d.device_name || 'Standard Device'}</td>
+              <td class="font-mono ${isOnline ? 'text-emerald' : 'text-dim'}">${liveIp}</td>
+              <td>${statusBadge}</td>
               <td class="font-mono text-dim" style="font-size:11px;">${d.bound_at || '—'}</td>
             </tr>
-          `).join('')
+          `;}).join('')
         : '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-dim);">No devices currently bound.</td></tr>';
 
       const ledgerHtml = (c.collections && c.collections.length > 0)

@@ -3181,7 +3181,8 @@ def toggle_package_active(pkg_id: int) -> Tuple[bool, int]:
 
 def get_dashboard_metrics(
     month_str: Optional[str] = None,
-    online_macs: Optional[List[str]] = None
+    online_macs: Optional[List[str]] = None,
+    telemetry_map: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Computes unified Operations & Financial metrics:
@@ -3192,6 +3193,7 @@ def get_dashboard_metrics(
     - Staff performance audit breakdown table
     - Recent collections feed
     - Month selector history
+    - Fleet-wide multi-gateway roaming and active router attribution
     """
     now = datetime.now()
     curr_month = now.strftime("%Y-%m-%d")[:7]
@@ -3205,6 +3207,10 @@ def get_dashboard_metrics(
         month_label = now.strftime("%B %Y")
 
     online_mac_set = {m.strip().upper() for m in (online_macs or []) if m and m.strip()}
+    if telemetry_map:
+        for m, t in telemetry_map.items():
+            if t.get("state") == "online" or t.get("is_online"):
+                online_mac_set.add(m.strip().upper())
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -3272,16 +3278,35 @@ def get_dashboard_metrics(
         active_customers = [c for c in all_custs if c.get("status") == "active"]
         suspended_customers = [c for c in all_custs if c.get("status") == "suspended"]
 
-        # Online Device matching
+        # Online Device matching & Multi-Router Roaming Attribution
         total_approved_devices = len(all_devices)
         online_approved_devices = 0
         online_customer_ids = set()
+        fleet_online_by_router = {"MK10": 0, "MK20": 0, "MK30": 0}
 
         for dev in all_devices:
             mac = dev.get("mac_address", "").upper()
-            if mac in online_mac_set:
+            telem = (telemetry_map or {}).get(mac, {})
+            is_online = (mac in online_mac_set) or (telem.get("state") == "online") or telem.get("is_online", False)
+            dev["is_online"] = is_online
+            dev["state"] = telem.get("state", "online" if is_online else "offline")
+            dev["status_label"] = telem.get("status_label", "Online" if is_online else "Offline")
+            dev["router_short_name"] = telem.get("router_short_name")
+            dev["router_name"] = telem.get("router_name")
+            dev["is_roaming"] = telem.get("is_roaming", False)
+            dev["roaming_label"] = telem.get("roaming_label")
+            dev["roaming_routers"] = telem.get("roaming_routers", [])
+            dev["live_ip"] = telem.get("live_ip") or dev.get("ip_address")
+            dev["idle_time"] = telem.get("idle_time")
+            dev["uptime"] = telem.get("uptime")
+            dev["last_seen"] = telem.get("last_seen")
+
+            if is_online:
                 online_approved_devices += 1
                 online_customer_ids.add(dev["customer_id"])
+                r_code = dev.get("router_short_name")
+                if r_code:
+                    fleet_online_by_router[r_code] = fleet_online_by_router.get(r_code, 0) + 1
 
         connectivity_rate = (
             round((online_approved_devices / total_approved_devices * 100), 1)
@@ -3313,6 +3338,37 @@ def get_dashboard_metrics(
             c["is_online"] = (cid in online_customer_ids)
             c["credit_balance"] = round(float(c.get("credit_balance") or 0.0), 2)
             c["monthly_fee"] = round(float(c.get("monthly_fee") or 0.0), 2)
+
+            # Attribute customer-level active gateway and roaming status
+            c_devs = c["devices"]
+            c_online_devs = [d for d in c_devs if d.get("is_online")]
+            if c_online_devs:
+                active_d = c_online_devs[0]
+                c["active_router_short_name"] = active_d.get("router_short_name") or "MK20"
+                c["active_router_name"] = active_d.get("router_name")
+                c["is_roaming"] = any(d.get("is_roaming") for d in c_online_devs)
+                c["roaming_label"] = active_d.get("roaming_label")
+                c["live_ip"] = active_d.get("live_ip")
+            elif c_devs:
+                recent_d = next((d for d in c_devs if d.get("state") == "recent"), None)
+                if recent_d:
+                    c["active_router_short_name"] = recent_d.get("router_short_name")
+                    c["active_router_name"] = recent_d.get("router_name")
+                    c["is_roaming"] = recent_d.get("is_roaming", False)
+                    c["roaming_label"] = recent_d.get("roaming_label")
+                    c["live_ip"] = recent_d.get("live_ip")
+                else:
+                    c["active_router_short_name"] = None
+                    c["active_router_name"] = None
+                    c["is_roaming"] = False
+                    c["roaming_label"] = None
+                    c["live_ip"] = None
+            else:
+                c["active_router_short_name"] = None
+                c["active_router_name"] = None
+                c["is_roaming"] = False
+                c["roaming_label"] = None
+                c["live_ip"] = None
 
             expiry = c.get("due_date") or c.get("expiry_date")
             days_rem = None
@@ -3494,6 +3550,8 @@ def get_dashboard_metrics(
         """)
         recent_collections = [dict(r) for r in cursor.fetchall()]
 
+        roaming_online_count = sum(1 for c in all_custs if c.get("is_online") and c.get("is_roaming"))
+
         return {
             "target_month": target_month,
             "month_label": month_label,
@@ -3508,6 +3566,8 @@ def get_dashboard_metrics(
             "online_devices": online_approved_devices,
             "connectivity_rate": connectivity_rate,
             "active_subscribers_online": active_subscribers_online,
+            "roaming_online_count": roaming_online_count,
+            "fleet_online_by_router": fleet_online_by_router,
             "collected_month_sar": collected_month_sar,
             "collections_count": collections_count,
             "outstanding_sar": outstanding_sar,
@@ -3518,7 +3578,8 @@ def get_dashboard_metrics(
             "priority_queue": priority_queue,
             "all_customers": all_custs,
             "staff_performance": staff_performance,
-            "recent_collections": recent_collections
+            "recent_collections": recent_collections,
+            "telemetry_map": telemetry_map or {}
         }
 
 

@@ -1440,9 +1440,10 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     staff performance breakdown, and 1-click collections.
     """
     live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    online_macs = await get_all_fleet_online_macs(max_cache_age_sec=10.0)
+    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
 
-    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
+    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     pending_requests = database.get_pending_requests()
     packages = database.get_packages()
 
@@ -1642,7 +1643,8 @@ async def approvals_view(request: Request):
 def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict, pppoe_map: Optional[dict] = None):
     """
     Enriches each customer's devices list with live connection telemetry (online/recent/offline),
-    calculates online_devices_count, and formats friendly device labels.
+    calculates online_devices_count, formats friendly device labels, and attaches
+    multi-gateway roaming attributes (is_roaming, router_short_name, roaming_label, live_ip).
     Also enriches PPPoE customers with live active session data.
     """
     if pppoe_map is None:
@@ -1661,10 +1663,16 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 cust["is_pppoe_active"] = True
                 cust["pppoe_session"] = session
                 cust["online_devices_count"] = 1
+                cust["is_online"] = True
+                cust["active_router_short_name"] = session.get("router_name") or "MK20"
+                cust["live_ip"] = session.get("address")
             else:
                 cust["is_pppoe_active"] = False
                 cust["pppoe_session"] = None
                 cust["online_devices_count"] = 0
+                cust["is_online"] = False
+                cust["active_router_short_name"] = None
+                cust["live_ip"] = None
             continue
 
         online_count = 0
@@ -1682,6 +1690,11 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 dev["idle_time"] = telem.get("idle_time")
                 dev["detail"] = telem.get("detail", "Offline")
                 dev["friendly_name"] = clean_device_friendly_name(dev.get("device_name"), telem.get("dhcp_host_name"))
+                dev["router_short_name"] = telem.get("router_short_name")
+                dev["router_name"] = telem.get("router_name")
+                dev["is_roaming"] = telem.get("is_roaming", False)
+                dev["roaming_label"] = telem.get("roaming_label")
+                dev["roaming_routers"] = telem.get("roaming_routers", [])
             else:
                 dev["state"] = "offline"
                 dev["status_label"] = "Offline"
@@ -1692,10 +1705,47 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 dev["idle_time"] = None
                 dev["detail"] = "Offline"
                 dev["friendly_name"] = clean_device_friendly_name(dev.get("device_name"))
+                dev["router_short_name"] = None
+                dev["router_name"] = None
+                dev["is_roaming"] = False
+                dev["roaming_label"] = None
+                dev["roaming_routers"] = []
 
             if dev["state"] == "online":
                 online_count += 1
+
         cust["online_devices_count"] = online_count
+        cust["is_online"] = (online_count > 0)
+
+        # Attribute customer-level active gateway and roaming status
+        online_devs = [d for d in devices if d.get("is_online")]
+        if online_devs:
+            best_d = online_devs[0]
+            cust["active_router_short_name"] = best_d.get("router_short_name") or "MK20"
+            cust["active_router_name"] = best_d.get("router_name")
+            cust["is_roaming"] = any(d.get("is_roaming") for d in online_devs)
+            cust["roaming_label"] = best_d.get("roaming_label")
+            cust["live_ip"] = best_d.get("live_ip")
+        elif devices:
+            recent_d = next((d for d in devices if d.get("state") == "recent"), None)
+            if recent_d:
+                cust["active_router_short_name"] = recent_d.get("router_short_name")
+                cust["active_router_name"] = recent_d.get("router_name")
+                cust["is_roaming"] = recent_d.get("is_roaming", False)
+                cust["roaming_label"] = recent_d.get("roaming_label")
+                cust["live_ip"] = recent_d.get("live_ip")
+            else:
+                cust["active_router_short_name"] = None
+                cust["active_router_name"] = None
+                cust["is_roaming"] = False
+                cust["roaming_label"] = None
+                cust["live_ip"] = None
+        else:
+            cust["active_router_short_name"] = None
+            cust["active_router_name"] = None
+            cust["is_roaming"] = False
+            cust["roaming_label"] = None
+            cust["live_ip"] = None
 
 
 @app.api_route("/customers", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -1712,8 +1762,8 @@ async def customers_view(request: Request):
     packages = database.get_packages()
     resellers = auth_service.get_resellers_list()
 
-    # Live device telemetry (green/yellow/red status indicators)
-    telemetry_map = router_client.get_devices_telemetry_map()
+    # Live device telemetry (green/yellow/red status indicators across fleet)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -1742,7 +1792,7 @@ async def customer_edit_view(request: Request, customer_id: int):
     resellers = auth_service.get_resellers_list()
 
     # Live device telemetry for customer devices
-    telemetry_map = router_client.get_devices_telemetry_map()
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     enrich_customer_devices_telemetry([cust], telemetry_map)
 
     return templates.TemplateResponse(
@@ -1805,7 +1855,7 @@ async def customer_usage_view(
     live_status = router_client.get_live_status()
 
     try:
-        telemetry_map = router_client.get_devices_telemetry_map()
+        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
         enrich_customer_devices_telemetry([analytics["customer"]], telemetry_map)
     except Exception:
         pass
@@ -1986,7 +2036,7 @@ async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] =
     ledger = database.get_reseller_wallet_ledger(reseller_id=target_reseller_id, limit=30)
 
     # Live device telemetry
-    telemetry_map = router_client.get_devices_telemetry_map()
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     enrich_customer_devices_telemetry(my_customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -2834,9 +2884,9 @@ async def revoke_device(payload: RevokeDevicePayload):
 async def get_customers_live_devices(request: Request):
     """
     Returns live connection telemetry (green/yellow/red) for all customer devices,
-    enabling real-time status dots and connected counters on the customer directory.
+    enabling real-time status dots, roaming badges, and connected counters across the fleet.
     """
-    telemetry_map = router_client.get_devices_telemetry_map()
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     customers = database.get_all_customers()
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
@@ -2852,7 +2902,12 @@ async def get_customers_live_devices(request: Request):
                 "status_label": dev.get("status_label", "Offline"),
                 "detail": dev.get("detail", "Offline"),
                 "live_ip": dev.get("live_ip"),
-                "friendly_name": dev.get("friendly_name", "Device")
+                "friendly_name": dev.get("friendly_name", "Device"),
+                "router_short_name": dev.get("router_short_name"),
+                "router_name": dev.get("router_name"),
+                "is_roaming": dev.get("is_roaming", False),
+                "roaming_label": dev.get("roaming_label"),
+                "roaming_routers": dev.get("roaming_routers", [])
             })
         result_customers[str(cid)] = {
             "online_count": cust.get("online_devices_count", 0),
@@ -2861,7 +2916,13 @@ async def get_customers_live_devices(request: Request):
             "devices": dev_list,
             "connection_type": cust.get("connection_type", "hotspot"),
             "is_pppoe_active": cust.get("is_pppoe_active", False),
-            "pppoe_session": cust.get("pppoe_session")
+            "pppoe_session": cust.get("pppoe_session"),
+            "is_online": cust.get("is_online", False),
+            "active_router_short_name": cust.get("active_router_short_name"),
+            "active_router_name": cust.get("active_router_name"),
+            "is_roaming": cust.get("is_roaming", False),
+            "roaming_label": cust.get("roaming_label"),
+            "live_ip": cust.get("live_ip")
         }
     return {
         "success": True,
@@ -2890,10 +2951,15 @@ async def list_customers():
 
 @app.get("/api/customers/{customer_id}")
 async def get_customer_details(customer_id: int):
-    """Returns complete customer profile, devices, and payment records."""
+    """Returns complete customer profile, devices, and payment records with live telemetry."""
     prof = database.get_customer_profile(customer_id)
     if not prof:
         raise HTTPException(status_code=404, detail="Customer not found")
+    try:
+        tmap = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+        enrich_customer_devices_telemetry([prof], tmap)
+    except Exception as e:
+        logger.debug(f"Could not enrich customer details telemetry: {e}")
     return prof
 
 
@@ -3537,10 +3603,11 @@ async def update_device_limit(customer_id: int, payload: UpdateDeviceLimitPayloa
 
 @app.get("/api/dashboard/metrics")
 async def api_dashboard_metrics(month: Optional[str] = None):
-    """Returns real-time dashboard metrics and online status in JSON."""
+    """Returns real-time dashboard metrics, fleet roaming status, and online status in JSON."""
     live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    online_macs = await get_all_fleet_online_macs(max_cache_age_sec=10.0)
-    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
+    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
+    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     return JSONResponse({
         "success": True,
         "metrics": metrics,

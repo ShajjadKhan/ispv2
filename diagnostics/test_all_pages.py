@@ -1,4 +1,6 @@
-import sqlite3, requests
+import sqlite3
+import requests
+import time
 
 conn = sqlite3.connect('/home/tserver/isp_v2/isp_v2.db')
 c = conn.cursor()
@@ -26,21 +28,21 @@ pages = [
     '/hotspot',
     '/portal'
 ]
-c.execute('SELECT id FROM customers WHERE status = "active" LIMIT 1')
+c.execute("SELECT id FROM customers WHERE status = 'active' LIMIT 1")
 cust_row = c.fetchone()
 if cust_row:
     cid = cust_row[0]
-    pages.append(f'/customers/{cid}/usage')
     pages.append(f'/customers/{cid}/edit')
+    pages.append(f'/customers/{cid}/usage')
 
 cookies = {'cybernet_session': session_id}
 for p in pages:
     url = f'http://127.0.0.1:9911{p}'
+    t0 = time.time()
     try:
-        r = requests.get(url, cookies=cookies, timeout=5)
-        print(f'{p:<20} -> {r.status_code} ({len(r.content)} bytes)')
-        if r.status_code >= 400:
-            print('  ERROR BODY:', r.text[:200])
+        r = requests.get(url, cookies=cookies, timeout=15)
+        elapsed = time.time() - t0
+        print(f'{p:<25} -> {r.status_code} ({len(r.content)} bytes) in {elapsed:.2f}s')
     except Exception as e:
-        print(f'{p:<20} -> ERROR: {e}')
-
+        elapsed = time.time() - t0
+        print(f'{p:<25} -> ERROR: {e} after {elapsed:.2f}s')

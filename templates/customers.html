@@ -1371,9 +1371,15 @@
                             <span class="font-mono cust-mac-addr">{{ d.mac_address }}</span>
                             <span class="cust-mac-name" title="{{ d.device_name or '' }}">{{ d.friendly_name }}</span>
                             {% if d.state == 'online' %}
-                              <span class="cust-mac-pill online">ONLINE</span>
+                              {% if d.is_roaming %}
+                                <span class="cust-mac-pill online" title="{{ d.roaming_label or '' }}">🔄 {{ d.router_short_name or 'MK' }} ROAM</span>
+                              {% elif d.router_short_name %}
+                                <span class="cust-mac-pill online">ONLINE • {{ d.router_short_name }}</span>
+                              {% else %}
+                                <span class="cust-mac-pill online">ONLINE</span>
+                              {% endif %}
                             {% elif d.state == 'recent' %}
-                              <span class="cust-mac-pill recent">RECENT</span>
+                              <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                             {% else %}
                               <span class="cust-mac-pill offline">OFFLINE</span>
                             {% endif %}
@@ -1552,9 +1558,15 @@
                         {% endif %}
                       </div>
                       {% if d.state == 'online' %}
-                        <span class="cust-mac-pill online">ONLINE</span>
+                        {% if d.is_roaming %}
+                          <span class="cust-mac-pill online" title="{{ d.roaming_label or '' }}">🔄 {{ d.router_short_name or 'MK' }} ROAM</span>
+                        {% elif d.router_short_name %}
+                          <span class="cust-mac-pill online">ONLINE • {{ d.router_short_name }}</span>
+                        {% else %}
+                          <span class="cust-mac-pill online">ONLINE</span>
+                        {% endif %}
                       {% elif d.state == 'recent' %}
-                        <span class="cust-mac-pill recent">RECENT</span>
+                        <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                       {% else %}
                         <span class="cust-mac-pill offline">OFFLINE</span>
                       {% endif %}
@@ -3907,7 +3919,14 @@
           const pill = macItem.querySelector('.cust-mac-pill');
           if (pill) {
             pill.className = `cust-mac-pill ${d.state}`;
-            pill.textContent = d.state === 'online' ? 'ONLINE' : (d.state === 'recent' ? 'RECENT' : 'OFFLINE');
+            if (d.state === 'online') {
+              pill.textContent = d.is_roaming ? `🔄 ${d.router_short_name || 'MK'} ROAM` : (d.router_short_name ? `ONLINE • ${d.router_short_name}` : 'ONLINE');
+              if (d.roaming_label) pill.title = d.roaming_label;
+            } else if (d.state === 'recent') {
+              pill.textContent = d.router_short_name ? `RECENT • ${d.router_short_name}` : 'RECENT';
+            } else {
+              pill.textContent = 'OFFLINE';
+            }
           }
           if (d.detail) {
             macItem.title = `${d.status_label}${d.detail ? ' • ' + d.detail : ''}${d.live_ip ? ' • IP: ' + d.live_ip : ''} • Click to copy MAC`;
