@@ -3886,6 +3886,40 @@ def create_olt(
         return get_olt_details(new_id)
 
 
+def update_olt(
+    olt_id: int,
+    name: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    brand: Optional[str] = None,
+    model: Optional[str] = None,
+    snmp_community: Optional[str] = None,
+    notes: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """Updates configuration details of an existing OLT."""
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM olts WHERE id = ?", (olt_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        current = dict(row)
+        n_name = name.strip() if name and name.strip() else current["name"]
+        n_ip = ip_address.strip() if ip_address and ip_address.strip() else current["ip_address"]
+        n_brand = brand.strip() if brand and brand.strip() else current["brand"]
+        n_model = model.strip() if model and model.strip() else current["model"]
+        n_comm = snmp_community.strip() if snmp_community and snmp_community.strip() else current.get("snmp_community", "public")
+        n_notes = notes if notes is not None else current.get("notes", "")
+
+        cursor.execute("""
+            UPDATE olts
+            SET name = ?, ip_address = ?, brand = ?, model = ?, snmp_community = ?, notes = ?, updated_at = ?
+            WHERE id = ?
+        """, (n_name, n_ip, n_brand, n_model, n_comm, n_notes, now_str, olt_id))
+        conn.commit()
+        return get_olt_details(olt_id)
+
+
 def get_onu_uptime_ledger(olt_id: Optional[int] = None, onu_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """Returns event history of uptime, outages, loss of signal, and power events."""
     with get_db() as conn:

@@ -338,6 +338,20 @@ async def whatsapp_auto_dispatch_loop():
             await asyncio.sleep(60)
 
 
+async def olt_telemetry_poller_loop():
+    """Periodically queries physical OLT hardware to keep telemetry completely up to date."""
+    await asyncio.sleep(12)
+    while True:
+        try:
+            import olt_service
+            olt_service.poll_olt_hardware(olt_id=1)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.debug(f"OLT background poller notice: {e}")
+        await asyncio.sleep(60)
+
+
 @app.on_event("startup")
 async def startup_event():
     # Real live data from MikroTik traffic collector only
@@ -346,6 +360,8 @@ async def startup_event():
     asyncio.create_task(expiration_enforcement_loop())
     # Automated WhatsApp Billing Reminder Scheduled Loop
     asyncio.create_task(whatsapp_auto_dispatch_loop())
+    # Live Physical OLT Hardware Telemetry Background Poller
+    asyncio.create_task(olt_telemetry_poller_loop())
 
 
 # =========================================================
@@ -847,6 +863,15 @@ class CreateOltPayload(BaseModel):
     uplink_ports_count: Optional[int] = 4
     port: Optional[int] = 161
     snmp_community: Optional[str] = "public"
+    notes: Optional[str] = None
+
+
+class UpdateOltPayload(BaseModel):
+    name: Optional[str] = None
+    ip_address: Optional[str] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    snmp_community: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -4321,23 +4346,25 @@ async def api_sync_olt_telemetry(payload: OltTelemetrySyncPayload):
 @app.post("/api/olt/{olt_id}/sync")
 async def api_trigger_olt_sync(olt_id: int):
     """
-    Triggers an on-demand OLT sync.
+    Triggers an on-demand live OLT sync directly from the physical hardware.
     Returns latest telemetry stats, active errors, and ONU states.
     """
     try:
-        # Write trigger timestamp file for any listening sync daemon
-        trigger_path = "/home/tserver/isp_v2/olt_sync.trigger"
-        try:
-            with open(trigger_path, "w") as f:
-                f.write(datetime.now().isoformat())
-        except Exception:
-            pass
-
-        # Retrieve current live state from database
         olt = database.get_olt_details(olt_id)
         if not olt:
             raise HTTPException(status_code=404, detail="OLT not found")
 
+        # 1. Directly query the live OLT hardware via olt_service
+        try:
+            import olt_service
+            sync_res = olt_service.poll_olt_hardware(olt_id=olt_id)
+            if not sync_res.get("success"):
+                logger.warning(f"Live OLT poll warning: {sync_res.get('error')}")
+        except Exception as pe:
+            logger.warning(f"Could not poll OLT hardware: {pe}")
+
+        # 2. Retrieve freshly synchronized state from database
+        olt = database.get_olt_details(olt_id)
         onus = database.get_onus(olt_id=olt_id)
         errors = database.get_olt_active_errors(olt_id=olt_id)
 
@@ -4357,6 +4384,29 @@ async def api_trigger_olt_sync(olt_id: int):
         raise
     except Exception as e:
         logger.exception(f"Error in api_trigger_olt_sync: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.put("/api/olt/{olt_id}")
+async def api_update_olt(olt_id: int, payload: UpdateOltPayload):
+    """Updates configuration details of an existing OLT."""
+    try:
+        updated = database.update_olt(
+            olt_id=olt_id,
+            name=payload.name,
+            ip_address=payload.ip_address,
+            brand=payload.brand,
+            model=payload.model,
+            snmp_community=payload.snmp_community,
+            notes=payload.notes
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="OLT not found")
+        return {"success": True, "olt": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error updating OLT: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
