@@ -432,32 +432,15 @@ def init_db():
                 VALUES (1, 'Core Hub OLT (VSOL 1-Port GPON)', 'V1600G-series', 'VSOL', '192.168.200.200', 161, 'GPON', 1, 3, 'online', '18d 4h 12m', 14, 38, 39, 'public', 'CyberNet Core GPON Plant on MikroTik ether4 (192.168.200.200:161)', ?, ?)
             """, (now_str, now_str))
 
-        # Migration: Add OLT hardware identification and optical telemetry columns
-        olt_cols = [
-            ("serial_number", "TEXT DEFAULT 'V2309070267'"),
-            ("firmware_version", "TEXT DEFAULT 'V1.1.7'"),
-            ("hardware_version", "TEXT DEFAULT 'V3.1.1'"),
-            ("sfp_tx_power", "TEXT DEFAULT '+8.3 dBm'")
-        ]
-        for col_name, col_type in olt_cols:
-            try:
-                cursor.execute(f"ALTER TABLE olts ADD COLUMN {col_name} {col_type}")
-            except Exception:
-                pass
-
         # Migration: Add uptime and error diagnostic columns to onus
         onu_cols = [
-            ("uptime", "TEXT DEFAULT '1d 6h'"),
-            ("last_error", "TEXT DEFAULT 'None (Optical Link Healthy & Stable)'"),
+            ("uptime", "TEXT DEFAULT '18d 4h 12m'"),
+            ("last_error", "TEXT DEFAULT 'None (Normal Operation)'"),
             ("error_severity", "TEXT DEFAULT 'normal'"),
             ("flaps_count", "INTEGER DEFAULT 0"),
             ("availability_pct", "REAL DEFAULT 99.8"),
             ("last_online_at", "TEXT"),
-            ("last_offline_at", "TEXT"),
-            ("olt_rx_power", "REAL DEFAULT -20.0"),
-            ("alive_time", "TEXT DEFAULT '1d 6h'"),
-            ("reg_time", "TEXT"),
-            ("dereg_reason", "TEXT")
+            ("last_offline_at", "TEXT")
         ]
         for col_name, col_type in onu_cols:
             try:
@@ -949,8 +932,6 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
 
         cursor.execute("SELECT * FROM connection_requests WHERE id = ?", (req_id,))
         req = dict(cursor.fetchone())
-        if existing_cust:
-            req["customer_name"] = existing_cust["name"]
         return (req, False, bool(is_secondary))
 
 
@@ -982,7 +963,13 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, 
                     "message": f"Your internet subscription expired on {exp_display}. Please renew your plan to restore internet access."
                 }
             if cust.get("status") == "active":
-                return {"status": "approved", "message": f"Device authorized. Welcome {cust['name']}!"}
+                return {
+                    "status": "approved",
+                    "customer_name": cust.get("name", ""),
+                    "phone": cust.get("phone", phone_clean),
+                    "mac": mac_upper,
+                    "message": f"Device authorized. Welcome {cust['name']}!"
+                }
 
         # 2. Check if phone belongs to an existing customer who is expired
         if phone_clean:
@@ -1019,10 +1006,33 @@ def get_request_status_by_mac_and_phone(mac: str, phone: str = "") -> Dict[str, 
                 "message": "Device access has been revoked or removed. Please contact administrator."
             }
 
+        existing_cust = get_customer_by_phone(phone_clean) if phone_clean else None
+        cust_name = existing_cust.get("name") if existing_cust else None
+        wa_settings = get_whatsapp_settings()
+        support_phone = wa_settings.get("support_phone", "0597595059")
+
+        if req["status"] == "rejected":
+            return {
+                "status": "rejected",
+                "is_secondary": bool(req.get("is_secondary")),
+                "request_id": req.get("id"),
+                "phone": req.get("phone") or phone_clean,
+                "mac": mac_upper,
+                "customer_name": cust_name,
+                "support_phone": support_phone,
+                "message": "Connection request was not approved by network administrator."
+            }
+
         return {
             "status": req["status"],
             "is_secondary": bool(req["is_secondary"]),
-            "message": "Awaiting admin approval."
+            "request_id": req.get("id"),
+            "phone": req.get("phone") or phone_clean,
+            "mac": mac_upper,
+            "created_at": req.get("created_at"),
+            "customer_name": cust_name,
+            "support_phone": support_phone,
+            "message": "Awaiting administrator approval." if req["status"] == "pending" else f"Request {req['status']}."
         }
 
 
@@ -1496,58 +1506,6 @@ def reject_connection(req_id: int) -> bool:
         """, (now_str, req_id))
         conn.commit()
         return cursor.rowcount > 0
-
-
-def update_request_subscriber_details(
-    req_id: Optional[int] = None,
-    phone: Optional[str] = "",
-    mac: Optional[str] = "",
-    customer_name: str = "",
-    room_location: str = ""
-) -> Optional[Dict[str, Any]]:
-    """
-    Updates customer_name and notes (room location) for a pending connection request
-    submitted via the captive portal confirmation screen.
-    """
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    name_clean = (customer_name or "").strip()
-    room_clean = (room_location or "").strip()
-    mac_upper = (mac or "").strip().upper()
-    phone_clean = (phone or "").strip()
-
-    with get_db() as conn:
-        cursor = conn.cursor()
-        target_id = req_id
-        if not target_id:
-            if mac_upper:
-                row = cursor.execute(
-                    "SELECT id FROM connection_requests WHERE UPPER(mac_address) = ? AND status = 'pending' ORDER BY id DESC LIMIT 1",
-                    (mac_upper,)
-                ).fetchone()
-                if row:
-                    target_id = row["id"]
-            if not target_id and phone_clean:
-                row = cursor.execute(
-                    "SELECT id FROM connection_requests WHERE phone = ? AND status = 'pending' ORDER BY id DESC LIMIT 1",
-                    (phone_clean,)
-                ).fetchone()
-                if row:
-                    target_id = row["id"]
-
-        if not target_id:
-            return None
-
-        cursor.execute("""
-            UPDATE connection_requests
-            SET customer_name = COALESCE(NULLIF(?, ''), customer_name),
-                notes = COALESCE(NULLIF(?, ''), notes),
-                updated_at = ?
-            WHERE id = ?
-        """, (name_clean, room_clean, now, target_id))
-        conn.commit()
-
-        row = cursor.execute("SELECT * FROM connection_requests WHERE id = ?", (target_id,)).fetchone()
-        return dict(row) if row else None
 
 
 def revoke_customer_device(mac: str) -> Optional[Dict[str, Any]]:
@@ -2228,25 +2186,18 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
         # 3. Delete collections / ledger records for this customer
         cursor.execute("DELETE FROM collections WHERE customer_id = ?", (customer_id,))
 
-        # 4. Delete traffic and session history
-        cursor.execute("DELETE FROM customer_traffic_daily WHERE customer_id = ?", (customer_id,))
-        cursor.execute("DELETE FROM customer_traffic_hourly WHERE customer_id = ?", (customer_id,))
-        cursor.execute("DELETE FROM customer_connection_sessions WHERE customer_id = ?", (customer_id,))
-        cursor.execute("DELETE FROM customer_promises WHERE customer_id = ?", (customer_id,))
-        cursor.execute("DELETE FROM customer_suspensions WHERE customer_id = ?", (customer_id,))
-
-        # 5. Revoke and disassociate connection requests
+        # 4. Revoke and disassociate connection requests
         cursor.execute("UPDATE connection_requests SET status = 'revoked', customer_id = NULL, updated_at = ? WHERE customer_id = ?", (now_str, customer_id))
         for m in macs:
             cursor.execute("UPDATE connection_requests SET status = 'revoked', updated_at = ? WHERE UPPER(mac_address) = ?", (now_str, m))
 
-        # 6. Disassociate assigned ONUs
+        # 5. Disassociate assigned ONUs
         cursor.execute("UPDATE onus SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
 
-        # 7. Disassociate WhatsApp logs
+        # 6. Disassociate WhatsApp logs
         cursor.execute("UPDATE whatsapp_logs SET customer_id = NULL WHERE customer_id = ?", (customer_id,))
 
-        # 8. Delete customer record
+        # 7. Delete customer record
         cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
 
         conn.commit()
@@ -3607,63 +3558,38 @@ def get_olt_details(olt_id: int) -> Optional[Dict[str, Any]]:
         olt = dict(row)
 
         # PON Ports breakdown
-        pon_count = int(olt.get("pon_ports_count") or 1)
+        pon_count = int(olt.get("pon_ports_count") or 4)
         ports = []
         for p in range(1, pon_count + 1):
             cursor.execute("""
                 SELECT 
                     COUNT(*) as total_onus,
                     SUM(CASE WHEN status = 'online' THEN 1 ELSE 0 END) as online_onus,
-                    AVG(CASE WHEN status = 'online' AND rx_power > -35.0 THEN rx_power ELSE NULL END) as avg_rx
+                    AVG(rx_power) as avg_rx
                 FROM onus 
                 WHERE olt_id = ? AND pon_port = ?
             """, (olt_id, p))
             p_stat = cursor.fetchone()
             tot = int(p_stat["total_onus"] or 0)
             onl = int(p_stat["online_onus"] or 0)
-            avg_rx = round(float(p_stat["avg_rx"]), 1) if p_stat["avg_rx"] is not None else -20.9
             ports.append({
                 "port_number": p,
-                "name": f"GPON 0/{p}",
+                "name": f"PON {p}",
                 "total_onus": tot,
                 "online_onus": onl,
                 "max_capacity": 128,
                 "utilization_percent": min(100.0, round((tot / 128) * 100, 1)),
-                "tx_power_dbm": olt.get("sfp_tx_power") or "+8.3 dBm",
-                "avg_rx_dbm": avg_rx if tot > 0 else "—",
+                "tx_power_dbm": "+2.5 dBm",
+                "avg_rx_dbm": round(float(p_stat["avg_rx"] or -19.0), 1) if tot > 0 else "—",
                 "status": "up" if tot > 0 else "idle"
             })
         olt["ports"] = ports
 
-        # Live Physical GigabitEthernet Uplink Ports (connected to all 3 MikroTiks ether4)
+        # Uplink Ports (ge1, ge2, ge3)
         olt["uplink_ports"] = [
-            {
-                "port": "GE 0/1",
-                "name": "Router-10 Uplink",
-                "status": "up",
-                "speed": "1 Gbps Full-Duplex",
-                "type": "1000Base-T Copper",
-                "vlan": "VLAN 10 Untagged",
-                "target": "MikroTik Router-10 ether4 (192.168.200.1)"
-            },
-            {
-                "port": "GE 0/2",
-                "name": "Router-30 Uplink",
-                "status": "up",
-                "speed": "1 Gbps Full-Duplex",
-                "type": "1000Base-T Copper",
-                "vlan": "VLAN 30 Untagged",
-                "target": "MikroTik Router-30 ether4 (Hotspot / PPPoE)"
-            },
-            {
-                "port": "GE 0/3",
-                "name": "Router-20 Uplink",
-                "status": "up",
-                "speed": "1 Gbps Full-Duplex",
-                "type": "1000Base-T Copper",
-                "vlan": "VLAN 20 Untagged",
-                "target": "MikroTik Router-20 ether4 (Hotspot / PPPoE)"
-            }
+            {"name": "ge1 (Copper)", "type": "1000Base-T", "status": "up", "speed": "1 Gbps", "comment": "MikroTik ether4 (192.168.200.1 / VLAN 10 Untagged)"},
+            {"name": "ge2 (Copper)", "type": "1000Base-T", "status": "idle", "speed": "1 Gbps", "comment": "Copper Uplink 2 (VLAN 30 Untagged)"},
+            {"name": "ge3 (SFP Optical)", "type": "1G SFP Optical (850nm)", "status": "up", "speed": "1 Gbps", "comment": "MikroTik sfp1 Hotspot (10.50.0.1/22 / VLAN 20 Untagged)"}
         ]
 
         return olt
@@ -3696,16 +3622,12 @@ def get_onus(
             query += " AND onu.pon_port = ?"
             params.append(pon_port)
         if status_filter and status_filter.lower() != "all":
-            if status_filter == "online":
-                query += " AND onu.status = 'online'"
-            elif status_filter == "offline":
-                query += " AND onu.status != 'online'"
-            elif status_filter == "good":
-                query += " AND onu.status = 'online' AND onu.rx_power >= -27.0"
+            if status_filter == "good":
+                query += " AND onu.rx_power >= -24.0"
             elif status_filter == "warning":
-                query += " AND onu.status = 'online' AND onu.rx_power < -27.0 AND onu.rx_power >= -30.0"
+                query += " AND onu.rx_power < -24.0 AND onu.rx_power >= -27.0"
             elif status_filter == "critical":
-                query += " AND (onu.status != 'online' OR onu.rx_power < -30.0)"
+                query += " AND onu.rx_power < -27.0"
             elif status_filter == "unassigned":
                 query += " AND onu.customer_id IS NULL"
             else:
@@ -3719,18 +3641,13 @@ def get_onus(
         for r in cursor.fetchall():
             item = dict(r)
             rx = float(item.get("rx_power") or -20.0)
-            st = item.get("status")
             
-            # Optical Signal Health Evaluation (ITU-T G.984 Class B+/C+)
-            if st != "online":
-                item["signal_quality"] = "critical"
-                item["signal_badge"] = "Offline / LOS"
-                item["signal_color"] = "#f87171"
-            elif rx >= -27.0:
+            # Optical Signal Health Evaluation
+            if rx >= -24.0:
                 item["signal_quality"] = "good"
-                item["signal_badge"] = "Healthy"
+                item["signal_badge"] = "Good"
                 item["signal_color"] = "#34d399"
-            elif rx >= -30.0:
+            elif rx >= -27.0:
                 item["signal_quality"] = "warning"
                 item["signal_badge"] = "High Loss"
                 item["signal_color"] = "#fbbf24"
@@ -3782,12 +3699,11 @@ def get_olt_kpis(olt_id: Optional[int] = None) -> Dict[str, Any]:
         offline_onus = total_onus - online_onus
         los_onus = len([x for x in all_onus if x.get("status") in ("los", "loss_of_signal")])
 
-        good_sig = len([x for x in all_onus if x.get("status") == "online" and float(x.get("rx_power") or 0) >= -27.0])
-        warn_sig = len([x for x in all_onus if x.get("status") == "online" and -30.0 <= float(x.get("rx_power") or 0) < -27.0])
-        crit_sig = len([x for x in all_onus if x.get("status") != "online" or float(x.get("rx_power") or 0) < -30.0])
+        good_sig = len([x for x in all_onus if float(x.get("rx_power") or 0) >= -24.0])
+        warn_sig = len([x for x in all_onus if -27.0 <= float(x.get("rx_power") or 0) < -24.0])
+        crit_sig = len([x for x in all_onus if float(x.get("rx_power") or 0) < -27.0])
 
-        online_onus_list = [x for x in all_onus if x.get("status") == "online" and float(x.get("rx_power") or 0) > -35.0]
-        avg_rx = round(sum(float(x.get("rx_power") or 0) for x in online_onus_list) / len(online_onus_list), 1) if online_onus_list else -20.9
+        avg_rx = round(sum(float(x.get("rx_power") or 0) for x in all_onus) / total_onus, 1) if total_onus > 0 else -19.5
         online_pct = round((online_onus / total_onus * 100), 1) if total_onus > 0 else 0.0
 
         # Unconfigured count
@@ -3945,40 +3861,6 @@ def create_olt(
         return get_olt_details(new_id)
 
 
-def update_olt(
-    olt_id: int,
-    name: Optional[str] = None,
-    ip_address: Optional[str] = None,
-    brand: Optional[str] = None,
-    model: Optional[str] = None,
-    snmp_community: Optional[str] = None,
-    notes: Optional[str] = None
-) -> Optional[Dict[str, Any]]:
-    """Updates configuration details of an existing OLT."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM olts WHERE id = ?", (olt_id,))
-        row = cursor.fetchone()
-        if not row:
-            return None
-        current = dict(row)
-        n_name = name.strip() if name and name.strip() else current["name"]
-        n_ip = ip_address.strip() if ip_address and ip_address.strip() else current["ip_address"]
-        n_brand = brand.strip() if brand and brand.strip() else current["brand"]
-        n_model = model.strip() if model and model.strip() else current["model"]
-        n_comm = snmp_community.strip() if snmp_community and snmp_community.strip() else current.get("snmp_community", "public")
-        n_notes = notes if notes is not None else current.get("notes", "")
-
-        cursor.execute("""
-            UPDATE olts
-            SET name = ?, ip_address = ?, brand = ?, model = ?, snmp_community = ?, notes = ?, updated_at = ?
-            WHERE id = ?
-        """, (n_name, n_ip, n_brand, n_model, n_comm, n_notes, now_str, olt_id))
-        conn.commit()
-        return get_olt_details(olt_id)
-
-
 def get_onu_uptime_ledger(olt_id: Optional[int] = None, onu_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """Returns event history of uptime, outages, loss of signal, and power events."""
     with get_db() as conn:
@@ -4011,13 +3893,13 @@ def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:
             SELECT o.*, c.name as customer_name, c.phone as customer_phone
             FROM onus o
             LEFT JOIN customers c ON o.customer_id = c.id
-            WHERE (o.status != 'online' OR o.error_severity IN ('warning', 'critical') OR (o.rx_power IS NOT NULL AND o.rx_power < -27.0))
+            WHERE (o.status != 'online' OR o.error_severity IN ('warning', 'critical') OR o.rx_power < -25.0)
         """
         params = []
         if olt_id:
             query += " AND o.olt_id = ?"
             params.append(olt_id)
-        query += " ORDER BY CASE WHEN o.error_severity = 'critical' OR o.status in ('los', 'offline') THEN 0 WHEN o.error_severity = 'warning' THEN 1 ELSE 2 END, o.rx_power ASC"
+        query += " ORDER BY CASE WHEN o.error_severity = 'critical' OR o.status = 'los' THEN 0 WHEN o.error_severity = 'warning' THEN 1 ELSE 2 END, o.rx_power ASC"
         cursor.execute(query, tuple(params))
         errors = []
         for r in cursor.fetchall():
@@ -4026,29 +3908,29 @@ def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:
             status = item.get("status")
             item["distance_km"] = round(int(item.get("distance_m") or 0) / 1000, 2)
             
-            if status in ("power_off", "dying_gasp"):
+            if status == "los" or rx <= -30.0:
+                item["diag_title"] = "Optical Loss of Signal (LOS / Fiber Break)" if status == "los" else f"Critical Low Optical Signal ({rx:.1f} dBm)"
+                item["diag_severity"] = "critical"
+                item["diag_badge"] = "CRITICAL FIBER BREAK" if status == "los" else "CRITICAL LOW SIGNAL"
+                item["diag_solution"] = "Inspect drop cable, optical splitter port, or customer fiber wall socket."
+                item["signal_color"] = "#f87171"
+            elif rx <= -27.0:
+                item["diag_title"] = f"Severe Optical Attenuation ({rx:.1f} dBm)"
+                item["diag_severity"] = "critical"
+                item["diag_badge"] = "CRITICAL ATTENUATION"
+                item["diag_solution"] = "Fiber bend or dirty connector. Clean SC/APC connector with fiber pen."
+                item["signal_color"] = "#f87171"
+            elif rx < -25.0:
+                item["diag_title"] = f"High Optical Loss ({rx:.1f} dBm)"
+                item["diag_severity"] = "warning"
+                item["diag_badge"] = "HIGH LOSS WARNING"
+                item["diag_solution"] = "Check fiber patch cord for tight bends or splitter insertion loss."
+                item["signal_color"] = "#fbbf24"
+            elif status in ("power_off", "dying_gasp"):
                 item["diag_title"] = "Subscriber Power Disconnected (Dying Gasp)"
                 item["diag_severity"] = "warning"
                 item["diag_badge"] = "POWER OFF"
                 item["diag_solution"] = "Customer premise ONT is turned off or power adapter unplugged."
-                item["signal_color"] = "#fbbf24"
-            elif status in ("los", "offline"):
-                item["diag_title"] = "Optical Loss of Signal (LOS / Fiber Break)"
-                item["diag_severity"] = "critical"
-                item["diag_badge"] = "CRITICAL FIBER BREAK"
-                item["diag_solution"] = "Inspect drop cable, optical splitter port, or customer fiber wall socket."
-                item["signal_color"] = "#f87171"
-            elif rx <= -30.0:
-                item["diag_title"] = f"Critical Low Optical Signal ({rx:.1f} dBm)"
-                item["diag_severity"] = "critical"
-                item["diag_badge"] = "CRITICAL LOW SIGNAL"
-                item["diag_solution"] = "Inspect drop cable, optical splitter port, or customer fiber wall socket."
-                item["signal_color"] = "#f87171"
-            elif rx < -27.0:
-                item["diag_title"] = f"High Optical Attenuation ({rx:.1f} dBm)"
-                item["diag_severity"] = "warning"
-                item["diag_badge"] = "HIGH LOSS WARNING"
-                item["diag_solution"] = "Fiber bend or dirty connector. Clean SC/APC connector with fiber pen."
                 item["signal_color"] = "#fbbf24"
             else:
                 item["diag_title"] = item.get("last_error") or "Unknown Warning"
@@ -4098,13 +3980,7 @@ def sync_olt_live_telemetry(
                     temperature = COALESCE(?, temperature),
                     cpu_usage = COALESCE(?, cpu_usage),
                     memory_usage = COALESCE(?, memory_usage),
-                    uptime = COALESCE(?, uptime),
-                    serial_number = COALESCE(?, serial_number),
-                    model = COALESCE(?, model),
-                    brand = COALESCE(?, brand),
-                    firmware_version = COALESCE(?, firmware_version),
-                    hardware_version = COALESCE(?, hardware_version),
-                    sfp_tx_power = COALESCE(?, sfp_tx_power)
+                    uptime = COALESCE(?, uptime)
                 WHERE id = ?
             """, (
                 now_str,
@@ -4113,12 +3989,6 @@ def sync_olt_live_telemetry(
                 chassis_info.get("cpu_usage"),
                 chassis_info.get("memory_usage"),
                 chassis_info.get("uptime"),
-                chassis_info.get("serial_number"),
-                chassis_info.get("model"),
-                chassis_info.get("brand"),
-                chassis_info.get("firmware_version"),
-                chassis_info.get("hardware_version"),
-                chassis_info.get("sfp_tx_power"),
                 olt_id
             ))
         else:
@@ -4136,38 +4006,31 @@ def sync_olt_live_telemetry(
             if idx <= 0:
                 continue
 
-            rx_raw = item.get("rx_power")
-            olt_rx_raw = item.get("olt_rx")
-            rx = float(rx_raw) if rx_raw is not None else -40.0
-            olt_rx = float(olt_rx_raw) if olt_rx_raw is not None else -40.0
-
+            rx = float(item.get("rx_power") or -20.0)
             status = str(item.get("status") or "online").lower()
             phase = str(item.get("phase") or "").lower()
             sn = str(item.get("serial") or item.get("serial_number") or "").strip()
             name = str(item.get("name") or "").strip()
             model = str(item.get("model") or item.get("onu_model") or "").strip()
-            dist = int(item.get("distance_m") or 0)
-            alive_str = str(item.get("alive_time") or "1d 6h")
-            reg_time = item.get("reg_time")
-            dereg_reason = item.get("dereg_reason")
+            dist = int(item.get("distance_m") or 100)
 
             # Determine diagnostic error and severity
             if phase == "dyinggasp" or status in ("dying_gasp", "power_off"):
                 status = "dying_gasp"
-                err = "🚨 Customer Power Disconnected (Dying Gasp)"
-                sev = "warning"
+                err = "🚨 Dying Gasp Outage (Customer Power Loss)"
+                sev = "critical"
             elif phase == "offline" or status in ("offline", "los"):
-                status = "los" if dereg_reason == "Onu Los" else "offline"
+                status = "offline"
                 err = "🚨 Critical Fiber Break (LOS / Signal Disconnected)"
                 sev = "critical"
             elif rx <= -30.0:
                 err = f"Critical Low Optical Power ({rx:.2f} dBm < -30 dBm limit)"
                 sev = "critical"
-            elif rx < -27.0:
-                err = f"High Optical Loss ({rx:.2f} dBm > -27 dBm limit)"
+            elif rx <= -25.0:
+                err = f"High Optical Loss ({rx:.2f} dBm > -25 dBm limit)"
                 sev = "warning"
             else:
-                err = f"None (Optical Link Healthy & Stable &bull; {rx:.2f} dBm)"
+                err = "None (Normal Operation)"
                 sev = "normal"
 
             prev = existing_rows.get(idx)
@@ -4178,29 +4041,22 @@ def sync_olt_live_telemetry(
 
                 # Check for state transition -> log event
                 if prev_status != status or (sev == "critical" and prev_sev != "critical"):
-                    event_type = "warning" if sev == "warning" else ("offline" if status in ("offline", "dying_gasp", "los") else ("online" if status == "online" else "warning"))
+                    event_type = "warning" if sev == "warning" else ("offline" if status in ("offline", "dying_gasp") else ("online" if status == "online" else "warning"))
                     reason = err
                     cursor.execute("""
                         INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
                         VALUES (?, ?, ?, 'Just now', ?, ?)
-                    """, (prev_id, event_type, now_str, reason, rx if rx > -39.0 else None))
+                    """, (prev_id, event_type, now_str, reason, rx))
                     new_events_count += 1
-                elif prev_status in ("offline", "dying_gasp", "los") and status == "online":
+                elif prev_status in ("offline", "dying_gasp") and status == "online":
                     cursor.execute("""
                         INSERT INTO onu_uptime_ledger (onu_id, event_type, event_time, duration_str, reason, rx_power)
                         VALUES (?, 'recovered', ?, 'Recovered', 'Optical link recovered & operating normally', ?)
                     """, (prev_id, now_str, rx))
                     new_events_count += 1
 
-                # Prioritize meaningful name from OLT hardware or previous custom name
-                prev_name = prev.get("name") or ""
-                if name and not name.startswith("ONU "):
-                    final_name = name
-                elif prev_name and not prev_name.startswith("ONU "):
-                    final_name = prev_name
-                else:
-                    final_name = name or prev_name or f"ONU {idx}"
-
+                # Preserve existing custom name if item has generic or empty name
+                final_name = prev.get("name") if (not name or name.startswith("ONU ")) else name
                 final_model = model if model else prev.get("onu_model")
                 final_sn = sn if sn else prev.get("serial_number")
 
@@ -4208,24 +4064,17 @@ def sync_olt_live_telemetry(
                     UPDATE onus
                     SET status = ?,
                         rx_power = ?,
-                        olt_rx_power = ?,
                         distance_m = ?,
                         last_error = ?,
                         error_severity = ?,
-                        uptime = ?,
-                        alive_time = ?,
                         name = COALESCE(?, name),
                         onu_model = COALESCE(?, onu_model),
                         serial_number = COALESCE(?, serial_number),
-                        reg_time = COALESCE(?, reg_time),
-                        dereg_reason = COALESCE(?, dereg_reason),
                         updated_at = ?
                     WHERE id = ?
                 """, (
-                    status, rx, olt_rx, dist, err, sev,
-                    alive_str, alive_str,
+                    status, rx, dist, err, sev,
                     final_name, final_model, final_sn,
-                    reg_time, dereg_reason,
                     now_str, prev_id
                 ))
                 updated_count += 1
@@ -4663,11 +4512,12 @@ def get_collections_hub_data(
         month_collected = round(float(month_row["total"] or 0.0), 2)
         month_tx_count = int(month_row["tx_count"] or 0)
 
-        # 3. Customer Credit Liabilities (Total credit held across all customer wallets)
+        # 3. Customer Credit Liabilities (Total positive advance credit held across customer wallets)
         cursor.execute("""
-            SELECT COALESCE(SUM(credit_balance), 0.0) as total_credit,
+            SELECT COALESCE(SUM(CASE WHEN credit_balance > 0 THEN credit_balance ELSE 0.0 END), 0.0) as total_credit,
                    COUNT(CASE WHEN credit_balance > 0 THEN 1 END) as credit_holders_count
             FROM customers
+            WHERE status != 'deleted'
         """)
         credit_row = cursor.fetchone()
         total_credit_held = round(float(credit_row["total_credit"] or 0.0), 2)
@@ -4680,11 +4530,18 @@ def get_collections_hub_data(
             days_rem = c.get("days_remaining")
             status = c.get("status", "active")
             is_grace = bool(c.get("is_grace_held"))
-            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace
+            wallet_credit = float(c.get("credit_balance") or 0.0)
+            has_debt = (wallet_credit < 0)
+            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace or has_debt
             if is_due:
                 fee = float(c.get("monthly_fee") or 0.0)
-                wallet_credit = float(c.get("credit_balance") or 0.0)
-                net_needed = max(0.0, round(fee - wallet_credit, 2))
+                # If cycle is due (days_rem <= 3, suspended, or grace), net_needed is monthly fee minus wallet credit
+                # If cycle renewal is in the future (> 3 days), only existing debt arrears is immediately due
+                if (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace:
+                    net_needed = max(0.0, round(fee - wallet_credit, 2))
+                else:
+                    net_needed = round(abs(wallet_credit), 2)
+
                 c_copy = dict(c)
                 if is_grace:
                     daily_r = round(fee / 30.0, 4)
@@ -4696,11 +4553,12 @@ def get_collections_hub_data(
                     net_needed = max(0.0, round((fee + accrued_amt) - wallet_credit, 2))
                     c_copy["accrued_grace_amount"] = accrued_amt
                 c_copy["net_due_amount"] = net_needed
+                c_copy["has_debt_arrears"] = has_debt
                 c_copy["can_settle_from_credit"] = (wallet_credit >= fee and fee > 0)
                 due_customers_queue.append(c_copy)
 
         def due_sort_key(item):
-            # Grace hold (0), Suspended (1), expired (2), due today (3), due soon (4)
+            # Grace hold (0), Suspended (1), expired (2), large debt arrears (3), due today (4), due soon (5)
             if item.get("is_grace_held"):
                 return (0, 0)
             if item.get("status") == "suspended":
@@ -4708,9 +4566,12 @@ def get_collections_hub_data(
             d = item.get("days_remaining")
             if d is not None and d < 0:
                 return (2, d)
+            wc = float(item.get("credit_balance") or 0.0)
+            if wc < 0:
+                return (3, wc)
             if d == 0:
-                return (3, 0)
-            return (4, d or 999)
+                return (4, 0)
+            return (5, d or 999)
 
         due_customers_queue.sort(key=due_sort_key)
         outstanding_receivable = round(sum(item["net_due_amount"] for item in due_customers_queue), 2)
@@ -4718,7 +4579,8 @@ def get_collections_hub_data(
 
         projected_monthly_revenue = round(sum(float(c.get("monthly_fee") or 0.0) for c in all_customers if c.get("status") == "active"), 2)
         total_cycle_revenue = round(month_collected + outstanding_receivable, 2)
-        collection_efficiency = round((month_collected / total_cycle_revenue * 100), 1) if total_cycle_revenue > 0 else 100.0
+        target_revenue = projected_monthly_revenue if projected_monthly_revenue > 0 else total_cycle_revenue
+        collection_efficiency = round((month_collected / target_revenue * 100), 1) if target_revenue > 0 else 100.0
 
         # 5. Filtered Ledger Records
         where_clauses = ["1=1"]
