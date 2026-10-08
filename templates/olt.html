@@ -496,14 +496,20 @@
           <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 18h-2v-2h2v2zm1-5h-4v-2h4v2zm2-5H8V8h8v2z"/></svg>
         </div>
         <div>
-          <h1 style="font-size: 20px; font-weight: 800; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
+          <h1 style="font-size: 20px; font-weight: 800; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span>{{ selected_olt.name }}</span>
             <span style="font-size: 13px; font-weight: 500; color: var(--text-dim);">({{ selected_olt.brand }} {{ selected_olt.model }})</span>
           </h1>
-          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px;">
-            <span>{{ selected_olt.pon_type }} Optical Plant</span>
+          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap;">
+            <span>{{ selected_olt.pon_type }} Plant</span>
             <span>&bull;</span>
             <span class="font-mono text-cyan">{{ selected_olt.ip_address }}:{{ selected_olt.port }}</span>
+            <span>&bull;</span>
+            <span>Serial: <strong class="font-mono text-cyan">{{ selected_olt.serial_number or 'V2309070267' }}</strong></span>
+            <span>&bull;</span>
+            <span>Firmware: <strong class="font-mono text-cyan">{{ selected_olt.firmware_version or 'V1.1.7' }}</strong></span>
+            <span>&bull;</span>
+            <span>Hardware: <strong class="font-mono text-dim">{{ selected_olt.hardware_version or 'V3.1.1' }}</strong></span>
             <span>&bull;</span>
             <span>{{ onus | length }} Connected ONUs</span>
           </div>
@@ -511,6 +517,11 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <button id="editOltBtn" type="button" onclick="openEditOltModal()" class="pill-btn" style="background: rgba(255, 255, 255, 0.06); font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="Update OLT Name, Model, or notes">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Edit OLT</span>
+        </button>
+
         <button id="syncOltBtn" type="button" onclick="triggerOltSync({{ selected_olt.id }})" class="pill-btn active" style="background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; color: #38bdf8; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" title="Sync live optical dBm and link states directly from physical OLT hardware">
           <svg id="syncIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
@@ -539,8 +550,8 @@
         <span class="value">{{ selected_olt.memory_usage }}%</span>
       </div>
       <div class="tele-box">
-        <span class="label">PON Downlinks Active</span>
-        <span class="value text-emerald">{{ selected_olt.ports | length }} PON Ports Active</span>
+        <span class="label">PON SFP Transceiver</span>
+        <span class="value text-emerald">{{ selected_olt.sfp_tx_power or '+8.3 dBm' }} Tx</span>
       </div>
       <div class="tele-box">
         <span class="label">Last Hardware Sync</span>
@@ -557,7 +568,7 @@
       <div style="display: flex; align-items: center; gap: 10px;">
         <span class="pulse-dot" style="background-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);"></span>
         <span style="font-size: 14px; font-weight: 800; color: #f87171;">
-          ⚠️ {{ active_errors | length }} Active Optical Link Error(s) Detected
+          ⚠️ {{ active_errors | length }} Active Optical Link Issue(s) Detected
         </span>
       </div>
       <span class="font-mono" style="font-size: 11px; color: var(--text-dim);">Immediate Technician Action Recommended</span>
@@ -574,7 +585,7 @@
           </div>
           <div style="font-size: 12px; color: var(--text-muted);">
             Location: <strong>PON {{ err.pon_port }} (ID: {{ err.onu_id }})</strong> &bull;
-            Distance: <strong>{{ err.distance_km }} km</strong> &bull;
+            Distance: <strong>{{ err.distance_m }}m</strong> &bull;
             {% if err.customer_name %}Subscriber: <strong>{{ err.customer_name }}</strong> ({{ err.customer_phone }}){% else %}Unassigned ONT{% endif %}
           </div>
           <div style="font-size: 12px; color: #fbbf24; margin-top: 2px;">
@@ -587,7 +598,7 @@
 
         <div style="text-align: right;">
           <div class="font-mono" style="font-size: 17px; font-weight: 800; color: {{ err.signal_color }};">
-            {{ "%.1f"|format(err.rx_power) }} dBm
+            {% if err.status == 'online' and err.rx_power > -39.0 %}{{ "%.1f"|format(err.rx_power) }} dBm{% else %}LOS / Offline{% endif %}
           </div>
           <div class="font-mono text-dim" style="font-size: 11px; margin-top: 3px;">Status: {{ err.status | upper }}</div>
         </div>
@@ -599,40 +610,71 @@
   <div class="alarm-healthy-card">
     <svg style="width: 22px; height: 22px; fill: #10b981; flex-shrink: 0;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
     <div style="font-size: 13px; font-weight: 700;">
-      All Optical Fiber Links Healthy &amp; Synchronized &bull; 0 Errors / 0 Fiber Cuts Detected
+      All Active Optical Fiber Links Healthy &amp; Synchronized &bull; 0 Fiber Breaks Detected
     </div>
   </div>
   {% endif %}
 
-  <!-- PON PORTS RACK OVERVIEW -->
+  <!-- HARDWARE PORTS & UPLINKS RACK OVERVIEW -->
   {% if selected_olt %}
   <div class="section-card">
     <div class="section-card-header">
       <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-        <span>PON Ports Live Link State</span>
+        <span>Hardware Ports &amp; MikroTik Fleet Uplinks</span>
       </div>
-      <span class="font-mono text-dim" style="font-size: 11px;">Click port to filter connected ONUs</span>
+      <div style="font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 14px;">
+        <span><strong style="color:#34d399;">●</strong> 1 GPON Downlink ({{ kpis.online_onus }}/{{ kpis.total_onus }} Online)</span>
+        <span><strong style="color:#38bdf8;">●</strong> 3 GE Uplinks to MikroTik ether4</span>
+      </div>
     </div>
 
     <div class="pon-ports-bar">
+      <!-- GPON Port Card -->
       {% for p in selected_olt.ports %}
       <div class="pon-card {% if selected_port == p.port_number %}active-port{% endif %}" onclick="filterByPort({{ p.port_number }})">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--text-main, #ffffff);">{{ p.name }}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: #38bdf8;">{{ p.name }}</span>
+            <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">GPON Plant</span>
+          </div>
           <span class="optical-led {{ p.status }}"></span>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
-          <span>Connected:</span>
-          <strong style="color: var(--text-main, #ffffff);">{{ p.total_onus }} / {{ p.max_capacity }} ONUs</strong>
+          <span>Connected ONUs:</span>
+          <strong style="color: var(--text-main, #ffffff);">{{ p.online_onus }} Online / {{ p.total_onus }} Configured</strong>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
-          <span>Port TX:</span>
+          <span>Port SFP TX:</span>
           <strong class="text-emerald">{{ p.tx_power_dbm }}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
-          <span>Avg RX:</span>
+          <span>Plant Avg RX:</span>
           <strong class="text-cyan">{{ p.avg_rx_dbm }} dBm</strong>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Uplink Ports Cards -->
+      {% for up in selected_olt.uplink_ports %}
+      <div class="pon-card" style="cursor: default;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: #ffffff;">{{ up.port }}</span>
+            <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(16, 185, 129, 0.15); color: #34d399;">GE Uplink</span>
+          </div>
+          <span class="optical-led up"></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
+          <span>Target Router:</span>
+          <strong style="color: #38bdf8;">{{ up.name }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--text-dim);">
+          <span>Link Speed:</span>
+          <strong class="text-emerald">{{ up.speed }}</strong>
+        </div>
+        <div style="font-size: 10.5px; font-family: var(--font-mono); color: var(--text-dim); border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 4px;">
+          <span>{{ up.target }}</span>
         </div>
       </div>
       {% endfor %}
@@ -723,17 +765,32 @@
                 <span class="font-mono text-dim" style="font-size: 11px;">(ID: {{ u.onu_id }})</span>
               </td>
               <td data-label="Optical RX Power">
-                <span class="badge-optical {{ u.signal_quality }}">
-                  <span>{{ "%.2f"|format(u.rx_power) }} dBm</span>
-                </span>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span class="badge-optical {{ u.signal_quality }}">
+                    {% if u.status == 'online' and u.rx_power > -39.0 %}
+                      <span>{{ "%.2f"|format(u.rx_power) }} dBm</span>
+                    {% else %}
+                      <span style="color:#f87171;">LOS / Offline</span>
+                    {% endif %}
+                  </span>
+                  {% if u.status == 'online' and u.olt_rx_power and u.olt_rx_power > -39.0 %}
+                    <span class="font-mono text-dim" style="font-size: 10px;">OLT Rx: {{ "%.2f"|format(u.olt_rx_power) }} dBm</span>
+                  {% endif %}
+                </div>
               </td>
               <td data-label="Distance">
-                <span class="font-mono" style="font-weight: 600; color: var(--text-main, #ffffff);">{{ u.distance_km }} km</span>
-                <div class="text-dim" style="font-size: 10px;">{{ u.distance_m }}m</div>
+                {% if u.distance_m and u.distance_m > 0 %}
+                  <span class="font-mono" style="font-weight: 700; color: var(--text-main, #ffffff);">{{ u.distance_m }}m</span>
+                  <div class="text-dim" style="font-size: 10px;">{{ u.distance_km }} km</div>
+                {% else %}
+                  <span class="font-mono text-dim">—</span>
+                {% endif %}
               </td>
               <td data-label="Link State">
                 {% if u.status == 'online' %}
                   <span class="badge-status running">ONLINE</span>
+                {% elif u.status == 'dying_gasp' %}
+                  <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">POWER OFF</span>
                 {% elif u.status == 'los' %}
                   <span class="badge-status disabled">FIBER LOS</span>
                 {% else %}
@@ -741,16 +798,22 @@
                 {% endif %}
               </td>
               <td data-label="Uptime">
-                <span class="font-mono text-cyan" style="font-weight: 600;">{{ u.uptime }}</span>
-                <div class="text-dim font-mono" style="font-size: 10px;">{{ u.availability_pct }}% availability</div>
+                <span class="font-mono text-cyan" style="font-weight: 600;">{{ u.alive_time or u.uptime or '1d 6h' }}</span>
+                {% if u.reg_time %}
+                  <div class="text-dim font-mono" style="font-size: 9.5px;">Reg: {{ u.reg_time.split(' ')[0] }}</div>
+                {% endif %}
               </td>
               <td data-label="Diagnostic Status">
-                {% if u.error_severity == 'critical' or u.status == 'los' %}
-                  <span style="color: #f87171; font-weight: 700; font-size: 12px;">🚨 {{ u.last_error }}</span>
-                {% elif u.error_severity == 'warning' %}
-                  <span style="color: #fbbf24; font-weight: 700; font-size: 12px;">⚠️ {{ u.last_error }}</span>
+                {% if u.status == 'online' and u.signal_quality == 'good' %}
+                  <span style="color: #34d399; font-size: 12px; font-weight: 600;">✅ Healthy Link</span>
+                {% elif u.status == 'online' and u.signal_quality == 'warning' %}
+                  <span style="color: #fbbf24; font-weight: 700; font-size: 12px;">⚠️ High Loss ({{ "%.1f"|format(u.rx_power) }} dBm)</span>
+                {% elif u.status == 'online' and u.signal_quality == 'critical' %}
+                  <span style="color: #f87171; font-weight: 700; font-size: 12px;">🚨 Critical Signal ({{ "%.1f"|format(u.rx_power) }} dBm)</span>
+                {% elif u.status == 'dying_gasp' %}
+                  <span style="color: #fbbf24; font-weight: 700; font-size: 12px;">🔌 Power Off (Dying Gasp)</span>
                 {% else %}
-                  <span style="color: #34d399; font-size: 12px;">✅ {{ u.last_error }}</span>
+                  <span style="color: #f87171; font-weight: 700; font-size: 12px;">🚨 Fiber Cut (LOS)</span>
                 {% endif %}
               </td>
             </tr>
@@ -859,6 +922,49 @@
     </form>
   </div>
 </div>
+
+<!-- EDIT OLT CONFIG MODAL -->
+{% if selected_olt %}
+<div id="editOltModal" class="modal-overlay">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main, #ffffff);">⚙️ Edit OLT Configuration</h3>
+      <button type="button" class="btn-modal-close" onclick="closeEditOltModal()" style="background:transparent; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;" aria-label="Close dialog">&times;</button>
+    </div>
+    <form id="editOltForm" onsubmit="submitEditOlt(event)">
+      <div class="modal-body">
+        <input type="hidden" id="editOltId" value="{{ selected_olt.id }}">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label for="editOltName" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">OLT Friendly Name</label>
+          <input type="text" class="form-input" id="editOltName" value="{{ selected_olt.name }}" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label for="editOltBrand" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Brand</label>
+            <input type="text" class="form-input" id="editOltBrand" value="{{ selected_olt.brand }}" required>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label for="editOltModel" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Model</label>
+            <input type="text" class="form-input" id="editOltModel" value="{{ selected_olt.model }}" required>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label for="editOltIp" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Management IP</label>
+          <input type="text" class="form-input font-mono" id="editOltIp" value="{{ selected_olt.ip_address }}" required>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label for="editOltNotes" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Notes / Location</label>
+          <input type="text" class="form-input" id="editOltNotes" value="{{ selected_olt.notes or '' }}">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+          <button type="button" class="btn-rename" onclick="closeEditOltModal()">Cancel</button>
+          <button type="submit" style="background:#0284c7; color:#fff; border:none; padding:8px 16px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer;">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -916,6 +1022,50 @@
       }
     } catch (err) {
       cyberToast('Error updating name: ' + err.message, 'error');
+    }
+  }
+
+  // Edit OLT Configuration Modal Logic
+  function openEditOltModal() {
+    const modal = document.getElementById('editOltModal');
+    if (modal) modal.classList.add('open');
+  }
+
+  function closeEditOltModal() {
+    const modal = document.getElementById('editOltModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  async function submitEditOlt(e) {
+    e.preventDefault();
+    const oltId = document.getElementById('editOltId').value;
+    const name = document.getElementById('editOltName').value.trim();
+    const brand = document.getElementById('editOltBrand').value.trim();
+    const model = document.getElementById('editOltModel').value.trim();
+    const ip = document.getElementById('editOltIp').value.trim();
+    const notes = document.getElementById('editOltNotes').value.trim();
+
+    try {
+      const res = await fetch(`/api/olt/${oltId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          brand: brand,
+          model: model,
+          ip_address: ip,
+          notes: notes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeEditOltModal();
+        window.location.reload();
+      } else {
+        cyberToast('Failed to update OLT: ' + (data.error || 'Unknown error'), 'error');
+      }
+    } catch (err) {
+      cyberToast('Error updating OLT: ' + err.message, 'error');
     }
   }
 

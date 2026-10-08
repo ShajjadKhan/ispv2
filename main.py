@@ -4310,6 +4310,16 @@ async def api_rename_onu(onu_id: int, payload: RenameOnuPayload):
     updated = database.update_onu_name(onu_id, payload.name)
     if not updated:
         raise HTTPException(status_code=404, detail="ONU not found")
+
+    # Push to physical OLT hardware so changes persist on both DB and physical OLT CLI
+    try:
+        import olt_service
+        hw_idx = updated.get("onu_id")
+        if hw_idx:
+            olt_service.set_onu_description_hardware(hw_idx, payload.name)
+    except Exception as e:
+        logger.warning(f"Could not push description to physical OLT hardware: {e}")
+
     return {"success": True, "onu": updated}
 
 
