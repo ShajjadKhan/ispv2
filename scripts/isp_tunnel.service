@@ -1,0 +1,14 @@
+[Unit]
+Description=CyberNet ISP v2 Reverse SSH Tunnel to Hetzner
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/python3 /home/tserver/isp_v2/scripts/cleanup_hetzner_tunnel.py
+ExecStart=/usr/bin/ssh -NT -C -o TCPKeepAlive=yes -o IPQoS=throughput -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=accept-new -R 9911:127.0.0.1:9911 -i /home/tserver/.ssh/id_hetzner_tunnel shajjad@135.181.39.96
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
