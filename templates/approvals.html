@@ -1180,11 +1180,11 @@
                       Reject
                     </button>
                   {% elif req.is_secondary %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}', {{ (req.existing_devices or []) | tojson | forceescape }}, '{{ (req.device_model or 'Client Device') | escape }}', true)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Review subscriber & authorize device or temporary guest pass">
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}', {{ (req.existing_devices or []) | tojson | forceescape }}, '{{ (req.device_model or 'Client Device') | escape }}', false)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Review subscriber & authorize device (Permanent or Guest Pass)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-                      <span>Quick Authorize</span>
+                      <span>Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}', {{ (req.existing_devices or []) | tojson | forceescape }}, '{{ (req.device_model or 'Client Device') | escape }}', false)" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
@@ -1925,10 +1925,10 @@
       const incMacEl = document.getElementById('secondaryIncomingMac');
       if (incMacEl) incMacEl.textContent = mac;
 
-      // Setup guest pass controls
+      // Setup guest pass controls - ALWAYS unchecked by default per admin requirement
       const chkGuest = document.getElementById('chkIsGuestPass');
       if (chkGuest) {
-        chkGuest.checked = Boolean(defaultAsGuest);
+        chkGuest.checked = false;
         toggleGuestPassControls();
       }
 
@@ -2009,6 +2009,11 @@
   function closeApprovalModal() {
     const modal = document.getElementById('approvalModal');
     if (modal) modal.classList.remove('open');
+    const chkGuest = document.getElementById('chkIsGuestPass');
+    if (chkGuest) {
+      chkGuest.checked = false;
+      toggleGuestPassControls();
+    }
   }
 
   function calculatePostpaidAdvance() {

@@ -3296,11 +3296,24 @@
   function closeProfileModal() {
     document.getElementById('profileModal').classList.remove('open');
     document.getElementById('addDeviceInlineForm').style.display = 'none';
+    const chk = document.getElementById('chkCustAddGuest');
+    if (chk) {
+      chk.checked = false;
+      toggleCustAddGuest(false);
+    }
   }
 
   function showAddDevicePrompt() {
     const f = document.getElementById('addDeviceInlineForm');
-    f.style.display = (f.style.display === 'none') ? 'block' : 'none';
+    const isOpening = (f.style.display === 'none');
+    f.style.display = isOpening ? 'block' : 'none';
+    if (isOpening) {
+      const chk = document.getElementById('chkCustAddGuest');
+      if (chk) {
+        chk.checked = false;
+        toggleCustAddGuest(false);
+      }
+    }
   }
 
   function toggleCustAddGuest(isGuest) {

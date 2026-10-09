@@ -12,11 +12,17 @@ def check_and_clean():
     # 1. Check if 9911 is listening on Hetzner
     cmd_ss = [
         "ssh", "-i", SSH_KEY,
-        "-o", "ConnectTimeout=4",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=3",
         "-o", "StrictHostKeyChecking=accept-new",
         REMOTE, "ss -tulpn | grep 9911"
     ]
-    res_ss = subprocess.run(cmd_ss, capture_output=True, text=True)
+    try:
+        res_ss = subprocess.run(cmd_ss, capture_output=True, text=True, timeout=5)
+    except subprocess.TimeoutExpired:
+        print("[cleanup] ss check timed out.")
+        return
+
     if not res_ss.stdout.strip():
         print("[cleanup] Port 9911 is free on Hetzner.")
         return
@@ -24,11 +30,16 @@ def check_and_clean():
     # 2. Test if 9911 responds to HTTP GET on Hetzner
     cmd_curl = [
         "ssh", "-i", SSH_KEY,
-        "-o", "ConnectTimeout=4",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=3",
         REMOTE, "curl -s -o /dev/null -w '%{http_code}' -m 3 http://127.0.0.1:9911/login"
     ]
-    res_curl = subprocess.run(cmd_curl, capture_output=True, text=True)
-    code = res_curl.stdout.strip()
+    try:
+        res_curl = subprocess.run(cmd_curl, capture_output=True, text=True, timeout=5)
+        code = res_curl.stdout.strip()
+    except subprocess.TimeoutExpired:
+        print("[cleanup] curl check timed out.")
+        code = "timeout"
 
     if code == "200":
         print(f"[cleanup] Port 9911 is healthy (HTTP {code}).")
@@ -36,11 +47,15 @@ def check_and_clean():
         print(f"[cleanup] Port 9911 returned '{code}' (zombie socket). Clearing stale sessions...")
         cmd_kill = [
             "ssh", "-i", SSH_KEY,
-            "-o", "ConnectTimeout=4",
+            "-o", "BatchMode=yes",
+            "-o", "ConnectTimeout=3",
             REMOTE, "pkill -u shajjad -f 'sshd-session: shajjad$' || true"
         ]
-        subprocess.run(cmd_kill, capture_output=True, text=True)
-        print("[cleanup] Stale sessions cleared on Hetzner.")
+        try:
+            subprocess.run(cmd_kill, capture_output=True, text=True, timeout=5)
+            print("[cleanup] Stale sessions cleared on Hetzner.")
+        except subprocess.TimeoutExpired:
+            print("[cleanup] pkill timed out.")
 
 if __name__ == "__main__":
     try:
