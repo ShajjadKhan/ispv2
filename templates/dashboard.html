@@ -714,6 +714,85 @@
     gap: 3px;
   }
 
+  .badge-roaming-pill {
+    font-size: 10px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1.5px 6.5px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  html[data-theme="light"] .badge-roaming-pill {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #a7f3d0 !important;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.15) !important;
+  }
+
+  .badge-router-tag {
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 5.5px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .badge-router-tag {
+    background: #f0f9ff !important;
+    color: #0369a1 !important;
+    border-color: #bae6fd !important;
+  }
+
+  .badge-online-pill {
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .badge-online-pill {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+  }
+
+  .badge-hotspot-sharing {
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .badge-hotspot-sharing {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+  }
+
   .tag-device-type {
     display: inline-flex;
     align-items: center;
@@ -806,6 +885,37 @@
   .btn-view-profile:hover {
     background: rgba(56, 189, 248, 0.22);
     color: #ffffff;
+  }
+
+  .btn-quick-reminder {
+    background: rgba(37, 211, 102, 0.12);
+    border: 1px solid rgba(37, 211, 102, 0.35);
+    color: #25d366;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .btn-quick-reminder:hover {
+    background: #25d366;
+    border-color: #25d366;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(37, 211, 102, 0.4);
+  }
+  html[data-theme="light"] .btn-quick-reminder {
+    background: #ecfdf5;
+    border-color: #86efac;
+    color: #15803d;
+  }
+  html[data-theme="light"] .btn-quick-reminder:hover {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
   }
 
   /* SUBSCRIBER TABS */
@@ -1998,10 +2108,66 @@
       top: 0;
       width: 100%;
       background: #ffffff !important;
-      color: #000000 !important;
-      padding: 20px;
+      color: #0f172a !important;
+      padding: 24px;
+      margin: 0;
+      border: none !important;
+      box-shadow: none !important;
     }
     .no-print { display: none !important; }
+    #printableReportArea div {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    #printableReportArea h2, #printableReportArea h3, #printableReportArea h3 span {
+      color: #0f172a !important;
+    }
+    #printableReportArea table {
+      width: 100% !important;
+      color: #0f172a !important;
+      border-collapse: collapse !important;
+      margin-bottom: 20px !important;
+    }
+    #printableReportArea th {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      padding: 8px 10px !important;
+      font-size: 11px !important;
+    }
+    #printableReportArea td {
+      color: #1e293b !important;
+      border-bottom: 1px solid #cbd5e1 !important;
+      background: transparent !important;
+      padding: 7px 10px !important;
+      font-size: 11.5px !important;
+    }
+    #printableReportArea tr:nth-child(even) td {
+      background: #f8fafc !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printableReportArea .text-emerald {
+      color: #059669 !important;
+      font-weight: 800 !important;
+    }
+    #printableReportArea .text-cyan {
+      color: #0284c7 !important;
+      font-weight: 700 !important;
+    }
+    #printableReportArea .text-dim {
+      color: #64748b !important;
+    }
+    #printableReportArea .report-kpi-grid > div {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printableReportArea .report-kpi-grid div {
+      color: #0f172a !important;
+    }
   }
   .phone-wrap {
     display: inline-flex;
@@ -2010,19 +2176,21 @@
     vertical-align: middle;
   }
   .btn-copy-phone {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     color: #94a3b8;
     border-radius: 6px;
     width: 26px;
     height: 26px;
+    min-width: 26px;
+    min-height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     padding: 0;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
     vertical-align: middle;
     outline: none;
   }
@@ -2039,6 +2207,22 @@
     border-color: #10b981 !important;
     color: #34d399 !important;
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
+  }
+  html[data-theme="light"] .btn-copy-phone {
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0284c7 !important;
+  }
+  html[data-theme="light"] .btn-copy-phone:hover {
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+  }
+  html[data-theme="light"] .btn-copy-phone.copied {
+    background: #10b981 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
   }
 </style>
 {% endblock %}
@@ -2128,7 +2312,15 @@
       </div>
       <div class="kpi-val-group">
         <div class="kpi-main-number">{{ metrics.online_devices }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.total_approved_devices }}</span></div>
-        <div class="kpi-sub-text">{{ metrics.active_subscribers_online }} subscribers online now</div>
+        <div class="kpi-sub-text">
+          <span>{{ metrics.active_subscribers_online }} subscribers online</span>
+          {% if metrics.roaming_online_count %}
+            &bull; <span style="color:#10b981; font-weight:700;" title="{{ metrics.roaming_online_count }} subscribers roaming across fleet routers">🔄 {{ metrics.roaming_online_count }} roaming</span>
+          {% endif %}
+          {% if metrics.sharing_subscribers_count %}
+            &bull; <span style="color:#f87171; font-weight:700; cursor:pointer;" onclick="event.stopPropagation(); filterSubscribersTab('sharing'); document.getElementById('subscribersSection')?.scrollIntoView({ behavior: 'smooth' });" title="{{ metrics.sharing_subscribers_count }} subscribers attempting hotspot sharing (Blocked via TTL=1)">📡 {{ metrics.sharing_subscribers_count }} sharing blocked</span>
+          {% endif %}
+        </div>
       </div>
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.connectivity_rate }}%;"></div>
@@ -2148,7 +2340,13 @@
       </div>
       <div class="kpi-val-group">
         <div class="kpi-main-number">{{ metrics.total_subscribers }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.capacity_limit_formatted or metrics.capacity_limit }}</span></div>
-        <div class="kpi-sub-text">{{ metrics.active_subscribers }} Active &bull; {{ metrics.suspended_count }} Suspended</div>
+        <div class="kpi-sub-text">
+          <span style="color:#38bdf8; font-weight:700;">{{ metrics.active_subscribers }} Active</span>
+          &bull;
+          <span onclick="event.stopPropagation(); filterSubscribersTab('suspended'); document.getElementById('subscribersSection')?.scrollIntoView({ behavior: 'smooth' });" style="color:{% if metrics.suspended_count > 0 %}#f87171{% else %}var(--text-dim){% endif %}; font-weight:700; cursor:pointer;" title="Click to view Suspended Accounts List">
+            ⛔ {{ metrics.suspended_count }} Suspended
+          </span>
+        </div>
       </div>
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.capacity_percent }}%;"></div>
@@ -2224,23 +2422,29 @@
       </div>
     </div>
 
-    <!-- Card 6: Expiring Accounts / Action Needed -->
-    <div class="kpi-card theme-rose" onclick="handleKpiCardClick('expiring')" title="Click to view Priority Expiration Queue">
+    <!-- Card 6: Accounts Due for Suspension (Will Suspend) -->
+    <div class="kpi-card theme-rose" onclick="handleKpiCardClick('will_suspend')" title="Click to view Accounts Due for Suspension Cutoff">
       <div class="kpi-card-top">
-        <span class="kpi-label">Will Suspend / Expiring</span>
+        <span class="kpi-label">Will Suspend</span>
         <div class="kpi-icon-pill">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/></svg>
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number text-rose">{{ metrics.expiring_tiers.total }} <span style="font-size:15px; font-weight:500;">Accounts</span></div>
-        <div class="kpi-sub-text">{{ metrics.expiring_tiers.today_overdue }} Overdue/Today &bull; {{ metrics.expiring_tiers.in_3d }} in 3d</div>
+        <div class="kpi-main-number text-rose">{{ metrics.expiring_tiers.will_suspend }} <span style="font-size:15px; font-weight:500;">Accounts</span></div>
+        <div class="kpi-sub-text">
+          {% if metrics.expiring_tiers.will_suspend > 0 %}
+            <span style="color:#ef4444; font-weight:700;">🚨 {{ metrics.expiring_tiers.overdue }} Overdue &bull; {{ metrics.expiring_tiers.today }} Today</span> &bull; {{ metrics.expiring_tiers.in_3d }} in 3d
+          {% else %}
+            <span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; {{ metrics.expiring_tiers.in_3d }} in 3d &bull; {{ metrics.expiring_tiers.upcoming_renewals }} in 7-15d
+          {% endif %}
+        </div>
       </div>
       <div class="kpi-progress-bar">
-        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.total > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
+        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.will_suspend > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
       </div>
       <div class="kpi-filter-hint">
-        <span>🔍 View Priority Queue ↓</span>
+        <span>🔍 View Will Suspend List ↓</span>
       </div>
     </div>
   </div>
@@ -2346,6 +2550,15 @@
                     {% endif %}
                     <span class="phone-wrap font-mono" style="font-size:11.5px; color:var(--text-muted); margin-top:1px;">
                       <span class="phone-val text-cyan" style="font-weight:600;">{{ req.phone }}</span>
+                      <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
+                        <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </button>
                     </span>
                   </div>
                 {% else %}
@@ -2356,6 +2569,15 @@
                     </div>
                     <span class="phone-wrap font-mono" style="font-size:12.5px; color:#ffffff; font-weight:700; margin-top:1px;">
                       <span class="phone-val text-cyan">{{ req.phone }}</span>
+                      <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
+                        <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </button>
                     </span>
                   </div>
                 {% endif %}
@@ -2413,18 +2635,49 @@
                       Reject
                     </button>
                   {% elif req.is_secondary %}
-                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ (req.existing_customer_name or '') | escape }}', this)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
+                      onclick="quickApproveSecondaryFromBtn(this)"
+                      style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
+                      title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
+                      data-is-secondary="1"
+                      data-max-devices="{{ req.customer_max_devices or 1 }}"
+                      data-current-devices="{{ req.current_device_count or 0 }}"
+                      data-pkg-name="{{ req.existing_package_name or '' }}"
+                      data-expiry-date="{{ req.existing_expiry_date or '' }}"
+                      data-notes="{{ (req.existing_customer_notes or req.notes or '') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)"
+                      style="background:#1e293b; border-color:#334155; color:#cbd5e1;"
+                      title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
                       Reject
                     </button>
                   {% else %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 0, 1, 0, '', '', '{{ (req.notes or '') | escape }}')">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.existing_customer_name or req.customer_name or '') | escape }}"
+                      data-is-secondary="0"
+                      data-max-devices="1"
+                      data-current-devices="0"
+                      data-pkg-name=""
+                      data-expiry-date=""
+                      data-notes="{{ (req.notes or '') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
@@ -2481,14 +2734,21 @@
       </button>
 
       <button type="button" class="sub-tab-btn" id="tabBtnPriority" onclick="filterSubscribersTab('priority')" style="padding:4px 9px; font-size:11.5px;">
-        <span>🚨 Due Queue</span>
-        <span class="badge-count orange" style="font-size:9.5px; padding:1px 5px;">{{ metrics.expiring_tiers.total }}</span>
+        <span>🚨 Will Suspend / Due</span>
+        <span class="badge-count orange" style="font-size:9.5px; padding:1px 5px;">{{ metrics.expiring_tiers.will_suspend if metrics.expiring_tiers.will_suspend > 0 else metrics.expiring_tiers.total_queue }}</span>
       </button>
 
       <button type="button" class="sub-tab-btn" id="tabBtnOnline" onclick="filterSubscribersTab('online')" style="padding:4px 9px; font-size:11.5px;">
         <span>⚡ Online Now</span>
         <span class="badge-count green" style="font-size:9.5px; padding:1px 5px;">{{ metrics.active_subscribers_online }}</span>
       </button>
+
+      {% if metrics.sharing_subscribers_count %}
+        <button type="button" class="sub-tab-btn" id="tabBtnSharing" onclick="filterSubscribersTab('sharing')" style="padding:4px 9px; font-size:11.5px; border-color:rgba(239,68,68,0.4); color:#fca5a5;">
+          <span>📡 Sharing Blocked</span>
+          <span class="badge-count" style="background:rgba(239,68,68,0.25); color:#f87171; font-size:9.5px; padding:1px 5px;">{{ metrics.sharing_subscribers_count }}</span>
+        </button>
+      {% endif %}
 
       <button type="button" class="sub-tab-btn" id="tabBtnSuspended" onclick="filterSubscribersTab('suspended')" style="padding:4px 9px; font-size:11.5px;">
         <span>⛔ Suspended</span>
@@ -2501,13 +2761,13 @@
       <span class="tier-deck-title">Expiration Tier:</span>
 
       <button type="button" class="tier-pill-btn active" data-subfilter="all" onclick="filterQueueByTier('all')">
-        <span>All Priority Accounts</span>
-        <span class="tier-count-badge">{{ metrics.expiring_tiers.total }}</span>
+        <span>All Due Queue</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.total_queue }}</span>
       </button>
 
-      <button type="button" class="tier-pill-btn danger-pill" data-subfilter="overdue" onclick="filterQueueByTier('overdue')">
-        <span>🚨 Overdue / Today</span>
-        <span class="tier-count-badge">{{ metrics.expiring_tiers.today_overdue }}</span>
+      <button type="button" class="tier-pill-btn danger-pill" data-subfilter="will_suspend" onclick="filterQueueByTier('will_suspend')">
+        <span>🚨 Will Cut / Overdue</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.will_suspend }}</span>
       </button>
 
       <button type="button" class="tier-pill-btn warning-pill" data-subfilter="in_3d" onclick="filterQueueByTier('in_3d')">
@@ -2559,13 +2819,28 @@
                 data-tier="{{ c.tier }}"
                 data-status="{{ c.status }}"
                 data-online="{{ 'true' if c.is_online else 'false' }}"
-                data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }} {{ c.primary_mac | lower if c.primary_mac else '' }} {{ c.billing_type | lower }} {{ c.status | lower }} {{ (c.notes or '') | lower }}">
+                data-sharing="{{ 'true' if c.is_sharing_hotspot else 'false' }}"
+                data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }} {{ c.primary_mac | lower if c.primary_mac else '' }} {{ c.billing_type | lower }} {{ c.status | lower }} {{ (c.notes or '') | lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}">
               <td data-label="Subscriber">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik Router{% else %}Offline{% endif %}"></span>
                   <div>
                     <div style="font-weight: 700; color: var(--text-main, #ffffff); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       <span>{{ c.name }}</span>
+                      {% if c.is_sharing_hotspot %}
+                        <span class="badge-status badge-hotspot-sharing" style="font-size:10px; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:1.5px 6px; border-radius:4px; font-weight:700; display:inline-flex; align-items:center; gap:3px;" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                          📡 Sharing Blocked
+                        </span>
+                      {% endif %}
+                      <span class="cust-roaming-badge-container">
+                        {% if c.active_router_short_name and c.is_online %}
+                          {% if c.is_roaming %}
+                            <span class="badge-roaming-pill" title="{{ c.roaming_label or 'Roaming across fleet routers' }}">🔄 {{ c.active_router_short_name }} ROAMING</span>
+                          {% else %}
+                            <span class="badge-router-tag" title="Connected to {{ c.active_router_name or c.active_router_short_name }}">● {{ c.active_router_short_name }}</span>
+                          {% endif %}
+                        {% endif %}
+                      </span>
                       {% if c.notes %}
                         <span style="font-size:10px; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.35); padding:1px 6px; border-radius:4px; font-weight:600; white-space:nowrap;" title="Room / Note: {{ c.notes }}">🚪 {{ c.notes }}</span>
                       {% endif %}
@@ -2579,20 +2854,34 @@
               </td>
               <td data-label="Bound MAC">
                 {% if c.primary_mac %}
-                  <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <div style="display: flex; align-items: center; gap: 5px;">
+                  <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="display: flex; align-items: center; gap: 5px; flex-wrap:wrap;">
                       <span class="font-mono text-cyan" style="font-size: 12px; font-weight:700;">{{ c.primary_mac }}</span>
                       {% if c.primary_mac_is_random %}
                         <span class="tag-mac-warn" title="Random MAC detected">⚠ RANDOM</span>
                       {% else %}
                         <span class="tag-mac-ok" title="Verified Physical Device MAC">✓ DEVICE MAC</span>
                       {% endif %}
+                      <span class="cust-mac-status-tag">
+                        {% if c.is_online %}
+                          {% if c.is_roaming %}
+                            <span class="badge-roaming-pill" style="font-size:9.5px; padding:1px 5px;" title="{{ c.roaming_label }}">🔄 {{ c.active_router_short_name or 'MK' }} ROAM</span>
+                          {% else %}
+                            <span class="badge-online-pill" style="font-size:9.5px; padding:1px 5px;">ONLINE • {{ c.active_router_short_name or 'MK' }}</span>
+                          {% endif %}
+                        {% endif %}
+                      </span>
                     </div>
-                    <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; flex-wrap:wrap;">
                       <span>{{ c.devices_count }} device{% if c.devices_count > 1 %}s{% endif %}</span>
                       {% if c.devices_count > 1 %}
                         <span style="color: #38bdf8; font-weight: 600;">(+{{ c.devices_count - 1 }} more)</span>
                       {% endif %}
+                      <span class="cust-live-ip-tag">
+                        {% if c.live_ip %}
+                          <span class="font-mono text-emerald" style="font-size: 10px; font-weight:600;" title="Live IP Address">IP: {{ c.live_ip }}</span>
+                        {% endif %}
+                      </span>
                     </div>
                   </div>
                 {% else %}
@@ -2638,6 +2927,10 @@
                   <button type="button" class="btn-quick-collect" data-cid="{{ c.id }}" data-cname="{{ c.name }}" onclick="openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'))" title="Collect Payment &amp; Settle Unpaid Month(s)">
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                     <span>Collect</span>
+                  </button>
+                  <button type="button" class="btn-quick-reminder" onclick="openWhatsAppReminderModal({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}')" title="Send WhatsApp Status &amp; Renewal Reminder">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+                    <span>Reminder</span>
                   </button>
                   <button type="button" class="btn-view-profile" onclick="openCustomerDetailsModal({{ c.id }})" title="View Customer Full Details">
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
@@ -2867,6 +3160,63 @@
   </div>
 </div>
 
+<!-- DASHBOARD WHATSAPP REMINDER DISPATCH MODAL -->
+<div id="dashboardReminderModal" class="modal-overlay" onclick="if(event.target===this)closeWhatsAppReminderModal()">
+  <div class="modal-container" style="max-width:560px; width:95%;">
+    <div class="modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:#25d366;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+        <h3 style="margin:0; font-size:16px; font-weight:800;">Send WhatsApp Account Reminder</h3>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeWhatsAppReminderModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="gap:14px; padding:20px;">
+      <input type="hidden" id="dashRemCustId" value="">
+
+      <!-- Recipient Card -->
+      <div style="background:var(--bg-card-header, #080e1b); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Recipient</div>
+          <div id="dashRemCustNameText" style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff); margin-top:2px;">—</div>
+          <div id="dashRemCustPhoneText" style="font-size:12px; font-family:var(--font-mono); color:#93c5fd; margin-top:2px;">—</div>
+        </div>
+        <div id="dashRemCustStatusBadge" style="text-align:right;"></div>
+      </div>
+
+      <!-- Live Preview -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin:0;">Message Preview</label>
+          <span style="font-size:11px; color:#10b981;">✓ Live balance &amp; renewal due</span>
+        </div>
+        <textarea id="dashRemMessagePreview" rows="9" readonly style="width:100%; box-sizing:border-box; background:var(--bg-card, #080e1b); border:1px solid var(--border-subtle, rgba(148, 163, 184, 0.35)); border-radius:8px; padding:10px 12px; color:var(--text-main, #f8fafc); font-family:var(--font-mono); font-size:11.5px; line-height:1.45; resize:none;"></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
+        <button type="button" class="btn-table-manage" onclick="copyDashReminderText()" title="Copy reminder text to clipboard">
+          <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          <span>Copy Text</span>
+        </button>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn-quick-collect" onclick="collectFromDashReminderModal()" title="Record collection immediately for this customer">
+            <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+            <span>Collect</span>
+          </button>
+          <a id="dashRemWaDirectLink" href="#" target="_blank" class="btn-table-manage" style="color:#25d366; border-color:rgba(37,211,102,0.4);" title="Open WhatsApp Web or mobile app">
+            <span>WhatsApp Web ↗</span>
+          </a>
+          <button type="button" id="dashRemSendOpenWaBtn" class="btn-quick-reminder" onclick="sendDashWhatsAppReminderOpenWA()" title="Send directly via linked WhatsApp number">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <span>Send Now (OpenWA)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- CUSTOM DATE RANGE REPORT MODAL -->
 <div id="dateRangeModal" class="modal-overlay">
   <div class="modal-container" style="max-width: 800px;">
@@ -2926,6 +3276,34 @@
             <div style="font-size: 18px; font-weight: 800; color: #fbbf24; font-family: var(--font-mono);" id="rptAvgTx">0.00 SAR</div>
           </div>
         </div>
+
+        <!-- Collector Reconciliation Summary Table (Who collected how much in total) -->
+        <div id="rptStaffSection" style="margin-top: 18px; margin-bottom: 20px;">
+          <h3 style="font-size: 13.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+            <span>👤 Collections by Staff / Collector (Total Collected)</span>
+          </h3>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; overflow: hidden;">
+            <table class="clean-table" id="rptStaffTable" style="margin: 0; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="padding: 10px 14px;">Collector Name</th>
+                  <th style="padding: 10px 14px; text-align: center;">Transactions</th>
+                  <th style="padding: 10px 14px; text-align: right;">Total Amount (SAR)</th>
+                  <th style="padding: 10px 14px; text-align: right;">Average / Tx</th>
+                  <th style="padding: 10px 14px; text-align: right;">Share %</th>
+                </tr>
+              </thead>
+              <tbody id="rptStaffTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ledger Table Header -->
+        <h3 style="font-size: 13.5px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 10px 0; display: flex; align-items: center; justify-content: space-between;">
+          <span>📜 Itemized Transaction Ledger</span>
+          <span id="rptLedgerCount" style="font-size: 11px; color: var(--text-dim); text-transform: none; font-weight: 600;"></span>
+        </h3>
 
         <!-- Ledger Table -->
         <div style="max-height: 350px; overflow-y: auto; overflow-x: auto; max-width: 100%;">
@@ -3012,6 +3390,38 @@
 
           <div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.45;">
             💡 <strong>No billing required:</strong> This extra phone connects under the subscriber's existing active account. All existing subscription dates, monthly rates, and package settings remain untouched.
+          </div>
+
+          <!-- Guest Internet Pass Setup -->
+          <div style="margin-top:12px; padding:12px 14px; background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.35); border-radius:10px;">
+            <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-weight:700; color:#fbbf24; font-size:13px;">
+              <input type="checkbox" id="chkIsGuestPass" onchange="toggleGuestPassControls()" style="width:16px; height:16px; accent-color:#f59e0b;">
+              <span>⏳ Issue as Guest Internet Pass (Auto-Kick Timer)</span>
+            </label>
+            <div id="guestPassControls" style="display:none; margin-top:10px;">
+              <div style="font-size:11.5px; color:#cbd5e1; line-height:1.4; margin-bottom:8px;">
+                Guest device will automatically disconnect and be unlinked from MikroTik after the selected days without affecting the subscriber's account.
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                <button type="button" class="btn-preset" onclick="setGuestDays(1)">1 Day</button>
+                <button type="button" class="btn-preset" onclick="setGuestDays(2)">2 Days</button>
+                <button type="button" class="btn-preset" onclick="setGuestDays(3)">3 Days</button>
+                <button type="button" class="btn-preset" onclick="setGuestDays(7)">7 Days</button>
+                <div style="display:flex; align-items:center; gap:4px; margin-left:4px;">
+                  <input type="number" id="inputGuestDays" value="2" min="1" max="90" oninput="updateGuestKickPreview()" style="width:55px; padding:4px 6px; font-size:12px; font-weight:700; color:#fbbf24; background:#0f172a; border:1px solid rgba(245,158,11,0.5); border-radius:6px; text-align:center;">
+                  <span style="font-size:11.5px; color:#cbd5e1;">Days</span>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); padding:6px 10px; border-radius:6px; font-size:11.5px;">
+                <span style="color:#94a3b8;">Auto-kicks on:</span>
+                <strong id="dispGuestExpiryPreview" style="color:#fbbf24; font-family:var(--font-mono);">—</strong>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                <span style="font-size:11.5px; color:#94a3b8;">Optional Guest Fee:</span>
+                <input type="number" id="inputGuestFee" value="0.00" step="0.5" style="width:75px; padding:3px 6px; font-size:11.5px; background:#0f172a; border:1px solid rgba(255,255,255,0.15); border-radius:4px; color:#fff; text-align:right;">
+                <span style="font-size:11px; color:#94a3b8;">SAR</span>
+              </div>
+            </div>
           </div>
 
           <!-- Customer Note / Room Number for Secondary Device -->
@@ -3252,7 +3662,7 @@
             <label for="editCustPkg">Speed Package</label>
             <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
               {% for pkg in packages %}
-              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
               {% endfor %}
             </select>
           </div>
@@ -3290,12 +3700,44 @@
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustDueDate">Payment Due Date</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">Suspend Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
+              </div>
               <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Account suspends on this day.</span>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustCredit">Credit Balance (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <!-- Quick Suspend Presets for Modal -->
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Change Suspend Date:</span>
+              <button type="button" class="btn-preset" onclick="applyEditPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                📦 As per Package (<span id="btnEditPkgDaysText">30d</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setEditEndOfMonth()">End of Month</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(30)">Day 30</button>
             </div>
           </div>
         </div>
@@ -3379,9 +3821,14 @@
       }
     } else if (type === 'rate') {
       window.location.href = '/collections?period=month';
-    } else if (type === 'expiring') {
+    } else if (type === 'expiring' || type === 'will_suspend') {
       filterSubscribersTab('priority');
-      filterQueueByTier('all');
+      const willCut = {{ metrics.expiring_tiers.will_suspend or 0 }};
+      if (willCut > 0) {
+        filterQueueByTier('will_suspend');
+      } else {
+        filterQueueByTier('all');
+      }
       const el = document.getElementById('subscribersSection');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3436,19 +3883,21 @@
       if (activeSubTab === 'all') {
         matchesTab = true;
       } else if (activeSubTab === 'priority') {
-        if (['overdue', 'today', 'in_3d', 'in_7d', 'in_15d'].includes(tier) || status === 'suspended') {
+        if (['overdue', 'today', 'in_3d', 'in_7d', 'in_15d', 'grace'].includes(tier)) {
           if (activePrioritySubFilter === 'all') {
             matchesTab = true;
-          } else if (activePrioritySubFilter === 'overdue') {
-            matchesTab = (tier === 'overdue' || tier === 'today' || status === 'suspended');
+          } else if (activePrioritySubFilter === 'will_suspend' || activePrioritySubFilter === 'overdue') {
+            matchesTab = (tier === 'overdue' || tier === 'today');
           } else {
             matchesTab = (tier === activePrioritySubFilter);
           }
         }
       } else if (activeSubTab === 'online') {
         matchesTab = isOnline;
+      } else if (activeSubTab === 'sharing') {
+        matchesTab = (r.getAttribute('data-sharing') === 'true');
       } else if (activeSubTab === 'suspended') {
-        matchesTab = (status === 'suspended');
+        matchesTab = (status === 'suspended' || tier === 'suspended');
       }
 
       // 2. Search check
@@ -3714,6 +4163,143 @@
     closeCollectModal();
   }
 
+  // Dashboard WhatsApp Status & Renewal Reminder Modal
+  async function openWhatsAppReminderModal(cid, name, phone) {
+    const modal = document.getElementById('dashboardReminderModal');
+    if (!modal) return;
+
+    document.getElementById('dashRemCustId').value = cid;
+    document.getElementById('dashRemCustNameText').textContent = name || ('Subscriber #' + cid);
+    document.getElementById('dashRemCustPhoneText').textContent = phone || 'No phone recorded';
+
+    const statusBadge = document.getElementById('dashRemCustStatusBadge');
+    if (statusBadge) statusBadge.innerHTML = '<span class="badge-tier active" style="font-size:10px;">LOADING...</span>';
+
+    const preview = document.getElementById('dashRemMessagePreview');
+    if (preview) preview.value = 'Preparing live status reminder preview…';
+
+    const waLink = document.getElementById('dashRemWaDirectLink');
+    if (waLink) waLink.href = '#';
+
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    try {
+      const res = await fetch('/api/balance/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: parseInt(cid),
+          send_direct: true
+        })
+      });
+      const json = await res.json();
+      if (json.message_text && preview) {
+        preview.value = json.message_text;
+      }
+      if (waLink && json.whatsapp_url) {
+        waLink.href = json.whatsapp_url;
+      }
+      if (statusBadge) {
+        if (json.balance < 0) {
+          statusBadge.innerHTML = `<span class="badge-tier overdue" style="font-size:10.5px;">OWES ${Math.abs(json.balance).toFixed(2)} SAR</span>`;
+        } else if (json.balance > 0) {
+          statusBadge.innerHTML = `<span class="badge-tier active" style="font-size:10.5px;">CREDIT +${json.balance.toFixed(2)} SAR</span>`;
+        } else {
+          statusBadge.innerHTML = `<span class="badge-tier active" style="font-size:10.5px;">SETTLED (0.00 SAR)</span>`;
+        }
+      }
+    } catch (err) {
+      if (preview) preview.value = 'Failed to load reminder preview: ' + err.message;
+    }
+  }
+
+  function closeWhatsAppReminderModal() {
+    const modal = document.getElementById('dashboardReminderModal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function copyDashReminderText() {
+    const t = document.getElementById('dashRemMessagePreview');
+    if (t && t.value) {
+      t.select();
+      navigator.clipboard.writeText(t.value);
+      if (typeof cyberToast === 'function') {
+        cyberToast('📋 Reminder text copied to clipboard!', 'success');
+      } else {
+        alert('Reminder text copied to clipboard!');
+      }
+    }
+  }
+
+  function collectFromDashReminderModal() {
+    const cid = parseInt(document.getElementById('dashRemCustId').value);
+    const name = document.getElementById('dashRemCustNameText').textContent;
+    closeWhatsAppReminderModal();
+    if (typeof openCollectModal === 'function') {
+      openCollectModal(cid, name);
+    }
+  }
+
+  async function sendDashWhatsAppReminderOpenWA() {
+    const btn = document.getElementById('dashRemSendOpenWaBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>Sending…</span>';
+
+    const cid = parseInt(document.getElementById('dashRemCustId').value);
+    const name = document.getElementById('dashRemCustNameText').textContent;
+
+    try {
+      const res = await fetch('/api/balance/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: cid,
+          send_direct: false
+        })
+      });
+      const json = await res.json();
+      if (json.sent_via_openwa) {
+        if (typeof cyberToast === 'function') {
+          cyberToast(`✅ WhatsApp reminder sent successfully to ${name}!`, 'success');
+        } else {
+          alert(`✅ WhatsApp reminder sent successfully to ${name}!`);
+        }
+        closeWhatsAppReminderModal();
+      } else {
+        if (json.whatsapp_url) {
+          if (confirm(`OpenWA automated push reported: ${json.error || 'Gateway offline'}.\n\nWould you like to open WhatsApp Web / App directly to send?`)) {
+            window.open(json.whatsapp_url, '_blank');
+          }
+        } else {
+          const errMsg = json.error || 'Could not dispatch reminder';
+          if (typeof cyberToast === 'function') {
+            cyberToast('Dispatch error: ' + errMsg, 'error');
+          } else {
+            alert(errMsg);
+          }
+        }
+      }
+    } catch (err) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Error sending reminder: ' + err.message, 'error');
+      } else {
+        alert('Error sending reminder: ' + err.message);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  window.openWhatsAppReminderModal = openWhatsAppReminderModal;
+  window.closeWhatsAppReminderModal = closeWhatsAppReminderModal;
+  window.copyDashReminderText = copyDashReminderText;
+  window.collectFromDashReminderModal = collectFromDashReminderModal;
+  window.sendDashWhatsAppReminderOpenWA = sendDashWhatsAppReminderOpenWA;
+
   // Date Range Report Modal
   function openDateRangeReportModal() {
     const today = window.formatDateISO ? window.formatDateISO(new Date()) : new Date().toISOString().slice(0, 10);
@@ -3751,6 +4337,46 @@
       document.getElementById('rptCustCount').textContent = r.unique_customers;
       document.getElementById('rptAvgTx').textContent = parseFloat(r.avg_transaction).toFixed(2) + ' SAR';
 
+      // Render Staff Breakdown (Who collected how much in total)
+      const staffTbody = document.getElementById('rptStaffTableBody');
+      if (staffTbody) {
+        staffTbody.innerHTML = '';
+        if (r.staff_breakdown && r.staff_breakdown.length > 0) {
+          r.staff_breakdown.forEach(s => {
+            const tr = document.createElement('tr');
+            const totalAmt = parseFloat(s.total || s.total_amount || 0).toFixed(2);
+            const cnt = s.count || s.tx_count || 0;
+            const avgAmt = parseFloat(s.average || (cnt > 0 ? (s.total || s.total_amount) / cnt : 0)).toFixed(2);
+            const pct = s.percentage !== undefined ? s.percentage + '%' : ((r.total_collected > 0 ? ((s.total || s.total_amount) / r.total_collected * 100).toFixed(1) : '0') + '%');
+            tr.innerHTML = `
+              <td style="font-weight:700; color:#ffffff; padding:9px 14px;">👤 ${s.collector || s.collected_by}</td>
+              <td class="font-mono text-dim" style="text-align:center; padding:9px 14px;">${cnt}</td>
+              <td class="font-mono text-emerald" style="text-align:right; font-weight:800; padding:9px 14px;">${totalAmt} SAR</td>
+              <td class="font-mono text-dim" style="text-align:right; padding:9px 14px;">${avgAmt} SAR</td>
+              <td class="font-mono text-cyan" style="text-align:right; font-weight:700; padding:9px 14px;">${pct}</td>
+            `;
+            staffTbody.appendChild(tr);
+          });
+          // Add Total row
+          const totalTr = document.createElement('tr');
+          totalTr.style.background = 'rgba(255, 255, 255, 0.06)';
+          totalTr.style.fontWeight = '800';
+          totalTr.innerHTML = `
+            <td style="color:#ffffff; padding:9px 14px;">TOTAL RECONCILED</td>
+            <td class="font-mono" style="text-align:center; color:#ffffff; padding:9px 14px;">${r.tx_count}</td>
+            <td class="font-mono text-emerald" style="text-align:right; padding:9px 14px;">${parseFloat(r.total_collected).toFixed(2)} SAR</td>
+            <td class="font-mono text-dim" style="text-align:right; padding:9px 14px;">${parseFloat(r.avg_transaction).toFixed(2)} SAR</td>
+            <td class="font-mono text-cyan" style="text-align:right; padding:9px 14px;">100%</td>
+          `;
+          staffTbody.appendChild(totalTr);
+        } else {
+          staffTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-dim);">No staff collections recorded for this period.</td></tr>';
+        }
+      }
+
+      const ledgerCountEl = document.getElementById('rptLedgerCount');
+      if (ledgerCountEl) ledgerCountEl.textContent = `(${r.items ? r.items.length : 0} records)`;
+
       const tbody = document.getElementById('rptTableBody');
       tbody.innerHTML = '';
 
@@ -3762,9 +4388,9 @@
           tr.innerHTML = `
             <td class="font-mono text-dim" style="font-size:11px;">${item.collected_at}</td>
             <td style="font-weight:700; color:#fff;">${item.customer_name || 'Customer #' + item.customer_id}</td>
-            <td class="font-mono text-dim" style="font-size:11px;">${item.phone || '—'}</td>
+            <td class="font-mono text-dim" style="font-size:11px;">${item.customer_phone || item.phone || '—'}</td>
             <td class="font-mono text-emerald" style="font-weight:800;">+${parseFloat(item.amount).toFixed(2)} SAR</td>
-            <td class="font-mono text-dim" style="font-size:12px;">${item.collected_by || 'Admin'}</td>
+            <td class="font-mono text-dim" style="font-size:12px;">👤 ${item.collected_by || 'Admin'}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -3873,6 +4499,66 @@
     if (box) box.style.display = (chk && chk.checked) ? 'block' : 'none';
   }
 
+  function toggleGuestPassControls() {
+    const chk = document.getElementById('chkIsGuestPass');
+    const box = document.getElementById('guestPassControls');
+    const isGuest = chk && chk.checked;
+    if (box) box.style.display = isGuest ? 'block' : 'none';
+    updateGuestKickPreview();
+  }
+
+  function setGuestDays(num) {
+    const inp = document.getElementById('inputGuestDays');
+    if (inp) {
+      inp.value = num;
+      updateGuestKickPreview();
+    }
+  }
+
+  function updateGuestKickPreview() {
+    const inp = document.getElementById('inputGuestDays');
+    const disp = document.getElementById('dispGuestExpiryPreview');
+    const btnApprove = document.getElementById('btnSubmitApprove');
+    const days = parseInt(inp ? inp.value : 2) || 2;
+    const kickDate = new Date();
+    kickDate.setDate(kickDate.getDate() + days);
+    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    if (disp) disp.textContent = kickDate.toLocaleDateString(undefined, options);
+
+    const chk = document.getElementById('chkIsGuestPass');
+    if (chk && chk.checked && btnApprove) {
+      btnApprove.innerHTML = `<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg><span>Authorize as Guest Device (${days} Days)</span>`;
+    } else if (btnApprove) {
+      btnApprove.innerHTML = `<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (Permanent)</span>`;
+    }
+  }
+
+  // Safe caller wrappers for dataset attributes
+  function quickApproveSecondaryFromBtn(btn) {
+    if (!btn) return;
+    const reqId = btn.dataset.reqId;
+    const custName = btn.dataset.custName || '';
+    quickApproveSecondary(reqId, custName, btn);
+  }
+
+  function openApprovalModalFromBtn(btn) {
+    if (!btn) return;
+    const ds = btn.dataset;
+    openApprovalModal(
+      ds.reqId,
+      ds.phone,
+      ds.mac,
+      ds.ip || '',
+      ds.custName || '',
+      ds.isSecondary === '1' ? 1 : 0,
+      parseInt(ds.maxDevices) || 1,
+      parseInt(ds.currentDevices) || 0,
+      ds.pkgName || '',
+      ds.expiryDate || '',
+      ds.notes || ''
+    );
+  }
+
   function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes) {
     const modalReqId = document.getElementById('modalReqId');
     if (modalReqId) modalReqId.value = reqId;
@@ -3934,6 +4620,13 @@
       const extraFeeInput = document.getElementById('inputSecondaryExtraFee');
       if (extraFeeInput) extraFeeInput.value = '0.00';
 
+      // Setup guest pass controls - ALWAYS UNCHECKED by default per admin requirement
+      const chkGuest = document.getElementById('chkIsGuestPass');
+      if (chkGuest) {
+        chkGuest.checked = false;
+        toggleGuestPassControls();
+      }
+
       // Disable 'required' on hidden fields
       if (nameField) nameField.required = false;
       if (colToday) colToday.required = false;
@@ -3994,6 +4687,11 @@
   function closeApprovalModal() {
     const modal = document.getElementById('approvalModal');
     if (modal) modal.classList.remove('open');
+    const chkGuest = document.getElementById('chkIsGuestPass');
+    if (chkGuest) {
+      chkGuest.checked = false;
+      toggleGuestPassControls();
+    }
   }
 
   function calculatePostpaidAdvance() {
@@ -4039,6 +4737,10 @@
       const extraFee = chkExtra ? (parseFloat(document.getElementById('inputSecondaryExtraFee')?.value) || 0.0) : 0.0;
       const secNotes = document.getElementById('secondaryCustNotes')?.value?.trim() || '';
 
+      const chkGuest = document.getElementById('chkIsGuestPass')?.checked || false;
+      const guestDays = chkGuest ? (parseInt(document.getElementById('inputGuestDays')?.value) || 2) : 0;
+      const guestFee = chkGuest ? (parseFloat(document.getElementById('inputGuestFee')?.value) || 0.0) : 0.0;
+
       try {
         const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
           method: 'POST',
@@ -4046,8 +4748,11 @@
           body: JSON.stringify({
             name: custName,
             is_secondary: true,
-            collected_today: extraFee,
-            notes: secNotes
+            collected_today: extraFee || guestFee,
+            notes: secNotes,
+            is_guest: chkGuest,
+            guest_days: guestDays,
+            guest_fee: guestFee
           })
         });
 
@@ -4433,8 +5138,83 @@
     }
   }
 
-  // Poll pending requests every 6 seconds
+  // Real-time live dashboard subscriber telemetry & roaming refresh poller (every 15s)
+  async function refreshDashboardDeviceTelemetry() {
+    try {
+      const resp = await fetch('/api/customers/live-devices');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!data || !data.customers) return;
+
+      for (const [custId, cInfo] of Object.entries(data.customers)) {
+        const row = document.getElementById(`cust-row-${custId}`);
+        if (!row) continue;
+
+        const isOnline = Boolean(cInfo.is_online || (cInfo.online_count > 0));
+        row.setAttribute('data-online', isOnline ? 'true' : 'false');
+
+        // 1. Update pulse dot
+        const pulseDot = row.querySelector('.pulse-dot');
+        if (pulseDot) {
+          if (isOnline) {
+            pulseDot.style.backgroundColor = '#10b981';
+            pulseDot.style.boxShadow = '0 0 8px #10b981';
+            pulseDot.style.animation = '';
+            pulseDot.title = 'Device Online on MikroTik Router';
+          } else {
+            pulseDot.style.backgroundColor = '#64748b';
+            pulseDot.style.boxShadow = 'none';
+            pulseDot.style.animation = 'none';
+            pulseDot.title = 'Offline';
+          }
+        }
+
+        // 2. Update roaming badge next to name
+        const roamingContainer = row.querySelector('.cust-roaming-badge-container');
+        if (roamingContainer) {
+          if (isOnline && cInfo.active_router_short_name) {
+            if (cInfo.is_roaming) {
+              roamingContainer.innerHTML = `<span class="badge-roaming-pill" title="${cInfo.roaming_label || 'Roaming across fleet routers'}">🔄 ${cInfo.active_router_short_name} ROAMING</span>`;
+            } else {
+              roamingContainer.innerHTML = `<span class="badge-router-tag" title="Connected to ${cInfo.active_router_name || cInfo.active_router_short_name}">● ${cInfo.active_router_short_name}</span>`;
+            }
+          } else {
+            roamingContainer.innerHTML = '';
+          }
+        }
+
+        // 3. Update Bound MAC cell status tag & live IP
+        const macStatusTag = row.querySelector('.cust-mac-status-tag');
+        if (macStatusTag) {
+          if (isOnline) {
+            if (cInfo.is_roaming) {
+              macStatusTag.innerHTML = `<span class="badge-roaming-pill" style="font-size:9.5px; padding:1px 5px;" title="${cInfo.roaming_label || ''}">🔄 ${cInfo.active_router_short_name || 'MK'} ROAM</span>`;
+            } else {
+              macStatusTag.innerHTML = `<span class="badge-online-pill" style="font-size:9.5px; padding:1px 5px;">ONLINE • ${cInfo.active_router_short_name || 'MK'}</span>`;
+            }
+          } else {
+            macStatusTag.innerHTML = '';
+          }
+        }
+
+        const liveIpTag = row.querySelector('.cust-live-ip-tag');
+        if (liveIpTag) {
+          if (cInfo.live_ip) {
+            liveIpTag.innerHTML = `<span class="font-mono text-emerald" style="font-size: 10px; font-weight:600;" title="Live IP Address">IP: ${cInfo.live_ip}</span>`;
+          } else {
+            liveIpTag.innerHTML = '';
+          }
+        }
+      }
+    } catch (err) {
+      console.debug('Dashboard telemetry poll error:', err);
+    }
+  }
+
+  // Poll pending requests every 6 seconds, and telemetry every 15 seconds
   window.pendingRequestsInterval = setInterval(refreshPendingRequests, 6000);
+  window.dashboardTelemetryInterval = setInterval(refreshDashboardDeviceTelemetry, 15000);
+  window.addEventListener('focus', () => { refreshDashboardDeviceTelemetry(); });
 
   // =========================================================
   // CUSTOMER DETAILS MODAL
@@ -4457,20 +5237,25 @@
       sub.innerHTML = `Phone: <strong class="font-mono text-cyan">${c.phone}</strong> &bull; Status: <span class="badge-tier ${c.status === 'active' ? 'active' : 'suspended'}">${c.status.toUpperCase()}</span>`;
 
       const devicesHtml = (c.devices && c.devices.length > 0)
-        ? c.devices.map(d => `
+        ? c.devices.map(d => {
+            const isOnline = (d.state === 'online') || d.is_online;
+            const rTag = d.router_short_name ? (d.is_roaming ? `<span class="badge-roaming-pill" style="font-size:9.5px; padding:1px 5px;" title="${d.roaming_label || ''}">🔄 ${d.router_short_name} ROAM</span>` : `<span class="badge-router-tag" style="font-size:9.5px; padding:1px 5px;" title="${d.router_name || ''}">● ${d.router_short_name}</span>`) : '';
+            const statusBadge = isOnline ? `<span class="badge-online-pill" style="font-size:10px;">ONLINE</span> ${rTag}` : (d.state === 'recent' ? `<span style="font-size:10px; color:#f59e0b; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:1px 5px; border-radius:4px;">RECENT</span> ${rTag}` : `<span style="font-size:10px; color:#94a3b8; background:rgba(148,163,184,0.1); border:1px solid rgba(148,163,184,0.25); padding:1px 5px; border-radius:4px;">OFFLINE</span>`);
+            const liveIp = d.live_ip || d.ip_address || '—';
+            return `
             <tr>
               <td class="font-mono text-cyan" style="font-weight:700;">
-                <div style="display:flex; align-items:center; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                   <span>${d.mac_address}</span>
                   ${d.is_random_mac ? '<span class="tag-mac-warn">⚠ RANDOM</span>' : '<span class="tag-mac-ok">✓ DEVICE MAC</span>'}
                 </div>
               </td>
-              <td>${d.device_name || 'Standard Device'}</td>
-              <td class="font-mono text-dim">${d.ip_address || '—'}</td>
-              <td><span class="badge-tier active">APPROVED</span></td>
+              <td>${d.friendly_name || d.device_name || 'Standard Device'}</td>
+              <td class="font-mono ${isOnline ? 'text-emerald' : 'text-dim'}">${liveIp}</td>
+              <td>${statusBadge}</td>
               <td class="font-mono text-dim" style="font-size:11px;">${d.bound_at || '—'}</td>
             </tr>
-          `).join('')
+          `;}).join('')
         : '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-dim);">No devices currently bound.</td></tr>';
 
       const ledgerHtml = (c.collections && c.collections.length > 0)
@@ -4493,10 +5278,13 @@
             <div class="font-mono text-cyan" style="font-size:13px; font-weight:700;">${parseFloat(c.monthly_fee || 0).toFixed(2)} SAR/mo</div>
           </div>
           <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
-            <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Due / Expiry</div>
-            <div class="font-mono" style="font-size:14px; font-weight:800; color:#fff; margin-top:2px;">${c.due_date || c.expiry_date || '—'}</div>
-            <div style="font-size:11px; color:${c.days_remaining !== null && c.days_remaining < 0 ? '#f87171' : '#34d399'}; font-weight:600;">
-              ${c.days_remaining !== null ? (c.days_remaining < 0 ? `Overdue (-${Math.abs(c.days_remaining)}d)` : `${c.days_remaining} days remaining`) : 'Active cycle'}
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Suspend / Expiry Date</div>
+              <button type="button" onclick="closeCustomerDetailsModal(); openEditCustomerModal(${c.id});" style="font-size:10px; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:4px; padding:2px 6px; cursor:pointer; font-weight:700;">✎ Change</button>
+            </div>
+            <div class="font-mono" style="font-size:14px; font-weight:800; color:#fff; margin-top:4px;">${c.due_date || c.expiry_date || c.suspend_date || '—'}</div>
+            <div style="font-size:11px; font-weight:700; margin-top:3px;">
+              ${c.status === 'suspended' ? '<span style="color:#ef4444;">⛔ ALREADY SUSPENDED</span>' : (c.days_remaining !== null ? (c.days_remaining < 0 ? `<span style="color:#f87171;">Auto-Cut Overdue (-${Math.abs(c.days_remaining)}d)</span>` : (c.days_remaining === 0 ? '<span style="color:#ef4444;">🚨 Auto-Cut Due Today</span>' : `<span style="color:#34d399;">Auto-Cut in ${c.days_remaining} days</span>`)) : '<span style="color:#34d399;">Active cycle</span>')}
             </div>
           </div>
           <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
@@ -4557,6 +5345,10 @@
             <button type="button" class="btn-quick-collect" data-cid="${c.id}" data-cname="${escapeHtml(c.name)}" onclick="closeCustomerDetailsModal(); openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'));">
               <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
               <span>Collect Bill</span>
+            </button>
+            <button type="button" class="btn-quick-reminder" onclick="closeCustomerDetailsModal(); openWhatsAppReminderModal(${c.id}, '${escapeHtml(c.name)}', '${c.phone || ''}');" title="Send WhatsApp Status & Renewal Reminder">
+              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+              <span>Reminder</span>
             </button>
             <button type="button" class="${c.status === 'active' ? 'btn-reject' : 'btn-approve'}" onclick="toggleCustomerStatusFromModal(${c.id}, '${c.status}');">
               <span>${c.status === 'active' ? 'Suspend Account' : 'Activate Account'}</span>
@@ -4694,11 +5486,75 @@
     if (!opt) return;
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('editCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('editCustSpeed').value = rate;
     } else {
       document.getElementById('editCustSpeed').value = 'Unlimited';
+    }
+    const btnDays = document.getElementById('btnEditPkgDaysText');
+    if (btnDays) btnDays.textContent = `${days}d`;
+    applyEditPkgValidity();
+  }
+
+  function applyEditPkgValidity() {
+    const sel = document.getElementById('editCustPkg');
+    if (!sel || sel.selectedIndex < 0) return;
+    const days = parseInt(sel.options[sel.selectedIndex].getAttribute('data-days')) || 30;
+    const today = new Date();
+    today.setDate(today.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function setEditDueDateValue(dateStr) {
+    const el = document.getElementById('editCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) {
+      window.setPickerDate('editCustDueDate', dateStr);
+    }
+  }
+
+  function shiftEditDueDate(days) {
+    const el = document.getElementById('editCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Day ${dayNum}`;
+      badge.style.color = '#34d399';
     }
   }
 
@@ -4734,6 +5590,7 @@
           speed_limit: speed,
           monthly_fee: fee,
           due_date: dueDate,
+          suspend_date: dueDate,
           max_devices: maxDev,
           credit_balance: credit
         })

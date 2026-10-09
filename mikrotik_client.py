@@ -1520,6 +1520,17 @@ class RouterClient:
             except Exception as e:
                 logger.warning(f"Could not read DHCP leases: {e}")
 
+            # 3. Hotspot Sharing Suspects (Tethering attempts detected via ingress TTL=63 / TTL=127)
+            sharing_ips: Dict[str, Dict[str, Any]] = {}
+            try:
+                addr_list = api.get_resource('/ip/firewall/address-list').get(list='hotspot_sharing_suspects')
+                for ae in addr_list:
+                    addr = ae.get('address')
+                    if addr:
+                        sharing_ips[addr.strip()] = ae
+            except Exception as e:
+                logger.debug(f"Could not read hotspot_sharing_suspects from {self.host}: {e}")
+
             host_map: Dict[str, Dict[str, Any]] = {}
             for h in hosts:
                 m = h.get("mac-address")
@@ -1574,6 +1585,12 @@ class RouterClient:
                     status_label = "Offline"
                     detail = f"Last seen {last_seen_str}" if last_seen_str else "Offline"
 
+                # Check tethering detection
+                is_sharing = bool(live_ip and live_ip.strip() in sharing_ips)
+                sharing_entry = sharing_ips.get(live_ip.strip(), {}) if is_sharing else {}
+                sharing_timeout = sharing_entry.get("timeout")
+                sharing_detail = f"Hotspot sharing attempt detected (Blocked via TTL=1)" if is_sharing else None
+
                 telemetry[mac] = {
                     "mac_address": mac,
                     "state": state,
@@ -1584,7 +1601,10 @@ class RouterClient:
                     "uptime": uptime_str,
                     "last_seen": last_seen_str,
                     "idle_time": idle_str,
-                    "detail": detail
+                    "detail": detail,
+                    "is_sharing_hotspot": is_sharing,
+                    "sharing_timeout": sharing_timeout,
+                    "sharing_detail": sharing_detail
                 }
 
             self._telemetry_cache = telemetry
@@ -1734,6 +1754,215 @@ def _parallel_fleet_dispatch(worker_fn, routers: List[Dict[str, Any]], timeout: 
                 logger.error(f"Fleet dispatch error on router '{r_name}': {e}")
                 results[r_name] = default_fallback
     return results
+
+
+_fleet_telemetry_cache: Optional[Dict[str, Dict[str, Any]]] = None
+_fleet_telemetry_cache_time: float = 0.0
+
+
+def get_router_short_code(router_name: Optional[str] = None, router_id: Optional[int] = None) -> str:
+    """
+    Extracts short hardware code (e.g. MK10, MK20, MK30) from router name or ID.
+    """
+    name_l = (router_name or "").lower()
+    if "10" in name_l:
+        return "MK10"
+    if "20" in name_l:
+        return "MK20"
+    if "30" in name_l:
+        return "MK30"
+    if router_id is not None:
+        return f"MK{router_id}"
+    return "MK"
+
+
+def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[str, Dict[str, Any]]:
+    """
+    Queries ALL active MikroTik routers in the fleet concurrently using ThreadPoolExecutor.
+    Intelligently reconciles multi-gateway roaming states:
+    - If a device is seen on multiple routers (e.g. roamed from MK10 to MK20),
+      an 'online' state on ANY router strictly overrides 'recent' or 'offline' states.
+    - If online on multiple routers, selects the router with the lowest idle_time.
+    - Accurately attributes active router short code (MK10, MK20, MK30), live IP,
+      and roaming indicator (is_roaming=True).
+    Cached in memory for max_cache_age_sec (default 4.0s) to keep CPU low and API sub-millisecond.
+    """
+    global _fleet_telemetry_cache, _fleet_telemetry_cache_time
+    now = time.time()
+    if _fleet_telemetry_cache is not None and (now - _fleet_telemetry_cache_time) < max_cache_age_sec:
+        return _fleet_telemetry_cache
+
+    import database
+    try:
+        routers = database.get_all_routers(active_only=True)
+    except Exception as e:
+        logger.warning(f"Could not load active routers for fleet telemetry: {e}")
+        routers = []
+
+    if not routers:
+        return {}
+
+    def _fetch_for_router(r):
+        try:
+            client = get_client_for_router(r)
+            tmap = client.get_devices_telemetry_map(max_cache_age_sec=0)
+            return r, tmap, None
+        except Exception as e:
+            logger.debug(f"Fleet telemetry fetch failed for router {r.get('id')} ({r.get('name')}): {e}")
+            return r, {}, str(e)
+
+    with ThreadPoolExecutor(max_workers=len(routers) or 1) as executor:
+        results = list(executor.map(_fetch_for_router, routers))
+
+    all_mac_appearances: Dict[str, List[Any]] = {}
+    for r, tmap, err in results:
+        r_name = r.get("name") or f"Router {r.get('id')}"
+        short_code = get_router_short_code(r_name, r.get("id"))
+        for mac, telem in tmap.items():
+            if mac not in all_mac_appearances:
+                all_mac_appearances[mac] = []
+            telem_copy = dict(telem)
+            telem_copy["router_id"] = r.get("id")
+            telem_copy["router_name"] = r_name
+            telem_copy["router_short_name"] = short_code
+            all_mac_appearances[mac].append((r, telem_copy))
+
+    fleet_telemetry: Dict[str, Dict[str, Any]] = {}
+
+    for mac, appearances in all_mac_appearances.items():
+        is_roaming = len(appearances) > 1
+        roaming_short_codes = [get_router_short_code(r.get("name"), r.get("id")) for r, _ in appearances]
+
+        online_entries = [t for _, t in appearances if t.get("state") == "online"]
+        recent_entries = [t for _, t in appearances if t.get("state") == "recent"]
+        offline_entries = [t for _, t in appearances if t.get("state") == "offline"]
+
+        if online_entries:
+            best = online_entries[0]
+            if len(online_entries) > 1:
+                def get_idle(t):
+                    sec = parse_routeros_duration(t.get("idle_time"))
+                    return sec if sec is not None else 999999
+                best = min(online_entries, key=get_idle)
+
+            final_telem = dict(best)
+            final_telem["state"] = "online"
+            final_telem["is_online"] = True
+            final_telem["is_roaming"] = is_roaming
+            final_telem["roaming_routers"] = roaming_short_codes
+            active_code = final_telem.get("router_short_name", "MK")
+            other_codes = [c for c in roaming_short_codes if c != active_code]
+            if is_roaming:
+                if other_codes:
+                    final_telem["roaming_label"] = f"Roaming Active on {active_code} (also on {', '.join(other_codes)})"
+                    final_telem["status_label"] = f"Online ({active_code} Roaming)"
+                else:
+                    final_telem["roaming_label"] = f"Roaming Active on {active_code}"
+                    final_telem["status_label"] = f"Online ({active_code})"
+            else:
+                final_telem["roaming_label"] = f"Connected on {active_code}"
+                final_telem["status_label"] = f"Online ({active_code})"
+
+        elif recent_entries:
+            def get_seen(t):
+                sec = parse_routeros_duration(t.get("last_seen"))
+                return sec if sec is not None else 999999
+            best = min(recent_entries, key=get_seen)
+            final_telem = dict(best)
+            final_telem["state"] = "recent"
+            final_telem["is_online"] = False
+            final_telem["is_roaming"] = is_roaming
+            final_telem["roaming_routers"] = roaming_short_codes
+            active_code = final_telem.get("router_short_name", "MK")
+            if is_roaming:
+                final_telem["roaming_label"] = f"Recently on {active_code} (Roamed across {', '.join(roaming_short_codes)})"
+                final_telem["status_label"] = f"Recently Offline ({active_code})"
+            else:
+                final_telem["roaming_label"] = f"Recently on {active_code}"
+                final_telem["status_label"] = f"Recently Offline ({active_code})"
+
+        else:
+            best = offline_entries[0] if offline_entries else {}
+            final_telem = dict(best)
+            final_telem["state"] = "offline"
+            final_telem["is_online"] = False
+            final_telem["is_roaming"] = is_roaming
+            final_telem["roaming_routers"] = roaming_short_codes
+            final_telem["roaming_label"] = "Offline"
+            final_telem["status_label"] = "Offline"
+
+        # Reconcile tethering detection across appearances
+        any_sharing = any(t.get("is_sharing_hotspot") for _, t in appearances)
+        sharing_t = next((t for _, t in appearances if t.get("is_sharing_hotspot")), None)
+        final_telem["is_sharing_hotspot"] = any_sharing
+        final_telem["sharing_timeout"] = sharing_t.get("sharing_timeout") if sharing_t else None
+        final_telem["sharing_detail"] = sharing_t.get("sharing_detail") if sharing_t else None
+
+        fleet_telemetry[mac] = final_telem
+
+    _fleet_telemetry_cache = fleet_telemetry
+    _fleet_telemetry_cache_time = now
+    return fleet_telemetry
+
+
+def broadcast_get_hotspot_sharing_suspects() -> List[Dict[str, Any]]:
+    """
+    Fetches all active hotspot sharing suspects from /ip/firewall/address-list across all active routers.
+    """
+    import database
+    try:
+        routers = database.get_all_routers(active_only=True)
+    except Exception:
+        routers = []
+
+    if not routers:
+        return []
+
+    def _fetch_suspects(r):
+        try:
+            client = get_client_for_router(r)
+            pool = routeros_api.RouterOsApiPool(
+                client.host,
+                username=client.username,
+                password=client.password,
+                port=client.port,
+                use_ssl=client.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            entries = api.get_resource('/ip/firewall/address-list').get(list='hotspot_sharing_suspects')
+            pool.disconnect()
+            r_name = r.get("name") or f"Router {r.get('id')}"
+            short_code = get_router_short_code(r_name, r.get("id"))
+            return [{
+                "router_id": r.get("id"),
+                "router_name": r_name,
+                "router_short_code": short_code,
+                "address": e.get("address"),
+                "timeout": e.get("timeout"),
+                "creation_time": e.get("creation-time"),
+                "comment": e.get("comment", "")
+            } for e in entries]
+        except Exception as e:
+            logger.debug(f"Could not fetch suspects from {r.get('name')}: {e}")
+            return []
+
+    with ThreadPoolExecutor(max_workers=len(routers) or 1) as executor:
+        results = list(executor.map(_fetch_suspects, routers))
+
+    all_suspects = []
+    for res in results:
+        all_suspects.extend(res)
+    return all_suspects
+
+
+def broadcast_get_online_mac_addresses(max_cache_age_sec: float = 4.0) -> List[str]:
+    """
+    Returns list of MAC addresses currently online across any router in the fleet.
+    """
+    tmap = broadcast_get_devices_telemetry_map(max_cache_age_sec=max_cache_age_sec)
+    return [mac for mac, t in tmap.items() if t.get("state") == "online"]
 
 
 def broadcast_bind_device(

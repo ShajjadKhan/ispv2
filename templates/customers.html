@@ -956,6 +956,34 @@
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.25);
   }
+  .cust-mac-pill.sharing-blocked {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    font-weight: 700;
+  }
+  .badge-hotspot-sharing {
+    font-size: 10px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  html[data-theme="light"] .cust-mac-pill.sharing-blocked {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #f87171;
+  }
+  html[data-theme="light"] .badge-hotspot-sharing {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+  }
 
   /* MODAL RESPONSIVENESS */
   .modal-grid-2 {
@@ -1158,64 +1186,90 @@
 {% block content %}
 <div class="dir-grid">
 
+    {% set total_subs = customers | length %}
+  {% set online_subs = customers | selectattr('is_online') | list | length %}
+  {% set active_subs = customers | selectattr('status', 'equalto', 'active') | list | length %}
+  {% set suspended_subs = customers | selectattr('status', 'equalto', 'suspended') | list | length %}
+  {% set prepaid_subs = customers | selectattr('billing_type', 'equalto', 'prepaid') | list | length %}
+  {% set postpaid_subs = customers | selectattr('billing_type', 'equalto', 'postpaid') | list | length %}
+  {% set total_devs = customers | map(attribute='devices') | map('length') | sum %}
+  {% set online_devs = customers | map(attribute='online_devices_count') | sum %}
+  {% set total_rev = customers | map(attribute='monthly_fee') | sum %}
+  {% set positive_credit = customers | selectattr('credit_balance') | selectattr('credit_balance', '>', 0) | map(attribute='credit_balance') | sum %}
+  {% set credit_subs = customers | selectattr('credit_balance') | selectattr('credit_balance', '>', 0) | list | length %}
+  {% set sharing_subs = customers | selectattr('is_sharing_hotspot') | list | length %}
+
   <!-- TOP SUMMARY CARDS (CLICKABLE FILTERS) -->
   <div class="stats-row">
+    <!-- Card 1: Total Subscribers -->
     <div class="stat-card" id="cardFilterAll" onclick="selectStatCardFilter('all')" title="Click to view all subscribers">
       <div class="stat-icon total-icon">
         <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       </div>
       <div class="stat-data">
-        <div class="num text-white">{{ customers | length }}</div>
+        <div class="num text-white">{{ total_subs }}</div>
         <div class="lbl">Total Subscribers</div>
         <div class="stat-filter-hint"><span>🔍 All Subscribers</span></div>
       </div>
     </div>
 
-    <div class="stat-card" id="cardFilterActive" onclick="selectStatCardFilter('active')" title="Click to filter Active & Online subscribers">
-      <div class="stat-icon active-icon">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    <!-- Card 2: Connected Devices (Live Online) -->
+    <div class="stat-card" id="cardFilterOnline" onclick="selectStatCardFilter('online')" title="Click to filter Subscribers & Devices currently Online">
+      <div class="stat-icon active-icon" style="background:rgba(16, 185, 129, 0.15); color:#34d399;">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
       </div>
       <div class="stat-data">
-        {% set active_count = customers | selectattr('status', 'equalto', 'active') | list | length %}
-        <div class="num text-emerald">{{ active_count }}</div>
-        <div class="lbl">Active &amp; Online</div>
-        <div class="stat-filter-hint"><span>🔍 Filter Active</span></div>
+        <div class="num text-emerald">{{ online_devs }} <span style="font-size:12px; font-weight:600; color:var(--text-dim);">/ {{ total_devs }} Devs</span></div>
+        <div class="lbl">Connected Devices</div>
+        <div class="stat-filter-hint"><span style="color:#10b981; font-weight:700;">● {{ online_subs }} Online</span> &bull; <span>🔍 Filter</span></div>
       </div>
     </div>
 
+    <!-- Card 3: Active Subscribers -->
+    <div class="stat-card" id="cardFilterActive" onclick="selectStatCardFilter('active')" title="Click to filter Active Subscribers">
+      <div class="stat-icon" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8;">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+      <div class="stat-data">
+        <div class="num text-cyan" style="color:#38bdf8;">{{ active_subs }}</div>
+        <div class="lbl">Active Subscribers</div>
+        <div class="stat-filter-hint"><span>{{ suspended_subs }} Suspended &bull; 🔍 Filter</span></div>
+      </div>
+    </div>
+
+    <!-- Card 4: Prepaid Subscribers -->
     <div class="stat-card" id="cardFilterPrepaid" onclick="selectStatCardFilter('prepaid')" title="Click to filter Prepaid subscribers">
       <div class="stat-icon prepaid-icon">
         <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
       </div>
       <div class="stat-data">
-        {% set prepaid_count = customers | selectattr('billing_type', 'equalto', 'prepaid') | list | length %}
-        <div class="num text-purple" style="color:#c084fc;">{{ prepaid_count }}</div>
+        <div class="num text-purple" style="color:#c084fc;">{{ prepaid_subs }}</div>
         <div class="lbl">Prepaid Subscribers</div>
         <div class="stat-filter-hint"><span>🔍 Filter Prepaid</span></div>
       </div>
     </div>
 
+    <!-- Card 5: Monthly Revenue Value -->
     <div class="stat-card" id="cardFilterRevenue" onclick="selectStatCardFilter('revenue')" title="Click to filter Active paying revenue">
       <div class="stat-icon revenue-icon">
         <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
       </div>
       <div class="stat-data">
-        {% set total_rev = customers | map(attribute='monthly_fee') | sum %}
         <div class="num text-amber">{{ "%.0f"|format(total_rev) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
         <div class="lbl">Monthly Value</div>
         <div class="stat-filter-hint"><span>🔍 Filter Value</span></div>
       </div>
     </div>
 
+    <!-- Card 6: Customer Credit Held -->
     <div class="stat-card" id="cardFilterCredit" onclick="selectStatCardFilter('credit')" title="Click to filter Customers holding wallet credit">
       <div class="stat-icon" style="background:rgba(52,211,153,0.15); color:#34d399;">
         <svg viewBox="0 0 24 24" style="fill:currentColor; width:22px; height:22px;"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
       </div>
       <div class="stat-data">
-        {% set total_credit = customers | map(attribute='credit_balance') | sum %}
-        <div class="num" style="color:#34d399;">{{ "%.0f"|format(total_credit) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
+        <div class="num" style="color:#34d399;">+{{ "%.0f"|format(positive_credit) }} <span style="font-size:14px; font-weight:600;">SAR</span></div>
         <div class="lbl">Customer Credit Held</div>
-        <div class="stat-filter-hint"><span>🔍 Filter Credit Held</span></div>
+        <div class="stat-filter-hint"><span>{{ credit_subs }} with credit &bull; 🔍 Filter</span></div>
       </div>
     </div>
   </div>
@@ -1228,12 +1282,16 @@
     </div>
 
     <div class="filter-group">
-      <button type="button" class="filter-btn active" id="filterAll" onclick="setBillingFilter('all')">All</button>
-      <button type="button" class="filter-btn" id="filterActive" onclick="setBillingFilter('active')">Active</button>
-      <button type="button" class="filter-btn" id="filterPrepaid" onclick="setBillingFilter('prepaid')">Prepaid</button>
-      <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid</button>
-      <button type="button" class="filter-btn" id="filterCredit" onclick="setBillingFilter('credit')">Credit Held</button>
-      <button type="button" class="filter-btn" id="filterSuspended" onclick="setBillingFilter('suspended')">Suspended</button>
+      <button type="button" class="filter-btn active" id="filterAll" onclick="setBillingFilter('all')">All ({{ total_subs }})</button>
+      <button type="button" class="filter-btn" id="filterOnline" onclick="setBillingFilter('online')">🟢 Online ({{ online_subs }})</button>
+      {% if sharing_subs > 0 %}
+        <button type="button" class="filter-btn" id="filterSharing" onclick="setBillingFilter('sharing')" style="border-color:rgba(239,68,68,0.5); color:#fca5a5; background:rgba(239,68,68,0.12);">📡 Sharing ({{ sharing_subs }})</button>
+      {% endif %}
+      <button type="button" class="filter-btn" id="filterActive" onclick="setBillingFilter('active')">Active ({{ active_subs }})</button>
+      <button type="button" class="filter-btn" id="filterPrepaid" onclick="setBillingFilter('prepaid')">Prepaid ({{ prepaid_subs }})</button>
+      <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid ({{ postpaid_subs }})</button>
+      <button type="button" class="filter-btn" id="filterCredit" onclick="setBillingFilter('credit')">Credit Held ({{ credit_subs }})</button>
+      <button type="button" class="filter-btn" id="filterSuspended" onclick="setBillingFilter('suspended')">Suspended ({{ suspended_subs }})</button>
     </div>
 
     <div class="toolbar-actions-wrap" style="display:flex; align-items:center; gap:8px;">
@@ -1281,7 +1339,7 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
                 <td>
                   <div class="cust-name-cell">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1292,6 +1350,11 @@
                     </div>
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                       <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+                      {% if c.is_sharing_hotspot %}
+                        <span class="badge-status badge-hotspot-sharing" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                          📡 Sharing Blocked
+                        </span>
+                      {% endif %}
                       {% if c.reseller_shop_name or c.reseller_username %}
                         <span class="badge-status" style="font-size:10px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">
                           🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1371,11 +1434,20 @@
                             <span class="font-mono cust-mac-addr">{{ d.mac_address }}</span>
                             <span class="cust-mac-name" title="{{ d.device_name or '' }}">{{ d.friendly_name }}</span>
                             {% if d.state == 'online' %}
-                              <span class="cust-mac-pill online">ONLINE</span>
+                              {% if d.is_roaming %}
+                                <span class="cust-mac-pill online" title="{{ d.roaming_label or '' }}">🔄 {{ d.router_short_name or 'MK' }} ROAM</span>
+                              {% elif d.router_short_name %}
+                                <span class="cust-mac-pill online">ONLINE • {{ d.router_short_name }}</span>
+                              {% else %}
+                                <span class="cust-mac-pill online">ONLINE</span>
+                              {% endif %}
                             {% elif d.state == 'recent' %}
-                              <span class="cust-mac-pill recent">RECENT</span>
+                              <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                             {% else %}
                               <span class="cust-mac-pill offline">OFFLINE</span>
+                            {% endif %}
+                            {% if d.is_sharing_hotspot %}
+                              <span class="cust-mac-pill sharing-blocked" title="{{ d.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">⚠️ SHARING BLOCKED</span>
                             {% endif %}
                           </div>
                         {% endfor %}
@@ -1399,6 +1471,10 @@
                       <button type="button" class="btn-action-sm btn-collect-cust" onclick="openCollectModal({{ c.id }}, '{{ c.name|escape }}')" title="Collect Payment &amp; Settle Unpaid Month(s)" style="color:#34d399; background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.3); font-weight:700;">
                         <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
                         <span>Collect</span>
+                      </button>
+                      <button type="button" class="btn-action-sm btn-rem-cust" onclick="openWhatsAppReminderModal({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}')" title="Send WhatsApp Status &amp; Renewal Reminder" style="color:#25d366; background:rgba(37,211,102,0.12); border-color:rgba(37,211,102,0.3); font-weight:700;">
+                        <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+                        <span>Reminder</span>
                       </button>
                       <button type="button" class="btn-action-sm" onclick="openProfileModal({{ c.id }})" title="Manage Account &amp; Settings" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25);">
                         <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
@@ -1453,7 +1529,7 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
@@ -1466,6 +1542,11 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                   <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+                  {% if c.is_sharing_hotspot %}
+                    <span class="badge-status badge-hotspot-sharing" style="font-size:9.5px; padding:1px 5px;" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                      📡 Sharing Blocked
+                    </span>
+                  {% endif %}
                   {% if c.reseller_shop_name or c.reseller_username %}
                     <span class="badge-status" style="font-size:9.5px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 5px; border-radius:4px; font-weight:700;">
                       🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1552,11 +1633,20 @@
                         {% endif %}
                       </div>
                       {% if d.state == 'online' %}
-                        <span class="cust-mac-pill online">ONLINE</span>
+                        {% if d.is_roaming %}
+                          <span class="cust-mac-pill online" title="{{ d.roaming_label or '' }}">🔄 {{ d.router_short_name or 'MK' }} ROAM</span>
+                        {% elif d.router_short_name %}
+                          <span class="cust-mac-pill online">ONLINE • {{ d.router_short_name }}</span>
+                        {% else %}
+                          <span class="cust-mac-pill online">ONLINE</span>
+                        {% endif %}
                       {% elif d.state == 'recent' %}
-                        <span class="cust-mac-pill recent">RECENT</span>
+                        <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                       {% else %}
                         <span class="cust-mac-pill offline">OFFLINE</span>
+                      {% endif %}
+                      {% if d.is_sharing_hotspot %}
+                        <span class="cust-mac-pill sharing-blocked" title="{{ d.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">⚠️ SHARING BLOCKED</span>
                       {% endif %}
                     </div>
                   {% endfor %}
@@ -1572,7 +1662,11 @@
             <div class="m-action-row">
               <button type="button" class="btn-action-sm btn-m-collect" onclick="openCollectModal({{ c.id }}, '{{ c.name|escape }}')" title="Collect Payment &amp; Settle Unpaid Month(s)">
                 <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-                <span>Collect Bill</span>
+                <span>Collect</span>
+              </button>
+              <button type="button" class="btn-action-sm btn-m-reminder" onclick="openWhatsAppReminderModal({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}')" title="WhatsApp Reminder" style="color:#25d366; background:rgba(37,211,102,0.12); border-color:rgba(37,211,102,0.3); font-weight:700;">
+                <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+                <span>Reminder</span>
               </button>
               <button type="button" class="btn-action-sm btn-m-manage" onclick="openProfileModal({{ c.id }})" title="Manage Customer &amp; Devices">
                 <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
@@ -1646,6 +1740,10 @@
           <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           <span>Edit Details</span>
         </a>
+        <button type="button" class="btn-action-sm" onclick="openWhatsAppReminderModal(activeCustomerId, document.getElementById('profName').textContent, document.getElementById('profPhone').textContent)" style="background:rgba(37,211,102,0.15); color:#25d366; border-color:rgba(37,211,102,0.3); font-size:11px; padding:5px 10px; display:inline-flex; align-items:center; gap:5px;" title="Send WhatsApp Status &amp; Renewal Reminder">
+          <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+          <span>Reminder</span>
+        </button>
         <button type="button" class="btn-action-sm" onclick="quickDeleteCustomer(activeCustomerId, document.getElementById('profName').textContent)" style="background:rgba(239,68,68,0.12); color:#f87171; border-color:rgba(239,68,68,0.3); font-size:11px; padding:5px 10px; display:inline-flex; align-items:center; gap:5px;" title="Permanently Delete Subscriber">
           <svg style="width:11px; height:11px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
           <span>Delete</span>
@@ -1708,10 +1806,10 @@
               </div>
             </div>
             <div>
-              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Payment Due Date</div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Suspend / Expiry Date</div>
               <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
                 <span style="font-weight:700; color:#fbbf24; font-family:var(--font-mono); font-size:13px;" id="profDueDate">—</span>
-                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Edit</button>
+                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Change</button>
               </div>
             </div>
             <div>
@@ -1746,11 +1844,31 @@
 
             <!-- Add Device Inline Form -->
             <div id="addDeviceInlineForm" style="display:none; background:var(--bg-card, #090e1a); border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
-              <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Secondary Device (MAC)</div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Device (Permanent or Guest Pass)</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
                 <input type="text" class="form-input font-mono" id="newDeviceMac" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; padding:8px 12px; flex:1; min-width:180px;">
-                <input type="text" class="form-input" id="newDeviceName" placeholder="Device (e.g. Laptop)" style="font-size:12px; padding:8px 12px; flex:1; min-width:140px;">
-                <button type="button" class="btn-approve" onclick="submitAddDevice()" style="padding:6px 12px; font-size:12px; white-space:nowrap;">Link &amp; Authorize</button>
+                <input type="text" class="form-input" id="newDeviceName" placeholder="Device Note (e.g. Guest Jamil)" style="font-size:12px; padding:8px 12px; flex:1; min-width:140px;">
+              </div>
+              <!-- Guest Pass Checkbox & Duration -->
+              <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:8px 10px; margin-bottom:8px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:700; color:#fbbf24;">
+                  <input type="checkbox" id="chkCustAddGuest" onchange="toggleCustAddGuest(this.checked)" style="width:15px; height:15px; accent-color:#f59e0b;">
+                  <span>⏳ Guest Device (Auto-kick after specific days)</span>
+                </label>
+                <div id="custAddGuestControls" style="display:none; margin-top:8px;">
+                  <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(1)">1d</button>
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(2)">2d</button>
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(3)">3d</button>
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(7)">7d</button>
+                    <input type="number" id="inputCustGuestDays" value="2" min="1" max="90" oninput="updateCustGuestPreview()" style="width:55px; padding:3px 6px; font-size:12px; font-weight:700; color:#fbbf24; background:#0f172a; border:1px solid rgba(245,158,11,0.4); border-radius:4px; text-align:center;">
+                    <span style="font-size:11px; color:#cbd5e1;">Days</span>
+                    <span id="dispCustGuestPreview" style="font-size:11px; color:#fbbf24; font-family:var(--font-mono); margin-left:auto;"></span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button type="button" class="btn-approve" onclick="submitAddDevice()" style="padding:6px 14px; font-size:12px; white-space:nowrap;">Link &amp; Authorize Device</button>
               </div>
             </div>
           </div>
@@ -1955,7 +2073,7 @@
           <label for="addCustPkg">Speed Package</label>
           <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
             {% for pkg in packages %}
-            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
             {% endfor %}
           </select>
         </div>
@@ -1986,7 +2104,7 @@
             <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()">
           </div>
           <div class="form-group">
-            <label for="addCustDueDate">Payment Due Date (Manual)</label>
+            <label for="addCustDueDate">Service Suspend Date (Auto / Manual)</label>
             <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
           </div>
         </div>
@@ -2133,7 +2251,7 @@
             <label for="editCustPkg">Speed Package</label>
             <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
               {% for pkg in packages %}
-              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
               {% endfor %}
             </select>
           </div>
@@ -2171,12 +2289,44 @@
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustDueDate">Payment Due Date</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">Suspend Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
+              </div>
               <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Account suspends on this day.</span>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustCredit">Credit Balance (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <!-- Quick Suspend Presets for Modal -->
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Change Suspend Date:</span>
+              <button type="button" class="btn-preset" onclick="applyEditPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                📦 As per Package (<span id="btnEditPkgDaysText">30d</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setEditEndOfMonth()">End of Month</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(30)">Day 30</button>
             </div>
           </div>
         </div>
@@ -2252,6 +2402,65 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     WHATSAPP REMINDER DISPATCH MODAL
+     ========================================================= -->
+<div id="customerReminderModal" class="modal-overlay" onclick="if(event.target===this)closeWhatsAppReminderModal()">
+  <div class="modal-box" style="max-width:560px; width:95%; background:var(--bg-card, #0f172a); border:1px solid var(--border-subtle, rgba(56, 189, 248, 0.25)); border-radius:16px;">
+    <div class="modal-header-custom" style="padding:16px 20px; border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center;">
+      <h5 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:#25d366;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+        <span>Send WhatsApp Account Reminder</span>
+      </h5>
+      <button type="button" class="modal-close" onclick="closeWhatsAppReminderModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
+    </div>
+    <div class="modal-body-custom" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+      <input type="hidden" id="custRemId" value="">
+
+      <!-- Recipient Card -->
+      <div style="background:var(--bg-card-header, #090e1a); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Recipient</div>
+          <div id="custRemNameText" style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff); margin-top:2px;">—</div>
+          <div id="custRemPhoneText" style="font-size:12px; font-family:var(--font-mono); color:#93c5fd; margin-top:2px;">—</div>
+        </div>
+        <div id="custRemStatusBadge" style="text-align:right;"></div>
+      </div>
+
+      <!-- Live Preview -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin:0;">Message Preview</label>
+          <span style="font-size:11px; color:#10b981;">✓ Live balance &amp; renewal due</span>
+        </div>
+        <textarea id="custRemMessagePreview" rows="9" readonly style="width:100%; box-sizing:border-box; background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(148, 163, 184, 0.35)); border-radius:8px; padding:10px 12px; color:var(--text-main, #f8fafc); font-family:var(--font-mono); font-size:11.5px; line-height:1.45; resize:none;"></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
+        <button type="button" class="btn-action-sm" onclick="copyCustReminderText()" title="Copy reminder text to clipboard">
+          <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          <span>Copy Text</span>
+        </button>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn-action-sm btn-collect-cust" onclick="collectFromCustReminderModal()" title="Record collection immediately for this customer" style="color:#34d399; background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.3); font-weight:700;">
+            <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            <span>Collect</span>
+          </button>
+          <a id="custRemWaDirectLink" href="#" target="_blank" class="btn-action-sm" style="color:#25d366; border-color:rgba(37,211,102,0.4);" title="Open WhatsApp Web or mobile app">
+            <span>WhatsApp Web ↗</span>
+          </a>
+          <button type="button" id="custRemSendOpenWaBtn" class="btn-action-sm" onclick="sendCustWhatsAppReminderOpenWA()" title="Send directly via linked WhatsApp number" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:8px 14px; border-radius:7px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <span>Send Now (OpenWA)</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2393,8 +2602,12 @@
       const reseller = el.getAttribute('data-reseller') || '';
       const searchData = el.getAttribute('data-search') || '';
 
+      const isOnline = el.getAttribute('data-online') === '1';
+
       let matchesFilter = true;
-      if (activeFilter === 'prepaid') matchesFilter = (type === 'prepaid');
+      if (activeFilter === 'online') matchesFilter = isOnline;
+      else if (activeFilter === 'sharing') matchesFilter = (el.getAttribute('data-sharing') === '1');
+      else if (activeFilter === 'prepaid') matchesFilter = (type === 'prepaid');
       else if (activeFilter === 'postpaid') matchesFilter = (type === 'postpaid');
       else if (activeFilter === 'suspended') matchesFilter = (status === 'suspended');
       else if (activeFilter === 'active') matchesFilter = (status === 'active');
@@ -2443,6 +2656,11 @@
     if (f === 'all') {
       const b = document.getElementById('filterAll'); if (b) b.classList.add('active');
       const sc = document.getElementById('cardFilterAll'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'online') {
+      const b = document.getElementById('filterOnline'); if (b) b.classList.add('active');
+      const sc = document.getElementById('cardFilterOnline'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'sharing') {
+      const b = document.getElementById('filterSharing'); if (b) b.classList.add('active');
     } else if (f === 'active') {
       const b = document.getElementById('filterActive'); if (b) b.classList.add('active');
       const sc = document.getElementById('cardFilterActive'); if (sc) sc.classList.add('active-card-filter');
@@ -3060,15 +3278,40 @@
         c.devices.forEach(d => {
           const card = document.createElement('div');
           card.className = 'device-item-card';
+
+          let guestInfo = '';
+          const isGuest = Boolean(d.is_guest);
+          if (isGuest && d.guest_expires_at) {
+            const expDate = new Date(d.guest_expires_at);
+            const now = new Date();
+            const diffMs = expDate - now;
+            let timeStr = '';
+            if (diffMs > 0) {
+              const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+              const diffDays = Math.floor(diffHrs / 24);
+              const remHrs = diffHrs % 24;
+              timeStr = diffDays > 0 ? `${diffDays}d ${remHrs}h left` : `${remHrs}h left`;
+            } else {
+              timeStr = 'Expired';
+            }
+            guestInfo = `<span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); font-size:10.5px; padding:2px 7px; font-weight:700; margin-left:6px;">⏳ Guest Pass (${timeStr})</span>`;
+          } else {
+            guestInfo = `<span class="badge" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-size:10px; padding:1px 6px; margin-left:6px;">🟢 Permanent</span>`;
+          }
+
           card.innerHTML = `
             <div>
-              <div class="font-mono text-cyan" style="font-weight:700;">${d.mac_address}</div>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <span class="font-mono text-cyan" style="font-weight:700;">${d.mac_address}</span>
+                ${guestInfo}
+              </div>
               <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">
                 ${d.device_name || 'Client Device'} • Status: <strong class="${d.status === 'approved' ? 'text-emerald' : 'text-rose'}">${d.status.toUpperCase()}</strong>
+                ${(isGuest && d.guest_expires_at) ? ` • Auto-kicks: <span style="color:#fbbf24; font-family:var(--font-mono);">${d.guest_expires_at.slice(0, 16)}</span>` : ''}
               </div>
             </div>
-            <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="removeDevice(${d.id})" style="font-size:11px; padding:4px 8px;">
-              Revoke MAC
+            <button type="button" class="btn-action-sm ${isGuest ? 'btn-delete-col' : 'btn-toggle-suspend'}" onclick="removeDevice(${d.id})" style="font-size:11px; padding:4px 8px; white-space:nowrap;">
+              ${isGuest ? 'Kick Guest' : 'Revoke MAC'}
             </button>
           `;
           devList.appendChild(card);
@@ -3136,11 +3379,48 @@
   function closeProfileModal() {
     document.getElementById('profileModal').classList.remove('open');
     document.getElementById('addDeviceInlineForm').style.display = 'none';
+    const chk = document.getElementById('chkCustAddGuest');
+    if (chk) {
+      chk.checked = false;
+      toggleCustAddGuest(false);
+    }
   }
 
   function showAddDevicePrompt() {
     const f = document.getElementById('addDeviceInlineForm');
-    f.style.display = (f.style.display === 'none') ? 'block' : 'none';
+    const isOpening = (f.style.display === 'none');
+    f.style.display = isOpening ? 'block' : 'none';
+    if (isOpening) {
+      const chk = document.getElementById('chkCustAddGuest');
+      if (chk) {
+        chk.checked = false;
+        toggleCustAddGuest(false);
+      }
+    }
+  }
+
+  function toggleCustAddGuest(isGuest) {
+    const box = document.getElementById('custAddGuestControls');
+    if (box) box.style.display = isGuest ? 'block' : 'none';
+    if (isGuest) updateCustGuestPreview();
+  }
+
+  function setCustGuestDays(days) {
+    const inp = document.getElementById('inputCustGuestDays');
+    if (inp) {
+      inp.value = days;
+      updateCustGuestPreview();
+    }
+  }
+
+  function updateCustGuestPreview() {
+    const inp = document.getElementById('inputCustGuestDays');
+    const disp = document.getElementById('dispCustGuestPreview');
+    const days = parseInt(inp ? inp.value : 2) || 2;
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    if (disp) disp.textContent = 'Auto-kicks: ' + d.toLocaleDateString(undefined, options);
   }
 
   async function submitAddDevice() {
@@ -3148,11 +3428,20 @@
     const name = document.getElementById('newDeviceName').value.trim() || 'Secondary Device';
     if (!mac) return cyberToast('Please enter a MAC address.');
 
+    const isGuest = document.getElementById('chkCustAddGuest')?.checked || false;
+    const guestDays = isGuest ? (parseInt(document.getElementById('inputCustGuestDays')?.value) || 2) : 0;
+
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/devices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mac: mac, device_name: name })
+        body: JSON.stringify({
+          mac: mac,
+          device_name: name,
+          is_guest: isGuest,
+          guest_days: guestDays,
+          guest_fee: 0.0
+        })
       });
       const res = await resp.json();
       if (res.success) {
@@ -3557,11 +3846,21 @@
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('addCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('addCustSpeed').value = rate;
     } else {
       document.getElementById('addCustSpeed').value = 'Unlimited';
+    }
+    // Auto-calculate suspend date for new customer based on selected package
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
+    const dueEl = document.getElementById('addCustDueDate');
+    if (dueEl) {
+      dueEl.value = dateStr;
+      if (window.setPickerDate) window.setPickerDate('addCustDueDate', dateStr);
     }
     calculateAddCustAdvance();
   }
@@ -3596,6 +3895,12 @@
       const pkgSel = document.getElementById('editCustPkg');
       if (c.package_name) {
         pkgSel.value = c.package_name;
+        const opt = pkgSel.options[pkgSel.selectedIndex];
+        if (opt) {
+          const days = opt.getAttribute('data-days') || '30';
+          const btnDays = document.getElementById('btnEditPkgDaysText');
+          if (btnDays) btnDays.textContent = `${days}d`;
+        }
       }
 
       // Speed limit (explicit custom speed or effective speed)
@@ -3604,7 +3909,7 @@
       // Monthly fee
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
-      // Due date
+      // Due date / suspend date
       if (window.setPickerDate) {
         window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
       } else {
@@ -3657,11 +3962,75 @@
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('editCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('editCustSpeed').value = rate;
     } else {
       document.getElementById('editCustSpeed').value = 'Unlimited';
+    }
+    const btnDays = document.getElementById('btnEditPkgDaysText');
+    if (btnDays) btnDays.textContent = `${days}d`;
+    applyEditPkgValidity();
+  }
+
+  function applyEditPkgValidity() {
+    const sel = document.getElementById('editCustPkg');
+    if (!sel || sel.selectedIndex < 0) return;
+    const days = parseInt(sel.options[sel.selectedIndex].getAttribute('data-days')) || 30;
+    const today = new Date();
+    today.setDate(today.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function setEditDueDateValue(dateStr) {
+    const el = document.getElementById('editCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) {
+      window.setPickerDate('editCustDueDate', dateStr);
+    }
+  }
+
+  function shiftEditDueDate(days) {
+    const el = document.getElementById('editCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Day ${dayNum}`;
+      badge.style.color = '#34d399';
     }
   }
 
@@ -3907,7 +4276,14 @@
           const pill = macItem.querySelector('.cust-mac-pill');
           if (pill) {
             pill.className = `cust-mac-pill ${d.state}`;
-            pill.textContent = d.state === 'online' ? 'ONLINE' : (d.state === 'recent' ? 'RECENT' : 'OFFLINE');
+            if (d.state === 'online') {
+              pill.textContent = d.is_roaming ? `🔄 ${d.router_short_name || 'MK'} ROAM` : (d.router_short_name ? `ONLINE • ${d.router_short_name}` : 'ONLINE');
+              if (d.roaming_label) pill.title = d.roaming_label;
+            } else if (d.state === 'recent') {
+              pill.textContent = d.router_short_name ? `RECENT • ${d.router_short_name}` : 'RECENT';
+            } else {
+              pill.textContent = 'OFFLINE';
+            }
           }
           if (d.detail) {
             macItem.title = `${d.status_label}${d.detail ? ' • ' + d.detail : ''}${d.live_ip ? ' • IP: ' + d.live_ip : ''} • Click to copy MAC`;
@@ -4164,5 +4540,144 @@
       }
     }
   }
+
+  // =========================================================
+  // WHATSAPP STATUS & RENEWAL REMINDER CONTROLLER
+  // =========================================================
+  async function openWhatsAppReminderModal(cid, name, phone) {
+    const modal = document.getElementById('customerReminderModal');
+    if (!modal) return;
+
+    document.getElementById('custRemId').value = cid;
+    document.getElementById('custRemNameText').textContent = name || ('Subscriber #' + cid);
+    document.getElementById('custRemPhoneText').textContent = phone || 'No phone recorded';
+
+    const statusBadge = document.getElementById('custRemStatusBadge');
+    if (statusBadge) statusBadge.innerHTML = '<span class="status-badge" style="font-size:10px;">LOADING...</span>';
+
+    const preview = document.getElementById('custRemMessagePreview');
+    if (preview) preview.value = 'Preparing live status reminder preview…';
+
+    const waLink = document.getElementById('custRemWaDirectLink');
+    if (waLink) waLink.href = '#';
+
+    modal.classList.add('open', 'show');
+    document.body.style.overflow = 'hidden';
+
+    try {
+      const res = await fetch('/api/balance/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: parseInt(cid),
+          send_direct: true
+        })
+      });
+      const json = await res.json();
+      if (json.message_text && preview) {
+        preview.value = json.message_text;
+      }
+      if (waLink && json.whatsapp_url) {
+        waLink.href = json.whatsapp_url;
+      }
+      if (statusBadge) {
+        if (json.balance < 0) {
+          statusBadge.innerHTML = `<span class="status-badge badge-danger" style="font-size:10.5px; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.3); padding:3px 8px; border-radius:6px; font-weight:700;">OWES ${Math.abs(json.balance).toFixed(2)} SAR</span>`;
+        } else if (json.balance > 0) {
+          statusBadge.innerHTML = `<span class="status-badge badge-success" style="font-size:10.5px; background:rgba(16,185,129,0.18); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:3px 8px; border-radius:6px; font-weight:700;">CREDIT +${json.balance.toFixed(2)} SAR</span>`;
+        } else {
+          statusBadge.innerHTML = `<span class="status-badge badge-info" style="font-size:10.5px; background:rgba(56,189,248,0.18); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); padding:3px 8px; border-radius:6px; font-weight:700;">SETTLED (0.00 SAR)</span>`;
+        }
+      }
+    } catch (err) {
+      if (preview) preview.value = 'Failed to load reminder preview: ' + err.message;
+    }
+  }
+
+  function closeWhatsAppReminderModal() {
+    const modal = document.getElementById('customerReminderModal');
+    if (modal) modal.classList.remove('open', 'show');
+    document.body.style.overflow = '';
+  }
+
+  function copyCustReminderText() {
+    const t = document.getElementById('custRemMessagePreview');
+    if (t && t.value) {
+      t.select();
+      navigator.clipboard.writeText(t.value);
+      if (typeof cyberToast === 'function') {
+        cyberToast('📋 Reminder text copied to clipboard!');
+      } else {
+        alert('Reminder text copied to clipboard!');
+      }
+    }
+  }
+
+  function collectFromCustReminderModal() {
+    const cid = parseInt(document.getElementById('custRemId').value);
+    const name = document.getElementById('custRemNameText').textContent;
+    closeWhatsAppReminderModal();
+    if (typeof openCollectModal === 'function') {
+      openCollectModal(cid, name);
+    }
+  }
+
+  async function sendCustWhatsAppReminderOpenWA() {
+    const btn = document.getElementById('custRemSendOpenWaBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>Sending…</span>';
+
+    const cid = parseInt(document.getElementById('custRemId').value);
+    const name = document.getElementById('custRemNameText').textContent;
+
+    try {
+      const res = await fetch('/api/balance/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: cid,
+          send_direct: false
+        })
+      });
+      const json = await res.json();
+      if (json.sent_via_openwa) {
+        if (typeof cyberToast === 'function') {
+          cyberToast(`✅ WhatsApp reminder sent successfully to ${name}!`);
+        } else {
+          alert(`✅ WhatsApp reminder sent successfully to ${name}!`);
+        }
+        closeWhatsAppReminderModal();
+      } else {
+        if (json.whatsapp_url) {
+          if (confirm(`OpenWA automated push reported: ${json.error || 'Gateway offline'}.\n\nWould you like to open WhatsApp Web / App directly to send?`)) {
+            window.open(json.whatsapp_url, '_blank');
+          }
+        } else {
+          const errMsg = json.error || 'Could not dispatch reminder';
+          if (typeof cyberToast === 'function') {
+            cyberToast('Dispatch error: ' + errMsg);
+          } else {
+            alert(errMsg);
+          }
+        }
+      }
+    } catch (err) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Error sending reminder: ' + err.message);
+      } else {
+        alert('Error sending reminder: ' + err.message);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  window.openWhatsAppReminderModal = openWhatsAppReminderModal;
+  window.closeWhatsAppReminderModal = closeWhatsAppReminderModal;
+  window.copyCustReminderText = copyCustReminderText;
+  window.collectFromCustReminderModal = collectFromCustReminderModal;
+  window.sendCustWhatsAppReminderOpenWA = sendCustWhatsAppReminderOpenWA;
 </script>
 {% endblock %}

@@ -197,6 +197,25 @@ async def expiration_enforcement_loop():
                             logger.info(f"[Expiration Enforcer] Disabled PPPoE secret for '{pp_user}' (customer #{cid}).")
                         except Exception as pp_err:
                             logger.error(f"Error disabling expired PPPoE for customer #{cid}: {pp_err}")
+
+            # Audit and kick expired temporary guest passes
+            expired_guests = await asyncio.to_thread(database.check_and_enforce_guest_expirations)
+            if expired_guests:
+                for g in expired_guests:
+                    mac = g.get("mac")
+                    cid = g.get("customer_id")
+                    dev_name = g.get("device_name")
+                    exp_at = g.get("guest_expires_at")
+                    logger.warning(
+                        f"[Guest Expiration Enforcer] Guest device '{dev_name}' (MAC: {mac}) "
+                        f"for subscriber #{cid} ({g.get('customer_name')}) reached expiration ({exp_at}). "
+                        f"Kicking and unbinding across MikroTik fleet."
+                    )
+                    try:
+                        mikrotik_client.broadcast_unbind_device(mac)
+                    except Exception as mt_err:
+                        logger.error(f"Error unbinding expired guest MAC {mac}: {mt_err}")
+
             await asyncio.sleep(60)
         except asyncio.CancelledError:
             break
@@ -604,6 +623,9 @@ class ApproveConnectionPayload(BaseModel):
     pppoe_profile: Optional[str] = None
     pppoe_remote_ip: Optional[str] = None
     send_whatsapp: Optional[bool] = False
+    is_guest: Optional[bool] = False
+    guest_days: Optional[int] = 0
+    guest_fee: Optional[float] = 0.0
 
 
 class RevokeDevicePayload(BaseModel):
@@ -641,6 +663,7 @@ class EditCustomerPayload(BaseModel):
     package_name: Optional[str] = None
     monthly_fee: Optional[float] = None
     due_date: Optional[str] = None
+    suspend_date: Optional[str] = None
     speed_limit: Optional[str] = None
     max_devices: Optional[int] = None
     status: Optional[str] = None
@@ -656,6 +679,10 @@ class EditCustomerPayload(BaseModel):
     pppoe_password: Optional[str] = -1
     pppoe_profile: Optional[str] = -1
     pppoe_remote_ip: Optional[str] = -1
+
+
+class SetSuspendDatePayload(BaseModel):
+    suspend_date: str
 
 
 class RecordPromisePayload(BaseModel):
@@ -739,6 +766,9 @@ class UpdateDeviceLimitPayload(BaseModel):
 class AddDevicePayload(BaseModel):
     mac: str
     device_name: Optional[str] = "Client Device"
+    is_guest: Optional[bool] = False
+    guest_days: Optional[int] = 0
+    guest_fee: Optional[float] = 0.0
 
 
 class RecordPaymentPayload(BaseModel):
@@ -752,6 +782,38 @@ class RecordPaymentPayload(BaseModel):
 class ApplyCreditPayload(BaseModel):
     amount: Optional[float] = None
     extend_days: int = 30
+
+
+def get_request_collector_name(request: Request) -> str:
+    """Extracts authenticated collector Full Name from request state or session."""
+    user = getattr(request.state, "user", None)
+    if user and isinstance(user, dict):
+        name = user.get("full_name") or user.get("username")
+        if name:
+            return database.resolve_collector_name(name)
+    elif user:
+        name = getattr(user, "full_name", None) or getattr(user, "username", None)
+        if name:
+            return database.resolve_collector_name(name)
+    try:
+        session_id = request.cookies.get(auth_service.COOKIE_NAME)
+        if session_id:
+            s_user = auth_service.validate_session(session_id)
+            if s_user:
+                name = s_user.get("full_name") or s_user.get("username")
+                if name:
+                    return database.resolve_collector_name(name)
+    except Exception:
+        pass
+    return "Shajjad Khan"
+
+
+def get_request_collector_id(request: Request) -> str:
+    return get_request_collector_name(request)
+
+
+def normalize_collector_id(name: Optional[str]) -> str:
+    return database.resolve_collector_name(name)
 
 
 class UpdateCollectionPayload(BaseModel):
@@ -1475,9 +1537,10 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     staff performance breakdown, and 1-click collections.
     """
     live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    online_macs = await get_all_fleet_online_macs(max_cache_age_sec=10.0)
+    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
 
-    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
+    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     pending_requests = database.get_pending_requests()
     packages = database.get_packages()
 
@@ -1677,7 +1740,8 @@ async def approvals_view(request: Request):
 def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict, pppoe_map: Optional[dict] = None):
     """
     Enriches each customer's devices list with live connection telemetry (online/recent/offline),
-    calculates online_devices_count, and formats friendly device labels.
+    calculates online_devices_count, formats friendly device labels, and attaches
+    multi-gateway roaming attributes (is_roaming, router_short_name, roaming_label, live_ip).
     Also enriches PPPoE customers with live active session data.
     """
     if pppoe_map is None:
@@ -1696,10 +1760,16 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 cust["is_pppoe_active"] = True
                 cust["pppoe_session"] = session
                 cust["online_devices_count"] = 1
+                cust["is_online"] = True
+                cust["active_router_short_name"] = session.get("router_name") or "MK20"
+                cust["live_ip"] = session.get("address")
             else:
                 cust["is_pppoe_active"] = False
                 cust["pppoe_session"] = None
                 cust["online_devices_count"] = 0
+                cust["is_online"] = False
+                cust["active_router_short_name"] = None
+                cust["live_ip"] = None
             continue
 
         online_count = 0
@@ -1717,6 +1787,14 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 dev["idle_time"] = telem.get("idle_time")
                 dev["detail"] = telem.get("detail", "Offline")
                 dev["friendly_name"] = clean_device_friendly_name(dev.get("device_name"), telem.get("dhcp_host_name"))
+                dev["router_short_name"] = telem.get("router_short_name")
+                dev["router_name"] = telem.get("router_name")
+                dev["is_roaming"] = telem.get("is_roaming", False)
+                dev["roaming_label"] = telem.get("roaming_label")
+                dev["roaming_routers"] = telem.get("roaming_routers", [])
+                dev["is_sharing_hotspot"] = telem.get("is_sharing_hotspot", False)
+                dev["sharing_detail"] = telem.get("sharing_detail")
+                dev["sharing_timeout"] = telem.get("sharing_timeout")
             else:
                 dev["state"] = "offline"
                 dev["status_label"] = "Offline"
@@ -1727,10 +1805,53 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 dev["idle_time"] = None
                 dev["detail"] = "Offline"
                 dev["friendly_name"] = clean_device_friendly_name(dev.get("device_name"))
+                dev["router_short_name"] = None
+                dev["router_name"] = None
+                dev["is_roaming"] = False
+                dev["roaming_label"] = None
+                dev["roaming_routers"] = []
+                dev["is_sharing_hotspot"] = False
+                dev["sharing_detail"] = None
+                dev["sharing_timeout"] = None
 
             if dev["state"] == "online":
                 online_count += 1
+
         cust["online_devices_count"] = online_count
+        cust["is_online"] = (online_count > 0)
+        cust["is_sharing_hotspot"] = any(d.get("is_sharing_hotspot") for d in devices)
+        cust["sharing_detail"] = next((d.get("sharing_detail") for d in devices if d.get("is_sharing_hotspot")), None)
+        cust["sharing_timeout"] = next((d.get("sharing_timeout") for d in devices if d.get("is_sharing_hotspot")), None)
+
+        # Attribute customer-level active gateway and roaming status
+        online_devs = [d for d in devices if d.get("is_online")]
+        if online_devs:
+            best_d = online_devs[0]
+            cust["active_router_short_name"] = best_d.get("router_short_name") or "MK20"
+            cust["active_router_name"] = best_d.get("router_name")
+            cust["is_roaming"] = any(d.get("is_roaming") for d in online_devs)
+            cust["roaming_label"] = best_d.get("roaming_label")
+            cust["live_ip"] = best_d.get("live_ip")
+        elif devices:
+            recent_d = next((d for d in devices if d.get("state") == "recent"), None)
+            if recent_d:
+                cust["active_router_short_name"] = recent_d.get("router_short_name")
+                cust["active_router_name"] = recent_d.get("router_name")
+                cust["is_roaming"] = recent_d.get("is_roaming", False)
+                cust["roaming_label"] = recent_d.get("roaming_label")
+                cust["live_ip"] = recent_d.get("live_ip")
+            else:
+                cust["active_router_short_name"] = None
+                cust["active_router_name"] = None
+                cust["is_roaming"] = False
+                cust["roaming_label"] = None
+                cust["live_ip"] = None
+        else:
+            cust["active_router_short_name"] = None
+            cust["active_router_name"] = None
+            cust["is_roaming"] = False
+            cust["roaming_label"] = None
+            cust["live_ip"] = None
 
 
 @app.api_route("/customers", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -1747,8 +1868,8 @@ async def customers_view(request: Request):
     packages = database.get_packages()
     resellers = auth_service.get_resellers_list()
 
-    # Live device telemetry (green/yellow/red status indicators)
-    telemetry_map = router_client.get_devices_telemetry_map()
+    # Live device telemetry (green/yellow/red status indicators across fleet)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -1777,7 +1898,7 @@ async def customer_edit_view(request: Request, customer_id: int):
     resellers = auth_service.get_resellers_list()
 
     # Live device telemetry for customer devices
-    telemetry_map = router_client.get_devices_telemetry_map()
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     enrich_customer_devices_telemetry([cust], telemetry_map)
 
     return templates.TemplateResponse(
@@ -1840,7 +1961,7 @@ async def customer_usage_view(
     live_status = router_client.get_live_status()
 
     try:
-        telemetry_map = router_client.get_devices_telemetry_map()
+        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
         enrich_customer_devices_telemetry([analytics["customer"]], telemetry_map)
     except Exception:
         pass
@@ -2021,7 +2142,7 @@ async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] =
     ledger = database.get_reseller_wallet_ledger(reseller_id=target_reseller_id, limit=30)
 
     # Live device telemetry
-    telemetry_map = router_client.get_devices_telemetry_map()
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     enrich_customer_devices_telemetry(my_customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -2759,7 +2880,10 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
             pppoe_username=payload.pppoe_username,
             pppoe_password=payload.pppoe_password,
             pppoe_profile=payload.pppoe_profile,
-            pppoe_remote_ip=payload.pppoe_remote_ip
+            pppoe_remote_ip=payload.pppoe_remote_ip,
+            is_guest=payload.is_guest or False,
+            guest_days=payload.guest_days or 0,
+            guest_fee=payload.guest_fee or 0.0
         )
 
         # 2. Determine effective rate limit (custom or package default)
@@ -2886,9 +3010,9 @@ async def revoke_device(payload: RevokeDevicePayload):
 async def get_customers_live_devices(request: Request):
     """
     Returns live connection telemetry (green/yellow/red) for all customer devices,
-    enabling real-time status dots and connected counters on the customer directory.
+    enabling real-time status dots, roaming badges, and connected counters across the fleet.
     """
-    telemetry_map = router_client.get_devices_telemetry_map()
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
     customers = database.get_all_customers()
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
@@ -2904,7 +3028,14 @@ async def get_customers_live_devices(request: Request):
                 "status_label": dev.get("status_label", "Offline"),
                 "detail": dev.get("detail", "Offline"),
                 "live_ip": dev.get("live_ip"),
-                "friendly_name": dev.get("friendly_name", "Device")
+                "friendly_name": dev.get("friendly_name", "Device"),
+                "router_short_name": dev.get("router_short_name"),
+                "router_name": dev.get("router_name"),
+                "is_roaming": dev.get("is_roaming", False),
+                "roaming_label": dev.get("roaming_label"),
+                "roaming_routers": dev.get("roaming_routers", []),
+                "is_sharing_hotspot": dev.get("is_sharing_hotspot", False),
+                "sharing_detail": dev.get("sharing_detail")
             })
         result_customers[str(cid)] = {
             "online_count": cust.get("online_devices_count", 0),
@@ -2913,13 +3044,48 @@ async def get_customers_live_devices(request: Request):
             "devices": dev_list,
             "connection_type": cust.get("connection_type", "hotspot"),
             "is_pppoe_active": cust.get("is_pppoe_active", False),
-            "pppoe_session": cust.get("pppoe_session")
+            "pppoe_session": cust.get("pppoe_session"),
+            "is_online": cust.get("is_online", False),
+            "is_sharing_hotspot": cust.get("is_sharing_hotspot", False),
+            "sharing_detail": cust.get("sharing_detail"),
+            "active_router_short_name": cust.get("active_router_short_name"),
+            "active_router_name": cust.get("active_router_name"),
+            "is_roaming": cust.get("is_roaming", False),
+            "roaming_label": cust.get("roaming_label"),
+            "live_ip": cust.get("live_ip")
         }
     return {
         "success": True,
         "customers": result_customers,
         "timestamp": time.strftime("%H:%M:%S")
     }
+
+
+@app.get("/api/hotspot/sharing-suspects")
+async def get_hotspot_sharing_suspects_endpoint():
+    """
+    Returns live list of subscribers caught attempting hotspot tethering across all routers.
+    """
+    try:
+        suspects = await asyncio.to_thread(mikrotik_client.broadcast_get_hotspot_sharing_suspects)
+        customers = database.get_all_customers()
+        ip_to_cust = {}
+        for c in customers:
+            for d in c.get("devices", []):
+                ip = d.get("ip_address")
+                if ip:
+                    ip_to_cust[ip.strip()] = c
+        for s in suspects:
+            addr = s.get("address")
+            if addr and addr in ip_to_cust:
+                c = ip_to_cust[addr]
+                s["customer_id"] = c.get("id")
+                s["customer_name"] = c.get("name")
+                s["customer_phone"] = c.get("phone")
+        return {"success": True, "count": len(suspects), "suspects": suspects}
+    except Exception as e:
+        logger.error(f"Error fetching sharing suspects: {e}")
+        return {"success": False, "count": 0, "suspects": [], "error": str(e)}
 
 
 @app.get("/api/pppoe/active")
@@ -2942,10 +3108,15 @@ async def list_customers():
 
 @app.get("/api/customers/{customer_id}")
 async def get_customer_details(customer_id: int):
-    """Returns complete customer profile, devices, and payment records."""
+    """Returns complete customer profile, devices, and payment records with live telemetry."""
     prof = database.get_customer_profile(customer_id)
     if not prof:
         raise HTTPException(status_code=404, detail="Customer not found")
+    try:
+        tmap = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+        enrich_customer_devices_telemetry([prof], tmap)
+    except Exception as e:
+        logger.debug(f"Could not enrich customer details telemetry: {e}")
     return prof
 
 
@@ -3216,6 +3387,7 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
             package_name=payload.package_name,
             monthly_fee=payload.monthly_fee,
             due_date=payload.due_date,
+            suspend_date=payload.suspend_date,
             speed_limit=payload.speed_limit,
             max_devices=payload.max_devices,
             status=payload.status,
@@ -3267,8 +3439,36 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
             "mikrotik_synced": mt_ok,
             "fleet_results": fleet_res
         }
+    except ValueError as ve:
+        logger.warning(f"Validation error editing customer #{customer_id}: {ve}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(ve)})
     except Exception as e:
         logger.exception(f"Error editing customer #{customer_id}: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/customers/{customer_id}/set-suspend-date")
+async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspendDatePayload):
+    """
+    Lightweight, fast endpoint to set/update a customer's service suspend & expiry date.
+    Recalculates expiry and days remaining.
+    """
+    new_date = payload.suspend_date.strip()
+    if not new_date or len(new_date) < 10:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid date format. Use YYYY-MM-DD."})
+    try:
+        updated = database.update_customer_details(customer_id=customer_id, due_date=new_date, suspend_date=new_date)
+        if not updated:
+            return JSONResponse(status_code=404, content={"success": False, "error": "Customer not found."})
+        return {
+            "success": True,
+            "message": f"Suspend date updated to {new_date}",
+            "suspend_date": new_date,
+            "days_remaining": updated.get("days_remaining"),
+            "customer": updated
+        }
+    except Exception as e:
+        logger.exception(f"Error setting suspend date for #{customer_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
@@ -3378,7 +3578,10 @@ async def add_device(customer_id: int, payload: AddDevicePayload):
         dev = database.add_customer_device(
             customer_id=customer_id,
             mac_address=payload.mac,
-            device_name=payload.device_name or "Secondary Device"
+            device_name=payload.device_name or "Secondary Device",
+            is_guest=payload.is_guest or False,
+            guest_days=payload.guest_days or 0,
+            guest_fee=payload.guest_fee or 0.0
         )
         cust = database.get_customer_profile(customer_id)
 
@@ -3478,16 +3681,18 @@ async def delete_customer_endpoint(customer_id: int, request: Request):
 
 
 @app.post("/api/customers/{customer_id}/record-payment")
-async def record_payment(customer_id: int, payload: RecordPaymentPayload):
+async def record_payment(customer_id: int, payload: RecordPaymentPayload, request: Request):
     """Records a payment, extends expiry date, handles advance credit, and re-activates service on MikroTik."""
-    logger.info(f"Recording payment for customer #{customer_id}: {payload.amount} SAR (mode: {payload.advance_mode})")
+    collector = get_request_collector_name(request)
+    logger.info(f"Recording payment for customer #{customer_id}: {payload.amount} SAR by {collector} (mode: {payload.advance_mode})")
     try:
         result = database.record_customer_payment(
             customer_id=customer_id,
             amount=payload.amount,
             notes=payload.notes or "Manual Service Renewal",
             extend_days=payload.extend_days,
-            advance_mode=payload.advance_mode or "credit"
+            advance_mode=payload.advance_mode or "credit",
+            collector=collector
         )
 
         # Ensure devices are active on MikroTik with appropriate speed limit & updated billing type in comment
@@ -3518,7 +3723,7 @@ async def record_payment(customer_id: int, payload: RecordPaymentPayload):
                     customer_id=customer_id,
                     amount_paid=payload.amount,
                     receipt_no=f"PAY-{result.get('payment_id', datetime.now().strftime('%Y%m%d%H%M'))}",
-                    collector="Admin",
+                    collector=collector,
                     payment_type="cash",
                     notes=payload.notes or "Service Renewal"
                 )
@@ -3591,10 +3796,11 @@ async def update_device_limit(customer_id: int, payload: UpdateDeviceLimitPayloa
 
 @app.get("/api/dashboard/metrics")
 async def api_dashboard_metrics(month: Optional[str] = None):
-    """Returns real-time dashboard metrics and online status in JSON."""
+    """Returns real-time dashboard metrics, fleet roaming status, and online status in JSON."""
     live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    online_macs = await get_all_fleet_online_macs(max_cache_age_sec=10.0)
-    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs)
+    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
+    metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     return JSONResponse({
         "success": True,
         "metrics": metrics,
@@ -3612,15 +3818,17 @@ async def api_collections_report(start_date: str, end_date: str):
 
 
 @app.post("/api/customers/{customer_id}/quick-collect")
-async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
+async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload, request: Request):
     """1-click bill collection directly from dashboard priority queue."""
+    collector = get_request_collector_name(request)
     try:
         res = database.record_customer_payment(
             customer_id=customer_id,
             amount=payload.amount,
             notes=payload.notes or "Direct Cycle Bill Collection",
             extend_days=payload.extend_days or 30,
-            advance_mode=payload.advance_mode or "credit"
+            advance_mode=payload.advance_mode or "credit",
+            collector=collector
         )
         # Re-bind customer devices to ensure internet access is active
         cust_profile = database.get_customer_profile(customer_id)
@@ -3639,7 +3847,7 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
                 customer_id=customer_id,
                 amount_paid=payload.amount,
                 receipt_no=f"QC-{customer_id}-{datetime.now().strftime('%m%d%H%M')}",
-                collector="Admin",
+                collector=collector,
                 payment_type="cash",
                 notes=payload.notes or "Quick Collect"
             )
@@ -3668,12 +3876,13 @@ async def update_collection_endpoint(collection_id: int, payload: UpdateCollecti
     """Updates amount, notes, timestamp, collector, or billing type of a collection record."""
     logger.info(f"Admin updating collection #{collection_id} with amount={payload.amount}, notes={payload.notes}")
     try:
+        clean_by = normalize_collector_id(payload.collected_by) if payload.collected_by else None
         updated = database.update_collection(
             collection_id=collection_id,
             amount=payload.amount,
             notes=payload.notes or "",
             collected_at=payload.collected_at,
-            collected_by=payload.collected_by,
+            collected_by=clean_by,
             billing_type=payload.billing_type
         )
         if not updated:
@@ -3725,14 +3934,9 @@ async def api_balance_customer_history(customer_id: int, source: Optional[str] =
 @app.post("/api/balance/collect")
 async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
     """Records quick collection directly from the Balance Sheet ledger."""
-    user = getattr(request.state, "user", None)
-    admin_name = "Admin"
-    if user:
-        if isinstance(user, dict):
-            admin_name = user.get("full_name") or user.get("username") or "Admin"
-        else:
-            admin_name = getattr(user, "full_name", None) or getattr(user, "username", None) or "Admin"
-    collector = admin_name if admin_name != "Admin" else (payload.collector or "Admin")
+    collector = get_request_collector_name(request)
+    if collector == "admin" and payload.collector and payload.collector.strip().lower() not in ("admin", "system administrator"):
+        collector = normalize_collector_id(payload.collector)
     try:
         res = database.record_balance_collection(
             customer_id=payload.customer_id,
@@ -3797,21 +4001,44 @@ async def api_balance_send_reminder(payload: BalanceReminderPayload, request: Re
         norm_phone = cust["norm_phone"] or database.normalize_saudi_phone_number(cust["mobile"])
         balance_val = metrics["balance"]
         owed_amount = abs(balance_val) if balance_val < 0 else 0.0
-        start_date_str = cust["billing_start_date"]
+        start_date_str = cust.get("billing_start_date")
+        due_date_str = cust.get("due_date")
+        days_rem = metrics.get("days_remaining")
 
-        # Build message matching billing_reminder
-        msg = f"📶 *CYBERNET ACCOUNT STATUS*\n"
+        # Build message matching billing_reminder & expiry status
+        msg = f"📶 *CYBERNET INTERNET STATUS / حالة الحساب*\n"
         msg += f"Assalamu Alaikum {cust_name}!\n\n"
+        if cust.get("room"):
+            msg += f"🚪 Room: {cust['room']}\n"
+        if cust.get("package_name"):
+            msg += f"📦 Package: {cust['package_name']} ({cust.get('monthly_fee', 30.0):.2f} SAR/mo)\n"
         if start_date_str:
             msg += f"📅 Connected since: {start_date_str}\n"
 
+        # Expiry / Due Date Notice
+        if due_date_str:
+            if days_rem is not None:
+                if days_rem < 0:
+                    msg += f"🚨 *EXPIRED / OVERDUE:* Service expired {abs(days_rem)} days ago on {due_date_str}\n"
+                elif days_rem == 0:
+                    msg += f"⚠️ *EXPIRES TODAY:* Due for renewal Today ({due_date_str})\n"
+                elif days_rem <= 3:
+                    msg += f"⚠️ *EXPIRING SOON:* Service due in {days_rem} days on {due_date_str}\n"
+                elif days_rem <= 15:
+                    msg += f"⏳ *UPCOMING RENEWAL:* Service due in {days_rem} days on {due_date_str}\n"
+                else:
+                    msg += f"📅 *Valid Until:* {due_date_str} (in {days_rem} days)\n"
+            else:
+                msg += f"📅 *Due / Expiry Date:* {due_date_str}\n"
+
+        # Balance & Financial Status
         if balance_val < 0:
-            msg += f"⚠️ *Outstanding Balance: {owed_amount:.2f} SAR*\n\n"
-            msg += f"💰 Please recharge to continue enjoying uninterrupted internet service.\n\n"
+            msg += f"⚠️ *Outstanding Balance: {owed_amount:.2f} SAR*\n"
+            msg += f"💰 Please recharge to avoid service interruption.\n\n"
         elif balance_val > 0:
-            msg += f"✅ *Your account has an advance credit of +{balance_val:.2f} SAR.*\n\n"
+            msg += f"✅ *Advance Credit Held: +{balance_val:.2f} SAR*\n\n"
         else:
-            msg += f"✅ *Your account is fully settled (0.00 SAR).* Thank you!\n\n"
+            msg += f"✅ *Balance:* Fully settled (0.00 SAR).\n\n"
 
         msg += f"💳 *Payment Accounts / طرق الدفع:*\n\n"
         msg += f"1️⃣ *Shajjad Khan:*\n"
@@ -4000,9 +4227,7 @@ async def record_customer_promise_endpoint(customer_id: int, payload: RecordProm
     Prevents MikroTik auto-suspension while daily debt accrues continuously.
     """
     try:
-        session_id = request.cookies.get(auth_service.COOKIE_NAME)
-        user = auth_service.validate_session(session_id) if session_id else None
-        session_user = user.get("username", "Admin") if user else "Admin"
+        session_user = get_request_collector_name(request)
         res = database.record_customer_promise(
             customer_id=customer_id,
             days=payload.days or 0,
@@ -4071,9 +4296,7 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
     and that month is permanently marked is_settled=1 (solved).
     """
     try:
-        session_id = request.cookies.get(auth_service.COOKIE_NAME)
-        user = auth_service.validate_session(session_id) if session_id else None
-        session_user = user.get("username", "Admin") if user else "Admin"
+        session_user = get_request_collector_name(request)
         items_dicts = [item.dict() for item in payload.items]
 
         res = database.settle_customer_cycles(

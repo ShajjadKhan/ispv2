@@ -1494,6 +1494,10 @@
                 <span class="badge-status" style="font-size:9.5px; width:fit-content; font-weight:800; background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.35);" title="Suspension held until {{ c.suspension_held_until }}">
                   🤝 GRACE: {{ c.suspension_held_until }}
                 </span>
+              {% elif c.has_debt_arrears %}
+                <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; font-weight:800; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.35);" title="Past due balance arrears">
+                  ⚠️ ARREARS ({{ c.days_remaining }}d left)
+                </span>
               {% elif c.days_remaining is not none %}
                 {% if c.days_remaining < 0 %}
                   <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; font-weight:800;">EXPIRED {{ c.days_remaining|abs }}d AGO</span>
@@ -1511,6 +1515,8 @@
               <span class="font-mono text-cyan" style="font-size:14px; font-weight:800;">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
               {% if c.credit_balance and c.credit_balance > 0 %}
                 <span class="font-mono" style="font-size:11px; color:#34d399; font-weight:700;">+{{ "%.2f"|format(c.credit_balance) }} in Wallet</span>
+              {% elif c.credit_balance and c.credit_balance < 0 %}
+                <span class="font-mono" style="font-size:11px; color:#f87171; font-weight:700;">-{{ "%.2f"|format(c.credit_balance|abs) }} in Arrears</span>
               {% endif %}
             </div>
 

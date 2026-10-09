@@ -224,6 +224,14 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+    .verified-banner > div {
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
     }
     .verified-banner svg {
       width: 24px;
@@ -241,6 +249,20 @@
       color: #a7f3d0;
       font-family: var(--font-mono);
       margin-top: 2px;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    /* iOS 12 legacy WebKit flex gap fallbacks */
+    .verified-banner > svg { margin-right: 10px; }
+    .btn-submit > svg { margin-left: 8px; }
+    .confirm-header > .confirm-icon-wrap { margin-right: 12px; }
+    .step-item > .step-dot { margin-right: 8px; }
+    @supports (gap: 10px) {
+      .verified-banner > svg { margin-right: 0; }
+      .btn-submit > svg { margin-left: 0; }
+      .confirm-header > .confirm-icon-wrap { margin-right: 0; }
+      .step-item > .step-dot { margin-right: 0; }
     }
 
     /* Step-by-Step Instructions Accordion/Tabs */
@@ -673,6 +695,62 @@
       .form-input {
         font-size: 16px !important;
       }
+      .portal-box {
+        padding: 0 10px;
+        box-sizing: border-box;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 16px 8px !important;
+        padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+        box-sizing: border-box !important;
+      }
+      .portal-box {
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+      .portal-card {
+        padding: 20px 14px !important;
+        border-radius: 16px !important;
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .brand-title {
+        font-size: 20px !important;
+      }
+      .brand-subtitle {
+        font-size: 12px !important;
+      }
+      .mac-badge-display {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        padding: 8px 12px !important;
+      }
+      .mac-badge-display span:nth-child(2) {
+        font-size: 12px !important;
+        word-break: break-all !important;
+      }
+      .btn-submit {
+        height: 48px !important;
+        font-size: 14px !important;
+      }
+      .verified-banner {
+        padding: 12px 14px !important;
+        gap: 10px !important;
+      }
+      .verified-title {
+        font-size: 13px !important;
+      }
+      .verified-sub {
+        font-size: 11px !important;
+      }
+      .confirm-card {
+        padding: 14px 12px !important;
+      }
     }
 
     /* Security Note Footer */
@@ -763,8 +841,8 @@
           <div id="guide-android" class="guide-content" style="display:none;">
             <ol>
               <li>Open <strong>Settings</strong> &rarr; tap <strong>Wi-Fi / Connections</strong>.</li>
-              <li>Tap the <strong>⚙️ Gear</strong> icon next to this Wi-Fi network.</li>
-              <li>Tap <strong>Advanced</strong> (or <em>View More</em>) &rarr; <strong>MAC address type</strong>.</li>
+              <li>Tap the <strong>⚙️ Gear</strong> (or <strong>ⓘ</strong>) icon next to this Wi-Fi network.</li>
+              <li>Tap <strong>Privacy</strong> (or <strong>Advanced / View More</strong>) &rarr; <strong>MAC address type</strong>.</li>
               <li>Select <strong>"Use Device MAC"</strong> (or <em>Phone MAC</em>).</li>
               <li>Disconnect and reconnect to this Wi-Fi network.</li>
             </ol>

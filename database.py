@@ -335,6 +335,19 @@ def init_db():
         )
         """)
 
+        # Migration check for customer_devices guest columns
+        cust_dev_cols = [
+            ("is_guest", "INTEGER NOT NULL DEFAULT 0"),
+            ("guest_expires_at", "TEXT DEFAULT NULL"),
+            ("guest_days", "INTEGER DEFAULT 0"),
+            ("guest_fee", "REAL DEFAULT 0.0")
+        ]
+        for col_name, col_type in cust_dev_cols:
+            try:
+                cursor.execute(f"ALTER TABLE customer_devices ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+
         # Migration check for packages table
         package_cols = [
             ("type", "TEXT NOT NULL DEFAULT 'hotspot'"),
@@ -823,6 +836,46 @@ def is_customer_expired(cust: Optional[Dict[str, Any]], today_str: Optional[str]
     return (False, f"Subscription active until {exp_date_str}" if exp_date_str else "Active", exp_date_str or raw_exp)
 
 
+def check_and_enforce_guest_expirations() -> List[Dict[str, Any]]:
+    """
+    Audits guest devices against current timestamp.
+    When a guest device expires (guest_expires_at <= now and is_guest = 1 and status = 'approved'):
+    - Marks device status = 'blocked'
+    - Collects MAC addresses for broadcast unbinding across MikroTik fleet
+    - Host customer and their permanent devices remain 100% active and untouched!
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    expired = []
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT cd.id, cd.customer_id, cd.mac_address, cd.device_name, cd.guest_expires_at,
+                   c.name as customer_name, c.phone as customer_phone
+            FROM customer_devices cd
+            JOIN customers c ON cd.customer_id = c.id
+            WHERE cd.is_guest = 1
+              AND cd.status = 'approved'
+              AND cd.guest_expires_at IS NOT NULL
+              AND cd.guest_expires_at <= ?
+        """, (now_str,))
+        rows = cursor.fetchall()
+        for r in rows:
+            expired.append({
+                "device_id": r["id"],
+                "customer_id": r["customer_id"],
+                "customer_name": r["customer_name"],
+                "customer_phone": r["customer_phone"],
+                "mac": r["mac_address"].upper(),
+                "device_name": r["device_name"],
+                "guest_expires_at": r["guest_expires_at"]
+            })
+            cursor.execute("UPDATE customer_devices SET status = 'blocked' WHERE id = ?", (r["id"],))
+        if expired:
+            conn.commit()
+    return expired
+
+
 def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
     """
     Audits customer subscriptions against current date.
@@ -1150,11 +1203,27 @@ def get_pending_requests() -> List[Dict[str, Any]]:
                 r["is_customer_expired"] = is_exp
                 r["customer_expiry_reason"] = reason
                 r["customer_expiry_date"] = exp_str or r.get("existing_expiry_date") or r.get("existing_due_date") or ""
+                # Load existing devices for this customer
+                cid = r.get("customer_id")
+                if cid:
+                    try:
+                        dev_rows = cursor.execute("""
+                            SELECT id, mac_address, device_name, is_guest, guest_expires_at, status
+                            FROM customer_devices
+                            WHERE customer_id = ? AND status = 'approved'
+                            ORDER BY id ASC
+                        """, (cid,)).fetchall()
+                        r["existing_devices"] = [dict(d) for d in dev_rows]
+                    except Exception:
+                        r["existing_devices"] = []
+                else:
+                    r["existing_devices"] = []
             else:
                 r["is_secondary"] = 0
                 r["is_customer_expired"] = False
                 r["customer_expiry_reason"] = ""
                 r["customer_expiry_date"] = ""
+                r["existing_devices"] = []
         return rows
 
 
@@ -1335,20 +1404,40 @@ def approve_connection(
                         WHERE id = ?
                     """, (update_name, new_max_devices, now_str, customer_id))
 
+            # Guest device resolution
+            is_guest_val = kwargs.get("is_guest", False)
+            guest_days_val = kwargs.get("guest_days", 0)
+            guest_fee_val = kwargs.get("guest_fee", 0.0)
+
+            clean_is_guest = 1 if is_guest_val else 0
+            clean_guest_days = max(1, int(guest_days_val or 1)) if clean_is_guest else 0
+            guest_exp = (now + timedelta(days=clean_guest_days)).strftime("%Y-%m-%d %H:%M:%S") if clean_is_guest else None
+            clean_guest_fee = round(float(guest_fee_val or 0.0), 2)
+
+            raw_model = req.get("device_model", "Mobile Phone")
+            dev_title = f"{raw_model} (Guest {clean_guest_days}d)" if clean_is_guest else raw_model
+
             # Insert or update customer_devices
             cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac,))
             dev_row = cursor.fetchone()
             if dev_row:
                 cursor.execute("""
                     UPDATE customer_devices
-                    SET customer_id = ?, ip_address = ?, device_name = ?, status = ?, approved_at = ?
+                    SET customer_id = ?, ip_address = ?, device_name = ?, status = ?, approved_at = ?,
+                        is_guest = ?, guest_expires_at = ?, guest_days = ?, guest_fee = ?
                     WHERE id = ?
-                """, (customer_id, ip, req.get("device_model", "Mobile Phone"), dev_status, now_str, dev_row["id"]))
+                """, (customer_id, ip, dev_title, dev_status, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee, dev_row["id"]))
             else:
                 cursor.execute("""
-                    INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), dev_status, now_str, now_str))
+                    INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at, is_guest, guest_expires_at, guest_days, guest_fee)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (customer_id, mac, ip, dev_title, dev_status, now_str, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee))
+
+            if clean_guest_fee > 0:
+                cursor.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                    VALUES (?, ?, 'cash', ?, ?, 'Admin')
+                """, (customer_id, clean_guest_fee, f"Guest Pass ({clean_guest_days} Days) for {update_name}", now_str))
 
             if join_date and join_date.strip():
                 cursor.execute("UPDATE customers SET join_date = ? WHERE id = ?", (join_date.strip(), customer_id))
@@ -1740,7 +1829,13 @@ def get_customer_profile(customer_id: int) -> Optional[Dict[str, Any]]:
         cust = dict(cust_row)
         cust["join_date"] = cust.get("join_date") or cust.get("billing_start_date") or (cust.get("created_at")[:10] if cust.get("created_at") else datetime.now().strftime("%Y-%m-%d"))
         cust["billing_start_date"] = cust.get("billing_start_date") or cust.get("join_date") or (cust.get("created_at")[:10] if cust.get("created_at") else datetime.now().strftime("%Y-%m-%d"))
-        cust["credit_balance"] = round(float(cust.get("credit_balance") or 0.0), 2)
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        cust["credit_balance"] = rt_bal["balance"]
+        cust["total_owed"] = rt_bal["total_owed"]
+        cust["total_paid"] = rt_bal["total_paid"]
+        cust["billable_days"] = rt_bal["billable_days"]
+        cust["balance_status"] = rt_bal["status"]
+        cust["daily_rate"] = rt_bal["daily_rate"]
 
         # Lookup package speed
         cursor.execute("SELECT rate_limit FROM packages WHERE name = ?", (cust.get("package_name"),))
@@ -1778,6 +1873,7 @@ def get_customer_profile(customer_id: int) -> Optional[Dict[str, Any]]:
             cust["days_remaining"] = None
             cust["is_expired"] = False
             cust["is_due"] = True
+        cust["suspend_date"] = expiry
         # Grace hold resolution
         today_str = now.strftime("%Y-%m-%d")
         susp_until = cust.get("suspension_held_until")
@@ -1979,10 +2075,11 @@ def update_customer_details(
     pppoe_password: Optional[str] = -1,
     pppoe_profile: Optional[str] = -1,
     pppoe_remote_ip: Optional[str] = -1,
+    suspend_date: Optional[str] = None,
     **kwargs: Any
 ) -> Optional[Dict[str, Any]]:
     """
-    Updates any customer fields: monthly rate, payment due date, custom speed limit,
+    Updates any customer fields: monthly rate, payment due date / suspend date, custom speed limit,
     billing type, device limit, package name, name, phone, status, credit balance, reseller attribution,
     join date, billing start date, suspension grace hold, and notes/room number.
     Automatically keeps prepaid expiry_date and due_day in sync.
@@ -1999,12 +2096,18 @@ def update_customer_details(
 
         new_name = name.strip() if name and name.strip() else current["name"]
         new_phone = phone.strip() if phone and phone.strip() else current["phone"]
+        if new_phone and new_phone != current.get("phone"):
+            cursor.execute("SELECT id, name FROM customers WHERE phone = ? AND id != ?", (new_phone, customer_id))
+            conflict = cursor.fetchone()
+            if conflict:
+                c_dict = dict(conflict)
+                raise ValueError(f"Phone number '{new_phone}' is already registered to customer '{c_dict['name']}' (ID #{c_dict['id']}).")
         new_btype = billing_type.strip().lower() if billing_type and billing_type.strip() else current["billing_type"]
         new_pkg = package_name.strip() if package_name and package_name.strip() else current["package_name"]
         new_fee = float(monthly_fee) if monthly_fee is not None else float(current["monthly_fee"])
         new_status = status.strip() if status and status.strip() else current["status"]
         new_max_devices = max(1, int(max_devices)) if max_devices is not None else int(current.get("max_devices") or 1)
-        new_credit = round(max(0.0, float(credit_balance)), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
+        new_credit = round(float(credit_balance), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
         final_reseller_id = current.get("reseller_id") if reseller_id == -1 else reseller_id
         new_notes = current.get("notes") or "" if notes == -1 else (notes.strip() if notes else "")
         new_conn_type = connection_type.strip().lower() if connection_type and connection_type.strip() else current.get("connection_type", "hotspot")
@@ -2029,9 +2132,10 @@ def update_customer_details(
         else:
             new_speed = current.get("speed_limit")
 
-        # Due date & expiry date
-        if due_date and due_date.strip():
-            new_due_date = due_date.strip()
+        # Due date & expiry date / suspend date
+        effective_date = (due_date.strip() if due_date and due_date.strip() else (suspend_date.strip() if suspend_date and suspend_date.strip() else kwargs.get("suspend_date")))
+        if effective_date and str(effective_date).strip():
+            new_due_date = str(effective_date).strip()
             new_expiry_date = new_due_date
             try:
                 new_due_day = int(new_due_date.split("-")[2])
@@ -2171,27 +2275,62 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
         return (new_status, macs)
 
 
-def add_customer_device(customer_id: int, mac_address: str, device_name: str = "Client Device") -> Dict[str, Any]:
-    """Adds a new MAC device to an existing customer and marks connection requests approved."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def add_customer_device(
+    customer_id: int,
+    mac_address: str,
+    device_name: str = "Client Device",
+    is_guest: bool = False,
+    guest_days: int = 0,
+    guest_fee: float = 0.0
+) -> Dict[str, Any]:
+    """Adds a new MAC device to an existing customer, optionally as a temporary guest pass."""
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
     mac_clean = mac_address.strip().upper()
 
     if is_randomized_mac(mac_clean):
         raise ValueError(f"Randomized MAC address '{mac_clean}' is not permitted. CyberNet requires physical Device MAC.")
 
+    clean_is_guest = 1 if is_guest else 0
+    clean_guest_days = max(1, int(guest_days or 1)) if clean_is_guest else 0
+    guest_exp = (now + timedelta(days=clean_guest_days)).strftime("%Y-%m-%d %H:%M:%S") if clean_is_guest else None
+    clean_guest_fee = round(float(guest_fee or 0.0), 2)
+    dev_title = device_name.strip() if device_name and device_name.strip() else "Client Device"
+    if clean_is_guest and not dev_title.lower().startswith("guest"):
+        dev_title = f"{dev_title} (Guest {clean_guest_days}d)"
+
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT OR REPLACE INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
-            VALUES (?, ?, NULL, ?, 'approved', ?, ?)
-        """, (customer_id, mac_clean, device_name, now_str, now_str))
+        cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac_clean,))
+        existing = cursor.fetchone()
+        if existing:
+            cursor.execute("""
+                UPDATE customer_devices
+                SET customer_id = ?, device_name = ?, status = 'approved', approved_at = ?,
+                    is_guest = ?, guest_expires_at = ?, guest_days = ?, guest_fee = ?
+                WHERE id = ?
+            """, (customer_id, dev_title, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee, existing["id"]))
+            dev_id = existing["id"]
+        else:
+            cursor.execute("""
+                INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at, is_guest, guest_expires_at, guest_days, guest_fee)
+                VALUES (?, ?, NULL, ?, 'approved', ?, ?, ?, ?, ?, ?)
+            """, (customer_id, mac_clean, dev_title, now_str, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee))
+            dev_id = cursor.lastrowid
+
         cursor.execute("""
             UPDATE connection_requests
             SET status = 'approved', customer_id = ?, updated_at = ?
             WHERE UPPER(mac_address) = ?
         """, (customer_id, now_str, mac_clean))
+
+        if clean_guest_fee > 0:
+            cursor.execute("""
+                INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                VALUES (?, ?, 'cash', ?, ?, 'Admin')
+            """, (customer_id, clean_guest_fee, f"Guest Pass ({clean_guest_days} Days) - MAC: {mac_clean}", now_str))
+
         conn.commit()
-        dev_id = cursor.lastrowid
         cursor.execute("SELECT * FROM customer_devices WHERE id = ?", (dev_id,))
         return dict(cursor.fetchone())
 
@@ -2285,12 +2424,41 @@ def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
 
 
 
+def resolve_collector_name(collector: Optional[str]) -> str:
+    """Resolves collector identifier (username, name, or alias) to canonical staff Full Name."""
+    if not collector:
+        return 'Shajjad Khan'
+    c = str(collector).strip()
+    c_lower = c.lower()
+    if c_lower in ('admin', 'system administrator', 'shajjad khan', 'shajjad'):
+        return 'Shajjad Khan'
+    if c_lower in ('riyad', 'riyad hossain'):
+        return 'Riyad Hossain'
+    try:
+        with get_db() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT full_name FROM admin_users WHERE lower(username) = ? OR lower(full_name) = ?",
+                (c_lower, c_lower)
+            ).fetchone()
+            if row and row["full_name"]:
+                return row["full_name"]
+    except Exception:
+        pass
+    return c
+
+
+def normalize_collector_username(collector: Optional[str]) -> str:
+    return resolve_collector_name(collector)
+
+
 def record_customer_payment(
     customer_id: int,
     amount: float,
     notes: str = "Cash Payment",
     extend_days: int = 30,
-    advance_mode: str = "credit"
+    advance_mode: str = "credit",
+    collector: str = "Shajjad Khan"
 ) -> Dict[str, Any]:
     """
     Records a payment in collections ledger, marks customer active,
@@ -2361,10 +2529,11 @@ def record_customer_payment(
                 rec_note = (notes or "Cash Payment") + switch_tag
 
         # 1. Insert collection
+        clean_collector = resolve_collector_name(collector)
         cursor.execute("""
             INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
-            VALUES (?, ?, 'recharge', ?, ?, 'Admin')
-        """, (customer_id, clean_amt, rec_note, now_str))
+            VALUES (?, ?, 'recharge', ?, ?, ?)
+        """, (customer_id, clean_amt, rec_note, now_str, clean_collector))
 
         # 2. Update customer expiry / due date & credit_balance & billing_type
         current_exp = cust["expiry_date"] or cust["due_date"]
@@ -2879,7 +3048,7 @@ def get_customer_unpaid_months(customer_id: int) -> List[Dict[str, Any]]:
 def settle_customer_cycles(
     customer_id: int,
     settlement_items: List[Dict[str, Any]],
-    collected_by: str = "Admin",
+    collected_by: str = "Shajjad Khan",
     notes: str = ""
 ) -> Dict[str, Any]:
     """
@@ -2957,10 +3126,11 @@ def settle_customer_cycles(
 
             # Only record if money was collected or a settlement occurred
             if amt > 0 or (should_settle and (waived > 0.01 or prev_paid > 0 or is_settled_val == 1)):
+                clean_by = resolve_collector_name(collected_by)
                 cursor.execute("""
                     INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, collected_by, month, is_settled_val, waived))
+                """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, clean_by, month, is_settled_val, waived))
 
                 recorded_records.append({
                     "month": month,
@@ -3201,7 +3371,8 @@ def toggle_package_active(pkg_id: int) -> Tuple[bool, int]:
 
 def get_dashboard_metrics(
     month_str: Optional[str] = None,
-    online_macs: Optional[List[str]] = None
+    online_macs: Optional[List[str]] = None,
+    telemetry_map: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Computes unified Operations & Financial metrics:
@@ -3212,6 +3383,7 @@ def get_dashboard_metrics(
     - Staff performance audit breakdown table
     - Recent collections feed
     - Month selector history
+    - Fleet-wide multi-gateway roaming and active router attribution
     """
     now = datetime.now()
     curr_month = now.strftime("%Y-%m-%d")[:7]
@@ -3225,6 +3397,10 @@ def get_dashboard_metrics(
         month_label = now.strftime("%B %Y")
 
     online_mac_set = {m.strip().upper() for m in (online_macs or []) if m and m.strip()}
+    if telemetry_map:
+        for m, t in telemetry_map.items():
+            if t.get("state") == "online" or t.get("is_online"):
+                online_mac_set.add(m.strip().upper())
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -3292,16 +3468,38 @@ def get_dashboard_metrics(
         active_customers = [c for c in all_custs if c.get("status") == "active"]
         suspended_customers = [c for c in all_custs if c.get("status") == "suspended"]
 
-        # Online Device matching
+        # Online Device matching & Multi-Router Roaming Attribution
         total_approved_devices = len(all_devices)
         online_approved_devices = 0
         online_customer_ids = set()
+        fleet_online_by_router = {"MK10": 0, "MK20": 0, "MK30": 0}
 
         for dev in all_devices:
             mac = dev.get("mac_address", "").upper()
-            if mac in online_mac_set:
+            telem = (telemetry_map or {}).get(mac, {})
+            is_online = (mac in online_mac_set) or (telem.get("state") == "online") or telem.get("is_online", False)
+            dev["is_online"] = is_online
+            dev["state"] = telem.get("state", "online" if is_online else "offline")
+            dev["status_label"] = telem.get("status_label", "Online" if is_online else "Offline")
+            dev["router_short_name"] = telem.get("router_short_name")
+            dev["router_name"] = telem.get("router_name")
+            dev["is_roaming"] = telem.get("is_roaming", False)
+            dev["roaming_label"] = telem.get("roaming_label")
+            dev["roaming_routers"] = telem.get("roaming_routers", [])
+            dev["live_ip"] = telem.get("live_ip") or dev.get("ip_address")
+            dev["idle_time"] = telem.get("idle_time")
+            dev["uptime"] = telem.get("uptime")
+            dev["last_seen"] = telem.get("last_seen")
+            dev["is_sharing_hotspot"] = telem.get("is_sharing_hotspot", False)
+            dev["sharing_detail"] = telem.get("sharing_detail")
+            dev["sharing_timeout"] = telem.get("sharing_timeout")
+
+            if is_online:
                 online_approved_devices += 1
                 online_customer_ids.add(dev["customer_id"])
+                r_code = dev.get("router_short_name")
+                if r_code:
+                    fleet_online_by_router[r_code] = fleet_online_by_router.get(r_code, 0) + 1
 
         connectivity_rate = (
             round((online_approved_devices / total_approved_devices * 100), 1)
@@ -3312,12 +3510,15 @@ def get_dashboard_metrics(
         # 3. Expiration Tiers & Priority Action Queue
         tier_counts = {
             "total": 0,
+            "total_queue": 0,
+            "will_suspend": 0,
             "overdue": 0,
             "today": 0,
             "today_overdue": 0,
             "in_3d": 0,
             "in_7d": 0,
-            "in_15d": 0
+            "in_15d": 0,
+            "upcoming_renewals": 0
         }
 
         priority_queue = []
@@ -3327,14 +3528,49 @@ def get_dashboard_metrics(
         for c in all_custs:
             cid = c["id"]
             c["devices"] = cust_devices_map.get(cid, [])
+            c_devs = c["devices"]
             c["devices_count"] = len(c["devices"])
             c["primary_mac"] = c["devices"][0]["mac_address"] if c["devices"] else None
             c["primary_mac_is_random"] = is_randomized_mac(c["primary_mac"]) if c["primary_mac"] else False
             c["is_online"] = (cid in online_customer_ids)
             c["credit_balance"] = round(float(c.get("credit_balance") or 0.0), 2)
             c["monthly_fee"] = round(float(c.get("monthly_fee") or 0.0), 2)
+            c["is_sharing_hotspot"] = any(d.get("is_sharing_hotspot") for d in c_devs)
+            c["sharing_detail"] = next((d.get("sharing_detail") for d in c_devs if d.get("is_sharing_hotspot")), None)
+            c["sharing_timeout"] = next((d.get("sharing_timeout") for d in c_devs if d.get("is_sharing_hotspot")), None)
+
+            # Attribute customer-level active gateway and roaming status
+            c_online_devs = [d for d in c_devs if d.get("is_online")]
+            if c_online_devs:
+                active_d = c_online_devs[0]
+                c["active_router_short_name"] = active_d.get("router_short_name") or "MK20"
+                c["active_router_name"] = active_d.get("router_name")
+                c["is_roaming"] = any(d.get("is_roaming") for d in c_online_devs)
+                c["roaming_label"] = active_d.get("roaming_label")
+                c["live_ip"] = active_d.get("live_ip")
+            elif c_devs:
+                recent_d = next((d for d in c_devs if d.get("state") == "recent"), None)
+                if recent_d:
+                    c["active_router_short_name"] = recent_d.get("router_short_name")
+                    c["active_router_name"] = recent_d.get("router_name")
+                    c["is_roaming"] = recent_d.get("is_roaming", False)
+                    c["roaming_label"] = recent_d.get("roaming_label")
+                    c["live_ip"] = recent_d.get("live_ip")
+                else:
+                    c["active_router_short_name"] = None
+                    c["active_router_name"] = None
+                    c["is_roaming"] = False
+                    c["roaming_label"] = None
+                    c["live_ip"] = None
+            else:
+                c["active_router_short_name"] = None
+                c["active_router_name"] = None
+                c["is_roaming"] = False
+                c["roaming_label"] = None
+                c["live_ip"] = None
 
             expiry = c.get("due_date") or c.get("expiry_date")
+            c["suspend_date"] = expiry
             days_rem = None
             is_expired = False
             is_due = False
@@ -3352,10 +3588,10 @@ def get_dashboard_metrics(
                 c["is_grace_held"] = True
                 c["grace_until"] = susp_until
             elif c.get("status") == "suspended":
-                tier = "overdue"
+                tier = "suspended"
                 tier_badge = "suspended"
                 tier_label = "SUSPENDED"
-                is_due = True
+                is_due = False
                 is_expired = True
                 days_rem = -999
             elif expiry:
@@ -3401,10 +3637,28 @@ def get_dashboard_metrics(
                     tier_label = "Invalid Date"
                     is_due = True
             else:
-                tier = "overdue"
-                tier_badge = "overdue"
+                tier = "active"
+                tier_badge = "active"
                 tier_label = "No Due Date"
+                is_due = False
+
+            wallet_credit = float(c.get("credit_balance") or 0.0)
+            has_debt = (wallet_credit < 0)
+            c["has_debt_arrears"] = has_debt
+
+            # An account is due if their renewal is soon (<= 3d), suspended, on grace, OR has past-due arrears debt
+            fee = float(c.get("monthly_fee") or 0.0)
+            if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace") or has_debt:
                 is_due = True
+                if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace"):
+                    net_needed = max(0.0, round(fee - wallet_credit, 2))
+                else:
+                    net_needed = round(abs(wallet_credit), 2)
+                c["net_due_amount"] = net_needed
+                due_customers_count += 1
+                outstanding_sar += net_needed
+            else:
+                c["net_due_amount"] = 0.0
 
             c["days_remaining"] = days_rem
             c["is_expired"] = is_expired
@@ -3413,40 +3667,58 @@ def get_dashboard_metrics(
             c["tier_badge"] = tier_badge
             c["tier_label"] = tier_label
 
-            if is_due:
-                due_customers_count += 1
-                outstanding_sar += c["monthly_fee"]
-
-            # Count tiers
-            if tier in ("overdue", "today", "in_3d", "in_7d", "in_15d"):
+            # Count tiers & priority action queue:
+            # ONLY active accounts that will actually be cut (overdue or today) count towards will_suspend!
+            if c.get("status") == "active":
                 if tier == "overdue":
                     tier_counts["overdue"] += 1
+                    tier_counts["will_suspend"] += 1
+                    priority_queue.append(c)
                 elif tier == "today":
                     tier_counts["today"] += 1
+                    tier_counts["will_suspend"] += 1
+                    priority_queue.append(c)
                 elif tier == "in_3d":
                     tier_counts["in_3d"] += 1
+                    priority_queue.append(c)
                 elif tier == "in_7d":
                     tier_counts["in_7d"] += 1
+                    priority_queue.append(c)
                 elif tier == "in_15d":
                     tier_counts["in_15d"] += 1
-
-                priority_queue.append(c)
+                    priority_queue.append(c)
+                elif tier == "grace" or has_debt:
+                    priority_queue.append(c)
+            elif c.get("status") == "suspended":
+                # Already suspended accounts are kept intact and dedicated to the Suspended list
+                pass
 
         tier_counts["today_overdue"] = tier_counts["overdue"] + tier_counts["today"]
-        tier_counts["total"] = (
-            tier_counts["today_overdue"] +
-            tier_counts["in_3d"] +
-            tier_counts["in_7d"] +
-            tier_counts["in_15d"]
-        )
+        tier_counts["upcoming_renewals"] = tier_counts["in_3d"] + tier_counts["in_7d"] + tier_counts["in_15d"]
+        tier_counts["total_queue"] = tier_counts["will_suspend"] + tier_counts["upcoming_renewals"]
+        # 'total' for the Will Suspend KPI card strictly shows the accounts that will be cut!
+        tier_counts["total"] = tier_counts["will_suspend"]
 
         # Sort Priority Queue:
-        # Priority: overdue/suspended (0) -> today (1) -> in_3d (2) -> in_7d (3) -> in_15d (4)
+        # Grace hold (0) -> Suspended (1) -> expired/overdue (2) -> large debt arrears (3) -> due today (4) -> in_3d (5) -> in_7d (6) -> in_15d (7)
         def priority_sort_key(item):
-            t = item["tier"]
-            order = {"overdue": 0, "today": 1, "in_3d": 2, "in_7d": 3, "in_15d": 4}.get(t, 5)
-            rem = item["days_remaining"] if item["days_remaining"] is not None else -9999
-            return (order, rem)
+            if item.get("is_grace_held"):
+                return (0, 0)
+            if item.get("status") == "suspended":
+                return (1, item.get("days_remaining") or 0)
+            d = item.get("days_remaining")
+            if d is not None and d < 0:
+                return (2, d)
+            wc = float(item.get("credit_balance") or 0.0)
+            if wc < 0:
+                return (3, wc)
+            if d == 0:
+                return (4, 0)
+            if d is not None and 1 <= d <= 3:
+                return (5, d)
+            if d is not None and 4 <= d <= 7:
+                return (6, d)
+            return (7, d or 999)
 
         priority_queue.sort(key=priority_sort_key)
 
@@ -3461,9 +3733,10 @@ def get_dashboard_metrics(
         collected_month_sar = round(float(fin_row["total_collected"] or 0.0), 2)
         collections_count = int(fin_row["tx_count"] or 0)
 
-        # Outstanding & Collection Target
+        # Outstanding & Collection Target (Aligned with active fleet monthly quota)
         outstanding_sar = round(outstanding_sar, 2)
-        target_revenue_sar = round(collected_month_sar + outstanding_sar, 2)
+        projected_monthly_revenue = round(sum(float(c.get("monthly_fee") or 0.0) for c in all_custs if c.get("status") == "active"), 2)
+        target_revenue_sar = projected_monthly_revenue if projected_monthly_revenue > 0 else round(collected_month_sar + outstanding_sar, 2)
         collection_rate = (
             round((collected_month_sar / target_revenue_sar * 100), 1)
             if target_revenue_sar > 0 else 100.0
@@ -3496,8 +3769,9 @@ def get_dashboard_metrics(
         for s in staff_rows:
             tot = round(float(s["total_amount"] or 0.0), 2)
             share = round((tot / collected_month_sar * 100), 1) if collected_month_sar > 0 else 0.0
+            canonical_col = resolve_collector_name(s["collected_by"])
             staff_performance.append({
-                "collector_name": s["collected_by"] or "Admin",
+                "collector_name": canonical_col,
                 "tx_count": int(s["tx_count"] or 0),
                 "total_amount": tot,
                 "avg_amount": round(float(s["avg_amount"] or 0.0), 2),
@@ -3514,6 +3788,8 @@ def get_dashboard_metrics(
         """)
         recent_collections = [dict(r) for r in cursor.fetchall()]
 
+        roaming_online_count = sum(1 for c in all_custs if c.get("is_online") and c.get("is_roaming"))
+
         return {
             "target_month": target_month,
             "month_label": month_label,
@@ -3528,17 +3804,22 @@ def get_dashboard_metrics(
             "online_devices": online_approved_devices,
             "connectivity_rate": connectivity_rate,
             "active_subscribers_online": active_subscribers_online,
+            "sharing_subscribers_count": sum(1 for c in all_custs if c.get("is_sharing_hotspot")),
+            "roaming_online_count": roaming_online_count,
+            "fleet_online_by_router": fleet_online_by_router,
             "collected_month_sar": collected_month_sar,
             "collections_count": collections_count,
             "outstanding_sar": outstanding_sar,
             "due_customers_count": due_customers_count,
+            "projected_monthly_revenue": projected_monthly_revenue,
             "target_revenue_sar": target_revenue_sar,
             "collection_rate": collection_rate,
             "expiring_tiers": tier_counts,
             "priority_queue": priority_queue,
             "all_customers": all_custs,
             "staff_performance": staff_performance,
-            "recent_collections": recent_collections
+            "recent_collections": recent_collections,
+            "telemetry_map": telemetry_map or {}
         }
 
 
@@ -3554,13 +3835,17 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
 
         # Ledger records in date range
         cursor.execute("""
-            SELECT col.*, c.name as customer_name, c.phone as customer_phone, c.package_name
+            SELECT col.*, c.name as customer_name, c.phone as customer_phone, c.package_name, c.notes as customer_room
             FROM collections col
             LEFT JOIN customers c ON col.customer_id = c.id
             WHERE date(col.collected_at) >= date(?) AND date(col.collected_at) <= date(?)
             ORDER BY col.collected_at DESC, col.id DESC
         """, (clean_start, clean_end))
-        items = [dict(r) for r in cursor.fetchall()]
+        raw_items = [dict(r) for r in cursor.fetchall()]
+        items = []
+        for it in raw_items:
+            it["collected_by"] = resolve_collector_name(it.get("collected_by"))
+            items.append(it)
 
         # Totals
         total_collected = sum(float(i.get("amount") or 0.0) for i in items if float(i.get("amount") or 0.0) > 0)
@@ -3568,7 +3853,7 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
         tx_count = len([i for i in items if float(i.get("amount") or 0.0) > 0])
         avg_tx = round(total_collected / tx_count, 2) if tx_count > 0 else 0.0
 
-        # Staff breakdown for range
+        # Staff breakdown for range (normalized and aggregated by canonical collector name)
         cursor.execute("""
             SELECT collected_by,
                    COUNT(*) as tx_count,
@@ -3578,7 +3863,32 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
             GROUP BY collected_by
             ORDER BY total_amount DESC
         """, (clean_start, clean_end))
-        staff = [dict(r) for r in cursor.fetchall()]
+        staff_rows = [dict(r) for r in cursor.fetchall()]
+
+        staff_map = {}
+        for r in staff_rows:
+            cname = resolve_collector_name(r["collected_by"])
+            if cname not in staff_map:
+                staff_map[cname] = {"collector": cname, "count": 0, "total": 0.0}
+            staff_map[cname]["count"] += int(r["tx_count"] or 0)
+            staff_map[cname]["total"] += float(r["total_amount"] or 0.0)
+
+        staff = []
+        for s in sorted(staff_map.values(), key=lambda x: x["total"], reverse=True):
+            tot = round(s["total"], 2)
+            cnt = s["count"]
+            avg = round(tot / cnt, 2) if cnt > 0 else 0.0
+            pct = round((tot / total_collected * 100), 1) if total_collected > 0 else 0.0
+            staff.append({
+                "collector": s["collector"],
+                "collected_by": s["collector"],
+                "count": cnt,
+                "tx_count": cnt,
+                "total": tot,
+                "total_amount": tot,
+                "average": avg,
+                "percentage": pct
+            })
 
         return {
             "start_date": clean_start,
@@ -4683,11 +4993,12 @@ def get_collections_hub_data(
         month_collected = round(float(month_row["total"] or 0.0), 2)
         month_tx_count = int(month_row["tx_count"] or 0)
 
-        # 3. Customer Credit Liabilities (Total credit held across all customer wallets)
+        # 3. Customer Credit Liabilities (Total positive advance credit held across customer wallets)
         cursor.execute("""
-            SELECT COALESCE(SUM(credit_balance), 0.0) as total_credit,
+            SELECT COALESCE(SUM(CASE WHEN credit_balance > 0 THEN credit_balance ELSE 0.0 END), 0.0) as total_credit,
                    COUNT(CASE WHEN credit_balance > 0 THEN 1 END) as credit_holders_count
             FROM customers
+            WHERE status != 'deleted'
         """)
         credit_row = cursor.fetchone()
         total_credit_held = round(float(credit_row["total_credit"] or 0.0), 2)
@@ -4700,11 +5011,18 @@ def get_collections_hub_data(
             days_rem = c.get("days_remaining")
             status = c.get("status", "active")
             is_grace = bool(c.get("is_grace_held"))
-            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace
+            wallet_credit = float(c.get("credit_balance") or 0.0)
+            has_debt = (wallet_credit < 0)
+            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace or has_debt
             if is_due:
                 fee = float(c.get("monthly_fee") or 0.0)
-                wallet_credit = float(c.get("credit_balance") or 0.0)
-                net_needed = max(0.0, round(fee - wallet_credit, 2))
+                # If cycle is due (days_rem <= 3, suspended, or grace), net_needed is monthly fee minus wallet credit
+                # If cycle renewal is in the future (> 3 days), only existing debt arrears is immediately due
+                if (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace:
+                    net_needed = max(0.0, round(fee - wallet_credit, 2))
+                else:
+                    net_needed = round(abs(wallet_credit), 2)
+
                 c_copy = dict(c)
                 if is_grace:
                     daily_r = round(fee / 30.0, 4)
@@ -4716,11 +5034,12 @@ def get_collections_hub_data(
                     net_needed = max(0.0, round((fee + accrued_amt) - wallet_credit, 2))
                     c_copy["accrued_grace_amount"] = accrued_amt
                 c_copy["net_due_amount"] = net_needed
+                c_copy["has_debt_arrears"] = has_debt
                 c_copy["can_settle_from_credit"] = (wallet_credit >= fee and fee > 0)
                 due_customers_queue.append(c_copy)
 
         def due_sort_key(item):
-            # Grace hold (0), Suspended (1), expired (2), due today (3), due soon (4)
+            # Grace hold (0), Suspended (1), expired (2), large debt arrears (3), due today (4), due soon (5)
             if item.get("is_grace_held"):
                 return (0, 0)
             if item.get("status") == "suspended":
@@ -4728,9 +5047,12 @@ def get_collections_hub_data(
             d = item.get("days_remaining")
             if d is not None and d < 0:
                 return (2, d)
+            wc = float(item.get("credit_balance") or 0.0)
+            if wc < 0:
+                return (3, wc)
             if d == 0:
-                return (3, 0)
-            return (4, d or 999)
+                return (4, 0)
+            return (5, d or 999)
 
         due_customers_queue.sort(key=due_sort_key)
         outstanding_receivable = round(sum(item["net_due_amount"] for item in due_customers_queue), 2)
@@ -4738,7 +5060,8 @@ def get_collections_hub_data(
 
         projected_monthly_revenue = round(sum(float(c.get("monthly_fee") or 0.0) for c in all_customers if c.get("status") == "active"), 2)
         total_cycle_revenue = round(month_collected + outstanding_receivable, 2)
-        collection_efficiency = round((month_collected / total_cycle_revenue * 100), 1) if total_cycle_revenue > 0 else 100.0
+        target_revenue = projected_monthly_revenue if projected_monthly_revenue > 0 else total_cycle_revenue
+        collection_efficiency = round((month_collected / target_revenue * 100), 1) if target_revenue > 0 else 100.0
 
         # 5. Filtered Ledger Records
         where_clauses = ["1=1"]
@@ -4862,6 +5185,17 @@ def update_collection(
             SET amount = ?, notes = ?, collected_at = ?, collected_by = ?, billing_type = ?, month_year = ?
             WHERE id = ?
         """, (clean_amt, clean_notes, final_at, final_by, final_type, month_yr, collection_id))
+
+        # If amount changed, adjust customer credit_balance accordingly using real-time calculation
+        old_amt = float(old["amount"] or 0.0)
+        diff = round(clean_amt - old_amt, 2)
+        if diff != 0.0 and old["customer_id"]:
+            try:
+                rt_bal = calculate_customer_realtime_balance(old["customer_id"], conn)
+                cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], old["customer_id"]))
+            except Exception:
+                cursor.execute("UPDATE customers SET credit_balance = round(COALESCE(credit_balance, 0.0) + ?, 2) WHERE id = ?", (diff, old["customer_id"]))
+
         conn.commit()
 
         cursor.execute("""
@@ -4874,7 +5208,7 @@ def update_collection(
 
 
 def delete_collection(collection_id: int) -> Tuple[bool, Optional[Dict[str, Any]]]:
-    """Permanently deletes a collection entry and adjusts customer collected_today if applicable."""
+    """Permanently deletes a collection entry and adjusts customer collected_today and credit_balance if applicable."""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -4891,17 +5225,22 @@ def delete_collection(collection_id: int) -> Tuple[bool, Optional[Dict[str, Any]
         cust_id = col.get("customer_id")
         amt = float(col.get("amount") or 0.0)
 
-        # If customer had collected_today set from this payment, adjust collected_today
+        # If customer had collected_today set from this payment, adjust it
         if cust_id and amt > 0:
-            cursor.execute("SELECT collected_today, credit_balance FROM customers WHERE id = ?", (cust_id,))
+            cursor.execute("SELECT collected_today FROM customers WHERE id = ?", (cust_id,))
             cust_row = cursor.fetchone()
             if cust_row:
                 curr_collected = float(cust_row["collected_today"] or 0.0)
-                if curr_collected > 0:
-                    new_collected = max(0.0, round(curr_collected - amt, 2))
-                    cursor.execute("UPDATE customers SET collected_today = ? WHERE id = ?", (new_collected, cust_id))
+                new_collected = max(0.0, round(curr_collected - amt, 2)) if curr_collected > 0 else 0.0
+                cursor.execute("UPDATE customers SET collected_today = ? WHERE id = ?", (new_collected, cust_id))
 
         cursor.execute("DELETE FROM collections WHERE id = ?", (collection_id,))
+        if cust_id:
+            try:
+                rt_bal = calculate_customer_realtime_balance(cust_id, conn)
+                cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], cust_id))
+            except Exception:
+                pass
         conn.commit()
         return True, col
 
@@ -5758,6 +6097,194 @@ def normalize_saudi_phone_number(raw: Optional[str]) -> str:
     return digits
 
 
+
+def calculate_customer_realtime_balance(
+    cust_id: int,
+    conn=None
+) -> Dict[str, Any]:
+    """
+    Computes real-time month-aware (28-31 days) accounting for a single subscriber.
+    - Each active day is billed at (monthly_fee / actual_days_in_that_month).
+    - Full months always equal exactly the monthly fee regardless of 28, 30, or 31 days.
+    - Partial months accrue proportionally day-by-day.
+    - Deducts active suspension / vacation hold periods.
+    - Returns billable_days, total_owed, total_paid, balance, status, and current_daily_rate.
+    """
+    close_conn = False
+    if conn is None:
+        conn = get_db()
+        conn.row_factory = sqlite3.Row
+        close_conn = True
+
+    try:
+        cur = conn.cursor()
+        c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE id = ?", (cust_id,)).fetchone()
+        if not c:
+            return {
+                "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
+                "balance": 0.0, "status": "SETTLED", "daily_rate": 0.0
+            }
+
+        raw_fee = c["monthly_fee"]
+        fee = float(raw_fee) if raw_fee is not None else 30.0
+
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        cur_dim = calendar.monthrange(today.year, today.month)[1]
+        daily_rate = round(fee / float(cur_dim), 2) if fee > 0 else 0.0
+
+        start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
+        try:
+            start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+        except Exception:
+            start_d = today
+
+        # Fetch suspensions
+        susp_rows = cur.execute("SELECT suspended_at, resumed_at FROM customer_suspensions WHERE customer_id = ? ORDER BY id ASC", (cust_id,)).fetchall()
+        cust_susp = []
+        for s in susp_rows:
+            try:
+                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+                cust_susp.append((s_d, r_d))
+            except Exception:
+                pass
+
+        if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
+            cust_susp.append((today, None))
+
+        total_owed = 0.0
+        billable = 0
+        cur_d = start_d
+        while cur_d <= yesterday:
+            in_susp = False
+            for s_start, s_end in cust_susp:
+                if s_end is None:
+                    if cur_d >= s_start:
+                        in_susp = True
+                        break
+                else:
+                    if s_start <= cur_d <= s_end:
+                        in_susp = True
+                        break
+            if not in_susp and fee > 0:
+                dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                total_owed += (fee / float(dim))
+                billable += 1
+            cur_d += timedelta(days=1)
+
+        owed = round(total_owed, 2) if fee > 0 else 0.0
+
+        # Fetch paid amount
+        paid_row = cur.execute("""
+            SELECT COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0)
+            FROM collections
+            WHERE customer_id = ? AND (amount > 0 OR waived_amount > 0)
+        """, (cust_id,)).fetchone()
+        paid = round(float(paid_row[0] or 0.0), 2) if paid_row else 0.0
+
+        bal = round(paid - owed, 2)
+        st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+
+        return {
+            "billable_days": billable,
+            "total_owed": owed,
+            "total_paid": paid,
+            "balance": bal,
+            "status": st,
+            "daily_rate": daily_rate
+        }
+    finally:
+        if close_conn:
+            conn.close()
+
+
+def sync_all_customer_realtime_balances(conn=None) -> int:
+    """
+    Synchronizes customers.credit_balance across all subscribers in real-time
+    using the exact month-aware daily calculation.
+    """
+    close_conn = False
+    if conn is None:
+        conn = get_db()
+        conn.row_factory = sqlite3.Row
+        close_conn = True
+
+    try:
+        cur = conn.cursor()
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        col_rows = cur.execute("""
+            SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total
+            FROM collections
+            WHERE (amount > 0 OR waived_amount > 0)
+            GROUP BY customer_id
+        """).fetchall()
+        colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
+
+        susp_rows = cur.execute("SELECT customer_id, suspended_at, resumed_at FROM customer_suspensions ORDER BY id ASC").fetchall()
+        susp_by_cid = {}
+        for s in susp_rows:
+            scid = int(s["customer_id"])
+            try:
+                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+                susp_by_cid.setdefault(scid, []).append((s_d, r_d))
+            except Exception:
+                pass
+
+        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
+        updates = []
+        for c in custs:
+            cid = int(c["id"])
+            raw_fee = c["monthly_fee"]
+            fee = float(raw_fee) if raw_fee is not None else 30.0
+
+            start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
+            try:
+                start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+            except Exception:
+                start_d = today
+
+            cust_susp = list(susp_by_cid.get(cid, []))
+            if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
+                cust_susp.append((today, None))
+
+            total_owed = 0.0
+            cur_d = start_d
+            while cur_d <= yesterday:
+                in_susp = False
+                for s_start, s_end in cust_susp:
+                    if s_end is None:
+                        if cur_d >= s_start:
+                            in_susp = True
+                            break
+                    else:
+                        if s_start <= cur_d <= s_end:
+                            in_susp = True
+                            break
+                if not in_susp and fee > 0:
+                    dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                    total_owed += (fee / float(dim))
+                cur_d += timedelta(days=1)
+
+            owed = round(total_owed, 2) if fee > 0 else 0.0
+            paid = round(colls_by_cid.get(cid, 0.0), 2)
+            bal = round(paid - owed, 2)
+            curr_cb = round(float(c["credit_balance"] or 0.0), 2)
+            if abs(bal - curr_cb) > 0.01:
+                updates.append((bal, cid))
+
+        if updates:
+            cur.executemany("UPDATE customers SET credit_balance = ? WHERE id = ?", updates)
+            conn.commit()
+        return len(updates)
+    finally:
+        if close_conn:
+            conn.close()
+
+
 def get_balance_sheet_data(
     status_filter: str = "all",
     search_query: Optional[str] = None,
@@ -5787,9 +6314,9 @@ def get_balance_sheet_data(
         cur = conn.cursor()
 
         col_rows = cur.execute("""
-            SELECT customer_id, COALESCE(SUM(amount), 0.0) as total, COUNT(*) as count
+            SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total, COUNT(*) as count
             FROM collections
-            WHERE amount > 0
+            WHERE (amount > 0 OR waived_amount > 0)
             GROUP BY customer_id
         """).fetchall()
         colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
@@ -5839,6 +6366,7 @@ def get_balance_sheet_data(
             if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
                 cust_susp.append((today, None))
 
+            total_owed_exact = 0.0
             billable = 0
             cur_d = start_d
             while cur_d <= yesterday:
@@ -5852,11 +6380,15 @@ def get_balance_sheet_data(
                         if s_start <= cur_d <= s_end:
                             in_susp = True
                             break
-                if not in_susp:
+                if not in_susp and fee > 0:
+                    dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                    total_owed_exact += (fee / float(dim))
                     billable += 1
                 cur_d += timedelta(days=1)
 
-            owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
+            owed = round(total_owed_exact, 2) if fee > 0 else 0.0
+            cur_dim = calendar.monthrange(today.year, today.month)[1]
+            daily_rate = round(fee / float(cur_dim), 2) if fee > 0 else 0.0
             paid = round(colls_by_cid.get(cid, 0.0), 2)
             bal = round(paid - owed, 2)
             st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
@@ -6016,27 +6548,22 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
         if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
             cust_susp.append((today, None))
 
-        billable = 0
-        cur_d = start_d
-        while cur_d <= yesterday:
-            in_susp = False
-            for s_start, s_end in cust_susp:
-                if s_end is None:
-                    if cur_d >= s_start:
-                        in_susp = True
-                        break
-                else:
-                    if s_start <= cur_d <= s_end:
-                        in_susp = True
-                        break
-            if not in_susp:
-                billable += 1
-            cur_d += timedelta(days=1)
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        billable = rt_bal["billable_days"]
+        total_owed = rt_bal["total_owed"]
+        total_paid = rt_bal["total_paid"]
+        balance = rt_bal["balance"]
+        status_label = rt_bal["status"]
+        daily_rate = rt_bal["daily_rate"]
 
-        total_owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
-        total_paid = round(sum(float(cr["amount"] or 0.0) + float(cr.get("waived_amount") or 0.0) for cr in collections), 2)
-        balance = round(total_paid - total_owed, 2)
-        status_label = "CREDIT" if balance > 0 else ("SETTLED" if balance == 0 else "OWING")
+        due_str = c["due_date"] or c["expiry_date"]
+        days_rem = None
+        if due_str:
+            try:
+                due_dt = datetime.strptime(str(due_str)[:10], "%Y-%m-%d").date()
+                days_rem = (due_dt - today).days
+            except Exception:
+                pass
 
         return {
             "customer": {
@@ -6048,6 +6575,9 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
                 "monthly_fee": fee,
                 "daily_rate": daily_rate,
                 "billing_start_date": str(start_str)[:10],
+                "due_date": str(due_str)[:10] if due_str else None,
+                "expiry_date": str(c["expiry_date"])[:10] if c["expiry_date"] else (str(due_str)[:10] if due_str else None),
+                "package_name": str(c["package_name"] or "Hotspot").strip(),
                 "status": c["status"],
                 "is_suspended": is_currently_suspended
             },
@@ -6058,6 +6588,7 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
                 "balance": balance,
                 "status": status_label,
                 "owes_amount": abs(balance) if balance < 0 else 0.0,
+                "days_remaining": days_rem,
                 "is_suspended": is_currently_suspended
             },
             "suspensions": suspensions_data,
@@ -6071,7 +6602,7 @@ def record_balance_collection(
     amount: float,
     source: Optional[str] = None,
     payment_type: str = "cash",
-    collector: str = "Admin",
+    collector: str = "Shajjad Khan",
     notes: str = "",
     month_year: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -6103,16 +6634,28 @@ def record_balance_collection(
 
         # 1. Insert collection record
         col_notes = notes.strip() if notes and notes.strip() else f"Balance Sheet Collection ({payment_type})"
+        clean_col = resolve_collector_name(collector)
         cur.execute("""
             INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
-        """, (customer_id, clean_amt, payment_type or "cash", col_notes, now_str, collector or "Admin", month_str))
+        """, (customer_id, clean_amt, payment_type or "cash", col_notes, now_str, clean_col, month_str))
         col_id = cur.lastrowid
 
         # 2. Reactivate customer and devices if previously suspended / blocked
         cur.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
 
-        # 3. Advance expiry/due date if payment covers monthly cycle
+        # Close open suspension for this customer if reactivated
+        cur.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
+
+        # 3. Compute exact real-time balance after collection and resumed suspension
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        new_credit = rt_bal["balance"]
+
+        # Advance expiry/due date if payment covers monthly cycle & update customer credit_balance
         monthly_fee = float(cust.get("monthly_fee") or 30.0)
         if monthly_fee > 0 and clean_amt >= monthly_fee:
             days_to_add = int(clean_amt // monthly_fee) * 30
@@ -6129,22 +6672,15 @@ def record_balance_collection(
                 new_due_day = 1
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, updated_at = ?
+                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?, updated_at = ?
                 WHERE id = ?
-            """, (new_exp, new_exp, new_due_day, now_str, customer_id))
+            """, (new_exp, new_exp, new_due_day, new_credit, now_str, customer_id))
         else:
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', updated_at = ?
+                SET status = 'active', credit_balance = ?, updated_at = ?
                 WHERE id = ?
-            """, (now_str, customer_id))
-
-        # Close open suspension for this customer if reactivated
-        cur.execute("""
-            UPDATE customer_suspensions
-            SET resumed_at = ?
-            WHERE customer_id = ? AND resumed_at IS NULL
-        """, (now_str, customer_id))
+            """, (new_credit, now_str, customer_id))
 
         conn.commit()
 
@@ -6204,26 +6740,33 @@ def get_monthly_reconciliation(month_str: Optional[str] = None) -> Dict[str, Any
         total_active_custs = cur.execute("SELECT COUNT(*) FROM customers WHERE status != 'deleted'").fetchone()[0]
         pending_subs = max(0, total_active_custs - paying_subs)
 
-        # 3. Collections by Staff / Collector
+        # 3. Collections by Staff / Collector (Aggregated by canonical name)
         staff_rows = cur.execute("""
             SELECT collected_by as collector,
                    COUNT(*) as count,
-                   COALESCE(SUM(amount), 0.0) as total,
-                   COALESCE(AVG(amount), 0.0) as average
+                   COALESCE(SUM(amount), 0.0) as total
             FROM collections
             WHERE collected_at >= ? AND collected_at <= ? AND amount > 0
             GROUP BY collected_by
             ORDER BY total DESC, count DESC
         """, (start_ts, end_ts)).fetchall()
 
+        staff_map = {}
+        for r in staff_rows:
+            cname = resolve_collector_name(r["collector"])
+            if cname not in staff_map:
+                staff_map[cname] = {"collector": cname, "count": 0, "total": 0.0}
+            staff_map[cname]["count"] += int(r["count"] or 0)
+            staff_map[cname]["total"] += float(r["total"] or 0.0)
+
         staff_breakdown = [
             {
-                "collector": str(r["collector"] or "System"),
-                "count": int(r["count"] or 0),
-                "total": round(float(r["total"] or 0.0), 2),
-                "average": round(float(r["average"] or 0.0), 2)
+                "collector": s["collector"],
+                "count": s["count"],
+                "total": round(s["total"], 2),
+                "average": round(s["total"] / s["count"], 2) if s["count"] > 0 else 0.0
             }
-            for r in staff_rows
+            for s in sorted(staff_map.values(), key=lambda x: x["total"], reverse=True)
         ]
 
         # 4. Collections by Payment Method (Cash, Alinma, STC Pay, etc.)
