@@ -319,6 +319,19 @@ def init_db():
         )
         """)
 
+        # Migration check for customer_devices guest columns
+        cust_dev_cols = [
+            ("is_guest", "INTEGER NOT NULL DEFAULT 0"),
+            ("guest_expires_at", "TEXT DEFAULT NULL"),
+            ("guest_days", "INTEGER DEFAULT 0"),
+            ("guest_fee", "REAL DEFAULT 0.0")
+        ]
+        for col_name, col_type in cust_dev_cols:
+            try:
+                cursor.execute(f"ALTER TABLE customer_devices ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+
         # Migration check for packages table
         package_cols = [
             ("type", "TEXT NOT NULL DEFAULT 'hotspot'"),
@@ -803,6 +816,46 @@ def is_customer_expired(cust: Optional[Dict[str, Any]], today_str: Optional[str]
     return (False, f"Subscription active until {exp_date_str}" if exp_date_str else "Active", exp_date_str or raw_exp)
 
 
+def check_and_enforce_guest_expirations() -> List[Dict[str, Any]]:
+    """
+    Audits guest devices against current timestamp.
+    When a guest device expires (guest_expires_at <= now and is_guest = 1 and status = 'approved'):
+    - Marks device status = 'blocked'
+    - Collects MAC addresses for broadcast unbinding across MikroTik fleet
+    - Host customer and their permanent devices remain 100% active and untouched!
+    """
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    expired = []
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT cd.id, cd.customer_id, cd.mac_address, cd.device_name, cd.guest_expires_at,
+                   c.name as customer_name, c.phone as customer_phone
+            FROM customer_devices cd
+            JOIN customers c ON cd.customer_id = c.id
+            WHERE cd.is_guest = 1
+              AND cd.status = 'approved'
+              AND cd.guest_expires_at IS NOT NULL
+              AND cd.guest_expires_at <= ?
+        """, (now_str,))
+        rows = cursor.fetchall()
+        for r in rows:
+            expired.append({
+                "device_id": r["id"],
+                "customer_id": r["customer_id"],
+                "customer_name": r["customer_name"],
+                "customer_phone": r["customer_phone"],
+                "mac": r["mac_address"].upper(),
+                "device_name": r["device_name"],
+                "guest_expires_at": r["guest_expires_at"]
+            })
+            cursor.execute("UPDATE customer_devices SET status = 'blocked' WHERE id = ?", (r["id"],))
+        if expired:
+            conn.commit()
+    return expired
+
+
 def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
     """
     Audits customer subscriptions against current date.
@@ -1130,11 +1183,27 @@ def get_pending_requests() -> List[Dict[str, Any]]:
                 r["is_customer_expired"] = is_exp
                 r["customer_expiry_reason"] = reason
                 r["customer_expiry_date"] = exp_str or r.get("existing_expiry_date") or r.get("existing_due_date") or ""
+                # Load existing devices for this customer
+                cid = r.get("customer_id")
+                if cid:
+                    try:
+                        dev_rows = cursor.execute("""
+                            SELECT id, mac_address, device_name, is_guest, guest_expires_at, status
+                            FROM customer_devices
+                            WHERE customer_id = ? AND status = 'approved'
+                            ORDER BY id ASC
+                        """, (cid,)).fetchall()
+                        r["existing_devices"] = [dict(d) for d in dev_rows]
+                    except Exception:
+                        r["existing_devices"] = []
+                else:
+                    r["existing_devices"] = []
             else:
                 r["is_secondary"] = 0
                 r["is_customer_expired"] = False
                 r["customer_expiry_reason"] = ""
                 r["customer_expiry_date"] = ""
+                r["existing_devices"] = []
         return rows
 
 
@@ -1315,20 +1384,40 @@ def approve_connection(
                         WHERE id = ?
                     """, (update_name, new_max_devices, now_str, customer_id))
 
+            # Guest device resolution
+            is_guest_val = kwargs.get("is_guest", False)
+            guest_days_val = kwargs.get("guest_days", 0)
+            guest_fee_val = kwargs.get("guest_fee", 0.0)
+
+            clean_is_guest = 1 if is_guest_val else 0
+            clean_guest_days = max(1, int(guest_days_val or 1)) if clean_is_guest else 0
+            guest_exp = (now + timedelta(days=clean_guest_days)).strftime("%Y-%m-%d %H:%M:%S") if clean_is_guest else None
+            clean_guest_fee = round(float(guest_fee_val or 0.0), 2)
+
+            raw_model = req.get("device_model", "Mobile Phone")
+            dev_title = f"{raw_model} (Guest {clean_guest_days}d)" if clean_is_guest else raw_model
+
             # Insert or update customer_devices
             cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac,))
             dev_row = cursor.fetchone()
             if dev_row:
                 cursor.execute("""
                     UPDATE customer_devices
-                    SET customer_id = ?, ip_address = ?, device_name = ?, status = ?, approved_at = ?
+                    SET customer_id = ?, ip_address = ?, device_name = ?, status = ?, approved_at = ?,
+                        is_guest = ?, guest_expires_at = ?, guest_days = ?, guest_fee = ?
                     WHERE id = ?
-                """, (customer_id, ip, req.get("device_model", "Mobile Phone"), dev_status, now_str, dev_row["id"]))
+                """, (customer_id, ip, dev_title, dev_status, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee, dev_row["id"]))
             else:
                 cursor.execute("""
-                    INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (customer_id, mac, ip, req.get("device_model", "Mobile Phone"), dev_status, now_str, now_str))
+                    INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at, is_guest, guest_expires_at, guest_days, guest_fee)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (customer_id, mac, ip, dev_title, dev_status, now_str, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee))
+
+            if clean_guest_fee > 0:
+                cursor.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                    VALUES (?, ?, 'cash', ?, ?, 'Admin')
+                """, (customer_id, clean_guest_fee, f"Guest Pass ({clean_guest_days} Days) for {update_name}", now_str))
 
             if join_date and join_date.strip():
                 cursor.execute("UPDATE customers SET join_date = ? WHERE id = ?", (join_date.strip(), customer_id))
@@ -2157,27 +2246,62 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
         return (new_status, macs)
 
 
-def add_customer_device(customer_id: int, mac_address: str, device_name: str = "Client Device") -> Dict[str, Any]:
-    """Adds a new MAC device to an existing customer and marks connection requests approved."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def add_customer_device(
+    customer_id: int,
+    mac_address: str,
+    device_name: str = "Client Device",
+    is_guest: bool = False,
+    guest_days: int = 0,
+    guest_fee: float = 0.0
+) -> Dict[str, Any]:
+    """Adds a new MAC device to an existing customer, optionally as a temporary guest pass."""
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
     mac_clean = mac_address.strip().upper()
 
     if is_randomized_mac(mac_clean):
         raise ValueError(f"Randomized MAC address '{mac_clean}' is not permitted. CyberNet requires physical Device MAC.")
 
+    clean_is_guest = 1 if is_guest else 0
+    clean_guest_days = max(1, int(guest_days or 1)) if clean_is_guest else 0
+    guest_exp = (now + timedelta(days=clean_guest_days)).strftime("%Y-%m-%d %H:%M:%S") if clean_is_guest else None
+    clean_guest_fee = round(float(guest_fee or 0.0), 2)
+    dev_title = device_name.strip() if device_name and device_name.strip() else "Client Device"
+    if clean_is_guest and not dev_title.lower().startswith("guest"):
+        dev_title = f"{dev_title} (Guest {clean_guest_days}d)"
+
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT OR REPLACE INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at)
-            VALUES (?, ?, NULL, ?, 'approved', ?, ?)
-        """, (customer_id, mac_clean, device_name, now_str, now_str))
+        cursor.execute("SELECT id FROM customer_devices WHERE UPPER(mac_address) = ?", (mac_clean,))
+        existing = cursor.fetchone()
+        if existing:
+            cursor.execute("""
+                UPDATE customer_devices
+                SET customer_id = ?, device_name = ?, status = 'approved', approved_at = ?,
+                    is_guest = ?, guest_expires_at = ?, guest_days = ?, guest_fee = ?
+                WHERE id = ?
+            """, (customer_id, dev_title, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee, existing["id"]))
+            dev_id = existing["id"]
+        else:
+            cursor.execute("""
+                INSERT INTO customer_devices (customer_id, mac_address, ip_address, device_name, status, approved_at, created_at, is_guest, guest_expires_at, guest_days, guest_fee)
+                VALUES (?, ?, NULL, ?, 'approved', ?, ?, ?, ?, ?, ?)
+            """, (customer_id, mac_clean, dev_title, now_str, now_str, clean_is_guest, guest_exp, clean_guest_days, clean_guest_fee))
+            dev_id = cursor.lastrowid
+
         cursor.execute("""
             UPDATE connection_requests
             SET status = 'approved', customer_id = ?, updated_at = ?
             WHERE UPPER(mac_address) = ?
         """, (customer_id, now_str, mac_clean))
+
+        if clean_guest_fee > 0:
+            cursor.execute("""
+                INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
+                VALUES (?, ?, 'cash', ?, ?, 'Admin')
+            """, (customer_id, clean_guest_fee, f"Guest Pass ({clean_guest_days} Days) - MAC: {mac_clean}", now_str))
+
         conn.commit()
-        dev_id = cursor.lastrowid
         cursor.execute("SELECT * FROM customer_devices WHERE id = ?", (dev_id,))
         return dict(cursor.fetchone())
 

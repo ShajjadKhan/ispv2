@@ -197,6 +197,25 @@ async def expiration_enforcement_loop():
                             logger.info(f"[Expiration Enforcer] Disabled PPPoE secret for '{pp_user}' (customer #{cid}).")
                         except Exception as pp_err:
                             logger.error(f"Error disabling expired PPPoE for customer #{cid}: {pp_err}")
+
+            # Audit and kick expired temporary guest passes
+            expired_guests = await asyncio.to_thread(database.check_and_enforce_guest_expirations)
+            if expired_guests:
+                for g in expired_guests:
+                    mac = g.get("mac")
+                    cid = g.get("customer_id")
+                    dev_name = g.get("device_name")
+                    exp_at = g.get("guest_expires_at")
+                    logger.warning(
+                        f"[Guest Expiration Enforcer] Guest device '{dev_name}' (MAC: {mac}) "
+                        f"for subscriber #{cid} ({g.get('customer_name')}) reached expiration ({exp_at}). "
+                        f"Kicking and unbinding across MikroTik fleet."
+                    )
+                    try:
+                        mikrotik_client.broadcast_unbind_device(mac)
+                    except Exception as mt_err:
+                        logger.error(f"Error unbinding expired guest MAC {mac}: {mt_err}")
+
             await asyncio.sleep(60)
         except asyncio.CancelledError:
             break
@@ -604,6 +623,9 @@ class ApproveConnectionPayload(BaseModel):
     pppoe_profile: Optional[str] = None
     pppoe_remote_ip: Optional[str] = None
     send_whatsapp: Optional[bool] = False
+    is_guest: Optional[bool] = False
+    guest_days: Optional[int] = 0
+    guest_fee: Optional[float] = 0.0
 
 
 class RevokeDevicePayload(BaseModel):
@@ -739,6 +761,9 @@ class UpdateDeviceLimitPayload(BaseModel):
 class AddDevicePayload(BaseModel):
     mac: str
     device_name: Optional[str] = "Client Device"
+    is_guest: Optional[bool] = False
+    guest_days: Optional[int] = 0
+    guest_fee: Optional[float] = 0.0
 
 
 class RecordPaymentPayload(BaseModel):
@@ -2789,7 +2814,10 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
             pppoe_username=payload.pppoe_username,
             pppoe_password=payload.pppoe_password,
             pppoe_profile=payload.pppoe_profile,
-            pppoe_remote_ip=payload.pppoe_remote_ip
+            pppoe_remote_ip=payload.pppoe_remote_ip,
+            is_guest=payload.is_guest or False,
+            guest_days=payload.guest_days or 0,
+            guest_fee=payload.guest_fee or 0.0
         )
 
         # 2. Determine effective rate limit (custom or package default)
@@ -3423,7 +3451,10 @@ async def add_device(customer_id: int, payload: AddDevicePayload):
         dev = database.add_customer_device(
             customer_id=customer_id,
             mac_address=payload.mac,
-            device_name=payload.device_name or "Secondary Device"
+            device_name=payload.device_name or "Secondary Device",
+            is_guest=payload.is_guest or False,
+            guest_days=payload.guest_days or 0,
+            guest_fee=payload.guest_fee or 0.0
         )
         cust = database.get_customer_profile(customer_id)
 

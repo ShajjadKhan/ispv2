@@ -1758,11 +1758,31 @@
 
             <!-- Add Device Inline Form -->
             <div id="addDeviceInlineForm" style="display:none; background:#090e1a; border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
-              <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Secondary Device (MAC)</div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Device (Permanent or Guest Pass)</div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
                 <input type="text" class="form-input font-mono" id="newDeviceMac" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; padding:8px 12px; flex:1; min-width:180px;">
-                <input type="text" class="form-input" id="newDeviceName" placeholder="Device (e.g. Laptop)" style="font-size:12px; padding:8px 12px; flex:1; min-width:140px;">
-                <button type="button" class="btn-approve" onclick="submitAddDevice()" style="padding:6px 12px; font-size:12px; white-space:nowrap;">Link &amp; Authorize</button>
+                <input type="text" class="form-input" id="newDeviceName" placeholder="Device Note (e.g. Guest Jamil)" style="font-size:12px; padding:8px 12px; flex:1; min-width:140px;">
+              </div>
+              <!-- Guest Pass Checkbox & Duration -->
+              <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:8px 10px; margin-bottom:8px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:700; color:#fbbf24;">
+                  <input type="checkbox" id="chkCustAddGuest" onchange="toggleCustAddGuest(this.checked)" style="width:15px; height:15px; accent-color:#f59e0b;">
+                  <span>⏳ Guest Device (Auto-kick after specific days)</span>
+                </label>
+                <div id="custAddGuestControls" style="display:none; margin-top:8px;">
+                  <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(1)">1d</button>
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(2)">2d</button>
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(3)">3d</button>
+                    <button type="button" class="btn-preset" onclick="setCustGuestDays(7)">7d</button>
+                    <input type="number" id="inputCustGuestDays" value="2" min="1" max="90" oninput="updateCustGuestPreview()" style="width:55px; padding:3px 6px; font-size:12px; font-weight:700; color:#fbbf24; background:#0f172a; border:1px solid rgba(245,158,11,0.4); border-radius:4px; text-align:center;">
+                    <span style="font-size:11px; color:#cbd5e1;">Days</span>
+                    <span id="dispCustGuestPreview" style="font-size:11px; color:#fbbf24; font-family:var(--font-mono); margin-left:auto;"></span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button type="button" class="btn-approve" onclick="submitAddDevice()" style="padding:6px 14px; font-size:12px; white-space:nowrap;">Link &amp; Authorize Device</button>
               </div>
             </div>
           </div>
@@ -3072,15 +3092,40 @@
         c.devices.forEach(d => {
           const card = document.createElement('div');
           card.className = 'device-item-card';
+
+          let guestInfo = '';
+          const isGuest = Boolean(d.is_guest);
+          if (isGuest && d.guest_expires_at) {
+            const expDate = new Date(d.guest_expires_at);
+            const now = new Date();
+            const diffMs = expDate - now;
+            let timeStr = '';
+            if (diffMs > 0) {
+              const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+              const diffDays = Math.floor(diffHrs / 24);
+              const remHrs = diffHrs % 24;
+              timeStr = diffDays > 0 ? `${diffDays}d ${remHrs}h left` : `${remHrs}h left`;
+            } else {
+              timeStr = 'Expired';
+            }
+            guestInfo = `<span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); font-size:10.5px; padding:2px 7px; font-weight:700; margin-left:6px;">⏳ Guest Pass (${timeStr})</span>`;
+          } else {
+            guestInfo = `<span class="badge" style="background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); font-size:10px; padding:1px 6px; margin-left:6px;">🟢 Permanent</span>`;
+          }
+
           card.innerHTML = `
             <div>
-              <div class="font-mono text-cyan" style="font-weight:700;">${d.mac_address}</div>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <span class="font-mono text-cyan" style="font-weight:700;">${d.mac_address}</span>
+                ${guestInfo}
+              </div>
               <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">
                 ${d.device_name || 'Client Device'} • Status: <strong class="${d.status === 'approved' ? 'text-emerald' : 'text-rose'}">${d.status.toUpperCase()}</strong>
+                ${(isGuest && d.guest_expires_at) ? ` • Auto-kicks: <span style="color:#fbbf24; font-family:var(--font-mono);">${d.guest_expires_at.slice(0, 16)}</span>` : ''}
               </div>
             </div>
-            <button type="button" class="btn-action-sm btn-toggle-suspend" onclick="removeDevice(${d.id})" style="font-size:11px; padding:4px 8px;">
-              Revoke MAC
+            <button type="button" class="btn-action-sm ${isGuest ? 'btn-delete-col' : 'btn-toggle-suspend'}" onclick="removeDevice(${d.id})" style="font-size:11px; padding:4px 8px; white-space:nowrap;">
+              ${isGuest ? 'Kick Guest' : 'Revoke MAC'}
             </button>
           `;
           devList.appendChild(card);
@@ -3155,16 +3200,49 @@
     f.style.display = (f.style.display === 'none') ? 'block' : 'none';
   }
 
+  function toggleCustAddGuest(isGuest) {
+    const box = document.getElementById('custAddGuestControls');
+    if (box) box.style.display = isGuest ? 'block' : 'none';
+    if (isGuest) updateCustGuestPreview();
+  }
+
+  function setCustGuestDays(days) {
+    const inp = document.getElementById('inputCustGuestDays');
+    if (inp) {
+      inp.value = days;
+      updateCustGuestPreview();
+    }
+  }
+
+  function updateCustGuestPreview() {
+    const inp = document.getElementById('inputCustGuestDays');
+    const disp = document.getElementById('dispCustGuestPreview');
+    const days = parseInt(inp ? inp.value : 2) || 2;
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    if (disp) disp.textContent = 'Auto-kicks: ' + d.toLocaleDateString(undefined, options);
+  }
+
   async function submitAddDevice() {
     const mac = document.getElementById('newDeviceMac').value.trim();
     const name = document.getElementById('newDeviceName').value.trim() || 'Secondary Device';
     if (!mac) return cyberToast('Please enter a MAC address.');
 
+    const isGuest = document.getElementById('chkCustAddGuest')?.checked || false;
+    const guestDays = isGuest ? (parseInt(document.getElementById('inputCustGuestDays')?.value) || 2) : 0;
+
     try {
       const resp = await fetch(`/api/customers/${activeCustomerId}/devices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mac: mac, device_name: name })
+        body: JSON.stringify({
+          mac: mac,
+          device_name: name,
+          is_guest: isGuest,
+          guest_days: guestDays,
+          guest_fee: 0.0
+        })
       });
       const res = await resp.json();
       if (res.success) {
