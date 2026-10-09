@@ -243,6 +243,20 @@ Our comprehensive forensic audit across the backend, database, security, and 17 
 
 ---
 
+#### [x] `UI-08`: Dashboard Top KPI "Will Suspend / Expiring" Card Numbers & Tier Breakdown Synchronization
+- **Severity:** 🟡 **MEDIUM**
+- **Affected Files:** [`templates/dashboard.html:2422-2455, 4415-4445`](file:///Users/shajjadkhan/ispv2/templates/dashboard.html#L2422-L2455), [`database.py:3518, 3695-3701`](file:///Users/shajjadkhan/ispv2/database.py#L3518)
+- **Problem:**
+  On the top dashboard 7-card KPI deck, Card 6 ("Will Suspend") previously displayed `0 Accounts` whenever no accounts were strictly overdue or due today, despite active accounts approaching expiration (e.g. within 3 days or upcoming 15-day renewals). Furthermore, the subtext double-counted 3-day accounts in `upcoming_renewals`, and client-side telemetry updates had no DOM binding for the card.
+- **Fix Solution (Executed):**
+  1. Updated `database.py` to calculate explicit `in_7_15d` tier counts alongside `total_queue`, `will_suspend`, and `upcoming_renewals`.
+  2. Enhanced Card 6 in [`dashboard.html`](file:///Users/shajjadkhan/ispv2/templates/dashboard.html) with adaptive contextual state:
+     - When `will_suspend > 0`: Displays prominent red cutoff badge: `<span class="text-rose">{{ will_suspend }}</span> To Cut / {{ total_queue }} due`.
+     - When `will_suspend == 0` and `total_queue > 0`: Displays amber warning queue count with cyan 3-day urgency: `<span class="text-amber">{{ total_queue }}</span> Expiring ({{ in_3d }} in ≤3d)`.
+     - When queue is empty: Displays green clean status: `<span class="text-emerald">0</span> To Cut`.
+  3. Corrected subtext tier calculations to use `in_7_15d` avoiding duplicate count overlap with `in_3d`.
+  4. Added `id="kpiWillSuspendCount"` and `id="kpiWillSuspendSub"` with live client-side telemetry refresh in `handleTelemetryUpdate`.
+
 ### Category D: Fleet Orchestration & Service Resiliency
 
 #### [x] `FLEET-01`: Asynchronous Parallel Dispatch for Multi-Router Operations
@@ -305,5 +319,6 @@ flowchart TD
 | **2026-10-10 00:20** | `OLT-01` | Added self-contained `SocketTelnet` client and `open_olt_telnet` factory in `olt_service.py` to ensure zero-breakage compatibility with Python 3.13+ (PEP 594). Tested against Telnet mock negotiation. | `olt_service.py` | ✅ Verified (`olt_service` clean import & socket tests passed) |
 | **2026-10-10 00:55** | `UI-07` | Phase 2 multi-portal Day Mode tokenization & mobile responsiveness hardening across secondary portals: Day Mode cards/inputs and >=44px touch targets on OLT, packages, gateway, reseller portal, customer usage, and captive portal. | `templates/olt.html`, `templates/packages.html`, `templates/gateway.html`, `templates/reseller_portal.html`, `templates/customer_usage.html`, `templates/captive_portal.html` | ✅ Verified (All 17 templates compiled cleanly) |
 | **2026-10-10 01:08** | `DEPLOY` | Fast-forward merged server commits with audit hardening branch (`29b9317`). Deployed to production (`tserver-lan@10.12.14.16`), restarted `isp_v2.service` under systemd, verified live HTTP endpoints (200 OK) and directory traversal guard (403). Synchronized with GitHub `origin/main`. | All files | ✅ Verified Live Production Active (PID 2728109, HTTP 200 OK) |
+| **2026-10-10 01:34** | `UI-08` | Fixed Will Suspend / Expiring dashboard KPI Card 6: resolved misleading "0 Accounts" state by introducing contextual queue awareness (`3 Expiring (1 in ≤3d)` when 0 overdue/today, `X To Cut / Y due` when cutoffs due). Resolved 3-day double counting in subtext via `in_7_15d`, and bound Card 6 DOM IDs (`kpiWillSuspendCount`, `kpiWillSuspendSub`) to live background poller. | `database.py`, `templates/dashboard.html` | ✅ Verified (`verify_will_suspend_and_suspended_lists.py` passed 100%) |
 
 *(Antigravity agents: append every completed action here with timestamp and file references)*

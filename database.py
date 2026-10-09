@@ -3518,6 +3518,7 @@ def get_dashboard_metrics(
             "in_3d": 0,
             "in_7d": 0,
             "in_15d": 0,
+            "in_7_15d": 0,
             "upcoming_renewals": 0
         }
 
@@ -3694,7 +3695,8 @@ def get_dashboard_metrics(
                 pass
 
         tier_counts["today_overdue"] = tier_counts["overdue"] + tier_counts["today"]
-        tier_counts["upcoming_renewals"] = tier_counts["in_3d"] + tier_counts["in_7d"] + tier_counts["in_15d"]
+        tier_counts["in_7_15d"] = tier_counts["in_7d"] + tier_counts["in_15d"]
+        tier_counts["upcoming_renewals"] = tier_counts["in_3d"] + tier_counts["in_7_15d"]
         tier_counts["total_queue"] = tier_counts["will_suspend"] + tier_counts["upcoming_renewals"]
         # 'total' for the Will Suspend KPI card strictly shows the accounts that will be cut!
         tier_counts["total"] = tier_counts["will_suspend"]
