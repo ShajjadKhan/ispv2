@@ -1853,6 +1853,7 @@ def get_customer_profile(customer_id: int) -> Optional[Dict[str, Any]]:
             cust["days_remaining"] = None
             cust["is_expired"] = False
             cust["is_due"] = True
+        cust["suspend_date"] = expiry
         # Grace hold resolution
         today_str = now.strftime("%Y-%m-%d")
         susp_until = cust.get("suspension_held_until")
@@ -2054,10 +2055,11 @@ def update_customer_details(
     pppoe_password: Optional[str] = -1,
     pppoe_profile: Optional[str] = -1,
     pppoe_remote_ip: Optional[str] = -1,
+    suspend_date: Optional[str] = None,
     **kwargs: Any
 ) -> Optional[Dict[str, Any]]:
     """
-    Updates any customer fields: monthly rate, payment due date, custom speed limit,
+    Updates any customer fields: monthly rate, payment due date / suspend date, custom speed limit,
     billing type, device limit, package name, name, phone, status, credit balance, reseller attribution,
     join date, billing start date, suspension grace hold, and notes/room number.
     Automatically keeps prepaid expiry_date and due_day in sync.
@@ -2110,9 +2112,10 @@ def update_customer_details(
         else:
             new_speed = current.get("speed_limit")
 
-        # Due date & expiry date
-        if due_date and due_date.strip():
-            new_due_date = due_date.strip()
+        # Due date & expiry date / suspend date
+        effective_date = (due_date.strip() if due_date and due_date.strip() else (suspend_date.strip() if suspend_date and suspend_date.strip() else kwargs.get("suspend_date")))
+        if effective_date and str(effective_date).strip():
+            new_due_date = str(effective_date).strip()
             new_expiry_date = new_due_date
             try:
                 new_due_day = int(new_due_date.split("-")[2])
@@ -3544,6 +3547,7 @@ def get_dashboard_metrics(
                 c["live_ip"] = None
 
             expiry = c.get("due_date") or c.get("expiry_date")
+            c["suspend_date"] = expiry
             days_rem = None
             is_expired = False
             is_due = False

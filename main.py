@@ -663,6 +663,7 @@ class EditCustomerPayload(BaseModel):
     package_name: Optional[str] = None
     monthly_fee: Optional[float] = None
     due_date: Optional[str] = None
+    suspend_date: Optional[str] = None
     speed_limit: Optional[str] = None
     max_devices: Optional[int] = None
     status: Optional[str] = None
@@ -678,6 +679,10 @@ class EditCustomerPayload(BaseModel):
     pppoe_password: Optional[str] = -1
     pppoe_profile: Optional[str] = -1
     pppoe_remote_ip: Optional[str] = -1
+
+
+class SetSuspendDatePayload(BaseModel):
+    suspend_date: str
 
 
 class RecordPromisePayload(BaseModel):
@@ -3329,6 +3334,7 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             package_name=payload.package_name,
             monthly_fee=payload.monthly_fee,
             due_date=payload.due_date,
+            suspend_date=payload.suspend_date,
             speed_limit=payload.speed_limit,
             max_devices=payload.max_devices,
             status=payload.status,
@@ -3385,6 +3391,31 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
         return JSONResponse(status_code=400, content={"success": False, "error": str(ve)})
     except Exception as e:
         logger.exception(f"Error editing customer #{customer_id}: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/customers/{customer_id}/set-suspend-date")
+async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspendDatePayload):
+    """
+    Lightweight, fast endpoint to set/update a customer's service suspend & expiry date.
+    Recalculates expiry and days remaining.
+    """
+    new_date = payload.suspend_date.strip()
+    if not new_date or len(new_date) < 10:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid date format. Use YYYY-MM-DD."})
+    try:
+        updated = database.update_customer_details(customer_id=customer_id, due_date=new_date, suspend_date=new_date)
+        if not updated:
+            return JSONResponse(status_code=404, content={"success": False, "error": "Customer not found."})
+        return {
+            "success": True,
+            "message": f"Suspend date updated to {new_date}",
+            "suspend_date": new_date,
+            "days_remaining": updated.get("days_remaining"),
+            "customer": updated
+        }
+    except Exception as e:
+        logger.exception(f"Error setting suspend date for #{customer_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 

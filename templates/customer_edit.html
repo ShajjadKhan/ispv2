@@ -949,8 +949,8 @@
         </div>
 
         <div class="metric-item">
-          <span class="m-label">Due / Expiry Date</span>
-          <span class="m-value font-mono" id="sideDueDate">{{ c.due_date or c.expiry_date or '—' }}</span>
+          <span class="m-label">Suspend / Expiry Date</span>
+          <span class="m-value font-mono" id="sideDueDate" style="color:#fbbf24;">{{ c.due_date or c.expiry_date or '—' }}</span>
         </div>
 
         <div class="metric-item">
@@ -1137,8 +1137,8 @@
             <label>Assigned Speed Package</label>
             <select class="form-select" id="custPackage" name="package_name" onchange="onPackageSelectChange()">
               {% for pkg in packages %}
-                <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" {% if pkg.name == c.package_name %}selected{% endif %}>
-                  {{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.rate_limit }})
+                <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}" {% if pkg.name == c.package_name %}selected{% endif %}>
+                  {{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.rate_limit }} &bull; {{ pkg.validity_days or 30 }}d)
                 </option>
               {% endfor %}
             </select>
@@ -1197,8 +1197,12 @@
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-              <label>Payment Due Date / Expiry <span style="color:#ef4444;">*</span></label>
-              <input type="text" class="form-input font-mono cyber-datepicker" id="custDueDate" name="due_date" value="{{ c.due_date or c.expiry_date or '' }}" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="margin-bottom:0;">Service Suspend &amp; Expiry Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeSuspendCalc" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="custDueDate" name="due_date" value="{{ c.due_date or c.expiry_date or '' }}" placeholder="YYYY-MM-DD" required autocomplete="off" oninput="syncSnapshotDueDate()" onchange="syncSnapshotDueDate()">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Day when internet will automatically suspend. Preset as per package selected, or enter any date manually.</span>
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
@@ -1216,21 +1220,43 @@
 
             <div class="form-group" style="margin-bottom:0;">
               <label>Billing Cycle Start Date <span style="font-size:11px; font-weight:normal; color:var(--text-dim);">(Cycle Ledger Origin)</span></label>
-              <input type="text" class="form-input font-mono cyber-datepicker" id="custBillingStartDate" name="billing_start_date" value="{{ c.billing_start_date or c.join_date or c.created_at[:10] }}" placeholder="YYYY-MM-DD" autocomplete="off">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="custBillingStartDate" name="billing_start_date" value="{{ c.billing_start_date or c.join_date or c.created_at[:10] }}" placeholder="YYYY-MM-DD" autocomplete="off" onchange="if(confirmApplyOnStartChange) applyPackageValidityDate();">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Software debt ledger &amp; cycle calculation start date.</span>
             </div>
           </div>
 
-          <!-- QUICK DUE DATE EXTENDERS -->
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <span style="font-size:11px; color:var(--text-dim);">Quick Extend Due Date:</span>
-            <button type="button" class="btn-preset" onclick="shiftDueDate(30)">+30 Days</button>
-            <button type="button" class="btn-preset" onclick="shiftDueDate(60)">+60 Days</button>
-            <button type="button" class="btn-preset" onclick="shiftDueDate(90)">+90 Days</button>
-            <button type="button" class="btn-preset" onclick="setEndOfMonth()">End of Current Month</button>
+          <!-- QUICK SUSPEND DATE CONTROLS -->
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; padding:10px; background:rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.05); border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.04em;">Suspend Date Presets &amp; Day Selection:</span>
+              <span style="font-size:11px; color:var(--text-dim);" id="lblActivePkgDuration">Package validity: 30 days</span>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="applyPackageValidityDate()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;" title="Reset Suspend Date as per currently selected package duration">
+                📦 As per Package (<span id="btnPkgDaysText">30d</span>)
+              </button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setEndOfMonth()">End of Month</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim); margin-right:2px;">Suspend on Specific Day of Month:</span>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(30)">Day 30</button>
+            </div>
           </div>
-          <p style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">
-            💡 <strong>Credit Wallet Note:</strong> When recording customer collections, any surplus cash paid over the monthly fee automatically deposits into Credit Balance.
+          <p style="font-size:11.5px; color:var(--text-dim); margin-top:6px;">
+            💡 <strong>Auto-Suspend Rule:</strong> When the suspend date arrives or passes, the automated expiration engine suspends the customer and blocks access.
           </p>
         </div>
       </div>
@@ -1450,11 +1476,82 @@
     }
   }
 
+  function getSelectedPackageDays() {
+    const sel = document.getElementById('custPackage');
+    if (!sel || sel.selectedIndex < 0) return 30;
+    const opt = sel.options[sel.selectedIndex];
+    return parseInt(opt.getAttribute('data-days')) || 30;
+  }
+
+  function applyPackageValidityDate() {
+    const days = getSelectedPackageDays();
+    const bStartInput = document.getElementById('custBillingStartDate');
+    const today = new Date();
+    let baseDate = today;
+    if (bStartInput && bStartInput.value) {
+      const parsed = window.parseDateISO ? window.parseDateISO(bStartInput.value) : new Date(bStartInput.value);
+      if (!isNaN(parsed.getTime())) {
+        baseDate = parsed;
+      }
+    }
+    const target = new Date(baseDate);
+    target.setDate(target.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
+    setDueDateValue(dateStr);
+    const badge = document.getElementById('badgeSuspendCalc');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d from package`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function setSpecificDayOfMonth(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth(); // 0-indexed
+
+    // If dayNum already passed this month, target next month
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) {
+        m = 0;
+        y += 1;
+      }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setDueDateValue(dateStr);
+    const badge = document.getElementById('badgeSuspendCalc');
+    if (badge) {
+      badge.textContent = `Custom: Day ${dayNum}`;
+      badge.style.color = '#34d399';
+    }
+  }
+
+  function setDueDateValue(dateStr) {
+    const el = document.getElementById('custDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) {
+      window.setPickerDate('custDueDate', dateStr);
+    }
+    syncSnapshotDueDate();
+  }
+
+  function syncSnapshotDueDate() {
+    const val = document.getElementById('custDueDate')?.value || '—';
+    const sideEl = document.getElementById('sideDueDate');
+    if (sideEl) sideEl.textContent = val;
+  }
+
   function onPackageSelectChange() {
     const sel = document.getElementById('custPackage');
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     
     document.getElementById('custFee').value = parseFloat(price).toFixed(2);
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
@@ -1462,6 +1559,14 @@
     } else {
       setBandwidthSpeed('Unlimited');
     }
+
+    const lblDays = document.getElementById('lblActivePkgDuration');
+    if (lblDays) lblDays.textContent = `Package validity: ${days} days`;
+    const btnDays = document.getElementById('btnPkgDaysText');
+    if (btnDays) btnDays.textContent = `${days}d`;
+
+    // Auto-calculate and update suspend date based on selected package
+    applyPackageValidityDate();
   }
 
   function setBandwidthSpeed(spd) {
@@ -1505,22 +1610,14 @@
     if (isNaN(current.getTime())) current = new Date();
     current.setDate(current.getDate() + days);
     const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
-    if (window.setPickerDate) {
-      window.setPickerDate('custDueDate', dateStr);
-    } else {
-      el.value = dateStr;
-    }
+    setDueDateValue(dateStr);
   }
 
   function setEndOfMonth() {
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
-    if (window.setPickerDate) {
-      window.setPickerDate('custDueDate', dateStr);
-    } else {
-      document.getElementById('custDueDate').value = dateStr;
-    }
+    setDueDateValue(dateStr);
   }
 
   async function handleFormSubmit(e) {

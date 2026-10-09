@@ -1806,10 +1806,10 @@
               </div>
             </div>
             <div>
-              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Payment Due Date</div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Suspend / Expiry Date</div>
               <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
                 <span style="font-weight:700; color:#fbbf24; font-family:var(--font-mono); font-size:13px;" id="profDueDate">—</span>
-                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Edit</button>
+                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Change</button>
               </div>
             </div>
             <div>
@@ -2073,7 +2073,7 @@
           <label for="addCustPkg">Speed Package</label>
           <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
             {% for pkg in packages %}
-            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
             {% endfor %}
           </select>
         </div>
@@ -2104,7 +2104,7 @@
             <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()">
           </div>
           <div class="form-group">
-            <label for="addCustDueDate">Payment Due Date (Manual)</label>
+            <label for="addCustDueDate">Service Suspend Date (Auto / Manual)</label>
             <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
           </div>
         </div>
@@ -2251,7 +2251,7 @@
             <label for="editCustPkg">Speed Package</label>
             <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
               {% for pkg in packages %}
-              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
               {% endfor %}
             </select>
           </div>
@@ -2289,12 +2289,44 @@
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustDueDate">Payment Due Date</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">Suspend Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
+              </div>
               <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Account suspends on this day.</span>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustCredit">Credit Balance (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <!-- Quick Suspend Presets for Modal -->
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Change Suspend Date:</span>
+              <button type="button" class="btn-preset" onclick="applyEditPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                📦 As per Package (<span id="btnEditPkgDaysText">30d</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setEditEndOfMonth()">End of Month</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(30)">Day 30</button>
             </div>
           </div>
         </div>
@@ -3814,11 +3846,21 @@
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('addCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('addCustSpeed').value = rate;
     } else {
       document.getElementById('addCustSpeed').value = 'Unlimited';
+    }
+    // Auto-calculate suspend date for new customer based on selected package
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
+    const dueEl = document.getElementById('addCustDueDate');
+    if (dueEl) {
+      dueEl.value = dateStr;
+      if (window.setPickerDate) window.setPickerDate('addCustDueDate', dateStr);
     }
     calculateAddCustAdvance();
   }
@@ -3853,6 +3895,12 @@
       const pkgSel = document.getElementById('editCustPkg');
       if (c.package_name) {
         pkgSel.value = c.package_name;
+        const opt = pkgSel.options[pkgSel.selectedIndex];
+        if (opt) {
+          const days = opt.getAttribute('data-days') || '30';
+          const btnDays = document.getElementById('btnEditPkgDaysText');
+          if (btnDays) btnDays.textContent = `${days}d`;
+        }
       }
 
       // Speed limit (explicit custom speed or effective speed)
@@ -3861,7 +3909,7 @@
       // Monthly fee
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
-      // Due date
+      // Due date / suspend date
       if (window.setPickerDate) {
         window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
       } else {
@@ -3914,11 +3962,75 @@
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('editCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('editCustSpeed').value = rate;
     } else {
       document.getElementById('editCustSpeed').value = 'Unlimited';
+    }
+    const btnDays = document.getElementById('btnEditPkgDaysText');
+    if (btnDays) btnDays.textContent = `${days}d`;
+    applyEditPkgValidity();
+  }
+
+  function applyEditPkgValidity() {
+    const sel = document.getElementById('editCustPkg');
+    if (!sel || sel.selectedIndex < 0) return;
+    const days = parseInt(sel.options[sel.selectedIndex].getAttribute('data-days')) || 30;
+    const today = new Date();
+    today.setDate(today.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function setEditDueDateValue(dateStr) {
+    const el = document.getElementById('editCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) {
+      window.setPickerDate('editCustDueDate', dateStr);
+    }
+  }
+
+  function shiftEditDueDate(days) {
+    const el = document.getElementById('editCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Day ${dayNum}`;
+      badge.style.color = '#34d399';
     }
   }
 
