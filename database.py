@@ -6507,6 +6507,15 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
         status_label = rt_bal["status"]
         daily_rate = rt_bal["daily_rate"]
 
+        due_str = c["due_date"] or c["expiry_date"]
+        days_rem = None
+        if due_str:
+            try:
+                due_dt = datetime.strptime(str(due_str)[:10], "%Y-%m-%d").date()
+                days_rem = (due_dt - today).days
+            except Exception:
+                pass
+
         return {
             "customer": {
                 "id": c["id"],
@@ -6517,6 +6526,9 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
                 "monthly_fee": fee,
                 "daily_rate": daily_rate,
                 "billing_start_date": str(start_str)[:10],
+                "due_date": str(due_str)[:10] if due_str else None,
+                "expiry_date": str(c["expiry_date"])[:10] if c["expiry_date"] else (str(due_str)[:10] if due_str else None),
+                "package_name": str(c["package_name"] or "Hotspot").strip(),
                 "status": c["status"],
                 "is_suspended": is_currently_suspended
             },
@@ -6527,6 +6539,7 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
                 "balance": balance,
                 "status": status_label,
                 "owes_amount": abs(balance) if balance < 0 else 0.0,
+                "days_remaining": days_rem,
                 "is_suspended": is_currently_suspended
             },
             "suspensions": suspensions_data,

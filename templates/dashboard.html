@@ -856,6 +856,37 @@
     color: #ffffff;
   }
 
+  .btn-quick-reminder {
+    background: rgba(37, 211, 102, 0.12);
+    border: 1px solid rgba(37, 211, 102, 0.35);
+    color: #25d366;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .btn-quick-reminder:hover {
+    background: #25d366;
+    border-color: #25d366;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(37, 211, 102, 0.4);
+  }
+  html[data-theme="light"] .btn-quick-reminder {
+    background: #ecfdf5;
+    border-color: #86efac;
+    color: #15803d;
+  }
+  html[data-theme="light"] .btn-quick-reminder:hover {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+  }
+
   /* SUBSCRIBER TABS */
   .sub-tabs-deck {
     display: flex;
@@ -2765,6 +2796,10 @@
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                     <span>Collect</span>
                   </button>
+                  <button type="button" class="btn-quick-reminder" onclick="openWhatsAppReminderModal({{ c.id }}, '{{ c.name|escape }}', '{{ c.phone }}')" title="Send WhatsApp Status &amp; Renewal Reminder">
+                    <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+                    <span>Reminder</span>
+                  </button>
                   <button type="button" class="btn-view-profile" onclick="openCustomerDetailsModal({{ c.id }})" title="View Customer Full Details">
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                     <span>Details</span>
@@ -2989,6 +3024,63 @@
     <div class="no-print" style="display:flex; gap:10px;">
       <button type="button" class="btn-table-manage" onclick="closeDashboardReceiptModal()" style="flex:1; justify-content:center; height:36px; color:#374151; border-color:#d1d5db;">Close</button>
       <button type="button" class="btn-pos-collect" onclick="window.print()" style="flex:1.5; justify-content:center; height:36px; font-size:12px;">🖨️ Print Slip</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD WHATSAPP REMINDER DISPATCH MODAL -->
+<div id="dashboardReminderModal" class="modal-overlay" onclick="if(event.target===this)closeWhatsAppReminderModal()">
+  <div class="modal-container" style="max-width:560px; width:95%;">
+    <div class="modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:#25d366;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+        <h3 style="margin:0; font-size:16px; font-weight:800;">Send WhatsApp Account Reminder</h3>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeWhatsAppReminderModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="gap:14px; padding:20px;">
+      <input type="hidden" id="dashRemCustId" value="">
+
+      <!-- Recipient Card -->
+      <div style="background:var(--bg-card-header, #080e1b); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700;">Recipient</div>
+          <div id="dashRemCustNameText" style="font-size:15px; font-weight:800; color:var(--text-main, #ffffff); margin-top:2px;">—</div>
+          <div id="dashRemCustPhoneText" style="font-size:12px; font-family:var(--font-mono); color:#93c5fd; margin-top:2px;">—</div>
+        </div>
+        <div id="dashRemCustStatusBadge" style="text-align:right;"></div>
+      </div>
+
+      <!-- Live Preview -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin:0;">Message Preview</label>
+          <span style="font-size:11px; color:#10b981;">✓ Live balance &amp; renewal due</span>
+        </div>
+        <textarea id="dashRemMessagePreview" rows="9" readonly style="width:100%; box-sizing:border-box; background:var(--bg-card, #080e1b); border:1px solid var(--border-subtle, rgba(148, 163, 184, 0.35)); border-radius:8px; padding:10px 12px; color:var(--text-main, #f8fafc); font-family:var(--font-mono); font-size:11.5px; line-height:1.45; resize:none;"></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:4px;">
+        <button type="button" class="btn-table-manage" onclick="copyDashReminderText()" title="Copy reminder text to clipboard">
+          <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          <span>Copy Text</span>
+        </button>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="btn-quick-collect" onclick="collectFromDashReminderModal()" title="Record collection immediately for this customer">
+            <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+            <span>Collect</span>
+          </button>
+          <a id="dashRemWaDirectLink" href="#" target="_blank" class="btn-table-manage" style="color:#25d366; border-color:rgba(37,211,102,0.4);" title="Open WhatsApp Web or mobile app">
+            <span>WhatsApp Web ↗</span>
+          </a>
+          <button type="button" id="dashRemSendOpenWaBtn" class="btn-quick-reminder" onclick="sendDashWhatsAppReminderOpenWA()" title="Send directly via linked WhatsApp number">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <span>Send Now (OpenWA)</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -3867,6 +3959,143 @@
   function closeQuickCollectModal() {
     closeCollectModal();
   }
+
+  // Dashboard WhatsApp Status & Renewal Reminder Modal
+  async function openWhatsAppReminderModal(cid, name, phone) {
+    const modal = document.getElementById('dashboardReminderModal');
+    if (!modal) return;
+
+    document.getElementById('dashRemCustId').value = cid;
+    document.getElementById('dashRemCustNameText').textContent = name || ('Subscriber #' + cid);
+    document.getElementById('dashRemCustPhoneText').textContent = phone || 'No phone recorded';
+
+    const statusBadge = document.getElementById('dashRemCustStatusBadge');
+    if (statusBadge) statusBadge.innerHTML = '<span class="badge-tier active" style="font-size:10px;">LOADING...</span>';
+
+    const preview = document.getElementById('dashRemMessagePreview');
+    if (preview) preview.value = 'Preparing live status reminder preview…';
+
+    const waLink = document.getElementById('dashRemWaDirectLink');
+    if (waLink) waLink.href = '#';
+
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    try {
+      const res = await fetch('/api/balance/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: parseInt(cid),
+          send_direct: true
+        })
+      });
+      const json = await res.json();
+      if (json.message_text && preview) {
+        preview.value = json.message_text;
+      }
+      if (waLink && json.whatsapp_url) {
+        waLink.href = json.whatsapp_url;
+      }
+      if (statusBadge) {
+        if (json.balance < 0) {
+          statusBadge.innerHTML = `<span class="badge-tier overdue" style="font-size:10.5px;">OWES ${Math.abs(json.balance).toFixed(2)} SAR</span>`;
+        } else if (json.balance > 0) {
+          statusBadge.innerHTML = `<span class="badge-tier active" style="font-size:10.5px;">CREDIT +${json.balance.toFixed(2)} SAR</span>`;
+        } else {
+          statusBadge.innerHTML = `<span class="badge-tier active" style="font-size:10.5px;">SETTLED (0.00 SAR)</span>`;
+        }
+      }
+    } catch (err) {
+      if (preview) preview.value = 'Failed to load reminder preview: ' + err.message;
+    }
+  }
+
+  function closeWhatsAppReminderModal() {
+    const modal = document.getElementById('dashboardReminderModal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function copyDashReminderText() {
+    const t = document.getElementById('dashRemMessagePreview');
+    if (t && t.value) {
+      t.select();
+      navigator.clipboard.writeText(t.value);
+      if (typeof cyberToast === 'function') {
+        cyberToast('📋 Reminder text copied to clipboard!', 'success');
+      } else {
+        alert('Reminder text copied to clipboard!');
+      }
+    }
+  }
+
+  function collectFromDashReminderModal() {
+    const cid = parseInt(document.getElementById('dashRemCustId').value);
+    const name = document.getElementById('dashRemCustNameText').textContent;
+    closeWhatsAppReminderModal();
+    if (typeof openCollectModal === 'function') {
+      openCollectModal(cid, name);
+    }
+  }
+
+  async function sendDashWhatsAppReminderOpenWA() {
+    const btn = document.getElementById('dashRemSendOpenWaBtn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>Sending…</span>';
+
+    const cid = parseInt(document.getElementById('dashRemCustId').value);
+    const name = document.getElementById('dashRemCustNameText').textContent;
+
+    try {
+      const res = await fetch('/api/balance/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: cid,
+          send_direct: false
+        })
+      });
+      const json = await res.json();
+      if (json.sent_via_openwa) {
+        if (typeof cyberToast === 'function') {
+          cyberToast(`✅ WhatsApp reminder sent successfully to ${name}!`, 'success');
+        } else {
+          alert(`✅ WhatsApp reminder sent successfully to ${name}!`);
+        }
+        closeWhatsAppReminderModal();
+      } else {
+        if (json.whatsapp_url) {
+          if (confirm(`OpenWA automated push reported: ${json.error || 'Gateway offline'}.\n\nWould you like to open WhatsApp Web / App directly to send?`)) {
+            window.open(json.whatsapp_url, '_blank');
+          }
+        } else {
+          const errMsg = json.error || 'Could not dispatch reminder';
+          if (typeof cyberToast === 'function') {
+            cyberToast('Dispatch error: ' + errMsg, 'error');
+          } else {
+            alert(errMsg);
+          }
+        }
+      }
+    } catch (err) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Error sending reminder: ' + err.message, 'error');
+      } else {
+        alert('Error sending reminder: ' + err.message);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  window.openWhatsAppReminderModal = openWhatsAppReminderModal;
+  window.closeWhatsAppReminderModal = closeWhatsAppReminderModal;
+  window.copyDashReminderText = copyDashReminderText;
+  window.collectFromDashReminderModal = collectFromDashReminderModal;
+  window.sendDashWhatsAppReminderOpenWA = sendDashWhatsAppReminderOpenWA;
 
   // Date Range Report Modal
   function openDateRangeReportModal() {
@@ -4831,6 +5060,10 @@
             <button type="button" class="btn-quick-collect" data-cid="${c.id}" data-cname="${escapeHtml(c.name)}" onclick="closeCustomerDetailsModal(); openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'));">
               <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
               <span>Collect Bill</span>
+            </button>
+            <button type="button" class="btn-quick-reminder" onclick="closeCustomerDetailsModal(); openWhatsAppReminderModal(${c.id}, '${escapeHtml(c.name)}', '${c.phone || ''}');" title="Send WhatsApp Status & Renewal Reminder">
+              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.01 2.57c.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.31z"/></svg>
+              <span>Reminder</span>
             </button>
             <button type="button" class="${c.status === 'active' ? 'btn-reject' : 'btn-approve'}" onclick="toggleCustomerStatusFromModal(${c.id}, '${c.status}');">
               <span>${c.status === 'active' ? 'Suspend Account' : 'Activate Account'}</span>

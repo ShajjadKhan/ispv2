@@ -3873,21 +3873,44 @@ async def api_balance_send_reminder(payload: BalanceReminderPayload, request: Re
         norm_phone = cust["norm_phone"] or database.normalize_saudi_phone_number(cust["mobile"])
         balance_val = metrics["balance"]
         owed_amount = abs(balance_val) if balance_val < 0 else 0.0
-        start_date_str = cust["billing_start_date"]
+        start_date_str = cust.get("billing_start_date")
+        due_date_str = cust.get("due_date")
+        days_rem = metrics.get("days_remaining")
 
-        # Build message matching billing_reminder
-        msg = f"📶 *CYBERNET ACCOUNT STATUS*\n"
+        # Build message matching billing_reminder & expiry status
+        msg = f"📶 *CYBERNET INTERNET STATUS / حالة الحساب*\n"
         msg += f"Assalamu Alaikum {cust_name}!\n\n"
+        if cust.get("room"):
+            msg += f"🚪 Room: {cust['room']}\n"
+        if cust.get("package_name"):
+            msg += f"📦 Package: {cust['package_name']} ({cust.get('monthly_fee', 30.0):.2f} SAR/mo)\n"
         if start_date_str:
             msg += f"📅 Connected since: {start_date_str}\n"
 
+        # Expiry / Due Date Notice
+        if due_date_str:
+            if days_rem is not None:
+                if days_rem < 0:
+                    msg += f"🚨 *EXPIRED / OVERDUE:* Service expired {abs(days_rem)} days ago on {due_date_str}\n"
+                elif days_rem == 0:
+                    msg += f"⚠️ *EXPIRES TODAY:* Due for renewal Today ({due_date_str})\n"
+                elif days_rem <= 3:
+                    msg += f"⚠️ *EXPIRING SOON:* Service due in {days_rem} days on {due_date_str}\n"
+                elif days_rem <= 15:
+                    msg += f"⏳ *UPCOMING RENEWAL:* Service due in {days_rem} days on {due_date_str}\n"
+                else:
+                    msg += f"📅 *Valid Until:* {due_date_str} (in {days_rem} days)\n"
+            else:
+                msg += f"📅 *Due / Expiry Date:* {due_date_str}\n"
+
+        # Balance & Financial Status
         if balance_val < 0:
-            msg += f"⚠️ *Outstanding Balance: {owed_amount:.2f} SAR*\n\n"
-            msg += f"💰 Please recharge to continue enjoying uninterrupted internet service.\n\n"
+            msg += f"⚠️ *Outstanding Balance: {owed_amount:.2f} SAR*\n"
+            msg += f"💰 Please recharge to avoid service interruption.\n\n"
         elif balance_val > 0:
-            msg += f"✅ *Your account has an advance credit of +{balance_val:.2f} SAR.*\n\n"
+            msg += f"✅ *Advance Credit Held: +{balance_val:.2f} SAR*\n\n"
         else:
-            msg += f"✅ *Your account is fully settled (0.00 SAR).* Thank you!\n\n"
+            msg += f"✅ *Balance:* Fully settled (0.00 SAR).\n\n"
 
         msg += f"💳 *Payment Accounts / طرق الدفع:*\n\n"
         msg += f"1️⃣ *Shajjad Khan:*\n"
