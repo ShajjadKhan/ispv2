@@ -762,6 +762,25 @@
     border-color: #a7f3d0 !important;
   }
 
+  .badge-hotspot-sharing {
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    white-space: nowrap;
+  }
+  html[data-theme="light"] .badge-hotspot-sharing {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fca5a5 !important;
+  }
+
   .tag-device-type {
     display: inline-flex;
     align-items: center;
@@ -2280,6 +2299,9 @@
           {% if metrics.roaming_online_count %}
             &bull; <span style="color:#10b981; font-weight:700;" title="{{ metrics.roaming_online_count }} subscribers roaming across fleet routers">🔄 {{ metrics.roaming_online_count }} roaming</span>
           {% endif %}
+          {% if metrics.sharing_subscribers_count %}
+            &bull; <span style="color:#f87171; font-weight:700; cursor:pointer;" onclick="event.stopPropagation(); filterSubscribersTab('sharing'); document.getElementById('subscribersSection')?.scrollIntoView({ behavior: 'smooth' });" title="{{ metrics.sharing_subscribers_count }} subscribers attempting hotspot sharing (Blocked via TTL=1)">📡 {{ metrics.sharing_subscribers_count }} sharing blocked</span>
+          {% endif %}
         </div>
       </div>
       <div class="kpi-progress-bar">
@@ -2691,6 +2713,13 @@
         <span class="badge-count green" style="font-size:9.5px; padding:1px 5px;">{{ metrics.active_subscribers_online }}</span>
       </button>
 
+      {% if metrics.sharing_subscribers_count %}
+        <button type="button" class="sub-tab-btn" id="tabBtnSharing" onclick="filterSubscribersTab('sharing')" style="padding:4px 9px; font-size:11.5px; border-color:rgba(239,68,68,0.4); color:#fca5a5;">
+          <span>📡 Sharing Blocked</span>
+          <span class="badge-count" style="background:rgba(239,68,68,0.25); color:#f87171; font-size:9.5px; padding:1px 5px;">{{ metrics.sharing_subscribers_count }}</span>
+        </button>
+      {% endif %}
+
       <button type="button" class="sub-tab-btn" id="tabBtnSuspended" onclick="filterSubscribersTab('suspended')" style="padding:4px 9px; font-size:11.5px;">
         <span>⛔ Suspended</span>
         <span class="badge-count orange" style="background:rgba(239,68,68,0.2); color:#f87171; border-color:rgba(239,68,68,0.4); font-size:9.5px; padding:1px 5px;">{{ metrics.suspended_count }}</span>
@@ -2760,13 +2789,19 @@
                 data-tier="{{ c.tier }}"
                 data-status="{{ c.status }}"
                 data-online="{{ 'true' if c.is_online else 'false' }}"
-                data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }} {{ c.primary_mac | lower if c.primary_mac else '' }} {{ c.billing_type | lower }} {{ c.status | lower }} {{ (c.notes or '') | lower }}">
+                data-sharing="{{ 'true' if c.is_sharing_hotspot else 'false' }}"
+                data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }} {{ c.primary_mac | lower if c.primary_mac else '' }} {{ c.billing_type | lower }} {{ c.status | lower }} {{ (c.notes or '') | lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}">
               <td data-label="Subscriber">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik Router{% else %}Offline{% endif %}"></span>
                   <div>
                     <div style="font-weight: 700; color: #ffffff; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       <span>{{ c.name }}</span>
+                      {% if c.is_sharing_hotspot %}
+                        <span class="badge-status badge-hotspot-sharing" style="font-size:10px; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:1.5px 6px; border-radius:4px; font-weight:700; display:inline-flex; align-items:center; gap:3px;" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                          📡 Sharing Blocked
+                        </span>
+                      {% endif %}
                       <span class="cust-roaming-badge-container">
                         {% if c.active_router_short_name and c.is_online %}
                           {% if c.is_roaming %}
@@ -3792,6 +3827,8 @@
         }
       } else if (activeSubTab === 'online') {
         matchesTab = isOnline;
+      } else if (activeSubTab === 'sharing') {
+        matchesTab = (r.getAttribute('data-sharing') === 'true');
       } else if (activeSubTab === 'suspended') {
         matchesTab = (status === 'suspended');
       }

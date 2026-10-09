@@ -1520,6 +1520,17 @@ class RouterClient:
             except Exception as e:
                 logger.warning(f"Could not read DHCP leases: {e}")
 
+            # 3. Hotspot Sharing Suspects (Tethering attempts detected via ingress TTL=63 / TTL=127)
+            sharing_ips: Dict[str, Dict[str, Any]] = {}
+            try:
+                addr_list = api.get_resource('/ip/firewall/address-list').get(list='hotspot_sharing_suspects')
+                for ae in addr_list:
+                    addr = ae.get('address')
+                    if addr:
+                        sharing_ips[addr.strip()] = ae
+            except Exception as e:
+                logger.debug(f"Could not read hotspot_sharing_suspects from {self.host}: {e}")
+
             host_map: Dict[str, Dict[str, Any]] = {}
             for h in hosts:
                 m = h.get("mac-address")
@@ -1574,6 +1585,12 @@ class RouterClient:
                     status_label = "Offline"
                     detail = f"Last seen {last_seen_str}" if last_seen_str else "Offline"
 
+                # Check tethering detection
+                is_sharing = bool(live_ip and live_ip.strip() in sharing_ips)
+                sharing_entry = sharing_ips.get(live_ip.strip(), {}) if is_sharing else {}
+                sharing_timeout = sharing_entry.get("timeout")
+                sharing_detail = f"Hotspot sharing attempt detected (Blocked via TTL=1)" if is_sharing else None
+
                 telemetry[mac] = {
                     "mac_address": mac,
                     "state": state,
@@ -1584,7 +1601,10 @@ class RouterClient:
                     "uptime": uptime_str,
                     "last_seen": last_seen_str,
                     "idle_time": idle_str,
-                    "detail": detail
+                    "detail": detail,
+                    "is_sharing_hotspot": is_sharing,
+                    "sharing_timeout": sharing_timeout,
+                    "sharing_detail": sharing_detail
                 }
 
             self._telemetry_cache = telemetry
@@ -1849,11 +1869,70 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
             final_telem["roaming_label"] = "Offline"
             final_telem["status_label"] = "Offline"
 
+        # Reconcile tethering detection across appearances
+        any_sharing = any(t.get("is_sharing_hotspot") for _, t in appearances)
+        sharing_t = next((t for _, t in appearances if t.get("is_sharing_hotspot")), None)
+        final_telem["is_sharing_hotspot"] = any_sharing
+        final_telem["sharing_timeout"] = sharing_t.get("sharing_timeout") if sharing_t else None
+        final_telem["sharing_detail"] = sharing_t.get("sharing_detail") if sharing_t else None
+
         fleet_telemetry[mac] = final_telem
 
     _fleet_telemetry_cache = fleet_telemetry
     _fleet_telemetry_cache_time = now
     return fleet_telemetry
+
+
+def broadcast_get_hotspot_sharing_suspects() -> List[Dict[str, Any]]:
+    """
+    Fetches all active hotspot sharing suspects from /ip/firewall/address-list across all active routers.
+    """
+    import database
+    try:
+        routers = database.get_all_routers(active_only=True)
+    except Exception:
+        routers = []
+
+    if not routers:
+        return []
+
+    def _fetch_suspects(r):
+        try:
+            client = get_client_for_router(r)
+            pool = routeros_api.RouterOsApiPool(
+                client.host,
+                username=client.username,
+                password=client.password,
+                port=client.port,
+                use_ssl=client.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            entries = api.get_resource('/ip/firewall/address-list').get(list='hotspot_sharing_suspects')
+            pool.disconnect()
+            r_name = r.get("name") or f"Router {r.get('id')}"
+            short_code = get_router_short_code(r_name, r.get("id"))
+            return [{
+                "router_id": r.get("id"),
+                "router_name": r_name,
+                "router_short_code": short_code,
+                "address": e.get("address"),
+                "timeout": e.get("timeout"),
+                "creation_time": e.get("creation-time"),
+                "comment": e.get("comment", "")
+            } for e in entries]
+        except Exception as e:
+            logger.debug(f"Could not fetch suspects from {r.get('name')}: {e}")
+            return []
+
+    with ThreadPoolExecutor(max_workers=len(routers) or 1) as executor:
+        results = list(executor.map(_fetch_suspects, routers))
+
+    all_suspects = []
+    for res in results:
+        all_suspects.extend(res)
+    return all_suspects
 
 
 def broadcast_get_online_mac_addresses(max_cache_age_sec: float = 4.0) -> List[str]:

@@ -1752,6 +1752,9 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 dev["is_roaming"] = telem.get("is_roaming", False)
                 dev["roaming_label"] = telem.get("roaming_label")
                 dev["roaming_routers"] = telem.get("roaming_routers", [])
+                dev["is_sharing_hotspot"] = telem.get("is_sharing_hotspot", False)
+                dev["sharing_detail"] = telem.get("sharing_detail")
+                dev["sharing_timeout"] = telem.get("sharing_timeout")
             else:
                 dev["state"] = "offline"
                 dev["status_label"] = "Offline"
@@ -1767,12 +1770,18 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
                 dev["is_roaming"] = False
                 dev["roaming_label"] = None
                 dev["roaming_routers"] = []
+                dev["is_sharing_hotspot"] = False
+                dev["sharing_detail"] = None
+                dev["sharing_timeout"] = None
 
             if dev["state"] == "online":
                 online_count += 1
 
         cust["online_devices_count"] = online_count
         cust["is_online"] = (online_count > 0)
+        cust["is_sharing_hotspot"] = any(d.get("is_sharing_hotspot") for d in devices)
+        cust["sharing_detail"] = next((d.get("sharing_detail") for d in devices if d.get("is_sharing_hotspot")), None)
+        cust["sharing_timeout"] = next((d.get("sharing_timeout") for d in devices if d.get("is_sharing_hotspot")), None)
 
         # Attribute customer-level active gateway and roaming status
         online_devs = [d for d in devices if d.get("is_online")]
@@ -2967,7 +2976,9 @@ async def get_customers_live_devices(request: Request):
                 "router_name": dev.get("router_name"),
                 "is_roaming": dev.get("is_roaming", False),
                 "roaming_label": dev.get("roaming_label"),
-                "roaming_routers": dev.get("roaming_routers", [])
+                "roaming_routers": dev.get("roaming_routers", []),
+                "is_sharing_hotspot": dev.get("is_sharing_hotspot", False),
+                "sharing_detail": dev.get("sharing_detail")
             })
         result_customers[str(cid)] = {
             "online_count": cust.get("online_devices_count", 0),
@@ -2978,6 +2989,8 @@ async def get_customers_live_devices(request: Request):
             "is_pppoe_active": cust.get("is_pppoe_active", False),
             "pppoe_session": cust.get("pppoe_session"),
             "is_online": cust.get("is_online", False),
+            "is_sharing_hotspot": cust.get("is_sharing_hotspot", False),
+            "sharing_detail": cust.get("sharing_detail"),
             "active_router_short_name": cust.get("active_router_short_name"),
             "active_router_name": cust.get("active_router_name"),
             "is_roaming": cust.get("is_roaming", False),
@@ -2989,6 +3002,33 @@ async def get_customers_live_devices(request: Request):
         "customers": result_customers,
         "timestamp": time.strftime("%H:%M:%S")
     }
+
+
+@app.get("/api/hotspot/sharing-suspects")
+async def get_hotspot_sharing_suspects_endpoint():
+    """
+    Returns live list of subscribers caught attempting hotspot tethering across all routers.
+    """
+    try:
+        suspects = await asyncio.to_thread(mikrotik_client.broadcast_get_hotspot_sharing_suspects)
+        customers = database.get_all_customers()
+        ip_to_cust = {}
+        for c in customers:
+            for d in c.get("devices", []):
+                ip = d.get("ip_address")
+                if ip:
+                    ip_to_cust[ip.strip()] = c
+        for s in suspects:
+            addr = s.get("address")
+            if addr and addr in ip_to_cust:
+                c = ip_to_cust[addr]
+                s["customer_id"] = c.get("id")
+                s["customer_name"] = c.get("name")
+                s["customer_phone"] = c.get("phone")
+        return {"success": True, "count": len(suspects), "suspects": suspects}
+    except Exception as e:
+        logger.error(f"Error fetching sharing suspects: {e}")
+        return {"success": False, "count": 0, "suspects": [], "error": str(e)}
 
 
 @app.get("/api/pppoe/active")

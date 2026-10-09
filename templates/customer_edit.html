@@ -884,6 +884,11 @@
           {% else %}
             <span class="badge-plan postpaid">POSTPAID</span>
           {% endif %}
+          {% if c.is_sharing_hotspot %}
+            <span class="badge-status" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.45); font-weight:700;" title="{{ c.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">
+              📡 HOTSPOT SHARING BLOCKED
+            </span>
+          {% endif %}
         </div>
         <div class="banner-sub font-mono">
           <span>ID #{{ c.id }}</span>
@@ -983,6 +988,21 @@
         <div class="metric-item">
           <span class="m-label">Authorized Devices</span>
           <span class="m-value font-mono text-white" id="sideDeviceCount">{{ c.devices|length }} / {{ c.max_devices or 1 }} Active</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Hotspot Sharing</span>
+          <span class="m-value" id="sideHotspotSharing">
+            {% if c.is_sharing_hotspot %}
+              <span style="color:#f87171; font-weight:700; display:inline-flex; align-items:center; gap:4px; font-size:11.5px;" title="{{ c.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">
+                ⚠️ Blocked (Sharing Detected)
+              </span>
+            {% else %}
+              <span style="color:#34d399; font-size:11.5px; display:inline-flex; align-items:center; gap:4px;">
+                🛡️ Protected (None Detected)
+              </span>
+            {% endif %}
+          </span>
         </div>
 
         <div class="metric-item">

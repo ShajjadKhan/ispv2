@@ -3467,6 +3467,9 @@ def get_dashboard_metrics(
             dev["idle_time"] = telem.get("idle_time")
             dev["uptime"] = telem.get("uptime")
             dev["last_seen"] = telem.get("last_seen")
+            dev["is_sharing_hotspot"] = telem.get("is_sharing_hotspot", False)
+            dev["sharing_detail"] = telem.get("sharing_detail")
+            dev["sharing_timeout"] = telem.get("sharing_timeout")
 
             if is_online:
                 online_approved_devices += 1
@@ -3499,15 +3502,18 @@ def get_dashboard_metrics(
         for c in all_custs:
             cid = c["id"]
             c["devices"] = cust_devices_map.get(cid, [])
+            c_devs = c["devices"]
             c["devices_count"] = len(c["devices"])
             c["primary_mac"] = c["devices"][0]["mac_address"] if c["devices"] else None
             c["primary_mac_is_random"] = is_randomized_mac(c["primary_mac"]) if c["primary_mac"] else False
             c["is_online"] = (cid in online_customer_ids)
             c["credit_balance"] = round(float(c.get("credit_balance") or 0.0), 2)
             c["monthly_fee"] = round(float(c.get("monthly_fee") or 0.0), 2)
+            c["is_sharing_hotspot"] = any(d.get("is_sharing_hotspot") for d in c_devs)
+            c["sharing_detail"] = next((d.get("sharing_detail") for d in c_devs if d.get("is_sharing_hotspot")), None)
+            c["sharing_timeout"] = next((d.get("sharing_timeout") for d in c_devs if d.get("is_sharing_hotspot")), None)
 
             # Attribute customer-level active gateway and roaming status
-            c_devs = c["devices"]
             c_online_devs = [d for d in c_devs if d.get("is_online")]
             if c_online_devs:
                 active_d = c_online_devs[0]
@@ -3762,6 +3768,7 @@ def get_dashboard_metrics(
             "online_devices": online_approved_devices,
             "connectivity_rate": connectivity_rate,
             "active_subscribers_online": active_subscribers_online,
+            "sharing_subscribers_count": sum(1 for c in all_custs if c.get("is_sharing_hotspot")),
             "roaming_online_count": roaming_online_count,
             "fleet_online_by_router": fleet_online_by_router,
             "collected_month_sar": collected_month_sar,

@@ -956,6 +956,34 @@
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.25);
   }
+  .cust-mac-pill.sharing-blocked {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    font-weight: 700;
+  }
+  .badge-hotspot-sharing {
+    font-size: 10px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  html[data-theme="light"] .cust-mac-pill.sharing-blocked {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #f87171;
+  }
+  html[data-theme="light"] .badge-hotspot-sharing {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+  }
 
   /* MODAL RESPONSIVENESS */
   .modal-grid-2 {
@@ -1169,6 +1197,7 @@
   {% set total_rev = customers | map(attribute='monthly_fee') | sum %}
   {% set positive_credit = customers | selectattr('credit_balance') | selectattr('credit_balance', '>', 0) | map(attribute='credit_balance') | sum %}
   {% set credit_subs = customers | selectattr('credit_balance') | selectattr('credit_balance', '>', 0) | list | length %}
+  {% set sharing_subs = customers | selectattr('is_sharing_hotspot') | list | length %}
 
   <!-- TOP SUMMARY CARDS (CLICKABLE FILTERS) -->
   <div class="stats-row">
@@ -1255,6 +1284,9 @@
     <div class="filter-group">
       <button type="button" class="filter-btn active" id="filterAll" onclick="setBillingFilter('all')">All ({{ total_subs }})</button>
       <button type="button" class="filter-btn" id="filterOnline" onclick="setBillingFilter('online')">🟢 Online ({{ online_subs }})</button>
+      {% if sharing_subs > 0 %}
+        <button type="button" class="filter-btn" id="filterSharing" onclick="setBillingFilter('sharing')" style="border-color:rgba(239,68,68,0.5); color:#fca5a5; background:rgba(239,68,68,0.12);">📡 Sharing ({{ sharing_subs }})</button>
+      {% endif %}
       <button type="button" class="filter-btn" id="filterActive" onclick="setBillingFilter('active')">Active ({{ active_subs }})</button>
       <button type="button" class="filter-btn" id="filterPrepaid" onclick="setBillingFilter('prepaid')">Prepaid ({{ prepaid_subs }})</button>
       <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid ({{ postpaid_subs }})</button>
@@ -1307,7 +1339,7 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
                 <td>
                   <div class="cust-name-cell">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1318,6 +1350,11 @@
                     </div>
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                       <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+                      {% if c.is_sharing_hotspot %}
+                        <span class="badge-status badge-hotspot-sharing" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                          📡 Sharing Blocked
+                        </span>
+                      {% endif %}
                       {% if c.reseller_shop_name or c.reseller_username %}
                         <span class="badge-status" style="font-size:10px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">
                           🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1409,6 +1446,9 @@
                             {% else %}
                               <span class="cust-mac-pill offline">OFFLINE</span>
                             {% endif %}
+                            {% if d.is_sharing_hotspot %}
+                              <span class="cust-mac-pill sharing-blocked" title="{{ d.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">⚠️ SHARING BLOCKED</span>
+                            {% endif %}
                           </div>
                         {% endfor %}
                       </div>
@@ -1489,7 +1529,7 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
@@ -1502,6 +1542,11 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                   <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+                  {% if c.is_sharing_hotspot %}
+                    <span class="badge-status badge-hotspot-sharing" style="font-size:9.5px; padding:1px 5px;" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                      📡 Sharing Blocked
+                    </span>
+                  {% endif %}
                   {% if c.reseller_shop_name or c.reseller_username %}
                     <span class="badge-status" style="font-size:9.5px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 5px; border-radius:4px; font-weight:700;">
                       🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1599,6 +1644,9 @@
                         <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                       {% else %}
                         <span class="cust-mac-pill offline">OFFLINE</span>
+                      {% endif %}
+                      {% if d.is_sharing_hotspot %}
+                        <span class="cust-mac-pill sharing-blocked" title="{{ d.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">⚠️ SHARING BLOCKED</span>
                       {% endif %}
                     </div>
                   {% endfor %}
@@ -2526,6 +2574,7 @@
 
       let matchesFilter = true;
       if (activeFilter === 'online') matchesFilter = isOnline;
+      else if (activeFilter === 'sharing') matchesFilter = (el.getAttribute('data-sharing') === '1');
       else if (activeFilter === 'prepaid') matchesFilter = (type === 'prepaid');
       else if (activeFilter === 'postpaid') matchesFilter = (type === 'postpaid');
       else if (activeFilter === 'suspended') matchesFilter = (status === 'suspended');
@@ -2578,6 +2627,8 @@
     } else if (f === 'online') {
       const b = document.getElementById('filterOnline'); if (b) b.classList.add('active');
       const sc = document.getElementById('cardFilterOnline'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'sharing') {
+      const b = document.getElementById('filterSharing'); if (b) b.classList.add('active');
     } else if (f === 'active') {
       const b = document.getElementById('filterActive'); if (b) b.classList.add('active');
       const sc = document.getElementById('cardFilterActive'); if (sc) sc.classList.add('active-card-filter');
