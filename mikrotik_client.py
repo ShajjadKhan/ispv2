@@ -6,7 +6,7 @@ Handles live connectivity checks, system resource metrics, interface states, and
 import time
 import re
 import logging
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, Tuple
 from concurrent.futures import ThreadPoolExecutor
 import routeros_api
 
@@ -1903,6 +1903,43 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
     _fleet_telemetry_cache = fleet_telemetry
     _fleet_telemetry_cache_time = now
     return fleet_telemetry
+
+
+def broadcast_get_hotspot_hosts_raw(timeout: float = 6.0) -> List[Tuple[Dict[str, Any], List[Dict[str, Any]]]]:
+    """
+    Fetches raw /ip/hotspot/host entries from ALL active MikroTik routers in parallel via ThreadPoolExecutor.
+    Returns list of tuples: [(router_dict, [host_dicts]), ...]
+    Guarantees continuous 24/7 multi-router accounting across all active gateways (MK10, MK20, MK30).
+    """
+    import database
+    try:
+        routers = database.get_all_routers(active_only=True)
+    except Exception as e:
+        logger.warning(f"Could not load active routers for fleet traffic collection: {e}")
+        routers = []
+
+    if not routers:
+        return []
+
+    def _fetch_hosts(r):
+        try:
+            client = get_client_for_router(r)
+            return r, client.get_hotspot_hosts_raw()
+        except Exception as e:
+            logger.debug(f"Failed to fetch hotspot hosts from router {r.get('name')}: {e}")
+            return r, []
+
+    with ThreadPoolExecutor(max_workers=min(len(routers), 10) or 1) as executor:
+        future_to_router = {executor.submit(_fetch_hosts, r): r for r in routers}
+        results = []
+        for f in future_to_router:
+            r = future_to_router[f]
+            try:
+                results.append(f.result(timeout=timeout))
+            except Exception as e:
+                err_msg = type(e).__name__ if not str(e) else str(e)
+                logger.warning(f"Router {r.get('name')} hosts query failed/timed out: {err_msg}")
+        return results
 
 
 def broadcast_get_hotspot_sharing_suspects() -> List[Dict[str, Any]]:

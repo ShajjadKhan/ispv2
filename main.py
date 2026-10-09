@@ -86,72 +86,166 @@ router_client = RouterClient(
 )
 
 # Background Traffic Accounting & 90-Day Delta Collector
+# Key format: f"{router_id}:{mac}" -> {"bytes_in": int, "bytes_out": int, "timestamp": float, "ip": str, "router_name": str}
 _last_host_traffic_snapshot: Dict[str, Dict[str, Any]] = {}
+_device_miss_counts: Dict[str, int] = {}
 _last_daily_prune_time: float = 0.0
+_is_first_traffic_sweep: bool = True
 
 def collect_router_traffic_snapshot():
-    """Polls live hotspot hosts from MikroTik, computes delta traffic, and writes to database."""
-    global _last_host_traffic_snapshot, _last_daily_prune_time
+    """
+    Fleet-wide 24/7 background traffic accounting collector:
+    1. Concurrently polls all active routers (Router-20, Router-30, Router-10) via ThreadPoolExecutor.
+    2. Isolates snapshots per (router_id, mac) to prevent roam/cross-router delta corruption.
+    3. Accurately seeds opening counters for zero-history devices without double-counting on server restart.
+    4. Applies a 2-cycle grace period to avoid flapping on transient WiFi blips or phone sleep states.
+    5. Writes incremental deltas and session updates in a single atomic database transaction.
+    """
+    global _last_host_traffic_snapshot, _device_miss_counts, _last_daily_prune_time, _is_first_traffic_sweep
     now = time.time()
     try:
-        hosts = router_client.get_hotspot_hosts_raw()
+        fleet_results = mikrotik_client.broadcast_get_hotspot_hosts_raw(timeout=6.0)
     except Exception as e:
-        logger.debug(f"Traffic collector read error: {e}")
+        logger.error(f"Traffic collector broadcast read error: {e}")
         return
 
-    current_macs = set()
-    for h in hosts:
-        mac = (h.get("mac-address") or "").strip().upper()
-        if not mac:
-            continue
-        current_macs.add(mac)
+    if not fleet_results:
+        logger.debug("Traffic collector: no router results received.")
+        return
 
-        raw_in = int(h.get("bytes-in", 0) or 0)   # Upload from client
-        raw_out = int(h.get("bytes-out", 0) or 0) # Download to client
-        ip_addr = h.get("address")
+    # Check which MACs currently have lifetime history in the database (for initial seed protection)
+    incoming_macs = set()
+    for router_dict, hosts in fleet_results:
+        for h in hosts:
+            mac = (h.get("mac-address") or "").strip().upper()
+            if mac:
+                incoming_macs.add(mac)
 
-        prev = _last_host_traffic_snapshot.get(mac)
-        if prev is not None:
-            delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
-            delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
-            delta_sec = int(now - prev["timestamp"])
-            if delta_sec > 300:
-                delta_sec = 60
-        else:
-            delta_up = 0
-            delta_down = 0
-            delta_sec = 0
+    macs_with_history = database.get_macs_with_traffic_history(list(incoming_macs))
 
-        _last_host_traffic_snapshot[mac] = {
-            "bytes_in": raw_in,
-            "bytes_out": raw_out,
-            "timestamp": now,
-            "ip": ip_addr
-        }
+    deltas_to_record = []
+    active_network_macs = set()
 
-        database.record_device_traffic_delta(
-            mac_address=mac,
-            download_bytes=delta_down,
-            upload_bytes=delta_up,
-            active_seconds=delta_sec,
-            ip_address=ip_addr
-        )
+    for router_dict, hosts in fleet_results:
+        r_id = router_dict.get("id") or router_dict.get("host")
+        r_name = router_dict.get("name", f"Router-{r_id}")
 
-    # Disconnected devices
-    disconnected_macs = set(_last_host_traffic_snapshot.keys()) - current_macs
-    for d_mac in disconnected_macs:
-        database.close_device_session(d_mac)
-        _last_host_traffic_snapshot.pop(d_mac, None)
+        for h in hosts:
+            mac = (h.get("mac-address") or "").strip().upper()
+            if not mac:
+                continue
 
-    # Daily prune (> 90 days)
+            snap_key = f"{r_id}:{mac}"
+            active_network_macs.add(mac)
+
+            raw_in = int(h.get("bytes-in", 0) or 0)    # Client upload
+            raw_out = int(h.get("bytes-out", 0) or 0)  # Client download
+            ip_addr = h.get("address")
+
+            prev = _last_host_traffic_snapshot.get(snap_key)
+            if prev is not None:
+                # Monotonic delta calculation with counter-reset protection
+                delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
+                delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+                delta_sec = int(now - prev["timestamp"])
+                if delta_sec > 300:
+                    delta_sec = 60
+                elif delta_sec < 0:
+                    delta_sec = 0
+            else:
+                # First observation of this host on this router
+                if mac not in macs_with_history:
+                    # Device has never had ANY recorded traffic in the DB (e.g. Router-30 / Router-10 hosts)
+                    # Seed its existing router traffic as opening baseline
+                    delta_up = raw_in
+                    delta_down = raw_out
+                    delta_sec = 60
+                elif not _is_first_traffic_sweep:
+                    # Device already has history, and this is NOT a server boot sweep:
+                    # Host newly reconnected to this router with fresh host counters
+                    delta_up = raw_in
+                    delta_down = raw_out
+                    delta_sec = 60
+                else:
+                    # Server just started up and device already has history:
+                    # Record 0 delta to avoid double counting opening bytes
+                    delta_up = 0
+                    delta_down = 0
+                    delta_sec = 0
+
+            _last_host_traffic_snapshot[snap_key] = {
+                "bytes_in": raw_in,
+                "bytes_out": raw_out,
+                "timestamp": now,
+                "ip": ip_addr,
+                "router_id": r_id,
+                "router_name": r_name
+            }
+
+            # Reset miss count if device was previously marked missing
+            _device_miss_counts.pop(mac, None)
+
+            if delta_up > 0 or delta_down > 0 or delta_sec > 0:
+                deltas_to_record.append({
+                    "mac_address": mac,
+                    "download_bytes": delta_down,
+                    "upload_bytes": delta_up,
+                    "active_seconds": delta_sec,
+                    "ip_address": ip_addr,
+                    "router_name": r_name
+                })
+
+    _is_first_traffic_sweep = False
+
+    # Batch write deltas to database in a single atomic transaction
+    if deltas_to_record:
+        try:
+            recorded_count = database.record_devices_traffic_batch(deltas_to_record)
+            logger.debug(f"Recorded fleet traffic batch: {recorded_count} devices updated.")
+        except Exception as e:
+            logger.error(f"Failed to batch record fleet traffic deltas: {e}")
+
+    # Handle disconnected devices with 2-cycle grace period (~2 minutes)
+    known_macs = {k.split(":", 1)[1] for k in _last_host_traffic_snapshot.keys() if ":" in k}
+    missing_macs = known_macs - active_network_macs
+
+    macs_to_close = []
+    for m in missing_macs:
+        count = _device_miss_counts.get(m, 0) + 1
+        _device_miss_counts[m] = count
+        if count >= 2:
+            macs_to_close.append(m)
+
+    if macs_to_close:
+        try:
+            database.close_device_sessions_batch(macs_to_close)
+        except Exception as e:
+            logger.error(f"Failed to close device sessions batch: {e}")
+
+        for m in macs_to_close:
+            _device_miss_counts.pop(m, None)
+            keys_to_remove = [k for k in _last_host_traffic_snapshot if k.endswith(f":{m}")]
+            for k in keys_to_remove:
+                _last_host_traffic_snapshot.pop(k, None)
+
+    # Daily prune (> 90 days retention)
     if (now - _last_daily_prune_time) > 86400:
-        database.purge_old_traffic_logs(days_to_keep=90)
-        _last_daily_prune_time = now
+        try:
+            database.purge_old_traffic_logs(days_to_keep=90)
+            _last_daily_prune_time = now
+        except Exception as e:
+            logger.error(f"Error purging old traffic logs: {e}")
 
 
 async def traffic_collector_loop():
-    """Background worker that continuously tracks internet traffic every 60 seconds."""
-    logger.info("Background 90-Day Traffic Accounting Collector initialized.")
+    """Background worker that continuously tracks internet traffic every 60 seconds across all active routers."""
+    logger.info("Background 90-Day Fleet Traffic Accounting Collector initialized.")
+    # Run immediate first snapshot so router-fleet traffic is captured without 60s delay on startup
+    try:
+        await asyncio.to_thread(collect_router_traffic_snapshot)
+    except Exception as e:
+        logger.warning(f"Initial fleet traffic snapshot sweep warning: {e}")
+
     while True:
         try:
             await asyncio.sleep(60)
@@ -3165,18 +3259,21 @@ async def api_customer_usage(
     cust = analytics.get("customer", {})
     devs = analytics.get("device_breakdown", [])
     active_count = len([d for d in devs if d.get("total_bytes", 0) > 0])
+    online_count = len([d for d in devs if d.get("is_online", False)])
 
     return {
         "success": True,
         "customer_id": customer_id,
         "customer_name": cust.get("name"),
-        "is_online": (summ.get("total_active_seconds", 0) > 0),
+        "is_online": (online_count > 0),
+        "online_devices_count": online_count,
         "active_devices_count": active_count,
         "total_download": summ.get("formatted_down", "0 B"),
         "total_upload": summ.get("formatted_up", "0 B"),
         "total_traffic": summ.get("formatted_total", "0 B"),
         "devices": devs,
-        "analytics": analytics
+        "analytics": analytics,
+        "queried_at": now.strftime("%Y-%m-%d %H:%M:%S")
     }
 
 

@@ -1116,10 +1116,20 @@
           <div class="dev-stat-title">
             <span style="font-size:18px; flex-shrink:0;">📱</span>
             <div style="min-width:0;">
-              <div class="dev-stat-name">{{ d.friendly_name }}</div>
+              <div class="dev-stat-name" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span>{{ d.friendly_name }}</span>
+                {% if d.is_online %}
+                <span class="badge-status running" style="font-size:9.5px; padding:1px 6px;">ONLINE</span>
+                {% else %}
+                <span class="badge-status" style="font-size:9.5px; padding:1px 6px; background:rgba(148,163,184,0.1); color:#94a3b8; border:1px solid rgba(148,163,184,0.2);">OFFLINE</span>
+                {% endif %}
+              </div>
               <div class="dev-stat-mac" onclick="copyMac('{{ d.mac_address }}', event)" title="Click to copy MAC" style="cursor:pointer;">
                 {{ d.mac_address }} 📋
               </div>
+              {% if d.ip_address and d.ip_address != '—' %}
+              <div style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">IP: <span class="font-mono text-cyan">{{ d.ip_address }}</span></div>
+              {% endif %}
             </div>
           </div>
           <div style="text-align:right; flex-shrink:0;">

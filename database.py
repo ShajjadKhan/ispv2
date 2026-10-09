@@ -15,7 +15,7 @@ import re
 import calendar
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Set
 
 DEFAULT_DB_PATH = "/home/tserver/isp_v2/isp_v2.db"
 _local_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isp_v2.db")
@@ -5724,6 +5724,229 @@ def close_device_session(mac_address: str) -> bool:
         return cursor.rowcount > 0
 
 
+def close_device_sessions_batch(mac_addresses: List[str]) -> int:
+    """Closes active connection sessions for devices that disconnected across the network."""
+    if not mac_addresses:
+        return 0
+    clean_macs = list({m.strip().upper() for m in mac_addresses if m and m.strip()})
+    if not clean_macs:
+        return 0
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        total_closed = 0
+        for i in range(0, len(clean_macs), 500):
+            chunk = clean_macs[i:i+500]
+            placeholders = ",".join("?" for _ in chunk)
+            cursor.execute(f"""
+                UPDATE customer_connection_sessions
+                SET is_active = 0, closed_at = COALESCE(last_seen_at, ?)
+                WHERE is_active = 1 AND UPPER(mac_address) IN ({placeholders})
+            """, [now_str] + chunk)
+            total_closed += cursor.rowcount
+        conn.commit()
+        return total_closed
+
+
+def get_macs_with_traffic_history(mac_addresses: List[str]) -> Set[str]:
+    """Returns set of uppercase MAC addresses that have at least one record in customer_traffic_daily."""
+    if not mac_addresses:
+        return set()
+    clean_macs = list({m.strip().upper() for m in mac_addresses if m and m.strip()})
+    if not clean_macs:
+        return set()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        found = set()
+        for i in range(0, len(clean_macs), 500):
+            chunk = clean_macs[i:i+500]
+            placeholders = ",".join("?" for _ in chunk)
+            cursor.execute(f"""
+                SELECT DISTINCT UPPER(mac_address) as mac 
+                FROM customer_traffic_daily 
+                WHERE UPPER(mac_address) IN ({placeholders})
+            """, chunk)
+            for r in cursor.fetchall():
+                found.add(r["mac"].upper())
+        return found
+
+
+def record_devices_traffic_batch(deltas: List[Dict[str, Any]]) -> int:
+    """
+    Persistently records incremental traffic deltas for multiple client devices in a single atomic transaction.
+    Batch upserts customer_traffic_hourly, customer_traffic_daily, and updates customer_connection_sessions.
+    Returns the number of successfully recorded devices.
+    """
+    if not deltas:
+        return 0
+
+    valid_deltas = []
+    mac_set = set()
+    for d in deltas:
+        mac = (d.get("mac_address") or "").strip().upper()
+        if not mac:
+            continue
+        valid_deltas.append({
+            "mac": mac,
+            "down": max(0, int(d.get("download_bytes", 0) or 0)),
+            "up": max(0, int(d.get("upload_bytes", 0) or 0)),
+            "sec": max(0, int(d.get("active_seconds", 0) or 0)),
+            "ip": d.get("ip_address"),
+            "router_name": d.get("router_name")
+        })
+        mac_set.add(mac)
+
+    if not valid_deltas:
+        return 0
+
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    hour_int = now.hour
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    clean_macs = list(mac_set)
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # 1. Batch look up customer & device mappings
+        cust_mapping: Dict[str, Dict[str, Any]] = {}
+        for i in range(0, len(clean_macs), 500):
+            chunk = clean_macs[i:i+500]
+            placeholders = ",".join("?" for _ in chunk)
+            cursor.execute(f"""
+                SELECT id, customer_id, device_name, UPPER(mac_address) as mac
+                FROM customer_devices
+                WHERE UPPER(mac_address) IN ({placeholders}) AND status = 'approved'
+            """, chunk)
+            for r in cursor.fetchall():
+                cust_mapping[r["mac"]] = {
+                    "device_id": r["id"],
+                    "customer_id": r["customer_id"],
+                    "device_name": r["device_name"] or "Client Device"
+                }
+
+        # For MACs not in approved customer_devices, check connection_requests
+        missing_macs = [m for m in clean_macs if m not in cust_mapping]
+        if missing_macs:
+            for i in range(0, len(missing_macs), 500):
+                chunk = missing_macs[i:i+500]
+                placeholders = ",".join("?" for _ in chunk)
+                cursor.execute(f"""
+                    SELECT customer_id, device_model, UPPER(mac_address) as mac
+                    FROM connection_requests
+                    WHERE UPPER(mac_address) IN ({placeholders}) AND customer_id IS NOT NULL
+                """, chunk)
+                for r in cursor.fetchall():
+                    if r["customer_id"] and r["mac"] not in cust_mapping:
+                        cust_mapping[r["mac"]] = {
+                            "device_id": None,
+                            "customer_id": r["customer_id"],
+                            "device_name": r["device_model"] or "Client Device"
+                        }
+
+        # 2. Check active sessions for all clean_macs in batch
+        active_sessions: Dict[str, Dict[str, Any]] = {}
+        for i in range(0, len(clean_macs), 500):
+            chunk = clean_macs[i:i+500]
+            placeholders = ",".join("?" for _ in chunk)
+            cursor.execute(f"""
+                SELECT id, UPPER(mac_address) as mac, duration_seconds
+                FROM customer_connection_sessions
+                WHERE UPPER(mac_address) IN ({placeholders}) AND is_active = 1
+                ORDER BY id DESC
+            """, chunk)
+            for r in cursor.fetchall():
+                m = r["mac"]
+                if m not in active_sessions:
+                    active_sessions[m] = {"id": r["id"], "duration_seconds": r["duration_seconds"]}
+
+        recorded_count = 0
+        for item in valid_deltas:
+            mac = item["mac"]
+            mapping = cust_mapping.get(mac)
+            if not mapping or not mapping.get("customer_id"):
+                continue
+
+            customer_id = mapping["customer_id"]
+            device_id = mapping.get("device_id")
+            device_name = mapping.get("device_name") or "Client Device"
+            down_bytes = item["down"]
+            up_bytes = item["up"]
+            total_bytes = down_bytes + up_bytes
+            active_sec = item["sec"]
+            ip_addr = item["ip"]
+
+            # Hourly upsert
+            cursor.execute("""
+                INSERT INTO customer_traffic_hourly
+                (customer_id, mac_address, device_id, date_str, hour_int, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(mac_address, date_str, hour_int) DO UPDATE SET
+                    download_bytes = download_bytes + excluded.download_bytes,
+                    upload_bytes = upload_bytes + excluded.upload_bytes,
+                    total_bytes = total_bytes + excluded.total_bytes,
+                    active_seconds = active_seconds + excluded.active_seconds,
+                    updated_at = excluded.updated_at
+            """, (
+                customer_id, mac, device_id, date_str, hour_int,
+                down_bytes, up_bytes, total_bytes,
+                active_sec, now_str
+            ))
+
+            # Daily upsert
+            cursor.execute("""
+                INSERT INTO customer_traffic_daily
+                (customer_id, mac_address, device_id, date_str, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(mac_address, date_str) DO UPDATE SET
+                    download_bytes = download_bytes + excluded.download_bytes,
+                    upload_bytes = upload_bytes + excluded.upload_bytes,
+                    total_bytes = total_bytes + excluded.total_bytes,
+                    active_seconds = active_seconds + excluded.active_seconds,
+                    updated_at = excluded.updated_at
+            """, (
+                customer_id, mac, device_id, date_str,
+                down_bytes, up_bytes, total_bytes,
+                active_sec, now_str
+            ))
+
+            # Connection session tracking
+            sess = active_sessions.get(mac)
+            if sess:
+                cursor.execute("""
+                    UPDATE customer_connection_sessions
+                    SET last_seen_at = ?,
+                        duration_seconds = duration_seconds + ?,
+                        download_bytes = download_bytes + ?,
+                        upload_bytes = upload_bytes + ?,
+                        total_bytes = total_bytes + ?,
+                        ip_address = COALESCE(?, ip_address)
+                    WHERE id = ?
+                """, (
+                    now_str, active_sec, down_bytes, up_bytes,
+                    total_bytes, ip_addr, sess["id"]
+                ))
+            else:
+                cursor.execute("""
+                    INSERT INTO customer_connection_sessions
+                    (customer_id, mac_address, device_name, ip_address, started_at, last_seen_at, duration_seconds, download_bytes, upload_bytes, total_bytes, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """, (
+                    customer_id, mac, device_name, ip_addr,
+                    now_str, now_str, active_sec,
+                    down_bytes, up_bytes, total_bytes
+                ))
+                new_sess_id = cursor.lastrowid
+                active_sessions[mac] = {"id": new_sess_id, "duration_seconds": active_sec}
+
+            recorded_count += 1
+
+        conn.commit()
+        return recorded_count
+
+
+
 def purge_old_traffic_logs(days_to_keep: int = 90) -> int:
     """Purges historical traffic logs and closed sessions older than days_to_keep."""
     cutoff_date = (datetime.now().date() - timedelta(days=days_to_keep)).strftime("%Y-%m-%d")
@@ -5945,6 +6168,24 @@ def get_customer_usage_analytics(
 
         dev_meta_map = {d["mac_address"].upper(): d for d in approved_devices}
 
+        # Check currently active sessions and latest session metadata for customer devices
+        cursor.execute("""
+            SELECT DISTINCT UPPER(mac_address) as mac 
+            FROM customer_connection_sessions 
+            WHERE customer_id = ? AND is_active = 1
+        """, (customer_id,))
+        active_sess_macs = {r["mac"].upper() for r in cursor.fetchall()}
+
+        cursor.execute("""
+            SELECT UPPER(mac_address) as mac, ip_address, last_seen_at, duration_seconds, is_active
+            FROM customer_connection_sessions
+            WHERE customer_id = ?
+            ORDER BY id ASC
+        """, (customer_id,))
+        sess_by_mac: Dict[str, Any] = {}
+        for s in cursor.fetchall():
+            sess_by_mac[s["mac"].upper()] = dict(s)
+
         device_breakdown = []
         for r in dev_usage_rows:
             mac = r["mac_address"].upper()
@@ -5954,21 +6195,37 @@ def get_customer_usage_analytics(
 
             raw_name = meta.get("device_name") or "Client Device"
             friendly = clean_device_friendly_name(raw_name)
+            s_info = sess_by_mac.get(mac, {})
+            last_ip = s_info.get("ip_address") or meta.get("ip_address") or "—"
+            last_seen = s_info.get("last_seen_at") or "—"
+            uptime_str = format_seconds_display(s_info.get("duration_seconds", 0)) if s_info.get("is_active") else "—"
+
+            fmt_down = format_bytes_display(r["down"])
+            fmt_up = format_bytes_display(r["up"])
+            fmt_total = format_bytes_display(d_tot)
+            fmt_sec = format_seconds_display(r["sec"])
 
             device_breakdown.append({
                 "mac_address": mac,
                 "device_id": meta.get("id"),
                 "device_name": raw_name,
                 "friendly_name": friendly,
-                "ip_address": meta.get("ip_address") or "—",
+                "host_name": friendly,
+                "ip_address": last_ip,
+                "is_online": (mac in active_sess_macs),
+                "last_seen": last_seen,
+                "uptime": uptime_str,
                 "download_bytes": r["down"],
                 "upload_bytes": r["up"],
                 "total_bytes": d_tot,
-                "formatted_down": format_bytes_display(r["down"]),
-                "formatted_up": format_bytes_display(r["up"]),
-                "formatted_total": format_bytes_display(d_tot),
+                "formatted_down": fmt_down,
+                "formatted_up": fmt_up,
+                "formatted_total": fmt_total,
+                "download_formatted": fmt_down,
+                "upload_formatted": fmt_up,
+                "total_formatted": fmt_total,
                 "active_seconds": r["sec"],
-                "formatted_active_time": format_seconds_display(r["sec"]),
+                "formatted_active_time": fmt_sec,
                 "share_percent": share_pct
             })
 
@@ -5976,18 +6233,30 @@ def get_customer_usage_analytics(
         for d in approved_devices:
             m = d["mac_address"].upper()
             if m not in seen_macs:
+                s_info = sess_by_mac.get(m, {})
+                last_ip = s_info.get("ip_address") or d.get("ip_address") or "—"
+                last_seen = s_info.get("last_seen_at") or "—"
+                uptime_str = format_seconds_display(s_info.get("duration_seconds", 0)) if s_info.get("is_active") else "—"
+
                 device_breakdown.append({
                     "mac_address": m,
                     "device_id": d["id"],
                     "device_name": d.get("device_name") or "Client Device",
                     "friendly_name": clean_device_friendly_name(d.get("device_name")),
-                    "ip_address": d.get("ip_address") or "—",
+                    "host_name": clean_device_friendly_name(d.get("device_name")),
+                    "ip_address": last_ip,
+                    "is_online": (m in active_sess_macs),
+                    "last_seen": last_seen,
+                    "uptime": uptime_str,
                     "download_bytes": 0,
                     "upload_bytes": 0,
                     "total_bytes": 0,
                     "formatted_down": "0 B",
                     "formatted_up": "0 B",
                     "formatted_total": "0 B",
+                    "download_formatted": "0 B",
+                    "upload_formatted": "0 B",
+                    "total_formatted": "0 B",
                     "active_seconds": 0,
                     "formatted_active_time": "0m",
                     "share_percent": 0.0
