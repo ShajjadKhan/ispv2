@@ -7,6 +7,7 @@ import time
 import re
 import logging
 from typing import List, Dict, Any, Optional, Union
+from concurrent.futures import ThreadPoolExecutor
 import routeros_api
 
 logger = logging.getLogger("mikrotik_v2")
@@ -1713,6 +1714,28 @@ def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
     )
 
 
+def _parallel_fleet_dispatch(worker_fn, routers: List[Dict[str, Any]], timeout: float = 4.0, default_fallback: Any = False) -> Dict[str, Any]:
+    """
+    Dispatches a task across all active fleet routers in parallel via ThreadPoolExecutor.
+    Guarantees that a slow or offline router cannot block the caller for more than timeout seconds.
+    """
+    if not routers:
+        return {}
+    results = {r["name"]: default_fallback for r in routers}
+    with ThreadPoolExecutor(max_workers=min(len(routers), 10)) as executor:
+        future_to_name = {
+            executor.submit(worker_fn, r): r["name"] for r in routers
+        }
+        for future in future_to_name:
+            r_name = future_to_name[future]
+            try:
+                results[r_name] = future.result(timeout=timeout)
+            except Exception as e:
+                logger.error(f"Fleet dispatch error on router '{r_name}': {e}")
+                results[r_name] = default_fallback
+    return results
+
+
 def broadcast_bind_device(
     mac_address: str,
     ip_address: Optional[str] = None,
@@ -1720,13 +1743,12 @@ def broadcast_bind_device(
     rate_limit: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Bypasses a device MAC across ALL active MikroTik routers in the fleet.
+    Bypasses a device MAC across ALL active MikroTik routers in the fleet in parallel.
     Enables instant roaming between SSID 1 (VLAN 10), SSID 2 (VLAN 20), and SSID 3 (VLAN 30).
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         ok = client.bind_device(
             mac_address=mac_address,
@@ -1734,9 +1756,9 @@ def broadcast_bind_device(
             comment=comment,
             rate_limit=rate_limit
         )
-        results[r["name"]] = ok
         logger.info(f"Fleet Bind: {mac_address} on {r['name']} ({r['host']}) -> {ok}")
-    return results
+        return ok
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_unbind_device(
@@ -1744,17 +1766,16 @@ def broadcast_unbind_device(
     ip_address: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Revokes/unbinds a device MAC across ALL active MikroTik routers in the fleet.
+    Revokes/unbinds a device MAC across ALL active MikroTik routers in the fleet in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         ok = client.unbind_device(mac_address=mac_address, ip_address=ip_address)
-        results[r["name"]] = ok
         logger.info(f"Fleet Unbind: {mac_address} on {r['name']} ({r['host']}) -> {ok}")
-    return results
+        return ok
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_sync_customer_devices_speed(
@@ -1763,21 +1784,20 @@ def broadcast_sync_customer_devices_speed(
     comment: str = ""
 ) -> Dict[str, bool]:
     """
-    Broadcasts and synchronizes speed limit queues across ALL active MikroTik routers in the fleet.
+    Broadcasts and synchronizes speed limit queues across ALL active MikroTik routers in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         ok = client.sync_customer_devices_speed(
             devices=devices,
             rate_limit=rate_limit,
             comment=comment
         )
-        results[r["name"]] = ok
         logger.info(f"Fleet Speed Sync: {len(devices)} device(s) on {r['name']} ({r['host']}) -> {ok}")
-    return results
+        return ok
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_sync_package_profile(
@@ -1787,35 +1807,31 @@ def broadcast_sync_package_profile(
     package_type: str = "hotspot"
 ) -> Dict[str, Any]:
     """
-    Synchronizes a bandwidth rate limit profile across ALL active MikroTik routers.
+    Synchronizes a bandwidth rate limit profile across ALL active MikroTik routers in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
-        ok = client.sync_package_profile(
+        return client.sync_package_profile(
             profile_name=profile_name,
             rate_limit=rate_limit,
             shared_users=shared_users,
             package_type=package_type
         )
-        results[r["name"]] = ok
-    return results
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_delete_package_profile(profile_name: str) -> Dict[str, Any]:
     """
-    Deletes a package profile across ALL active MikroTik routers.
+    Deletes a package profile across ALL active MikroTik routers in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
-        ok = client.delete_package_profile(profile_name=profile_name)
-        results[r["name"]] = ok
-    return results
+        return client.delete_package_profile(profile_name=profile_name)
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_sync_pppoe_secret(
@@ -1829,12 +1845,11 @@ def broadcast_sync_pppoe_secret(
     comment: str = ""
 ) -> Dict[str, bool]:
     """
-    Provisions or updates a PPPoE secret across ALL active MikroTik routers in the fleet.
+    Provisions or updates a PPPoE secret across ALL active MikroTik routers in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         ok = client.sync_pppoe_secret(
             username=username,
@@ -1846,70 +1861,80 @@ def broadcast_sync_pppoe_secret(
             disabled=disabled,
             comment=comment
         )
-        results[r["name"]] = ok
         logger.info(f"Fleet PPPoE Sync: {username} on {r['name']} ({r['host']}) -> {ok}")
-    return results
+        return ok
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_remove_pppoe_secret(username: str) -> Dict[str, bool]:
     """
-    Removes a PPPoE secret and terminates active sessions across ALL active MikroTik routers.
+    Removes a PPPoE secret and terminates active sessions across ALL active MikroTik routers in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         ok = client.remove_pppoe_secret(username=username)
-        results[r["name"]] = ok
         logger.info(f"Fleet PPPoE Remove: {username} on {r['name']} ({r['host']}) -> {ok}")
-    return results
+        return ok
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_toggle_pppoe_secret(username: str, disabled: bool = True) -> Dict[str, bool]:
     """
-    Enables or disables a PPPoE secret across ALL active MikroTik routers.
+    Enables or disables a PPPoE secret across ALL active MikroTik routers in parallel.
     If disabled=True, immediately terminates active session.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         ok = client.toggle_pppoe_secret(username=username, disabled=disabled)
-        results[r["name"]] = ok
         logger.info(f"Fleet PPPoE Toggle (disabled={disabled}): {username} on {r['name']} ({r['host']}) -> {ok}")
-    return results
+        return ok
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def broadcast_get_active_pppoe_sessions() -> Dict[str, Dict[str, Any]]:
     """
     Aggregates active PPPoE sessions across all active routers into a map of {username: session_data}.
+    Queries all active routers in parallel with a per-router timeout to prevent fleet stalls.
     """
     import database
     routers = database.get_all_routers(active_only=True)
+    if not routers:
+        return {}
     all_sessions = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
         sess_map = client.get_pppoe_sessions_map()
         for u_name, s_data in sess_map.items():
             s_data["router_name"] = r["name"]
-            all_sessions[u_name] = s_data
+        return sess_map
+
+    with ThreadPoolExecutor(max_workers=min(len(routers), 10)) as executor:
+        future_to_router = {executor.submit(_worker, r): r for r in routers}
+        for future in future_to_router:
+            r = future_to_router[future]
+            try:
+                sess_map = future.result(timeout=4.0)
+                if isinstance(sess_map, dict):
+                    all_sessions.update(sess_map)
+            except Exception as e:
+                logger.error(f"Failed to fetch PPPoE sessions from {r.get('name')}: {e}")
     return all_sessions
 
 
 def broadcast_disconnect_pppoe_session(username: str) -> Dict[str, bool]:
     """
-    Terminates active PPPoE session for username across all active routers.
+    Terminates active PPPoE session for username across all active routers in parallel.
     """
     import database
     routers = database.get_all_routers(active_only=True)
-    results = {}
-    for r in routers:
+    def _worker(r):
         client = get_client_for_router(r)
-        ok = client.disconnect_pppoe_session(username=username)
-        results[r["name"]] = ok
-    return results
+        return client.disconnect_pppoe_session(username=username)
+    return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
 def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
@@ -1990,15 +2015,17 @@ def sync_all_to_new_router(router_id: int) -> Dict[str, Any]:
 
 def broadcast_sync_all_approved_devices() -> Dict[str, Any]:
     """
-    Synchronizes all approved customer devices and PPPoE subscribers to all active MikroTik routers.
+    Synchronizes all approved customer devices and PPPoE subscribers to all active MikroTik routers in parallel.
     Guarantees instant connectivity without login prompts.
     """
     import database
     routers = database.get_all_routers(active_only=True)
     approved_devices = database.get_approved_devices()
     pppoe_customers = database.get_all_pppoe_customers()
-    results = {}
-    for r in routers:
+    if not routers:
+        return {}
+
+    def _worker(r):
         client = get_client_for_router(r)
         count = 0
         for d in approved_devices:
@@ -2040,9 +2067,10 @@ def broadcast_sync_all_approved_devices() -> Dict[str, Any]:
             if ok:
                 pp_count += 1
 
-        results[r["name"]] = {"devices": count, "pppoe": pp_count}
         logger.info(f"Fleet Sync: Synced {count} devices and {pp_count} PPPoE subscribers on {r['name']} ({r['host']})")
-    return results
+        return {"devices": count, "pppoe": pp_count}
+
+    return _parallel_fleet_dispatch(_worker, routers, timeout=15.0, default_fallback={"devices": 0, "pppoe": 0, "error": "timeout"})
 
 
 

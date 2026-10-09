@@ -83,13 +83,13 @@
   .tele-box .value {
     font-size: 13px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     font-family: var(--font-mono);
   }
 
   /* OPTICAL ERROR DIAGNOSTIC CARD */
   .alarm-center-card {
-    background: #0f172a;
+    background: var(--bg-card, #0f172a);
     border: 1px solid rgba(239, 68, 68, 0.35);
     border-radius: 16px;
     overflow: hidden;
@@ -160,8 +160,8 @@
   }
 
   .pon-card {
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--bg-card, #090e1a);
+    border: 1px solid var(--border-subtle);
     border-radius: 10px;
     padding: 14px;
     display: flex;
@@ -172,11 +172,11 @@
   }
   .pon-card:hover {
     border-color: rgba(56, 189, 248, 0.4);
-    background: #0d1527;
+    background: var(--bg-card-hover, rgba(56, 189, 248, 0.05));
   }
   .pon-card.active-port {
     border-color: #38bdf8;
-    background: #0f1c36;
+    background: var(--accent-subtle, rgba(56, 189, 248, 0.12));
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
   }
 
@@ -342,9 +342,9 @@
     gap: 14px;
   }
   .form-input {
-    background: #090e1a;
+    background: var(--bg-card, #090e1a);
     border: 1px solid var(--border-subtle);
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     padding: 9px 12px;
     border-radius: 8px;
     font-size: 13px;
@@ -390,8 +390,8 @@
     }
     #onuTable tr[data-search],
     .olt-ledger-table tr.ledger-row {
-      background: #090e1a;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-card, #090e1a);
+      border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 8px;
@@ -461,17 +461,20 @@
   }
 
   @media (max-width: 640px) {
-    .form-input, #onuSearchInput {
+    .form-input, #onuSearchInput, select {
       font-size: 16px !important;
     }
     .btn-rename {
-      min-height: 38px !important;
-      padding: 6px 12px !important;
-      font-size: 12px !important;
+      min-height: 44px !important;
+      padding: 8px 14px !important;
+      font-size: 12.5px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
     .pill-btn {
-      min-height: 38px !important;
-      padding: 8px 12px !important;
+      min-height: 44px !important;
+      padding: 10px 14px !important;
     }
   }
 
@@ -479,6 +482,13 @@
     .telemetry-row {
       grid-template-columns: 1fr;
       gap: 6px;
+    }
+    .pon-card {
+      padding: 12px 10px !important;
+    }
+    .filter-bar {
+      padding: 10px 8px !important;
+      gap: 8px !important;
     }
   }
 </style>

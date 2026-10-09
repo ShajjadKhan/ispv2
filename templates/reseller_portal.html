@@ -125,7 +125,7 @@
   }
 
   .subscriber-picker-box {
-    background: #090e1a;
+    background: var(--bg-card, #090e1a);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
     padding: 18px;
@@ -183,9 +183,9 @@
 
   .search-suggest-input {
     width: 100%;
-    background: #0f172a;
+    background: var(--bg-card, #0f172a);
     border: 1px solid var(--border-subtle);
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     padding: 10px 14px;
     border-radius: 8px;
     font-size: 14px;
@@ -198,7 +198,7 @@
     overflow-y: auto;
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
-    background: #0b1120;
+    background: var(--bg-card, #0b1120);
     display: none;
   }
   .suggest-results-box.open { display: block; }
@@ -293,9 +293,9 @@
     text-transform: uppercase;
   }
   .form-input {
-    background: #090e1a;
+    background: var(--bg-card, #090e1a);
     border: 1px solid var(--border-subtle);
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     padding: 9px 12px;
     border-radius: 8px;
     font-size: 13.5px;
@@ -350,8 +350,8 @@
     }
     #customersPanel .clean-table tr.cust-row,
     #ledgerPanel .clean-table tr.ledger-row {
-      background: #090e1a;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-card, #090e1a);
+      border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 8px;
@@ -392,9 +392,12 @@
       align-items: flex-end;
     }
     #customersPanel .clean-table tr.cust-row td[data-label="Action"] button {
-      min-height: 38px;
-      padding: 6px 14px;
-      font-size: 12px;
+      min-height: 44px !important;
+      padding: 8px 14px !important;
+      font-size: 13px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
 
     #ledgerPanel .clean-table tr.ledger-row td[data-label="Details / Subscriber"] {
@@ -414,8 +417,21 @@
       font-size: 14px !important;
     }
     .btn-primary-action, .btn-secondary-action {
-      min-height: 42px !important;
+      min-height: 44px !important;
       font-size: 13px !important;
+    }
+  }
+
+  @media (max-width: 440px) {
+    .reseller-hero-card {
+      padding: 10px 8px !important;
+    }
+    .portal-stats-deck {
+      grid-template-columns: 1fr !important;
+      gap: 6px !important;
+    }
+    .pos-calc-box {
+      padding: 12px 10px !important;
     }
   }
 </style>

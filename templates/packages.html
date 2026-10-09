@@ -86,8 +86,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-card, #090e1a);
+    border: 1px solid var(--border-subtle);
     border-radius: 8px;
     padding: 6px 12px;
     flex-grow: 1;
@@ -98,8 +98,8 @@
     background: transparent;
     border: none;
     outline: none;
-    color: #ffffff;
-    font-size: 12.5px;
+    color: var(--text-main, #ffffff);
+    font-size: 13px;
     width: 100%;
     font-family: inherit;
   }
@@ -325,7 +325,7 @@
   }
 
   .modal-box-lg {
-    background: #0b1120;
+    background: var(--bg-card, #0b1120);
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 18px;
     width: 100%;
@@ -343,13 +343,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-card-header, rgba(255, 255, 255, 0.02));
   }
   .modal-header h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -363,7 +363,7 @@
     cursor: pointer;
     line-height: 1;
   }
-  .btn-close-modal:hover { color: #ffffff; }
+  .btn-close-modal:hover { color: var(--text-main, #ffffff); }
 
   .modal-body-scroll {
     padding: 24px;
@@ -393,11 +393,11 @@
   }
 
   .form-control {
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-card, #090e1a);
+    border: 1px solid var(--border-subtle);
     border-radius: 9px;
     padding: 10px 14px;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     font-size: 13.5px;
     outline: none;
     font-family: inherit;
@@ -519,8 +519,8 @@
 
   /* MOBILE PACKAGE CARD STYLING */
   .pkg-mobile-card {
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-card, #090e1a);
+    border: 1px solid var(--border-subtle);
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -808,7 +808,7 @@
       padding: 14px !important;
     }
     .btn-preset {
-      min-height: 40px !important;
+      min-height: 44px !important;
       padding: 8px 12px !important;
       font-size: 12px !important;
       flex: 1 1 auto !important;
@@ -817,10 +817,10 @@
       font-size: 16px !important;
     }
     .btn-action-sm {
-      min-height: 38px !important;
+      min-height: 44px !important;
     }
     .pkg-m-actions > * {
-      min-height: 42px !important;
+      min-height: 44px !important;
       font-size: 12.5px !important;
     }
   }
@@ -843,7 +843,7 @@
     .pkg-m-actions > * {
       padding: 8px 6px !important;
       font-size: 12px !important;
-      min-height: 40px !important;
+      min-height: 44px !important;
     }
   }
 </style>

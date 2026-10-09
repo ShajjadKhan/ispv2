@@ -1890,25 +1890,25 @@
 
       <!-- 4 Quick KPI Summary Cards -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;" id="reconKpiDeck">
-        <div style="background:#0b1120; border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:12px 14px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:12px 14px;">
           <div style="font-size:11px; font-weight:700; color:#34d399; text-transform:uppercase;">Total Collected</div>
           <div class="font-mono" id="reconKpiTotal" style="font-size:22px; font-weight:800; color:#34d399; margin-top:4px;">
             {{ "%.2f"|format(reconciliation.total_collected) }} <span style="font-size:12px; color:var(--text-dim);">SAR</span>
           </div>
         </div>
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Total Transactions</div>
-          <div class="font-mono" id="reconKpiTx" style="font-size:22px; font-weight:800; color:#ffffff; margin-top:4px;">
+          <div class="font-mono" id="reconKpiTx" style="font-size:22px; font-weight:800; color:var(--text-main, #ffffff); margin-top:4px;">
             {{ reconciliation.total_transactions }}
           </div>
         </div>
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Paying Subscribers</div>
           <div class="font-mono" id="reconKpiPaying" style="font-size:22px; font-weight:800; color:#38bdf8; margin-top:4px;">
             {{ reconciliation.paying_subscribers }} <span style="font-size:12px; color:var(--text-dim);">/ {{ reconciliation.total_active_subscribers }}</span>
           </div>
         </div>
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:12px 14px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Pending Subscribers</div>
           <div class="font-mono" id="reconKpiPending" style="font-size:22px; font-weight:800; color:#f87171; margin-top:4px;">
             {{ reconciliation.pending_subscribers }}
@@ -1918,7 +1918,7 @@
 
       <!-- Staff Collections Breakdown Table -->
       <div>
-        <div style="font-size:13px; font-weight:800; color:#ffffff; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:13px; font-weight:800; color:var(--text-main, #ffffff); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
           <span>👤 Collections by Staff / Collector</span>
           <span style="font-size:11px; color:var(--text-dim);">Reconciled to logged collector</span>
         </div>
@@ -1935,7 +1935,7 @@
             <tbody>
               {% for s in reconciliation.staff_breakdown %}
               <tr>
-                <td style="padding:8px 10px; font-weight:700; color:#ffffff;">👤 {{ s.collector }}</td>
+                <td style="padding:8px 10px; font-weight:700; color:var(--text-main, #ffffff);">👤 {{ s.collector }}</td>
                 <td class="font-mono" style="padding:8px 10px; text-align:center; color:#cbd5e1;">{{ s.count }}</td>
                 <td class="font-mono" style="padding:8px 10px; text-align:right; font-weight:800; color:#34d399;">{{ "%.2f"|format(s.total) }} SAR</td>
                 <td class="font-mono" style="padding:8px 10px; text-align:right; color:#94a3b8;">{{ "%.2f"|format(s.average) }} SAR</td>
@@ -1952,7 +1952,7 @@
 
       <!-- Payment Methods Breakdown Table -->
       <div>
-        <div style="font-size:13px; font-weight:800; color:#ffffff; margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:800; color:var(--text-main, #ffffff); margin-bottom:8px;">
           <span>💳 Breakdown by Payment Method</span>
         </div>
         <div style="border:1px solid var(--border-subtle); border-radius:8px; overflow:hidden;">
@@ -1983,7 +1983,7 @@
 
       <!-- Itemized Ledger Drawer / Summary -->
       <div>
-        <div style="font-size:13px; font-weight:800; color:#ffffff; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:13px; font-weight:800; color:var(--text-main, #ffffff); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
           <span>📋 Itemized Transactions (<span id="reconTxCount">{{ reconciliation.transactions|length }}</span>)</span>
         </div>
         <div style="max-height:220px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:8px;">
@@ -2001,7 +2001,7 @@
               {% for tx in reconciliation.transactions %}
               <tr>
                 <td class="font-mono" style="padding:6px 8px; color:var(--text-dim);">{{ tx.collected_at[:16] }}</td>
-                <td style="padding:6px 8px; font-weight:700; color:#ffffff;">
+                <td style="padding:6px 8px; font-weight:700; color:var(--text-main, #ffffff);">
                   {{ tx.customer_name }}
                   {% if tx.room %}<span class="bal-room-badge" style="font-size:10px; padding:1px 5px;">🚪 {{ tx.room }}</span>{% endif %}
                 </td>
@@ -2148,11 +2148,11 @@ async function showBalanceHistory(cid, name) {
 
     let html = `
       <!-- Customer Info Header -->
-      <div style="background:#080e1b; border:1px solid var(--border-subtle); border-radius:12px; padding:14px 16px;">
+      <div style="background:var(--bg-card-header, #080e1b); border:1px solid var(--border-subtle); border-radius:12px; padding:14px 16px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
           <div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <h4 style="margin:0; font-size:16px; font-weight:800; color:#ffffff;">${c.name}</h4>
+              <h4 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main, #ffffff);">${c.name}</h4>
               <span class="status-badge ${balBadge}">${m.status}</span>
               <span class="font-mono" style="font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.12); padding:2px 8px; border-radius:6px;">#${c.id}</span>
             </div>
@@ -2172,19 +2172,19 @@ async function showBalanceHistory(cid, name) {
 
       <!-- Financial Metrics Deck -->
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px;">
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Billable Days</div>
-          <div class="font-mono" style="font-size:18px; font-weight:800; color:#ffffff; margin-top:2px;">${m.billable_days} <span style="font-size:11px; font-weight:500; color:var(--text-dim);">days</span></div>
+          <div class="font-mono" style="font-size:18px; font-weight:800; color:var(--text-main, #ffffff); margin-top:2px;">${m.billable_days} <span style="font-size:11px; font-weight:500; color:var(--text-dim);">days</span></div>
         </div>
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Total Accrued (Owed)</div>
           <div class="font-mono" style="font-size:18px; font-weight:800; color:#f87171; margin-top:2px;">${parseFloat(m.total_owed).toFixed(2)} <span style="font-size:11px; font-weight:500; color:var(--text-dim);">SAR</span></div>
         </div>
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Total Paid</div>
           <div class="font-mono" style="font-size:18px; font-weight:800; color:#34d399; margin-top:2px;">${parseFloat(m.total_paid).toFixed(2)} <span style="font-size:11px; font-weight:500; color:var(--text-dim);">SAR</span></div>
         </div>
-        <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 12px;">
           <div style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Current Balance</div>
           <div class="font-mono" style="font-size:18px; font-weight:800; color:${balColor}; margin-top:2px;">${balPrefix}${parseFloat(m.balance).toFixed(2)} <span style="font-size:11px; font-weight:500; color:var(--text-dim);">SAR</span></div>
         </div>
@@ -2194,7 +2194,7 @@ async function showBalanceHistory(cid, name) {
     // Suspensions / Service Pause Windows (if subscriber had router suspensions)
     if (d.suspensions && d.suspensions.length > 0) {
       html += `
-        <div style="background:#0b1120; border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:12px 14px;">
+        <div style="background:var(--bg-card, #0b1120); border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:12px 14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <span style="font-size:12px; font-weight:800; color:#fbbf24; text-transform:uppercase; letter-spacing:0.04em;">⏸️ Service Suspension Windows (Billing Paused)</span>
             <span style="font-size:11px; color:var(--text-dim);">${d.suspensions.length} pause(s)</span>
@@ -2214,13 +2214,13 @@ async function showBalanceHistory(cid, name) {
     // Collections Table
     html += `
       <div>
-        <div style="font-size:13px; font-weight:800; color:#ffffff; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:13px; font-weight:800; color:var(--text-main, #ffffff); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
           <span>Collection &amp; Receipt Records (${d.collections ? d.collections.length : 0})</span>
         </div>
     `;
 
     if (!d.collections || d.collections.length === 0) {
-      html += `<div style="background:#080e1b; border:1px dashed var(--border-subtle); border-radius:8px; padding:20px; text-align:center; color:var(--text-dim); font-size:12.5px;">No collections recorded yet for this customer.</div>`;
+      html += `<div style="background:var(--bg-card-header, #080e1b); border:1px dashed var(--border-subtle); border-radius:8px; padding:20px; text-align:center; color:var(--text-dim); font-size:12.5px;">No collections recorded yet for this customer.</div>`;
     } else {
       html += `
         <div style="max-height:280px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:8px;">
@@ -2582,7 +2582,7 @@ async function switchReconMonth(monthVal) {
       } else {
         staffTbody.innerHTML = d.staff_breakdown.map(s => `
           <tr>
-            <td style="padding:8px 10px; font-weight:700; color:#ffffff;">👤 ${s.collector}</td>
+            <td style="padding:8px 10px; font-weight:700; color:var(--text-main, #ffffff);">👤 ${s.collector}</td>
             <td class="font-mono" style="padding:8px 10px; text-align:center; color:#cbd5e1;">${s.count}</td>
             <td class="font-mono" style="padding:8px 10px; text-align:right; font-weight:800; color:#34d399;">${parseFloat(s.total).toFixed(2)} SAR</td>
             <td class="font-mono" style="padding:8px 10px; text-align:right; color:#94a3b8;">${parseFloat(s.average).toFixed(2)} SAR</td>
@@ -2618,7 +2618,7 @@ async function switchReconMonth(monthVal) {
         txTbody.innerHTML = d.transactions.map(tx => `
           <tr>
             <td class="font-mono" style="padding:6px 8px; color:var(--text-dim);">${tx.collected_at ? tx.collected_at.slice(0, 16) : '—'}</td>
-            <td style="padding:6px 8px; font-weight:700; color:#ffffff;">
+            <td style="padding:6px 8px; font-weight:700; color:var(--text-main, #ffffff);">
               ${tx.customer_name}
               ${tx.room ? `<span class="bal-room-badge" style="font-size:10px; padding:1px 5px;">🚪 ${tx.room}</span>` : ''}
             </td>

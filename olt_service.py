@@ -10,10 +10,17 @@ import os
 import re
 import time
 import logging
-import telnetlib
+import socket
+import select
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import database
+
+# PEP 594: telnetlib was removed in Python 3.13. Gracefully fallback to lightweight SocketTelnet.
+try:
+    import telnetlib
+except ImportError:
+    telnetlib = None
 
 logger = logging.getLogger("olt_service")
 
@@ -21,6 +28,142 @@ OLT_DEFAULT_HOST = os.getenv("OLT_HOST", "192.168.200.200")
 OLT_DEFAULT_PORT = int(os.getenv("OLT_PORT", "23"))
 OLT_DEFAULT_USER = os.getenv("OLT_USER", "admin")
 OLT_DEFAULT_PASS = os.getenv("OLT_PASS", "Xpon@Olt9417#")
+
+
+class SocketTelnet:
+    """
+    Self-contained, non-blocking Telnet client replacement compatible with Python 3.13+.
+    Replaces deprecated/removed telnetlib without requiring external dependencies.
+    """
+    IAC = b"\xff"
+    DONT = b"\xfe"
+    DO = b"\xfd"
+    WONT = b"\xfc"
+    WILL = b"\xfb"
+    SB = b"\xfa"
+    SE = b"\xf0"
+
+    def __init__(self, host: str, port: int = 23, timeout: float = 10.0):
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.sock = socket.create_connection((host, port), timeout=timeout)
+        self.buffer = bytearray()
+
+    def _negotiate_and_clean(self, data: bytes) -> bytes:
+        """Handles standard Telnet option negotiation without breaking text flow."""
+        out = bytearray()
+        i = 0
+        n = len(data)
+        while i < n:
+            if data[i:i+1] == self.IAC:
+                if i + 1 < n:
+                    cmd = data[i+1:i+2]
+                    if cmd in (self.DO, self.DONT):
+                        opt = data[i+2:i+3] if i + 2 < n else b""
+                        if opt:
+                            try:
+                                self.sock.sendall(self.IAC + self.WONT + opt)
+                            except Exception:
+                                pass
+                        i += 3
+                        continue
+                    elif cmd in (self.WILL, self.WONT):
+                        opt = data[i+2:i+3] if i + 2 < n else b""
+                        if opt:
+                            try:
+                                self.sock.sendall(self.IAC + self.DONT + opt)
+                            except Exception:
+                                pass
+                        i += 3
+                        continue
+                    elif cmd == self.SB:
+                        se_idx = data.find(self.IAC + self.SE, i + 2)
+                        if se_idx != -1:
+                            i = se_idx + 2
+                            continue
+                        else:
+                            i = n
+                            continue
+                    elif cmd == self.IAC:
+                        out.append(255)
+                        i += 2
+                        continue
+                i += 2
+            else:
+                out.append(data[i])
+                i += 1
+        return bytes(out)
+
+    def write(self, data: bytes):
+        if self.sock:
+            self.sock.sendall(data)
+
+    def read_until(self, expected: bytes, timeout: Optional[float] = None) -> bytes:
+        if timeout is None:
+            timeout = self.timeout
+        deadline = time.time() + timeout
+
+        while time.time() < deadline:
+            if expected in self.buffer:
+                idx = self.buffer.find(expected) + len(expected)
+                res = bytes(self.buffer[:idx])
+                del self.buffer[:idx]
+                return res
+
+            remaining = max(0.01, deadline - time.time())
+            r, _, _ = select.select([self.sock], [], [], min(remaining, 0.2))
+            if r:
+                try:
+                    chunk = self.sock.recv(4096)
+                    if not chunk:
+                        break
+                    cleaned = self._negotiate_and_clean(chunk)
+                    self.buffer.extend(cleaned)
+                except Exception:
+                    break
+
+        if expected in self.buffer:
+            idx = self.buffer.find(expected) + len(expected)
+            res = bytes(self.buffer[:idx])
+            del self.buffer[:idx]
+            return res
+
+        res = bytes(self.buffer)
+        self.buffer.clear()
+        return res
+
+    def read_very_eager(self) -> bytes:
+        while True:
+            r, _, _ = select.select([self.sock], [], [], 0.02)
+            if not r:
+                break
+            try:
+                chunk = self.sock.recv(4096)
+                if not chunk:
+                    break
+                cleaned = self._negotiate_and_clean(chunk)
+                self.buffer.extend(cleaned)
+            except Exception:
+                break
+        res = bytes(self.buffer)
+        self.buffer.clear()
+        return res
+
+    def close(self):
+        if self.sock:
+            try:
+                self.sock.close()
+            except Exception:
+                pass
+            self.sock = None
+
+
+def open_olt_telnet(host: str, port: int, timeout: float):
+    """Factory creating a telnet connection using telnetlib (if available) or SocketTelnet."""
+    if telnetlib is not None:
+        return telnetlib.Telnet(host, port, timeout=timeout)
+    return SocketTelnet(host, port, timeout=timeout)
 
 
 def clean_ansi(text: str) -> str:
@@ -47,7 +190,7 @@ def poll_olt_hardware(
     """
     tn = None
     try:
-        tn = telnetlib.Telnet(host, port, timeout=timeout)
+        tn = open_olt_telnet(host, port, timeout=timeout)
 
         # 1. Login
         tn.read_until(b"Login:", timeout=4)
@@ -321,7 +464,7 @@ def set_onu_description_hardware(
 
     tn = None
     try:
-        tn = telnetlib.Telnet(host, port, timeout=timeout)
+        tn = open_olt_telnet(host, port, timeout=timeout)
         tn.read_until(b"Login:", timeout=3)
         tn.write(username.encode() + b"\n")
         tn.read_until(b"Password:", timeout=3)

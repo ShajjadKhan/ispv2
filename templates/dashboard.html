@@ -96,11 +96,23 @@
     border-color: #38bdf8;
   }
 
-  /* 7-CARD HIGH-DENSITY KPI GRID (SINGLE ROW ON DESKTOP/LAPTOP) */
+  /* RESPONSIVE KPI DECK GRID: WIDE PC (7 COLS), LAPTOP/MACBOOK (4 COLS) */
   .kpi-deck-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 8px;
+  }
+  @media (min-width: 769px) and (max-width: 1440px) {
+    .kpi-deck-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+  }
+  @media (min-width: 1441px) {
+    .kpi-deck-grid {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
   }
 
   .kpi-card {
@@ -1818,11 +1830,17 @@
     .modal-container, .modal-box, .modal-box-lg {
       max-width: 96vw !important;
       width: 96vw !important;
+      max-height: 92dvh !important;
+      display: flex !important;
+      flex-direction: column !important;
       margin: 8px auto !important;
       box-sizing: border-box !important;
-      border-radius: 12px !important;
+      border-radius: 14px !important;
     }
     .modal-body {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      flex-grow: 1 !important;
       padding: 12px 10px !important;
       gap: 10px !important;
       box-sizing: border-box !important;
@@ -2529,7 +2547,7 @@
           <tr id="emptyCustRow">
             <td colspan="8" style="text-align: center; padding: 36px; color: var(--text-dim);">
               <svg style="width: 36px; height: 36px; fill: #64748b; margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              <div style="font-size: 14px; font-weight: 700; color: #ffffff;">No Customers Registered Yet</div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff);">No Customers Registered Yet</div>
               <div style="font-size: 12px; margin-top: 4px;">Subscribers will appear here once approved from Wi-Fi Join Requests.</div>
             </td>
           </tr>
@@ -2546,7 +2564,7 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik Router{% else %}Offline{% endif %}"></span>
                   <div>
-                    <div style="font-weight: 700; color: #ffffff; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <div style="font-weight: 700; color: var(--text-main, #ffffff); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       <span>{{ c.name }}</span>
                       {% if c.notes %}
                         <span style="font-size:10px; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.35); padding:1px 6px; border-radius:4px; font-weight:600; white-space:nowrap;" title="Room / Note: {{ c.notes }}">🚪 {{ c.notes }}</span>
@@ -2878,7 +2896,7 @@
       <div id="printableReportArea" style="margin-top: 10px; display: none;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--border-subtle); padding-bottom: 14px; margin-bottom: 16px;">
           <div>
-            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff;" id="rptHeading">Collections Audit Report</h2>
+            <h2 style="font-size: 18px; font-weight: 800; color: var(--text-main, #ffffff);" id="rptHeading">Collections Audit Report</h2>
             <div style="font-size: 12px; color: var(--text-dim);" id="rptPeriod">Period: 2026-09-01 to 2026-09-19</div>
           </div>
           <div class="no-print">
@@ -2972,7 +2990,7 @@
                 <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 <span>Existing Active Subscriber</span>
               </div>
-              <div style="font-size:16px; font-weight:800; color:#ffffff;" id="secondaryCustName">Customer</div>
+              <div style="font-size:16px; font-weight:800; color:var(--text-main, #ffffff);" id="secondaryCustName">Customer</div>
             </div>
             <span class="badge" style="background:rgba(52, 211, 153, 0.2); color:#34d399; border:1px solid rgba(52, 211, 153, 0.4); font-size:11.5px; font-weight:700; padding:4px 10px; white-space:nowrap;" id="secondarySlotBadge">Device 4 of 4</span>
           </div>

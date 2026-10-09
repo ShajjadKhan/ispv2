@@ -229,9 +229,9 @@
   }
 
   .search-box {
-    background: #090e1a;
+    background: var(--bg-card-header, #090e1a);
     border: 1px solid var(--border-subtle);
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     padding: 7px 14px;
     border-radius: 8px;
     font-size: 12px;
@@ -309,9 +309,9 @@
     letter-spacing: 0.05em;
   }
   .form-input {
-    background: #090e1a;
+    background: var(--bg-card, #090e1a);
     border: 1px solid var(--border-subtle);
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     padding: 9px 12px;
     border-radius: 8px;
     font-size: 13.5px;
@@ -403,8 +403,8 @@
     #resellersTable tr.reseller-row,
     #sectionManagers .clean-table tr.manager-row,
     #sectionLedger .clean-table tr.ledger-row {
-      background: #090e1a;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-card, #090e1a);
+      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
       border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 8px;

@@ -13,10 +13,16 @@ import sqlite3
 import os
 import re
 import calendar
+from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Tuple, Any
 
-DB_PATH = os.getenv("DB_PATH", "/home/tserver/isp_v2/isp_v2.db")
+DEFAULT_DB_PATH = "/home/tserver/isp_v2/isp_v2.db"
+_local_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isp_v2.db")
+if not os.path.exists(DEFAULT_DB_PATH) and os.path.exists(_local_db):
+    DEFAULT_DB_PATH = _local_db
+
+DB_PATH = os.getenv("DB_PATH", DEFAULT_DB_PATH)
 
 def is_randomized_mac(mac: Optional[str]) -> bool:
     """
@@ -64,17 +70,27 @@ def validate_mac_address(mac: Optional[str], allow_random: bool = False) -> Tupl
         return False, f"Randomized MAC address detected ({norm}). Only real physical Device MAC addresses are allowed on this network. Please disable Private Wi-Fi / Randomized MAC in your phone settings.", norm
     return True, "Valid Device MAC address.", norm
 
+@contextmanager
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH, timeout=20.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode = WAL")
-    return conn
+    conn.execute("PRAGMA busy_timeout = 20000")
+    conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def init_db():
     """Initializes the database schema."""
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     with get_db() as conn:
         cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL")
         
         # 1. Customers Table
         cursor.execute("""
@@ -669,6 +685,10 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_customer_devices_mac ON customer_devices(mac_address)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_collections_cust_id ON collections(customer_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_conn_requests_mac ON connection_requests(mac_address)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_conn_requests_status ON connection_requests(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_reseller_ledger_reseller ON reseller_wallet_ledger(reseller_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_collections_cust_month ON collections(customer_id, month_year)")
 
         conn.commit()
 

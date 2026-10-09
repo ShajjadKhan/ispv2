@@ -103,10 +103,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 7px;
-    padding: 5px 10px;
+    background: var(--bg-canvas, #090e1a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 6px 10px;
     flex-grow: 1;
     max-width: 320px;
   }
@@ -115,8 +115,8 @@
     background: transparent;
     border: none;
     outline: none;
-    color: #ffffff;
-    font-size: 12px;
+    color: var(--text-main, #ffffff);
+    font-size: 13px;
     width: 100%;
     font-family: inherit;
   }
@@ -558,8 +558,8 @@
 
   /* MOBILE CUSTOMER CARD STYLING */
   .cust-mobile-card {
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-card, #090e1a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -581,7 +581,7 @@
     align-items: flex-start;
     gap: 8px;
     padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
     width: 100%;
     box-sizing: border-box;
   }
@@ -615,7 +615,7 @@
   .mobile-cust-name {
     font-size: 14.5px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: normal;
@@ -666,7 +666,7 @@
   .mobile-grid-item .m-val {
     font-size: 12.5px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: normal;
@@ -1745,7 +1745,7 @@
             </div>
 
             <!-- Add Device Inline Form -->
-            <div id="addDeviceInlineForm" style="display:none; background:#090e1a; border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
+            <div id="addDeviceInlineForm" style="display:none; background:var(--bg-card, #090e1a); border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
               <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Secondary Device (MAC)</div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <input type="text" class="form-input font-mono" id="newDeviceMac" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; padding:8px 12px; flex:1; min-width:180px;">
@@ -1776,7 +1776,7 @@
                   <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
                   <span>Customer Credit Wallet</span>
                 </div>
-                <div style="font-size:13px; color:#ffffff; margin-top:3px;">
+                <div style="font-size:13px; color:var(--text-main, #ffffff); margin-top:3px;">
                   Available Balance: <strong class="text-cyan font-mono" style="font-size:16px;" id="creditWalletAmount">0.00 SAR</strong>
                 </div>
               </div>
@@ -1787,9 +1787,9 @@
           </div>
 
           <!-- 3. COLLECT ANY AMOUNT / ADVANCE PAYMENT CARD -->
-          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px;">
+          <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.07)); border-radius:14px; padding:16px;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-              <div style="font-size:13px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
+              <div style="font-size:13px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
                 <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 <span>Record Custom / Advance Payment</span>
               </div>
@@ -1837,10 +1837,10 @@
               <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Real-time transaction history</span>
             </div>
 
-            <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden;">
+            <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; overflow:hidden;">
               <div style="max-height:260px; overflow-y:auto;">
                 <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
-                  <thead style="background:#0d1527; color:var(--text-dim); position:sticky; top:0; z-index:2; border-bottom:1px solid rgba(255,255,255,0.08);">
+                  <thead style="background:var(--bg-card-header, #0d1527); color:var(--text-dim); position:sticky; top:0; z-index:2; border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08));">
                     <tr>
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Date &amp; Time</th>
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Amount</th>
@@ -2083,7 +2083,7 @@
       <div class="modal-body-scroll" style="max-height:75vh; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px;">
         
         <!-- SECTION 1: PROFILE & CONTACT -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             <span>Subscriber Profile</span>
@@ -2108,7 +2108,7 @@
         </div>
 
         <!-- SECTION 2: INTERNET PLAN & QUEUE SPEED -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             <span>Plan &amp; MikroTik Speed Queue</span>
@@ -2159,7 +2159,7 @@
         </div>
 
         <!-- SECTION 3: RATES & CYCLE -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
             <span>Billing Terms &amp; Renewal</span>
@@ -2182,7 +2182,7 @@
         </div>
 
         <!-- SECTION 4: DEVICE QUOTA -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z M10 4h4v2h-4z"/></svg>
             <span>Device Concurrency Quota</span>

@@ -900,7 +900,7 @@
         </div>
         <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
           Testing mode strictly intercepts all dispatches. Outgoing messages can <strong>only</strong> be sent to authorized developer phone:
-          <strong style="color: #ffffff; font-family: var(--font-mono); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">0597595059</strong>. Client numbers are 100% blocked.
+          <strong style="color: var(--text-main, #ffffff); font-family: var(--font-mono); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">0597595059</strong>. Client numbers are 100% blocked.
         </div>
       </div>
     </div>
@@ -1013,7 +1013,7 @@
     <div class="section-card-header" style="flex-wrap: wrap; gap: 10px;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #fbbf24;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        <span style="font-size: 14px; font-weight: 700; color: #ffffff;">Subscribers Awaiting Bill Notice (Review &amp; Dispatch Queue)</span>
+        <span style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff);">Subscribers Awaiting Bill Notice (Review &amp; Dispatch Queue)</span>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; font-size: 12px;">
         <span class="font-mono text-dim">Total: {{ due_customers | length }} Eligible</span>
@@ -1141,7 +1141,7 @@
               </td>
               <td class="col-name" data-label="Subscriber">
                 <label for="chk-due-{{ c.id }}" style="cursor: pointer; display: inline-flex; align-items: center; margin: 0;">
-                  <strong style="color: #ffffff;">{{ c.name }}</strong>
+                  <strong style="color: var(--text-main, #ffffff);">{{ c.name }}</strong>
                 </label>
                 <span id="mute-badge-{{ c.id }}" class="badge-status" style="display: {{ 'none' if c.reminders_enabled else 'inline-block' }}; font-size: 9.5px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-left: 5px;">🔕 Muted</span>
               </td>
@@ -1211,7 +1211,7 @@
       <!-- COMPOSER COLUMN -->
       <div class="section-card">
         <div class="section-card-header">
-          <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
             <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             <span>Direct Message Composer</span>
           </div>
@@ -1342,7 +1342,7 @@
       <!-- PREVIEW COLUMN: REALISTIC WHATSAPP PHONE BUBBLE -->
       <div class="section-card" style="display: flex; flex-direction: column;">
         <div class="section-card-header">
-          <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
             <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
             <span>Live Subscriber Phone Preview</span>
           </div>
@@ -1415,7 +1415,7 @@
 
   <div class="section-card">
     <div class="section-card-header">
-      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
         <span>Message Delivery &amp; Audit Ledger</span>
       </div>

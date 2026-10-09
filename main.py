@@ -952,8 +952,7 @@ PUBLIC_EXACT_PATHS = {
     "/favicon.ico",
     "/portal",
     "/hotspot",
-    "/hotspot/login",
-    "/get_unpaid.php"
+    "/hotspot/login"
 }
 
 PUBLIC_PREFIXES = (
@@ -1008,6 +1007,42 @@ async def auth_middleware(request: Request, call_next):
 
     request.state.user = user_session
     return await call_next(request)
+
+
+# =========================================================
+# RBAC Security Guardrails & Rate-Limiting Helpers
+# =========================================================
+
+def require_admin_or_superadmin(request: Request) -> Dict[str, Any]:
+    """Ensures the authenticated user has 'admin' or 'superadmin' role."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    if user.get("role") not in ("admin", "superadmin"):
+        raise HTTPException(status_code=403, detail="Forbidden: Admin privileges required.")
+    return user
+
+def require_superadmin(request: Request) -> Dict[str, Any]:
+    """Ensures the authenticated user has 'superadmin' role."""
+    user = getattr(request.state, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    if user.get("role") != "superadmin":
+        raise HTTPException(status_code=403, detail="Forbidden: Superadmin privileges required.")
+    return user
+
+_LOOKUP_RATE_LIMITS: Dict[str, List[float]] = {}
+MAX_LOOKUPS_PER_MINUTE = 15
+
+def is_lookup_rate_limited(ip: str) -> bool:
+    """Sliding-window IP rate limiter for public customer lookup endpoint."""
+    now = time.time()
+    timestamps = _LOOKUP_RATE_LIMITS.setdefault(ip, [])
+    _LOOKUP_RATE_LIMITS[ip] = [t for t in timestamps if now - t < 60]
+    if len(_LOOKUP_RATE_LIMITS[ip]) >= MAX_LOOKUPS_PER_MINUTE:
+        return True
+    _LOOKUP_RATE_LIMITS[ip].append(now)
+    return False
 
 
 # =========================================================
@@ -2586,8 +2621,16 @@ async def detect_mac_endpoint(mac: str):
 
 
 @app.get("/api/customer/lookup")
-async def api_customer_lookup(phone: str):
+async def api_customer_lookup(phone: str, request: Request):
     """Allows subscriber to look up their current account plan and expiry status in captive portal."""
+    client_ip = get_client_ip(request)
+    if is_lookup_rate_limited(client_ip):
+        return JSONResponse(
+            status_code=429,
+            content={"found": False, "message": "Too many lookup attempts. Please wait a minute."},
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
     clean_phone = phone.strip()
     cust = database.get_customer_by_phone(clean_phone)
     if not cust:
@@ -2595,10 +2638,19 @@ async def api_customer_lookup(phone: str):
             content={"found": False, "message": "No subscriber account found with this mobile number."},
             headers={"Access-Control-Allow-Origin": "*"}
         )
+
+    # Privacy masking for unauthenticated public portal lookup
+    raw_name = cust.get("name", "Subscriber").strip()
+    parts = raw_name.split()
+    if len(parts) > 1:
+        masked_name = f"{parts[0]} " + " ".join(f"{p[0]}." for p in parts[1:])
+    else:
+        masked_name = raw_name
+
     return JSONResponse(
         content={
             "found": True,
-            "name": cust.get("name", "Subscriber"),
+            "name": masked_name,
             "package": cust.get("package_name", "Standard"),
             "expiry_date": cust.get("due_date") or cust.get("expiry_date") or "Active",
             "zone": cust.get("zone", ""),
@@ -3147,12 +3199,13 @@ async def create_new_customer(payload: CreateCustomerPayload):
 
 
 @app.post("/api/customers/{customer_id}/edit")
-async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
+async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, request: Request):
     """
     Manually edits customer parameters from Customer Directory:
     Monthly fee, payment due date, custom speed limit, speed package, billing type, device limit, reseller.
     Immediately synchronizes the new speed limit to MikroTik for all the customer's active devices!
     """
+    require_admin_or_superadmin(request)
     logger.info(f"Admin editing customer #{customer_id} with payload: {payload}")
     try:
         updated = database.update_customer_details(
@@ -3379,11 +3432,12 @@ async def remove_device(customer_id: int, device_id: int):
 
 @app.delete("/api/customers/{customer_id}")
 @app.post("/api/customers/{customer_id}/delete")
-async def delete_customer_endpoint(customer_id: int):
+async def delete_customer_endpoint(customer_id: int, request: Request):
     """
     Permanently deletes a customer, wipes their devices and collections,
     and removes all associated bindings, queues, and active sessions from MikroTik fleet.
     """
+    require_admin_or_superadmin(request)
     logger.warning(f"Initiating permanent deletion for customer #{customer_id}")
     try:
         success, macs, name, phone, pppoe_username = database.delete_customer_permanently(customer_id)
@@ -3925,8 +3979,12 @@ async def get_customer_unpaid_endpoint(customer_id: int):
 
 
 @app.get("/get_unpaid.php")
-async def get_unpaid_php_endpoint(cid: int = Query(...)):
+async def get_unpaid_php_endpoint(request: Request, cid: int = Query(...), token: Optional[str] = Query(None)):
     """PHP-compatible endpoint matching billing_reminder get_unpaid.php?cid=..."""
+    user = getattr(request.state, "user", None)
+    expected_token = os.getenv("LEGACY_BILLING_TOKEN", "")
+    if not user and (not expected_token or token != expected_token):
+        raise HTTPException(status_code=401, detail="Unauthorized: Authentication or valid access token required.")
     try:
         data = database.get_customer_unpaid_months(cid)
         return JSONResponse(content=data)
@@ -4083,8 +4141,9 @@ async def get_package_details(pkg_id: int):
 
 
 @app.post("/api/packages")
-async def create_new_package(payload: PackagePayload):
+async def create_new_package(payload: PackagePayload, request: Request):
     """Creates a new speed package and optionally provisions it on MikroTik."""
+    require_admin_or_superadmin(request)
     logger.info(f"Creating package: {payload.name}, Rate: {payload.rate_limit}, Price: {payload.price}")
     try:
         pkg = database.create_package(
@@ -4121,8 +4180,9 @@ async def create_new_package(payload: PackagePayload):
 
 
 @app.put("/api/packages/{pkg_id}")
-async def update_existing_package(pkg_id: int, payload: PackagePayload):
+async def update_existing_package(pkg_id: int, payload: PackagePayload, request: Request):
     """Updates an existing speed package and updates its MikroTik profile."""
+    require_admin_or_superadmin(request)
     logger.info(f"Updating package #{pkg_id}: {payload.name}, Rate: {payload.rate_limit}")
     try:
         pkg = database.update_package(
@@ -4162,8 +4222,9 @@ async def update_existing_package(pkg_id: int, payload: PackagePayload):
 
 
 @app.delete("/api/packages/{pkg_id}")
-async def delete_existing_package(pkg_id: int):
+async def delete_existing_package(pkg_id: int, request: Request):
     """Deletes package if no active subscribers are using it."""
+    require_admin_or_superadmin(request)
     logger.info(f"Attempting to delete package #{pkg_id}")
     try:
         success, msg, pkg = database.delete_package(pkg_id)
@@ -4533,8 +4594,9 @@ async def api_whatsapp_session_restart():
 
 
 @app.post("/api/whatsapp/session/reset")
-async def api_whatsapp_session_reset():
+async def api_whatsapp_session_reset(request: Request):
     """Purges current WhatsApp session and creates a fresh session for pairing a new phone."""
+    require_admin_or_superadmin(request)
     res = whatsapp_service.reset_and_relink_whatsapp_session()
     return JSONResponse(res)
 
@@ -4691,8 +4753,9 @@ async def api_get_routers(active_only: bool = False):
 
 
 @app.post("/api/routers")
-async def api_create_router(payload: CreateRouterPayload):
+async def api_create_router(payload: CreateRouterPayload, request: Request):
     """Adds a new MikroTik hardware router to the fleet one-by-one."""
+    require_admin_or_superadmin(request)
     logger.info(f"Adding new MikroTik router to fleet: {payload.name} ({payload.host}:{payload.port})")
     try:
         r = database.create_router(
@@ -4758,8 +4821,9 @@ async def api_get_router(router_id: int):
 
 
 @app.put("/api/routers/{router_id}")
-async def api_update_router(router_id: int, payload: UpdateRouterPayload):
+async def api_update_router(router_id: int, payload: UpdateRouterPayload, request: Request):
     """Updates router configuration and credentials."""
+    require_admin_or_superadmin(request)
     logger.info(f"Updating router #{router_id}: {payload.name}")
     try:
         updated = database.update_router(
@@ -4782,8 +4846,9 @@ async def api_update_router(router_id: int, payload: UpdateRouterPayload):
 
 
 @app.delete("/api/routers/{router_id}")
-async def api_delete_router(router_id: int):
+async def api_delete_router(router_id: int, request: Request):
     """Deletes a router from the fleet."""
+    require_admin_or_superadmin(request)
     ok = database.delete_router(router_id)
     return {"success": ok}
 
@@ -4881,24 +4946,41 @@ async def download_audit_md():
     )
 
 
+ALLOWED_PUBLIC_DOWNLOAD_EXTENSIONS = {".pdf", ".md", ".txt"}
+FORBIDDEN_DOWNLOAD_EXTENSIONS = {".db", ".py", ".env", ".key", ".sh", ".json", ".sqlite", ".bak", ".log"}
+
 @app.get("/downloads/{filename}")
 async def download_any_file(filename: str):
-    file_path = Path("/home/tserver/isp_v2") / filename
-    if not file_path.exists():
-        file_path = Path(filename)
-    if not file_path.exists():
+    """Secure file download endpoint with path traversal & extension protection."""
+    safe_name = os.path.basename(filename)
+    if not safe_name or safe_name != filename or safe_name.startswith("."):
+        raise HTTPException(status_code=400, detail="Invalid filename format.")
+
+    ext = os.path.splitext(safe_name)[1].lower()
+    if ext in FORBIDDEN_DOWNLOAD_EXTENSIONS or ext not in ALLOWED_PUBLIC_DOWNLOAD_EXTENSIONS:
+        logger.warning(f"Blocked unauthorized file download attempt: {filename}")
+        raise HTTPException(status_code=403, detail="Access denied: this file type cannot be downloaded.")
+
+    base_dir = Path("/home/tserver/isp_v2")
+    if not base_dir.exists():
+        base_dir = Path(__file__).resolve().parent
+
+    file_path = base_dir / safe_name
+    if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
+
     mimetype = "application/octet-stream"
-    if filename.endswith(".pdf"):
+    if safe_name.endswith(".pdf"):
         mimetype = "application/pdf"
-    elif filename.endswith(".md"):
+    elif safe_name.endswith(".md"):
         mimetype = "text/markdown"
-    elif filename.endswith(".txt"):
+    elif safe_name.endswith(".txt"):
         mimetype = "text/plain"
+
     return FileResponse(
         str(file_path),
         media_type=mimetype,
-        filename=filename
+        filename=safe_name
     )
 
 

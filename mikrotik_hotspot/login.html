@@ -730,6 +730,34 @@
       }
     }
 
+    /* Bilingual Language Toggle Bar */
+    .portal-lang-bar {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 30px;
+      padding: 3px;
+      margin: 8px auto 12px auto;
+      gap: 4px;
+    }
+    .portal-lang-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: inherit;
+    }
+    .portal-lang-btn.active {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    }
+
     .d-none { display: none !important; }
   </style>
 </head>
@@ -746,6 +774,12 @@
     </div>
     <div>
       <span class="brand-badge">CYBERNET HIGH-SPEED HOTSPOT</span>
+    </div>
+    <div style="margin-top: 10px;">
+      <div class="portal-lang-bar">
+        <button type="button" class="portal-lang-btn active" id="btnLangEn" onclick="setPortalLang('en')">🇬🇧 English</button>
+        <button type="button" class="portal-lang-btn" id="btnLangAr" onclick="setPortalLang('ar')">🇸🇦 العربية</button>
+      </div>
     </div>
   </div>
 
@@ -1843,19 +1877,62 @@
     }
   }
 
-  // Auto-detect if this client's hardware MAC is already an active authorized device
-  (function autoCheckApprovedDevice() {
-    if (!isSimulated && ROUTER_MAC && !isRandomMac(ROUTER_MAC)) {
-      fetch(API_BASE + "/api/hotspot/check-status?mac=" + encodeURIComponent(ROUTER_MAC))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data && data.status === "approved") {
-            showApproved(data.message || "Welcome back! Your device is authorized.");
-          }
-        })
-        .catch(function() {});
+  // =========================================================
+  // BILINGUAL LANGUAGE SWITCHER (ARABIC / ENGLISH)
+  // =========================================================
+  var PORTAL_I18N = {
+    en: {
+      tab_phone: "Mobile Connect",
+      tab_member: "Member Login",
+      tab_voucher: "Voucher PIN",
+      tab_lookup: "My Plan",
+      phone_h1: "Connect to WiFi",
+      phone_subtitle: "Enter your registered mobile number to activate or resume high-speed access.",
+      rand_btn_recheck: "I Changed to Device MAC — Recheck Connection",
+      rand_blocked_phone_title: "Phone Submission Disabled",
+      perks_header: "⚡ FREE LOCAL PERKS (NO LOGIN NEEDED)",
+      perks_football: "Football Live",
+      perks_upload: "Media Upload",
+      perks_movies: "Movie Server"
+    },
+    ar: {
+      tab_phone: "اتصال بالجوال",
+      tab_member: "دخول الأعضاء",
+      tab_voucher: "كرت الشحن",
+      tab_lookup: "باقتي",
+      phone_h1: "الاتصال بالإنترنت",
+      phone_subtitle: "أدخل رقم هاتفك المحمول المسجل لتفعيل أو استئناف الاتصال فائق السرعة.",
+      rand_btn_recheck: "لقد غيّرت إلى ماك الجهاز — أعد الفحص",
+      rand_blocked_phone_title: "تم تعطيل إدخال الجوال",
+      perks_header: "⚡ خدمات محلية مجانية (بدون تسجيل دخول)",
+      perks_football: "بث المباريات",
+      perks_upload: "رفع الوسائط",
+      perks_movies: "سيرفر الأفلام"
     }
-  })();
+  };
+
+  function setPortalLang(lang) {
+    var dict = PORTAL_I18N[lang] || PORTAL_I18N.en;
+    document.querySelectorAll("[data-i18n]").forEach(function(el) {
+      var key = el.getAttribute("data-i18n");
+      if (dict[key]) el.textContent = dict[key];
+    });
+    document.documentElement.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+    document.documentElement.setAttribute("lang", lang);
+    var btnEn = document.getElementById("btnLangEn");
+    var btnAr = document.getElementById("btnLangAr");
+    if (btnEn && btnAr) {
+      btnEn.classList.toggle("active", lang === "en");
+      btnAr.classList.toggle("active", lang === "ar");
+    }
+    try { localStorage.setItem("cybernet_portal_lang", lang); } catch(e){}
+  }
+
+  // Restore saved language preference on load
+  try {
+    var savedLang = localStorage.getItem("cybernet_portal_lang") || "en";
+    setPortalLang(savedLang);
+  } catch(e) {}
 </script>
 
 </body>
