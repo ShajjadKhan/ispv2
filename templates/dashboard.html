@@ -2322,7 +2322,13 @@
       </div>
       <div class="kpi-val-group">
         <div class="kpi-main-number">{{ metrics.total_subscribers }} <span style="font-size:15px; font-weight:500; color:var(--text-dim);">/ {{ metrics.capacity_limit_formatted or metrics.capacity_limit }}</span></div>
-        <div class="kpi-sub-text">{{ metrics.active_subscribers }} Active &bull; {{ metrics.suspended_count }} Suspended</div>
+        <div class="kpi-sub-text">
+          <span style="color:#38bdf8; font-weight:700;">{{ metrics.active_subscribers }} Active</span>
+          &bull;
+          <span onclick="event.stopPropagation(); filterSubscribersTab('suspended'); document.getElementById('subscribersSection')?.scrollIntoView({ behavior: 'smooth' });" style="color:{% if metrics.suspended_count > 0 %}#f87171{% else %}var(--text-dim){% endif %}; font-weight:700; cursor:pointer;" title="Click to view Suspended Accounts List">
+            ⛔ {{ metrics.suspended_count }} Suspended
+          </span>
+        </div>
       </div>
       <div class="kpi-progress-bar">
         <div class="kpi-progress-fill" style="width: {{ metrics.capacity_percent }}%;"></div>
@@ -2398,23 +2404,29 @@
       </div>
     </div>
 
-    <!-- Card 6: Expiring Accounts / Action Needed -->
-    <div class="kpi-card theme-rose" onclick="handleKpiCardClick('expiring')" title="Click to view Priority Expiration Queue">
+    <!-- Card 6: Accounts Due for Suspension (Will Suspend) -->
+    <div class="kpi-card theme-rose" onclick="handleKpiCardClick('will_suspend')" title="Click to view Accounts Due for Suspension Cutoff">
       <div class="kpi-card-top">
-        <span class="kpi-label">Will Suspend / Expiring</span>
+        <span class="kpi-label">Will Suspend</span>
         <div class="kpi-icon-pill">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/></svg>
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number text-rose">{{ metrics.expiring_tiers.total }} <span style="font-size:15px; font-weight:500;">Accounts</span></div>
-        <div class="kpi-sub-text">{{ metrics.expiring_tiers.today_overdue }} Overdue/Today &bull; {{ metrics.expiring_tiers.in_3d }} in 3d</div>
+        <div class="kpi-main-number text-rose">{{ metrics.expiring_tiers.will_suspend }} <span style="font-size:15px; font-weight:500;">Accounts</span></div>
+        <div class="kpi-sub-text">
+          {% if metrics.expiring_tiers.will_suspend > 0 %}
+            <span style="color:#ef4444; font-weight:700;">🚨 {{ metrics.expiring_tiers.overdue }} Overdue &bull; {{ metrics.expiring_tiers.today }} Today</span> &bull; {{ metrics.expiring_tiers.in_3d }} in 3d
+          {% else %}
+            <span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; {{ metrics.expiring_tiers.in_3d }} in 3d &bull; {{ metrics.expiring_tiers.upcoming_renewals }} in 7-15d
+          {% endif %}
+        </div>
       </div>
       <div class="kpi-progress-bar">
-        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.total > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
+        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.will_suspend > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
       </div>
       <div class="kpi-filter-hint">
-        <span>🔍 View Priority Queue ↓</span>
+        <span>🔍 View Will Suspend List ↓</span>
       </div>
     </div>
   </div>
@@ -2704,8 +2716,8 @@
       </button>
 
       <button type="button" class="sub-tab-btn" id="tabBtnPriority" onclick="filterSubscribersTab('priority')" style="padding:4px 9px; font-size:11.5px;">
-        <span>🚨 Due Queue</span>
-        <span class="badge-count orange" style="font-size:9.5px; padding:1px 5px;">{{ metrics.expiring_tiers.total }}</span>
+        <span>🚨 Will Suspend / Due</span>
+        <span class="badge-count orange" style="font-size:9.5px; padding:1px 5px;">{{ metrics.expiring_tiers.will_suspend if metrics.expiring_tiers.will_suspend > 0 else metrics.expiring_tiers.total_queue }}</span>
       </button>
 
       <button type="button" class="sub-tab-btn" id="tabBtnOnline" onclick="filterSubscribersTab('online')" style="padding:4px 9px; font-size:11.5px;">
@@ -2731,13 +2743,13 @@
       <span class="tier-deck-title">Expiration Tier:</span>
 
       <button type="button" class="tier-pill-btn active" data-subfilter="all" onclick="filterQueueByTier('all')">
-        <span>All Priority Accounts</span>
-        <span class="tier-count-badge">{{ metrics.expiring_tiers.total }}</span>
+        <span>All Due Queue</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.total_queue }}</span>
       </button>
 
-      <button type="button" class="tier-pill-btn danger-pill" data-subfilter="overdue" onclick="filterQueueByTier('overdue')">
-        <span>🚨 Overdue / Today</span>
-        <span class="tier-count-badge">{{ metrics.expiring_tiers.today_overdue }}</span>
+      <button type="button" class="tier-pill-btn danger-pill" data-subfilter="will_suspend" onclick="filterQueueByTier('will_suspend')">
+        <span>🚨 Will Cut / Overdue</span>
+        <span class="tier-count-badge">{{ metrics.expiring_tiers.will_suspend }}</span>
       </button>
 
       <button type="button" class="tier-pill-btn warning-pill" data-subfilter="in_3d" onclick="filterQueueByTier('in_3d')">
@@ -3791,9 +3803,14 @@
       }
     } else if (type === 'rate') {
       window.location.href = '/collections?period=month';
-    } else if (type === 'expiring') {
+    } else if (type === 'expiring' || type === 'will_suspend') {
       filterSubscribersTab('priority');
-      filterQueueByTier('all');
+      const willCut = {{ metrics.expiring_tiers.will_suspend or 0 }};
+      if (willCut > 0) {
+        filterQueueByTier('will_suspend');
+      } else {
+        filterQueueByTier('all');
+      }
       const el = document.getElementById('subscribersSection');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3848,11 +3865,11 @@
       if (activeSubTab === 'all') {
         matchesTab = true;
       } else if (activeSubTab === 'priority') {
-        if (['overdue', 'today', 'in_3d', 'in_7d', 'in_15d'].includes(tier) || status === 'suspended') {
+        if (['overdue', 'today', 'in_3d', 'in_7d', 'in_15d', 'grace'].includes(tier)) {
           if (activePrioritySubFilter === 'all') {
             matchesTab = true;
-          } else if (activePrioritySubFilter === 'overdue') {
-            matchesTab = (tier === 'overdue' || tier === 'today' || status === 'suspended');
+          } else if (activePrioritySubFilter === 'will_suspend' || activePrioritySubFilter === 'overdue') {
+            matchesTab = (tier === 'overdue' || tier === 'today');
           } else {
             matchesTab = (tier === activePrioritySubFilter);
           }
@@ -3862,7 +3879,7 @@
       } else if (activeSubTab === 'sharing') {
         matchesTab = (r.getAttribute('data-sharing') === 'true');
       } else if (activeSubTab === 'suspended') {
-        matchesTab = (status === 'suspended');
+        matchesTab = (status === 'suspended' || tier === 'suspended');
       }
 
       // 2. Search check
@@ -5248,8 +5265,8 @@
               <button type="button" onclick="closeCustomerDetailsModal(); openEditCustomerModal(${c.id});" style="font-size:10px; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:4px; padding:2px 6px; cursor:pointer; font-weight:700;">✎ Change</button>
             </div>
             <div class="font-mono" style="font-size:14px; font-weight:800; color:#fff; margin-top:4px;">${c.due_date || c.expiry_date || c.suspend_date || '—'}</div>
-            <div style="font-size:11px; color:${c.days_remaining !== null && c.days_remaining < 0 ? '#f87171' : '#34d399'}; font-weight:600;">
-              ${c.days_remaining !== null ? (c.days_remaining < 0 ? `Auto-Cut Overdue (-${Math.abs(c.days_remaining)}d)` : `Auto-Cut in ${c.days_remaining} days`) : 'Active cycle'}
+            <div style="font-size:11px; font-weight:700; margin-top:3px;">
+              ${c.status === 'suspended' ? '<span style="color:#ef4444;">⛔ ALREADY SUSPENDED</span>' : (c.days_remaining !== null ? (c.days_remaining < 0 ? `<span style="color:#f87171;">Auto-Cut Overdue (-${Math.abs(c.days_remaining)}d)</span>` : (c.days_remaining === 0 ? '<span style="color:#ef4444;">🚨 Auto-Cut Due Today</span>' : `<span style="color:#34d399;">Auto-Cut in ${c.days_remaining} days</span>`)) : '<span style="color:#34d399;">Active cycle</span>')}
             </div>
           </div>
           <div style="background:#090e1a; border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">

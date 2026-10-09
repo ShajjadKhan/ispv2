@@ -3490,12 +3490,15 @@ def get_dashboard_metrics(
         # 3. Expiration Tiers & Priority Action Queue
         tier_counts = {
             "total": 0,
+            "total_queue": 0,
+            "will_suspend": 0,
             "overdue": 0,
             "today": 0,
             "today_overdue": 0,
             "in_3d": 0,
             "in_7d": 0,
-            "in_15d": 0
+            "in_15d": 0,
+            "upcoming_renewals": 0
         }
 
         priority_queue = []
@@ -3565,10 +3568,10 @@ def get_dashboard_metrics(
                 c["is_grace_held"] = True
                 c["grace_until"] = susp_until
             elif c.get("status") == "suspended":
-                tier = "overdue"
+                tier = "suspended"
                 tier_badge = "suspended"
                 tier_label = "SUSPENDED"
-                is_due = True
+                is_due = False
                 is_expired = True
                 days_rem = -999
             elif expiry:
@@ -3614,10 +3617,10 @@ def get_dashboard_metrics(
                     tier_label = "Invalid Date"
                     is_due = True
             else:
-                tier = "overdue"
-                tier_badge = "overdue"
+                tier = "active"
+                tier_badge = "active"
                 tier_label = "No Due Date"
-                is_due = True
+                is_due = False
 
             wallet_credit = float(c.get("credit_balance") or 0.0)
             has_debt = (wallet_credit < 0)
@@ -3644,28 +3647,37 @@ def get_dashboard_metrics(
             c["tier_badge"] = tier_badge
             c["tier_label"] = tier_label
 
-            # Count tiers & priority action queue
-            if tier in ("overdue", "today", "in_3d", "in_7d", "in_15d") or has_debt:
+            # Count tiers & priority action queue:
+            # ONLY active accounts that will actually be cut (overdue or today) count towards will_suspend!
+            if c.get("status") == "active":
                 if tier == "overdue":
                     tier_counts["overdue"] += 1
+                    tier_counts["will_suspend"] += 1
+                    priority_queue.append(c)
                 elif tier == "today":
                     tier_counts["today"] += 1
+                    tier_counts["will_suspend"] += 1
+                    priority_queue.append(c)
                 elif tier == "in_3d":
                     tier_counts["in_3d"] += 1
+                    priority_queue.append(c)
                 elif tier == "in_7d":
                     tier_counts["in_7d"] += 1
+                    priority_queue.append(c)
                 elif tier == "in_15d":
                     tier_counts["in_15d"] += 1
-
-                priority_queue.append(c)
+                    priority_queue.append(c)
+                elif tier == "grace" or has_debt:
+                    priority_queue.append(c)
+            elif c.get("status") == "suspended":
+                # Already suspended accounts are kept intact and dedicated to the Suspended list
+                pass
 
         tier_counts["today_overdue"] = tier_counts["overdue"] + tier_counts["today"]
-        tier_counts["total"] = (
-            tier_counts["today_overdue"] +
-            tier_counts["in_3d"] +
-            tier_counts["in_7d"] +
-            tier_counts["in_15d"]
-        )
+        tier_counts["upcoming_renewals"] = tier_counts["in_3d"] + tier_counts["in_7d"] + tier_counts["in_15d"]
+        tier_counts["total_queue"] = tier_counts["will_suspend"] + tier_counts["upcoming_renewals"]
+        # 'total' for the Will Suspend KPI card strictly shows the accounts that will be cut!
+        tier_counts["total"] = tier_counts["will_suspend"]
 
         # Sort Priority Queue:
         # Grace hold (0) -> Suspended (1) -> expired/overdue (2) -> large debt arrears (3) -> due today (4) -> in_3d (5) -> in_7d (6) -> in_15d (7)
