@@ -280,6 +280,29 @@ Our comprehensive forensic audit across the backend, database, security, and 17 
   2. Created `open_olt_telnet(host, port, timeout)` factory with seamless fallback if `telnetlib` is absent on Python 3.13+.
   3. Replaced raw `telnetlib.Telnet` calls in `poll_olt_hardware` and `set_onu_description_hardware`.
 
+#### [x] `TRAFFIC-01`: Multi-Router Fleet 24/7 Traffic Accounting & Usage Counter Synchronization
+- **Severity:** 🔴 **CRITICAL**
+- **Affected Files:**
+  - [`mikrotik_client.py:1908-1941`](file:///Users/shajjadkhan/ispv2/mikrotik_client.py#L1908-L1941)
+  - [`database.py:5725-5870, 6170-6250`](file:///Users/shajjadkhan/ispv2/database.py#L5725-L5870)
+  - [`main.py:88-165, 3260-3277`](file:///Users/shajjadkhan/ispv2/main.py#L88-L165)
+  - [`templates/customers.html:3570-3635`](file:///Users/shajjadkhan/ispv2/templates/customers.html#L3570-L3635)
+  - [`templates/customer_usage.html:1113-1135`](file:///Users/shajjadkhan/ispv2/templates/customer_usage.html#L1113-L1135)
+- **Problem:**
+  1. The 60-second background traffic accounting collector (`collect_router_traffic_snapshot`) in `main.py` only polled the primary gateway (`router_client.get_hotspot_hosts_raw()`, Router-20 `10.20.30.1`). Active Router-30 (`10.20.30.12`, 48 hosts) and Router-10 (`10.12.14.1`, 36 hosts) were completely ignored, causing 82 approved customer devices to have 0 bytes recorded despite transferring gigabytes on the live routers.
+  2. Disconnection handling immediately popped devices from memory on transient blips, discarding opening bytes on subsequent reconnects.
+  3. Single-record DB transactions opened and committed up to 120 separate SQLite connections per minute, risking lock contention.
+  4. Template mismatch: `templates/customers.html` modal checked `d.download_formatted`, `d.upload_formatted`, and `d.total_formatted`, whereas backend provided `formatted_down`, `formatted_up`, and `formatted_total`, causing devices in modal to show "0 B".
+- **Fix Solution (Executed):**
+  1. Added `broadcast_get_hotspot_hosts_raw` in `mikrotik_client.py` using `ThreadPoolExecutor` with per-router timeouts (6.0s) to concurrently poll all active routers (Router-20, Router-30, Router-10).
+  2. Added `record_devices_traffic_batch`, `close_device_sessions_batch`, and `get_macs_with_traffic_history` in `database.py`. All updates executed in a single atomic SQLite transaction (< 15ms).
+  3. Keyed in-memory snapshots by `(router_id, mac)` to prevent delta cross-contamination when subscribers roam between routers.
+  4. Implemented first-observation seed for devices with zero lifetime history in `customer_traffic_daily` so Router-30 and Router-10 subscribers received their existing gigabytes immediately without double-counting on server restart.
+  5. Implemented 2-cycle grace period (~2 minutes) to prevent session flapping on smartphone sleep states and WiFi roaming.
+  6. Provided both formatting keys (`formatted_down`/`download_formatted`, `formatted_up`/`upload_formatted`, `formatted_total`/`total_formatted`) and live telemetry (`is_online`, `last_seen`, `uptime`, `ip_address`, `queried_at`).
+  7. Added live online badge and IP display to device breakdown cards in both `customer_usage.html` and `customers.html` modal.
+  8. Deployed to production (`tserver@10.12.14.16`), restarted service, verified 119 devices continuously accumulating deltas every 60 seconds across Router-20, Router-30, and Router-10.
+
 ---
 
 ## 🗺️ Step-by-Step Execution Roadmap
@@ -291,11 +314,13 @@ flowchart TD
     Step3["Step 3: Core UI/UX & Day Mode Contrast\n(UI-01, UI-02, UI-03, UI-04, UI-06) ✅"]
     Step4["Step 4: Hotspot Bilingual Experience\n(UI-05) ✅"]
     Step5["Step 5: Fleet Async Resiliency & Python 3.13\n(FLEET-01, OLT-01) ✅"]
+    Step6["Step 6: Fleet 24/7 Traffic & Usage Counters\n(TRAFFIC-01) ✅"]
 
     Step1 --> Step2
     Step2 --> Step3
     Step3 --> Step4
     Step4 --> Step5
+    Step5 --> Step6
 ```
 
 ---
@@ -320,5 +345,7 @@ flowchart TD
 | **2026-10-10 00:55** | `UI-07` | Phase 2 multi-portal Day Mode tokenization & mobile responsiveness hardening across secondary portals: Day Mode cards/inputs and >=44px touch targets on OLT, packages, gateway, reseller portal, customer usage, and captive portal. | `templates/olt.html`, `templates/packages.html`, `templates/gateway.html`, `templates/reseller_portal.html`, `templates/customer_usage.html`, `templates/captive_portal.html` | ✅ Verified (All 17 templates compiled cleanly) |
 | **2026-10-10 01:08** | `DEPLOY` | Fast-forward merged server commits with audit hardening branch (`29b9317`). Deployed to production (`tserver-lan@10.12.14.16`), restarted `isp_v2.service` under systemd, verified live HTTP endpoints (200 OK) and directory traversal guard (403). Synchronized with GitHub `origin/main`. | All files | ✅ Verified Live Production Active (PID 2728109, HTTP 200 OK) |
 | **2026-10-10 01:34** | `UI-08` | Fixed Will Suspend / Expiring dashboard KPI Card 6: resolved misleading "0 Accounts" state by introducing contextual queue awareness (`3 Expiring (1 in ≤3d)` when 0 overdue/today, `X To Cut / Y due` when cutoffs due). Resolved 3-day double counting in subtext via `in_7_15d`, and bound Card 6 DOM IDs (`kpiWillSuspendCount`, `kpiWillSuspendSub`) to live background poller. | `database.py`, `templates/dashboard.html` | ✅ Verified (`verify_will_suspend_and_suspended_lists.py` passed 100%) |
+| **2026-10-10 02:16** | `TRAFFIC-01` | Fixed 24/7 continuous traffic accounting across the multi-router fleet: parallelized hotspot polling via `broadcast_get_hotspot_hosts_raw` (Router-20, Router-30, Router-10). Seeded 21 zero-history devices on Router-30/10 with existing hardware bytes (Mahmoud Shehab 14GB, Marchello 6.4GB, Baten 5.1GB). Batch-recorded deltas in a single atomic transaction. Synchronized formatted traffic keys and added live online badges/IPs in usage modals. Deployed to production, verified 119 devices updating every 60s. | `mikrotik_client.py`, `database.py`, `main.py`, `templates/customer_usage.html`, `templates/customers.html` | ✅ Verified Live Production Active (118-119 devices/min batch updating) |
 
 *(Antigravity agents: append every completed action here with timestamp and file references)*
+
