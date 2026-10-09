@@ -3442,6 +3442,24 @@ def get_dashboard_metrics(
                 tier_label = "No Due Date"
                 is_due = True
 
+            wallet_credit = float(c.get("credit_balance") or 0.0)
+            has_debt = (wallet_credit < 0)
+            c["has_debt_arrears"] = has_debt
+
+            # An account is due if their renewal is soon (<= 3d), suspended, on grace, OR has past-due arrears debt
+            fee = float(c.get("monthly_fee") or 0.0)
+            if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace") or has_debt:
+                is_due = True
+                if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace"):
+                    net_needed = max(0.0, round(fee - wallet_credit, 2))
+                else:
+                    net_needed = round(abs(wallet_credit), 2)
+                c["net_due_amount"] = net_needed
+                due_customers_count += 1
+                outstanding_sar += net_needed
+            else:
+                c["net_due_amount"] = 0.0
+
             c["days_remaining"] = days_rem
             c["is_expired"] = is_expired
             c["is_due"] = is_due
@@ -3449,12 +3467,8 @@ def get_dashboard_metrics(
             c["tier_badge"] = tier_badge
             c["tier_label"] = tier_label
 
-            if is_due:
-                due_customers_count += 1
-                outstanding_sar += c["monthly_fee"]
-
-            # Count tiers
-            if tier in ("overdue", "today", "in_3d", "in_7d", "in_15d"):
+            # Count tiers & priority action queue
+            if tier in ("overdue", "today", "in_3d", "in_7d", "in_15d") or has_debt:
                 if tier == "overdue":
                     tier_counts["overdue"] += 1
                 elif tier == "today":
@@ -3477,12 +3491,25 @@ def get_dashboard_metrics(
         )
 
         # Sort Priority Queue:
-        # Priority: overdue/suspended (0) -> today (1) -> in_3d (2) -> in_7d (3) -> in_15d (4)
+        # Grace hold (0) -> Suspended (1) -> expired/overdue (2) -> large debt arrears (3) -> due today (4) -> in_3d (5) -> in_7d (6) -> in_15d (7)
         def priority_sort_key(item):
-            t = item["tier"]
-            order = {"overdue": 0, "today": 1, "in_3d": 2, "in_7d": 3, "in_15d": 4}.get(t, 5)
-            rem = item["days_remaining"] if item["days_remaining"] is not None else -9999
-            return (order, rem)
+            if item.get("is_grace_held"):
+                return (0, 0)
+            if item.get("status") == "suspended":
+                return (1, item.get("days_remaining") or 0)
+            d = item.get("days_remaining")
+            if d is not None and d < 0:
+                return (2, d)
+            wc = float(item.get("credit_balance") or 0.0)
+            if wc < 0:
+                return (3, wc)
+            if d == 0:
+                return (4, 0)
+            if d is not None and 1 <= d <= 3:
+                return (5, d)
+            if d is not None and 4 <= d <= 7:
+                return (6, d)
+            return (7, d or 999)
 
         priority_queue.sort(key=priority_sort_key)
 
@@ -3497,9 +3524,10 @@ def get_dashboard_metrics(
         collected_month_sar = round(float(fin_row["total_collected"] or 0.0), 2)
         collections_count = int(fin_row["tx_count"] or 0)
 
-        # Outstanding & Collection Target
+        # Outstanding & Collection Target (Aligned with active fleet monthly quota)
         outstanding_sar = round(outstanding_sar, 2)
-        target_revenue_sar = round(collected_month_sar + outstanding_sar, 2)
+        projected_monthly_revenue = round(sum(float(c.get("monthly_fee") or 0.0) for c in all_custs if c.get("status") == "active"), 2)
+        target_revenue_sar = projected_monthly_revenue if projected_monthly_revenue > 0 else round(collected_month_sar + outstanding_sar, 2)
         collection_rate = (
             round((collected_month_sar / target_revenue_sar * 100), 1)
             if target_revenue_sar > 0 else 100.0
@@ -3572,6 +3600,7 @@ def get_dashboard_metrics(
             "collections_count": collections_count,
             "outstanding_sar": outstanding_sar,
             "due_customers_count": due_customers_count,
+            "projected_monthly_revenue": projected_monthly_revenue,
             "target_revenue_sar": target_revenue_sar,
             "collection_rate": collection_rate,
             "expiring_tiers": tier_counts,
@@ -4916,6 +4945,13 @@ def update_collection(
             SET amount = ?, notes = ?, collected_at = ?, collected_by = ?, billing_type = ?, month_year = ?
             WHERE id = ?
         """, (clean_amt, clean_notes, final_at, final_by, final_type, month_yr, collection_id))
+
+        # If amount changed, adjust customer credit_balance accordingly
+        old_amt = float(old["amount"] or 0.0)
+        diff = round(clean_amt - old_amt, 2)
+        if diff != 0.0 and old["customer_id"]:
+            cursor.execute("UPDATE customers SET credit_balance = round(COALESCE(credit_balance, 0.0) + ?, 2) WHERE id = ?", (diff, old["customer_id"]))
+
         conn.commit()
 
         cursor.execute("""
@@ -4928,7 +4964,7 @@ def update_collection(
 
 
 def delete_collection(collection_id: int) -> Tuple[bool, Optional[Dict[str, Any]]]:
-    """Permanently deletes a collection entry and adjusts customer collected_today if applicable."""
+    """Permanently deletes a collection entry and adjusts customer collected_today and credit_balance if applicable."""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -4945,15 +4981,16 @@ def delete_collection(collection_id: int) -> Tuple[bool, Optional[Dict[str, Any]
         cust_id = col.get("customer_id")
         amt = float(col.get("amount") or 0.0)
 
-        # If customer had collected_today set from this payment, adjust collected_today
+        # If customer had collected_today or credit_balance set from this payment, adjust both
         if cust_id and amt > 0:
             cursor.execute("SELECT collected_today, credit_balance FROM customers WHERE id = ?", (cust_id,))
             cust_row = cursor.fetchone()
             if cust_row:
                 curr_collected = float(cust_row["collected_today"] or 0.0)
-                if curr_collected > 0:
-                    new_collected = max(0.0, round(curr_collected - amt, 2))
-                    cursor.execute("UPDATE customers SET collected_today = ? WHERE id = ?", (new_collected, cust_id))
+                new_collected = max(0.0, round(curr_collected - amt, 2)) if curr_collected > 0 else 0.0
+                curr_credit = float(cust_row["credit_balance"] or 0.0)
+                new_credit = round(curr_credit - amt, 2)
+                cursor.execute("UPDATE customers SET collected_today = ?, credit_balance = ? WHERE id = ?", (new_collected, new_credit, cust_id))
 
         cursor.execute("DELETE FROM collections WHERE id = ?", (collection_id,))
         conn.commit()
@@ -5841,9 +5878,9 @@ def get_balance_sheet_data(
         cur = conn.cursor()
 
         col_rows = cur.execute("""
-            SELECT customer_id, COALESCE(SUM(amount), 0.0) as total, COUNT(*) as count
+            SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total, COUNT(*) as count
             FROM collections
-            WHERE amount > 0
+            WHERE (amount > 0 OR waived_amount > 0)
             GROUP BY customer_id
         """).fetchall()
         colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
@@ -6166,7 +6203,9 @@ def record_balance_collection(
         # 2. Reactivate customer and devices if previously suspended / blocked
         cur.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
 
-        # 3. Advance expiry/due date if payment covers monthly cycle
+        # 3. Advance expiry/due date if payment covers monthly cycle & update customer credit_balance
+        curr_credit = float(cust.get("credit_balance") or 0.0)
+        new_credit = round(curr_credit + clean_amt, 2)
         monthly_fee = float(cust.get("monthly_fee") or 30.0)
         if monthly_fee > 0 and clean_amt >= monthly_fee:
             days_to_add = int(clean_amt // monthly_fee) * 30
@@ -6183,15 +6222,15 @@ def record_balance_collection(
                 new_due_day = 1
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, updated_at = ?
+                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?, updated_at = ?
                 WHERE id = ?
-            """, (new_exp, new_exp, new_due_day, now_str, customer_id))
+            """, (new_exp, new_exp, new_due_day, new_credit, now_str, customer_id))
         else:
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', updated_at = ?
+                SET status = 'active', credit_balance = ?, updated_at = ?
                 WHERE id = ?
-            """, (now_str, customer_id))
+            """, (new_credit, now_str, customer_id))
 
         # Close open suspension for this customer if reactivated
         cur.execute("""
