@@ -2040,10 +2040,66 @@
       top: 0;
       width: 100%;
       background: #ffffff !important;
-      color: #000000 !important;
-      padding: 20px;
+      color: #0f172a !important;
+      padding: 24px;
+      margin: 0;
+      border: none !important;
+      box-shadow: none !important;
     }
     .no-print { display: none !important; }
+    #printableReportArea div {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    #printableReportArea h2, #printableReportArea h3, #printableReportArea h3 span {
+      color: #0f172a !important;
+    }
+    #printableReportArea table {
+      width: 100% !important;
+      color: #0f172a !important;
+      border-collapse: collapse !important;
+      margin-bottom: 20px !important;
+    }
+    #printableReportArea th {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      padding: 8px 10px !important;
+      font-size: 11px !important;
+    }
+    #printableReportArea td {
+      color: #1e293b !important;
+      border-bottom: 1px solid #cbd5e1 !important;
+      background: transparent !important;
+      padding: 7px 10px !important;
+      font-size: 11.5px !important;
+    }
+    #printableReportArea tr:nth-child(even) td {
+      background: #f8fafc !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printableReportArea .text-emerald {
+      color: #059669 !important;
+      font-weight: 800 !important;
+    }
+    #printableReportArea .text-cyan {
+      color: #0284c7 !important;
+      font-weight: 700 !important;
+    }
+    #printableReportArea .text-dim {
+      color: #64748b !important;
+    }
+    #printableReportArea .report-kpi-grid > div {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #printableReportArea .report-kpi-grid div {
+      color: #0f172a !important;
+    }
   }
   .phone-wrap {
     display: inline-flex;
@@ -2997,6 +3053,34 @@
           </div>
         </div>
 
+        <!-- Collector Reconciliation Summary Table (Who collected how much in total) -->
+        <div id="rptStaffSection" style="margin-top: 18px; margin-bottom: 20px;">
+          <h3 style="font-size: 13.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+            <span>👤 Collections by Staff / Collector (Total Collected)</span>
+          </h3>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; overflow: hidden;">
+            <table class="clean-table" id="rptStaffTable" style="margin: 0; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="padding: 10px 14px;">Collector Name</th>
+                  <th style="padding: 10px 14px; text-align: center;">Transactions</th>
+                  <th style="padding: 10px 14px; text-align: right;">Total Amount (SAR)</th>
+                  <th style="padding: 10px 14px; text-align: right;">Average / Tx</th>
+                  <th style="padding: 10px 14px; text-align: right;">Share %</th>
+                </tr>
+              </thead>
+              <tbody id="rptStaffTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ledger Table Header -->
+        <h3 style="font-size: 13.5px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 10px 0; display: flex; align-items: center; justify-content: space-between;">
+          <span>📜 Itemized Transaction Ledger</span>
+          <span id="rptLedgerCount" style="font-size: 11px; color: var(--text-dim); text-transform: none; font-weight: 600;"></span>
+        </h3>
+
         <!-- Ledger Table -->
         <div style="max-height: 350px; overflow-y: auto; overflow-x: auto; max-width: 100%;">
           <table class="clean-table" id="rptTable">
@@ -3821,6 +3905,46 @@
       document.getElementById('rptCustCount').textContent = r.unique_customers;
       document.getElementById('rptAvgTx').textContent = parseFloat(r.avg_transaction).toFixed(2) + ' SAR';
 
+      // Render Staff Breakdown (Who collected how much in total)
+      const staffTbody = document.getElementById('rptStaffTableBody');
+      if (staffTbody) {
+        staffTbody.innerHTML = '';
+        if (r.staff_breakdown && r.staff_breakdown.length > 0) {
+          r.staff_breakdown.forEach(s => {
+            const tr = document.createElement('tr');
+            const totalAmt = parseFloat(s.total || s.total_amount || 0).toFixed(2);
+            const cnt = s.count || s.tx_count || 0;
+            const avgAmt = parseFloat(s.average || (cnt > 0 ? (s.total || s.total_amount) / cnt : 0)).toFixed(2);
+            const pct = s.percentage !== undefined ? s.percentage + '%' : ((r.total_collected > 0 ? ((s.total || s.total_amount) / r.total_collected * 100).toFixed(1) : '0') + '%');
+            tr.innerHTML = `
+              <td style="font-weight:700; color:#ffffff; padding:9px 14px;">👤 ${s.collector || s.collected_by}</td>
+              <td class="font-mono text-dim" style="text-align:center; padding:9px 14px;">${cnt}</td>
+              <td class="font-mono text-emerald" style="text-align:right; font-weight:800; padding:9px 14px;">${totalAmt} SAR</td>
+              <td class="font-mono text-dim" style="text-align:right; padding:9px 14px;">${avgAmt} SAR</td>
+              <td class="font-mono text-cyan" style="text-align:right; font-weight:700; padding:9px 14px;">${pct}</td>
+            `;
+            staffTbody.appendChild(tr);
+          });
+          // Add Total row
+          const totalTr = document.createElement('tr');
+          totalTr.style.background = 'rgba(255, 255, 255, 0.06)';
+          totalTr.style.fontWeight = '800';
+          totalTr.innerHTML = `
+            <td style="color:#ffffff; padding:9px 14px;">TOTAL RECONCILED</td>
+            <td class="font-mono" style="text-align:center; color:#ffffff; padding:9px 14px;">${r.tx_count}</td>
+            <td class="font-mono text-emerald" style="text-align:right; padding:9px 14px;">${parseFloat(r.total_collected).toFixed(2)} SAR</td>
+            <td class="font-mono text-dim" style="text-align:right; padding:9px 14px;">${parseFloat(r.avg_transaction).toFixed(2)} SAR</td>
+            <td class="font-mono text-cyan" style="text-align:right; padding:9px 14px;">100%</td>
+          `;
+          staffTbody.appendChild(totalTr);
+        } else {
+          staffTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:14px; color:var(--text-dim);">No staff collections recorded for this period.</td></tr>';
+        }
+      }
+
+      const ledgerCountEl = document.getElementById('rptLedgerCount');
+      if (ledgerCountEl) ledgerCountEl.textContent = `(${r.items ? r.items.length : 0} records)`;
+
       const tbody = document.getElementById('rptTableBody');
       tbody.innerHTML = '';
 
@@ -3832,9 +3956,9 @@
           tr.innerHTML = `
             <td class="font-mono text-dim" style="font-size:11px;">${item.collected_at}</td>
             <td style="font-weight:700; color:#fff;">${item.customer_name || 'Customer #' + item.customer_id}</td>
-            <td class="font-mono text-dim" style="font-size:11px;">${item.phone || '—'}</td>
+            <td class="font-mono text-dim" style="font-size:11px;">${item.customer_phone || item.phone || '—'}</td>
             <td class="font-mono text-emerald" style="font-weight:800;">+${parseFloat(item.amount).toFixed(2)} SAR</td>
-            <td class="font-mono text-dim" style="font-size:12px;">${item.collected_by || 'Admin'}</td>
+            <td class="font-mono text-dim" style="font-size:12px;">👤 ${item.collected_by || 'Admin'}</td>
           `;
           tbody.appendChild(tr);
         });

@@ -3786,13 +3786,17 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
 
         # Ledger records in date range
         cursor.execute("""
-            SELECT col.*, c.name as customer_name, c.phone as customer_phone, c.package_name
+            SELECT col.*, c.name as customer_name, c.phone as customer_phone, c.package_name, c.notes as customer_room
             FROM collections col
             LEFT JOIN customers c ON col.customer_id = c.id
             WHERE date(col.collected_at) >= date(?) AND date(col.collected_at) <= date(?)
             ORDER BY col.collected_at DESC, col.id DESC
         """, (clean_start, clean_end))
-        items = [dict(r) for r in cursor.fetchall()]
+        raw_items = [dict(r) for r in cursor.fetchall()]
+        items = []
+        for it in raw_items:
+            it["collected_by"] = resolve_collector_name(it.get("collected_by"))
+            items.append(it)
 
         # Totals
         total_collected = sum(float(i.get("amount") or 0.0) for i in items if float(i.get("amount") or 0.0) > 0)
@@ -3800,7 +3804,7 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
         tx_count = len([i for i in items if float(i.get("amount") or 0.0) > 0])
         avg_tx = round(total_collected / tx_count, 2) if tx_count > 0 else 0.0
 
-        # Staff breakdown for range
+        # Staff breakdown for range (normalized and aggregated by canonical collector name)
         cursor.execute("""
             SELECT collected_by,
                    COUNT(*) as tx_count,
@@ -3810,7 +3814,32 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
             GROUP BY collected_by
             ORDER BY total_amount DESC
         """, (clean_start, clean_end))
-        staff = [dict(r) for r in cursor.fetchall()]
+        staff_rows = [dict(r) for r in cursor.fetchall()]
+
+        staff_map = {}
+        for r in staff_rows:
+            cname = resolve_collector_name(r["collected_by"])
+            if cname not in staff_map:
+                staff_map[cname] = {"collector": cname, "count": 0, "total": 0.0}
+            staff_map[cname]["count"] += int(r["tx_count"] or 0)
+            staff_map[cname]["total"] += float(r["total_amount"] or 0.0)
+
+        staff = []
+        for s in sorted(staff_map.values(), key=lambda x: x["total"], reverse=True):
+            tot = round(s["total"], 2)
+            cnt = s["count"]
+            avg = round(tot / cnt, 2) if cnt > 0 else 0.0
+            pct = round((tot / total_collected * 100), 1) if total_collected > 0 else 0.0
+            staff.append({
+                "collector": s["collector"],
+                "collected_by": s["collector"],
+                "count": cnt,
+                "tx_count": cnt,
+                "total": tot,
+                "total_amount": tot,
+                "average": avg,
+                "percentage": pct
+            })
 
         return {
             "start_date": clean_start,
@@ -6649,26 +6678,33 @@ def get_monthly_reconciliation(month_str: Optional[str] = None) -> Dict[str, Any
         total_active_custs = cur.execute("SELECT COUNT(*) FROM customers WHERE status != 'deleted'").fetchone()[0]
         pending_subs = max(0, total_active_custs - paying_subs)
 
-        # 3. Collections by Staff / Collector
+        # 3. Collections by Staff / Collector (Aggregated by canonical name)
         staff_rows = cur.execute("""
             SELECT collected_by as collector,
                    COUNT(*) as count,
-                   COALESCE(SUM(amount), 0.0) as total,
-                   COALESCE(AVG(amount), 0.0) as average
+                   COALESCE(SUM(amount), 0.0) as total
             FROM collections
             WHERE collected_at >= ? AND collected_at <= ? AND amount > 0
             GROUP BY collected_by
             ORDER BY total DESC, count DESC
         """, (start_ts, end_ts)).fetchall()
 
+        staff_map = {}
+        for r in staff_rows:
+            cname = resolve_collector_name(r["collector"])
+            if cname not in staff_map:
+                staff_map[cname] = {"collector": cname, "count": 0, "total": 0.0}
+            staff_map[cname]["count"] += int(r["count"] or 0)
+            staff_map[cname]["total"] += float(r["total"] or 0.0)
+
         staff_breakdown = [
             {
-                "collector": resolve_collector_name(r["collector"]),
-                "count": int(r["count"] or 0),
-                "total": round(float(r["total"] or 0.0), 2),
-                "average": round(float(r["average"] or 0.0), 2)
+                "collector": s["collector"],
+                "count": s["count"],
+                "total": round(s["total"], 2),
+                "average": round(s["total"] / s["count"], 2) if s["count"] > 0 else 0.0
             }
-            for r in staff_rows
+            for s in sorted(staff_map.values(), key=lambda x: x["total"], reverse=True)
         ]
 
         # 4. Collections by Payment Method (Cash, Alinma, STC Pay, etc.)
