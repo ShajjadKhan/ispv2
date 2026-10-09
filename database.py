@@ -2265,12 +2265,25 @@ def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
 
 
 
+def normalize_collector_username(collector: Optional[str]) -> str:
+    """Normalizes collector identifier strictly to canonical account username ID."""
+    if not collector:
+        return 'admin'
+    c = str(collector).strip().lower()
+    if c in ('system administrator', 'admin', 'shajjad khan'):
+        return 'admin'
+    if c in ('riyad hossain', 'riyad'):
+        return 'riyad'
+    return c
+
+
 def record_customer_payment(
     customer_id: int,
     amount: float,
     notes: str = "Cash Payment",
     extend_days: int = 30,
-    advance_mode: str = "credit"
+    advance_mode: str = "credit",
+    collector: str = "admin"
 ) -> Dict[str, Any]:
     """
     Records a payment in collections ledger, marks customer active,
@@ -2341,10 +2354,11 @@ def record_customer_payment(
                 rec_note = (notes or "Cash Payment") + switch_tag
 
         # 1. Insert collection
+        clean_collector = normalize_collector_username(collector)
         cursor.execute("""
             INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
-            VALUES (?, ?, 'recharge', ?, ?, 'Admin')
-        """, (customer_id, clean_amt, rec_note, now_str))
+            VALUES (?, ?, 'recharge', ?, ?, ?)
+        """, (customer_id, clean_amt, rec_note, now_str, clean_collector))
 
         # 2. Update customer expiry / due date & credit_balance & billing_type
         current_exp = cust["expiry_date"] or cust["due_date"]
@@ -2859,7 +2873,7 @@ def get_customer_unpaid_months(customer_id: int) -> List[Dict[str, Any]]:
 def settle_customer_cycles(
     customer_id: int,
     settlement_items: List[Dict[str, Any]],
-    collected_by: str = "Admin",
+    collected_by: str = "admin",
     notes: str = ""
 ) -> Dict[str, Any]:
     """
@@ -2937,10 +2951,11 @@ def settle_customer_cycles(
 
             # Only record if money was collected or a settlement occurred
             if amt > 0 or (should_settle and (waived > 0.01 or prev_paid > 0 or is_settled_val == 1)):
+                clean_by = normalize_collector_username(collected_by)
                 cursor.execute("""
                     INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, collected_by, month, is_settled_val, waived))
+                """, (customer_id, amt, 'settle' if is_settled_val else 'recharge', desc, now_str, clean_by, month, is_settled_val, waived))
 
                 recorded_records.append({
                     "month": month,
@@ -3560,8 +3575,9 @@ def get_dashboard_metrics(
         for s in staff_rows:
             tot = round(float(s["total_amount"] or 0.0), 2)
             share = round((tot / collected_month_sar * 100), 1) if collected_month_sar > 0 else 0.0
+            canonical_col = normalize_collector_username(s["collected_by"])
             staff_performance.append({
-                "collector_name": s["collected_by"] or "Admin",
+                "collector_name": canonical_col,
                 "tx_count": int(s["tx_count"] or 0),
                 "total_amount": tot,
                 "avg_amount": round(float(s["avg_amount"] or 0.0), 2),
@@ -6162,7 +6178,7 @@ def record_balance_collection(
     amount: float,
     source: Optional[str] = None,
     payment_type: str = "cash",
-    collector: str = "Admin",
+    collector: str = "admin",
     notes: str = "",
     month_year: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -6194,10 +6210,11 @@ def record_balance_collection(
 
         # 1. Insert collection record
         col_notes = notes.strip() if notes and notes.strip() else f"Balance Sheet Collection ({payment_type})"
+        clean_col = normalize_collector_username(collector)
         cur.execute("""
             INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
-        """, (customer_id, clean_amt, payment_type or "cash", col_notes, now_str, collector or "Admin", month_str))
+        """, (customer_id, clean_amt, payment_type or "cash", col_notes, now_str, clean_col, month_str))
         col_id = cur.lastrowid
 
         # 2. Reactivate customer and devices if previously suspended / blocked
@@ -6311,7 +6328,7 @@ def get_monthly_reconciliation(month_str: Optional[str] = None) -> Dict[str, Any
 
         staff_breakdown = [
             {
-                "collector": str(r["collector"] or "System"),
+                "collector": normalize_collector_username(r["collector"]),
                 "count": int(r["count"] or 0),
                 "total": round(float(r["total"] or 0.0), 2),
                 "average": round(float(r["average"] or 0.0), 2)

@@ -754,6 +754,40 @@ class ApplyCreditPayload(BaseModel):
     extend_days: int = 30
 
 
+def get_request_collector_id(request: Request) -> str:
+    """Extracts authenticated collector username ID from request state or session."""
+    user = getattr(request.state, "user", None)
+    if user and isinstance(user, dict):
+        uname = user.get("username")
+        if uname:
+            return str(uname).strip().lower()
+    elif user:
+        uname = getattr(user, "username", None)
+        if uname:
+            return str(uname).strip().lower()
+    try:
+        session_id = request.cookies.get(auth_service.COOKIE_NAME)
+        if session_id:
+            s_user = auth_service.validate_session(session_id)
+            if s_user and s_user.get("username"):
+                return str(s_user["username"]).strip().lower()
+    except Exception:
+        pass
+    return "admin"
+
+
+def normalize_collector_id(name: Optional[str]) -> str:
+    """Maps collector display name or alias to canonical account username ID."""
+    if not name:
+        return "admin"
+    c = str(name).strip().lower()
+    if c in ("system administrator", "admin", "shajjad khan"):
+        return "admin"
+    if c in ("riyad hossain", "riyad"):
+        return "riyad"
+    return c
+
+
 class UpdateCollectionPayload(BaseModel):
     amount: float
     notes: Optional[str] = "Payment entry"
@@ -3490,16 +3524,18 @@ async def delete_customer_endpoint(customer_id: int):
 
 
 @app.post("/api/customers/{customer_id}/record-payment")
-async def record_payment(customer_id: int, payload: RecordPaymentPayload):
+async def record_payment(customer_id: int, payload: RecordPaymentPayload, request: Request):
     """Records a payment, extends expiry date, handles advance credit, and re-activates service on MikroTik."""
-    logger.info(f"Recording payment for customer #{customer_id}: {payload.amount} SAR (mode: {payload.advance_mode})")
+    collector = get_request_collector_id(request)
+    logger.info(f"Recording payment for customer #{customer_id}: {payload.amount} SAR by {collector} (mode: {payload.advance_mode})")
     try:
         result = database.record_customer_payment(
             customer_id=customer_id,
             amount=payload.amount,
             notes=payload.notes or "Manual Service Renewal",
             extend_days=payload.extend_days,
-            advance_mode=payload.advance_mode or "credit"
+            advance_mode=payload.advance_mode or "credit",
+            collector=collector
         )
 
         # Ensure devices are active on MikroTik with appropriate speed limit & updated billing type in comment
@@ -3530,7 +3566,7 @@ async def record_payment(customer_id: int, payload: RecordPaymentPayload):
                     customer_id=customer_id,
                     amount_paid=payload.amount,
                     receipt_no=f"PAY-{result.get('payment_id', datetime.now().strftime('%Y%m%d%H%M'))}",
-                    collector="Admin",
+                    collector=collector,
                     payment_type="cash",
                     notes=payload.notes or "Service Renewal"
                 )
@@ -3625,15 +3661,17 @@ async def api_collections_report(start_date: str, end_date: str):
 
 
 @app.post("/api/customers/{customer_id}/quick-collect")
-async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
+async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload, request: Request):
     """1-click bill collection directly from dashboard priority queue."""
+    collector = get_request_collector_id(request)
     try:
         res = database.record_customer_payment(
             customer_id=customer_id,
             amount=payload.amount,
             notes=payload.notes or "Direct Cycle Bill Collection",
             extend_days=payload.extend_days or 30,
-            advance_mode=payload.advance_mode or "credit"
+            advance_mode=payload.advance_mode or "credit",
+            collector=collector
         )
         # Re-bind customer devices to ensure internet access is active
         cust_profile = database.get_customer_profile(customer_id)
@@ -3652,7 +3690,7 @@ async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload):
                 customer_id=customer_id,
                 amount_paid=payload.amount,
                 receipt_no=f"QC-{customer_id}-{datetime.now().strftime('%m%d%H%M')}",
-                collector="Admin",
+                collector=collector,
                 payment_type="cash",
                 notes=payload.notes or "Quick Collect"
             )
@@ -3681,12 +3719,13 @@ async def update_collection_endpoint(collection_id: int, payload: UpdateCollecti
     """Updates amount, notes, timestamp, collector, or billing type of a collection record."""
     logger.info(f"Admin updating collection #{collection_id} with amount={payload.amount}, notes={payload.notes}")
     try:
+        clean_by = normalize_collector_id(payload.collected_by) if payload.collected_by else None
         updated = database.update_collection(
             collection_id=collection_id,
             amount=payload.amount,
             notes=payload.notes or "",
             collected_at=payload.collected_at,
-            collected_by=payload.collected_by,
+            collected_by=clean_by,
             billing_type=payload.billing_type
         )
         if not updated:
@@ -3738,14 +3777,9 @@ async def api_balance_customer_history(customer_id: int, source: Optional[str] =
 @app.post("/api/balance/collect")
 async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
     """Records quick collection directly from the Balance Sheet ledger."""
-    user = getattr(request.state, "user", None)
-    admin_name = "Admin"
-    if user:
-        if isinstance(user, dict):
-            admin_name = user.get("full_name") or user.get("username") or "Admin"
-        else:
-            admin_name = getattr(user, "full_name", None) or getattr(user, "username", None) or "Admin"
-    collector = admin_name if admin_name != "Admin" else (payload.collector or "Admin")
+    collector = get_request_collector_id(request)
+    if collector == "admin" and payload.collector and payload.collector.strip().lower() not in ("admin", "system administrator"):
+        collector = normalize_collector_id(payload.collector)
     try:
         res = database.record_balance_collection(
             customer_id=payload.customer_id,
@@ -4009,9 +4043,7 @@ async def record_customer_promise_endpoint(customer_id: int, payload: RecordProm
     Prevents MikroTik auto-suspension while daily debt accrues continuously.
     """
     try:
-        session_id = request.cookies.get(auth_service.COOKIE_NAME)
-        user = auth_service.validate_session(session_id) if session_id else None
-        session_user = user.get("username", "Admin") if user else "Admin"
+        session_user = get_request_collector_id(request)
         res = database.record_customer_promise(
             customer_id=customer_id,
             days=payload.days or 0,
@@ -4080,9 +4112,7 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
     and that month is permanently marked is_settled=1 (solved).
     """
     try:
-        session_id = request.cookies.get(auth_service.COOKIE_NAME)
-        user = auth_service.validate_session(session_id) if session_id else None
-        session_user = user.get("username", "Admin") if user else "Admin"
+        session_user = get_request_collector_id(request)
         items_dicts = [item.dict() for item in payload.items]
 
         res = database.settle_customer_cycles(
