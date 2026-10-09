@@ -754,38 +754,36 @@ class ApplyCreditPayload(BaseModel):
     extend_days: int = 30
 
 
-def get_request_collector_id(request: Request) -> str:
-    """Extracts authenticated collector username ID from request state or session."""
+def get_request_collector_name(request: Request) -> str:
+    """Extracts authenticated collector Full Name from request state or session."""
     user = getattr(request.state, "user", None)
     if user and isinstance(user, dict):
-        uname = user.get("username")
-        if uname:
-            return str(uname).strip().lower()
+        name = user.get("full_name") or user.get("username")
+        if name:
+            return database.resolve_collector_name(name)
     elif user:
-        uname = getattr(user, "username", None)
-        if uname:
-            return str(uname).strip().lower()
+        name = getattr(user, "full_name", None) or getattr(user, "username", None)
+        if name:
+            return database.resolve_collector_name(name)
     try:
         session_id = request.cookies.get(auth_service.COOKIE_NAME)
         if session_id:
             s_user = auth_service.validate_session(session_id)
-            if s_user and s_user.get("username"):
-                return str(s_user["username"]).strip().lower()
+            if s_user:
+                name = s_user.get("full_name") or s_user.get("username")
+                if name:
+                    return database.resolve_collector_name(name)
     except Exception:
         pass
-    return "admin"
+    return "Shajjad Khan"
+
+
+def get_request_collector_id(request: Request) -> str:
+    return get_request_collector_name(request)
 
 
 def normalize_collector_id(name: Optional[str]) -> str:
-    """Maps collector display name or alias to canonical account username ID."""
-    if not name:
-        return "admin"
-    c = str(name).strip().lower()
-    if c in ("system administrator", "admin", "shajjad khan"):
-        return "admin"
-    if c in ("riyad hossain", "riyad"):
-        return "riyad"
-    return c
+    return database.resolve_collector_name(name)
 
 
 class UpdateCollectionPayload(BaseModel):
@@ -3526,7 +3524,7 @@ async def delete_customer_endpoint(customer_id: int):
 @app.post("/api/customers/{customer_id}/record-payment")
 async def record_payment(customer_id: int, payload: RecordPaymentPayload, request: Request):
     """Records a payment, extends expiry date, handles advance credit, and re-activates service on MikroTik."""
-    collector = get_request_collector_id(request)
+    collector = get_request_collector_name(request)
     logger.info(f"Recording payment for customer #{customer_id}: {payload.amount} SAR by {collector} (mode: {payload.advance_mode})")
     try:
         result = database.record_customer_payment(
@@ -3663,7 +3661,7 @@ async def api_collections_report(start_date: str, end_date: str):
 @app.post("/api/customers/{customer_id}/quick-collect")
 async def api_quick_collect(customer_id: int, payload: RecordPaymentPayload, request: Request):
     """1-click bill collection directly from dashboard priority queue."""
-    collector = get_request_collector_id(request)
+    collector = get_request_collector_name(request)
     try:
         res = database.record_customer_payment(
             customer_id=customer_id,
@@ -3777,7 +3775,7 @@ async def api_balance_customer_history(customer_id: int, source: Optional[str] =
 @app.post("/api/balance/collect")
 async def api_balance_collect(payload: BalanceCollectPayload, request: Request):
     """Records quick collection directly from the Balance Sheet ledger."""
-    collector = get_request_collector_id(request)
+    collector = get_request_collector_name(request)
     if collector == "admin" and payload.collector and payload.collector.strip().lower() not in ("admin", "system administrator"):
         collector = normalize_collector_id(payload.collector)
     try:
@@ -4043,7 +4041,7 @@ async def record_customer_promise_endpoint(customer_id: int, payload: RecordProm
     Prevents MikroTik auto-suspension while daily debt accrues continuously.
     """
     try:
-        session_user = get_request_collector_id(request)
+        session_user = get_request_collector_name(request)
         res = database.record_customer_promise(
             customer_id=customer_id,
             days=payload.days or 0,
@@ -4112,7 +4110,7 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
     and that month is permanently marked is_settled=1 (solved).
     """
     try:
-        session_user = get_request_collector_id(request)
+        session_user = get_request_collector_name(request)
         items_dicts = [item.dict() for item in payload.items]
 
         res = database.settle_customer_cycles(

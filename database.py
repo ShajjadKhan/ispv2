@@ -2265,16 +2265,32 @@ def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
 
 
 
-def normalize_collector_username(collector: Optional[str]) -> str:
-    """Normalizes collector identifier strictly to canonical account username ID."""
+def resolve_collector_name(collector: Optional[str]) -> str:
+    """Resolves collector identifier (username, name, or alias) to canonical staff Full Name."""
     if not collector:
-        return 'admin'
-    c = str(collector).strip().lower()
-    if c in ('system administrator', 'admin', 'shajjad khan'):
-        return 'admin'
-    if c in ('riyad hossain', 'riyad'):
-        return 'riyad'
+        return 'Shajjad Khan'
+    c = str(collector).strip()
+    c_lower = c.lower()
+    if c_lower in ('admin', 'system administrator', 'shajjad khan', 'shajjad'):
+        return 'Shajjad Khan'
+    if c_lower in ('riyad', 'riyad hossain'):
+        return 'Riyad Hossain'
+    try:
+        with get_db() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT full_name FROM admin_users WHERE lower(username) = ? OR lower(full_name) = ?",
+                (c_lower, c_lower)
+            ).fetchone()
+            if row and row["full_name"]:
+                return row["full_name"]
+    except Exception:
+        pass
     return c
+
+
+def normalize_collector_username(collector: Optional[str]) -> str:
+    return resolve_collector_name(collector)
 
 
 def record_customer_payment(
@@ -2283,7 +2299,7 @@ def record_customer_payment(
     notes: str = "Cash Payment",
     extend_days: int = 30,
     advance_mode: str = "credit",
-    collector: str = "admin"
+    collector: str = "Shajjad Khan"
 ) -> Dict[str, Any]:
     """
     Records a payment in collections ledger, marks customer active,
@@ -2354,7 +2370,7 @@ def record_customer_payment(
                 rec_note = (notes or "Cash Payment") + switch_tag
 
         # 1. Insert collection
-        clean_collector = normalize_collector_username(collector)
+        clean_collector = resolve_collector_name(collector)
         cursor.execute("""
             INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
             VALUES (?, ?, 'recharge', ?, ?, ?)
@@ -2873,7 +2889,7 @@ def get_customer_unpaid_months(customer_id: int) -> List[Dict[str, Any]]:
 def settle_customer_cycles(
     customer_id: int,
     settlement_items: List[Dict[str, Any]],
-    collected_by: str = "admin",
+    collected_by: str = "Shajjad Khan",
     notes: str = ""
 ) -> Dict[str, Any]:
     """
@@ -2951,7 +2967,7 @@ def settle_customer_cycles(
 
             # Only record if money was collected or a settlement occurred
             if amt > 0 or (should_settle and (waived > 0.01 or prev_paid > 0 or is_settled_val == 1)):
-                clean_by = normalize_collector_username(collected_by)
+                clean_by = resolve_collector_name(collected_by)
                 cursor.execute("""
                     INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -3575,7 +3591,7 @@ def get_dashboard_metrics(
         for s in staff_rows:
             tot = round(float(s["total_amount"] or 0.0), 2)
             share = round((tot / collected_month_sar * 100), 1) if collected_month_sar > 0 else 0.0
-            canonical_col = normalize_collector_username(s["collected_by"])
+            canonical_col = resolve_collector_name(s["collected_by"])
             staff_performance.append({
                 "collector_name": canonical_col,
                 "tx_count": int(s["tx_count"] or 0),
@@ -6178,7 +6194,7 @@ def record_balance_collection(
     amount: float,
     source: Optional[str] = None,
     payment_type: str = "cash",
-    collector: str = "admin",
+    collector: str = "Shajjad Khan",
     notes: str = "",
     month_year: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -6210,7 +6226,7 @@ def record_balance_collection(
 
         # 1. Insert collection record
         col_notes = notes.strip() if notes and notes.strip() else f"Balance Sheet Collection ({payment_type})"
-        clean_col = normalize_collector_username(collector)
+        clean_col = resolve_collector_name(collector)
         cur.execute("""
             INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
@@ -6328,7 +6344,7 @@ def get_monthly_reconciliation(month_str: Optional[str] = None) -> Dict[str, Any
 
         staff_breakdown = [
             {
-                "collector": normalize_collector_username(r["collector"]),
+                "collector": resolve_collector_name(r["collector"]),
                 "count": int(r["count"] or 0),
                 "total": round(float(r["total"] or 0.0), 2),
                 "average": round(float(r["average"] or 0.0), 2)
