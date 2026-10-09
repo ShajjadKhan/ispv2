@@ -2139,19 +2139,21 @@
     vertical-align: middle;
   }
   .btn-copy-phone {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     color: #94a3b8;
     border-radius: 6px;
     width: 26px;
     height: 26px;
+    min-width: 26px;
+    min-height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     padding: 0;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
     vertical-align: middle;
     outline: none;
   }
@@ -2168,6 +2170,22 @@
     border-color: #10b981 !important;
     color: #34d399 !important;
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
+  }
+  html[data-theme="light"] .btn-copy-phone {
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0284c7 !important;
+  }
+  html[data-theme="light"] .btn-copy-phone:hover {
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+  }
+  html[data-theme="light"] .btn-copy-phone.copied {
+    background: #10b981 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
   }
 </style>
 {% endblock %}
@@ -2480,6 +2498,15 @@
                     {% endif %}
                     <span class="phone-wrap font-mono" style="font-size:11.5px; color:var(--text-muted); margin-top:1px;">
                       <span class="phone-val text-cyan" style="font-weight:600;">{{ req.phone }}</span>
+                      <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
+                        <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </button>
                     </span>
                   </div>
                 {% else %}
@@ -2490,6 +2517,15 @@
                     </div>
                     <span class="phone-wrap font-mono" style="font-size:12.5px; color:#ffffff; font-weight:700; margin-top:1px;">
                       <span class="phone-val text-cyan">{{ req.phone }}</span>
+                      <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
+                        <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </button>
                     </span>
                   </div>
                 {% endif %}
@@ -2547,18 +2583,49 @@
                       Reject
                     </button>
                   {% elif req.is_secondary %}
-                    <button type="button" class="btn-approve" onclick="quickApproveSecondary({{ req.id }}, '{{ (req.existing_customer_name or '') | escape }}', this)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
+                      onclick="quickApproveSecondaryFromBtn(this)"
+                      style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
+                      title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}')" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
+                      data-is-secondary="1"
+                      data-max-devices="{{ req.customer_max_devices or 1 }}"
+                      data-current-devices="{{ req.current_device_count or 0 }}"
+                      data-pkg-name="{{ req.existing_package_name or '' }}"
+                      data-expiry-date="{{ req.existing_expiry_date or '' }}"
+                      data-notes="{{ (req.existing_customer_notes or req.notes or '') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)"
+                      style="background:#1e293b; border-color:#334155; color:#cbd5e1;"
+                      title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
                       Reject
                     </button>
                   {% else %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ req.existing_customer_name or '' }}', 0, 1, 0, '', '', '{{ (req.notes or '') | escape }}')">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.existing_customer_name or req.customer_name or '') | escape }}"
+                      data-is-secondary="0"
+                      data-max-devices="1"
+                      data-current-devices="0"
+                      data-pkg-name=""
+                      data-expiry-date=""
+                      data-notes="{{ (req.notes or '') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
@@ -4360,6 +4427,32 @@
     } else if (btnApprove) {
       btnApprove.innerHTML = `<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (Permanent)</span>`;
     }
+  }
+
+  // Safe caller wrappers for dataset attributes
+  function quickApproveSecondaryFromBtn(btn) {
+    if (!btn) return;
+    const reqId = btn.dataset.reqId;
+    const custName = btn.dataset.custName || '';
+    quickApproveSecondary(reqId, custName, btn);
+  }
+
+  function openApprovalModalFromBtn(btn) {
+    if (!btn) return;
+    const ds = btn.dataset;
+    openApprovalModal(
+      ds.reqId,
+      ds.phone,
+      ds.mac,
+      ds.ip || '',
+      ds.custName || '',
+      ds.isSecondary === '1' ? 1 : 0,
+      parseInt(ds.maxDevices) || 1,
+      parseInt(ds.currentDevices) || 0,
+      ds.pkgName || '',
+      ds.expiryDate || '',
+      ds.notes || ''
+    );
   }
 
   function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes) {

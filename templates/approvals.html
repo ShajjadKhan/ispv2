@@ -223,21 +223,25 @@
     align-items: center;
     gap: 8px;
     vertical-align: middle;
+    max-width: 100%;
+    flex-wrap: nowrap;
   }
   .btn-copy-phone {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     color: #94a3b8;
     border-radius: 6px;
     width: 26px;
     height: 26px;
+    min-width: 26px;
+    min-height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     padding: 0;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
     vertical-align: middle;
     outline: none;
   }
@@ -256,6 +260,22 @@
     border-color: #10b981 !important;
     color: #34d399 !important;
     box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
+  }
+  html[data-theme="light"] .btn-copy-phone {
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0284c7 !important;
+  }
+  html[data-theme="light"] .btn-copy-phone:hover {
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+  }
+  html[data-theme="light"] .btn-copy-phone.copied {
+    background: #10b981 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
   }
   .approved-mac-chip {
     display: flex;
@@ -647,21 +667,24 @@
     #pendingTable tr[id^="req-row-"] td.td-phone,
     .req-table-row td.td-phone {
       grid-area: phone !important;
-      font-size: 14.5px !important;
-      font-weight: 800 !important;
-      color: #38bdf8 !important;
       display: flex !important;
-      align-items: center !important;
-      gap: 5px !important;
+      flex-direction: column !important;
+      justify-content: center !important;
       min-width: 0 !important;
-      word-break: break-all !important;
+      width: 100% !important;
+      gap: 2px !important;
       line-height: 1.2 !important;
     }
     #pendingTable tr[id^="req-row-"] td.td-phone::before,
     .req-table-row td.td-phone::before {
-      content: "📱" !important;
-      display: inline-block !important;
-      font-size: 13px !important;
+      display: none !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-phone .phone-wrap,
+    .req-table-row td.td-phone .phone-wrap {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      max-width: 100% !important;
     }
 
     /* 2. Account Type (Row 1 Right) */
@@ -934,7 +957,12 @@
       display: none !important;
     }
     #approvedDevicesSection tr.approved-dev-row td[data-label="Phone"] {
-      display: none !important;
+      grid-column: 1 / -1;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      font-size: 11.5px !important;
+      margin-top: 2px !important;
     }
 
     /* Line 4: Action Button */
@@ -1092,6 +1120,31 @@
       font-size: 12px !important;
       flex: 1 1 auto !important;
     }
+  }
+
+  /* Day Mode (Light Theme) Contrast & Visibility Enhancements */
+  html[data-theme="light"] #pendingTable tr[id^="req-row-"],
+  html[data-theme="light"] .req-table-row {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  }
+  html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-mac,
+  html[data-theme="light"] .req-table-row td.td-mac {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+  html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-phone span[style*="color:#ffffff"],
+  html[data-theme="light"] .req-table-row td.td-phone span[style*="color:#ffffff"],
+  html[data-theme="light"] .secondary-cust-desc span[style*="color:#ffffff"],
+  html[data-theme="light"] .phone-wrap[style*="color:#ffffff"],
+  html[data-theme="light"] .empty-state p[style*="color:#ffffff"],
+  html[data-theme="light"] #secondaryCustName[style*="color:#ffffff"] {
+    color: #0f172a !important;
+  }
+  html[data-theme="light"] .approved-mac-chip {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
   }
 </style>
 {% endblock %}
@@ -1302,18 +1355,64 @@
                       Reject
                     </button>
                   {% elif req.is_secondary %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}', {{ (req.existing_devices or []) | tojson | forceescape }}, '{{ (req.device_model or 'Client Device') | escape }}', false)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="Review subscriber & authorize device (Permanent or Guest Pass)">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
+                      data-is-secondary="1"
+                      data-max-devices="{{ req.customer_max_devices or 1 }}"
+                      data-current-devices="{{ req.current_device_count or 0 }}"
+                      data-pkg-name="{{ req.existing_package_name or '' }}"
+                      data-expiry-date="{{ req.existing_expiry_date or '' }}"
+                      data-notes="{{ (req.existing_customer_notes or req.notes or '') | escape }}"
+                      data-existing-devices="{{ (req.existing_devices or []) | tojson | forceescape }}"
+                      data-device-model="{{ (req.device_model or 'Client Device') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)"
+                      style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
+                      title="Review subscriber & authorize device (Permanent or Guest Pass)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.existing_customer_name or '') | escape }}', 1, {{ req.customer_max_devices or 1 }}, {{ req.current_device_count or 0 }}, '{{ req.existing_package_name or '' }}', '{{ req.existing_expiry_date or '' }}', '{{ (req.existing_customer_notes or req.notes or '') | escape }}', {{ (req.existing_devices or []) | tojson | forceescape }}, '{{ (req.device_model or 'Client Device') | escape }}', false)" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
+                      data-is-secondary="1"
+                      data-max-devices="{{ req.customer_max_devices or 1 }}"
+                      data-current-devices="{{ req.current_device_count or 0 }}"
+                      data-pkg-name="{{ req.existing_package_name or '' }}"
+                      data-expiry-date="{{ req.existing_expiry_date or '' }}"
+                      data-notes="{{ (req.existing_customer_notes or req.notes or '') | escape }}"
+                      data-existing-devices="{{ (req.existing_devices or []) | tojson | forceescape }}"
+                      data-device-model="{{ (req.device_model or 'Client Device') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)"
+                      style="background:#1e293b; border-color:#334155; color:#cbd5e1;"
+                      title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
                       Reject
                     </button>
                   {% else %}
-                    <button type="button" class="btn-approve" onclick="openApprovalModal({{ req.id }}, '{{ req.phone }}', '{{ req.mac_address }}', '{{ req.ip_address or '' }}', '{{ (req.customer_name or req.existing_customer_name or '') | escape }}', 0, 1, 0, '', '', '{{ (req.notes or '') | escape }}')">
+                    <button type="button" class="btn-approve"
+                      data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
+                      data-cust-name="{{ (req.customer_name or req.existing_customer_name or '') | escape }}"
+                      data-is-secondary="0"
+                      data-max-devices="1"
+                      data-current-devices="0"
+                      data-pkg-name=""
+                      data-expiry-date=""
+                      data-notes="{{ (req.notes or '') | escape }}"
+                      data-existing-devices="[]"
+                      data-device-model="{{ (req.device_model or 'Client Device') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
@@ -1868,6 +1967,7 @@
 
   function onPackageChanged() {
     const sel = document.getElementById('pkgSelect');
+    if (!sel || sel.selectedIndex < 0 || !sel.options[sel.selectedIndex]) return;
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const shared = opt.getAttribute('data-shared') || '1';
@@ -1928,6 +2028,36 @@
     } else if (btnApprove) {
       btnApprove.innerHTML = `<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (Permanent)</span>`;
     }
+  }
+
+  // Safe wrapper for dataset attributes to eliminate JS quote syntax errors
+  function openApprovalModalFromBtn(btn) {
+    if (!btn) return;
+    const ds = btn.dataset;
+    let existingDevs = [];
+    try {
+      if (ds.existingDevices) {
+        existingDevs = JSON.parse(ds.existingDevices);
+      }
+    } catch (e) {
+      existingDevs = [];
+    }
+    openApprovalModal(
+      ds.reqId,
+      ds.phone,
+      ds.mac,
+      ds.ip || '',
+      ds.custName || '',
+      ds.isSecondary === '1' ? 1 : 0,
+      parseInt(ds.maxDevices) || 1,
+      parseInt(ds.currentDevices) || 0,
+      ds.pkgName || '',
+      ds.expiryDate || '',
+      ds.notes || '',
+      existingDevs,
+      ds.deviceModel || 'Client Device',
+      false
+    );
   }
 
   function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes, existingDevices, incomingModel, defaultAsGuest) {
@@ -2376,6 +2506,9 @@
   // Auto-poller for new pending requests every 4 seconds
   window.approvalsPollInterval = setInterval(async () => {
     try {
+      if (document.getElementById('approvalModal')?.classList.contains('open')) {
+        return; // Modal is open, do not disrupt administrator
+      }
       const r = await fetch('/api/hotspot/pending-count');
       if (r.status === 401) {
         if (typeof window.handleAuthExpired === 'function') window.handleAuthExpired();
