@@ -3340,6 +3340,9 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             "mikrotik_synced": mt_ok,
             "fleet_results": fleet_res
         }
+    except ValueError as ve:
+        logger.warning(f"Validation error editing customer #{customer_id}: {ve}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(ve)})
     except Exception as e:
         logger.exception(f"Error editing customer #{customer_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})

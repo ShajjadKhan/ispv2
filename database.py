@@ -2074,12 +2074,18 @@ def update_customer_details(
 
         new_name = name.strip() if name and name.strip() else current["name"]
         new_phone = phone.strip() if phone and phone.strip() else current["phone"]
+        if new_phone and new_phone != current.get("phone"):
+            cursor.execute("SELECT id, name FROM customers WHERE phone = ? AND id != ?", (new_phone, customer_id))
+            conflict = cursor.fetchone()
+            if conflict:
+                c_dict = dict(conflict)
+                raise ValueError(f"Phone number '{new_phone}' is already registered to customer '{c_dict['name']}' (ID #{c_dict['id']}).")
         new_btype = billing_type.strip().lower() if billing_type and billing_type.strip() else current["billing_type"]
         new_pkg = package_name.strip() if package_name and package_name.strip() else current["package_name"]
         new_fee = float(monthly_fee) if monthly_fee is not None else float(current["monthly_fee"])
         new_status = status.strip() if status and status.strip() else current["status"]
         new_max_devices = max(1, int(max_devices)) if max_devices is not None else int(current.get("max_devices") or 1)
-        new_credit = round(max(0.0, float(credit_balance)), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
+        new_credit = round(float(credit_balance), 2) if credit_balance is not None else round(float(current.get("credit_balance") or 0.0), 2)
         final_reseller_id = current.get("reseller_id") if reseller_id == -1 else reseller_id
         new_notes = current.get("notes") or "" if notes == -1 else (notes.strip() if notes else "")
         new_conn_type = connection_type.strip().lower() if connection_type and connection_type.strip() else current.get("connection_type", "hotspot")
