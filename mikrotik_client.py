@@ -1607,6 +1607,32 @@ class RouterClient:
                     "sharing_detail": sharing_detail
                 }
 
+            # 4. PPPoE Active Subscribers
+            try:
+                pppoe_actives = api.get_resource('/ppp/active').get() or []
+                for pa in pppoe_actives:
+                    caller_mac = (pa.get('caller-id') or '').strip().upper()
+                    if caller_mac:
+                        telemetry[caller_mac] = {
+                            "mac_address": caller_mac,
+                            "state": "online",
+                            "status_label": "Online (PPPoE)",
+                            "is_online": True,
+                            "live_ip": pa.get("address"),
+                            "dhcp_host_name": f"PPPoE: {pa.get('name')}",
+                            "uptime": pa.get("uptime"),
+                            "last_seen": "now",
+                            "idle_time": "0s",
+                            "detail": f"PPPoE Connected ({pa.get('uptime')})",
+                            "is_sharing_hotspot": False,
+                            "sharing_timeout": None,
+                            "sharing_detail": None,
+                            "service": "pppoe",
+                            "pppoe_user": pa.get("name")
+                        }
+            except Exception as pe:
+                logger.debug(f"Could not read PPPoE active sessions for telemetry on {self.host}: {pe}")
+
             self._telemetry_cache = telemetry
             self._telemetry_cache_time = now
             return telemetry
@@ -1624,6 +1650,7 @@ class RouterClient:
     def get_hotspot_hosts_raw(self) -> List[Dict[str, Any]]:
         """
         Fetches raw /ip/hotspot/host entries with bytes-in, bytes-out, uptime, address, and mac-address.
+        Also captures active PPPoE subscribers (rx-byte/tx-byte) so all network subscriber traffic is counted.
         Used by the background Internet Traffic Accounting Collector to compute delta usage.
         """
         self.refresh_from_db()
@@ -1639,7 +1666,32 @@ class RouterClient:
                 plaintext_login=True
             )
             api = pool.get_api()
-            return api.get_resource('/ip/hotspot/host').get()
+            hosts = api.get_resource('/ip/hotspot/host').get() or []
+
+            # Also capture PPPoE subscribers running over ether/vlan
+            try:
+                actives = api.get_resource('/ppp/active').get() or []
+                if actives:
+                    ifs = api.get_resource('/interface').get() or []
+                    if_map = {str(i.get('name', '')).strip('<>'): i for i in ifs}
+                    for a in actives:
+                        u = a.get('name')
+                        if_key = f'pppoe-{u}'
+                        if_data = if_map.get(if_key) or if_map.get(u)
+                        caller_mac = (a.get('caller-id') or '').strip().upper()
+                        if caller_mac and if_data:
+                            hosts.append({
+                                'mac-address': caller_mac,
+                                'address': a.get('address'),
+                                'bytes-in': int(if_data.get('rx-byte', 0) or 0),
+                                'bytes-out': int(if_data.get('tx-byte', 0) or 0),
+                                'uptime': a.get('uptime', ''),
+                                'comment': f"PPPoE: {u}"
+                            })
+            except Exception as pp_err:
+                logger.debug(f"Could not read PPPoE active traffic on {self.host}: {pp_err}")
+
+            return hosts
         except Exception as e:
             logger.debug(f"Could not read hotspot hosts: {e}")
             return []
@@ -2088,7 +2140,7 @@ def broadcast_sync_package_profile(
     return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 
-def broadcast_delete_package_profile(profile_name: str) -> Dict[str, Any]:
+def broadcast_delete_package_profile(profile_name: str, package_type: str = "hotspot") -> Dict[str, Any]:
     """
     Deletes a package profile across ALL active MikroTik routers in parallel.
     """
@@ -2096,7 +2148,7 @@ def broadcast_delete_package_profile(profile_name: str) -> Dict[str, Any]:
     routers = database.get_all_routers(active_only=True)
     def _worker(r):
         client = get_client_for_router(r)
-        return client.delete_package_profile(profile_name=profile_name)
+        return client.delete_package_profile(profile_name=profile_name, package_type=package_type)
     return _parallel_fleet_dispatch(_worker, routers, timeout=4.0)
 
 

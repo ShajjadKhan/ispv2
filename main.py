@@ -3548,7 +3548,7 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
 async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspendDatePayload):
     """
     Lightweight, fast endpoint to set/update a customer's service suspend & expiry date.
-    Recalculates expiry and days remaining.
+    Recalculates expiry and days remaining. Restores service on MikroTik fleet if extended into the future.
     """
     new_date = payload.suspend_date.strip()
     if not new_date or len(new_date) < 10:
@@ -3557,6 +3557,35 @@ async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspe
         updated = database.update_customer_details(customer_id=customer_id, due_date=new_date, suspend_date=new_date)
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "error": "Customer not found."})
+
+        # Check if extended to future / today
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        if new_date >= today_str:
+            cust = database.get_customer_profile(customer_id)
+            if cust and cust.get("status") == "suspended":
+                database.activate_customer(customer_id)
+                updated["status"] = "active"
+
+            if cust:
+                # Re-enable PPPoE if assigned
+                pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
+                if pp_user:
+                    mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
+
+                # Re-bind hotspot devices
+                cust_devices = cust.get("devices", [])
+                if cust_devices:
+                    btype_label = (cust.get("billing_type") or "PREPAID").upper()
+                    notes_str = f" [{cust.get('notes', '').strip()}]" if cust.get('notes') and cust.get('notes').strip() else ""
+                    for d in cust_devices:
+                        if d.get("status") == "approved":
+                            mikrotik_client.broadcast_bind_device(
+                                mac_address=d["mac_address"],
+                                ip_address=d.get("ip_address"),
+                                comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} ({btype_label})",
+                                rate_limit=cust.get("effective_speed")
+                            )
+
         return {
             "success": True,
             "message": f"Suspend date updated to {new_date}",
@@ -3581,12 +3610,14 @@ async def toggle_customer_status(customer_id: int):
         new_status, macs = database.toggle_customer_status(customer_id)
         cust = database.get_customer_profile(customer_id)
 
-        if cust and cust.get("connection_type") == "pppoe":
-            pp_user = cust.get("pppoe_username") or cust.get("phone")
-            if pp_user:
-                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=(new_status == "suspended"))
-                logger.info(f"Customer #{customer_id} PPPoE secret '{pp_user}' toggled to disabled={new_status == 'suspended'}.")
-        elif new_status == "suspended":
+        # 1. PPPoE secret toggle
+        pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
+        if pp_user:
+            mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=(new_status == "suspended"))
+            logger.info(f"Customer #{customer_id} PPPoE secret '{pp_user}' toggled to disabled={new_status == 'suspended'}.")
+
+        # 2. Hotspot MAC bindings toggle
+        if new_status == "suspended":
             for mac in macs:
                 mikrotik_client.broadcast_unbind_device(mac)
             logger.info(f"Customer #{customer_id} suspended. Unbound {len(macs)} MACs from MikroTik fleet.")
@@ -3607,7 +3638,6 @@ async def toggle_customer_status(customer_id: int):
                     comment=comment,
                     rate_limit=rate_limit
                 )
-            logger.info(f"Customer #{customer_id} activated. Rebound {len(macs)} MACs to MikroTik fleet.")
             logger.info(f"Customer #{customer_id} activated. Rebound {len(macs)} MACs to MikroTik fleet.")
 
         return {
@@ -3792,18 +3822,24 @@ async def record_payment(customer_id: int, payload: RecordPaymentPayload, reques
             collector=collector
         )
 
-        # Ensure devices are active on MikroTik with appropriate speed limit & updated billing type in comment
+        # Ensure devices & PPPoE secrets are active on MikroTik with appropriate speed limit & updated billing type in comment
         cust = database.get_customer_profile(customer_id)
-        if cust and cust.get("devices"):
-            btype_label = (cust.get("billing_type") or "PREPAID").upper()
-            for d in cust["devices"]:
-                if d.get("status") == "approved":
-                    mikrotik_client.broadcast_bind_device(
-                        mac_address=d["mac_address"],
-                        ip_address=d.get("ip_address"),
-                        comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')} ({btype_label})",
-                        rate_limit=cust.get("effective_speed")
-                    )
+        if cust:
+            pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
+            if pp_user:
+                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
+
+            if cust.get("devices"):
+                btype_label = (cust.get("billing_type") or "PREPAID").upper()
+                notes_str = f" [{cust.get('notes', '').strip()}]" if cust.get('notes') and cust.get('notes').strip() else ""
+                for d in cust["devices"]:
+                    if d.get("status") == "approved":
+                        mikrotik_client.broadcast_bind_device(
+                            mac_address=d["mac_address"],
+                            ip_address=d.get("ip_address"),
+                            comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} ({btype_label})",
+                            rate_limit=cust.get("effective_speed")
+                        )
 
         switch_msg = ""
         if result.get("switched"):
@@ -3853,17 +3889,23 @@ async def apply_credit(customer_id: int, payload: ApplyCreditPayload):
             extend_days=payload.extend_days
         )
 
-        # Ensure devices are active on MikroTik
+        # Ensure devices & PPPoE secrets are active on MikroTik
         cust = database.get_customer_profile(customer_id)
-        if cust and cust.get("devices"):
-            for d in cust["devices"]:
-                if d.get("status") == "approved":
-                    mikrotik_client.broadcast_bind_device(
-                        mac_address=d["mac_address"],
-                        ip_address=d.get("ip_address"),
-                        comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')} (PREPAID)",
-                        rate_limit=cust.get("effective_speed")
-                    )
+        if cust:
+            pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
+            if pp_user:
+                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
+
+            if cust.get("devices"):
+                notes_str = f" [{cust.get('notes', '').strip()}]" if cust.get('notes') and cust.get('notes').strip() else ""
+                for d in cust["devices"]:
+                    if d.get("status") == "approved":
+                        mikrotik_client.broadcast_bind_device(
+                            mac_address=d["mac_address"],
+                            ip_address=d.get("ip_address"),
+                            comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} (PREPAID)",
+                            rate_limit=cust.get("effective_speed")
+                        )
 
         return {
             "success": True,
@@ -4481,12 +4523,13 @@ async def create_new_package(payload: PackagePayload, request: Request):
 
         mt_ok = False
         if payload.sync_router:
-            mt_ok = router_client.sync_package_profile(
+            res = mikrotik_client.broadcast_sync_package_profile(
                 profile_name=pkg["mikrotik_profile"],
                 rate_limit=pkg["rate_limit"],
                 shared_users=pkg["shared_users"],
                 package_type=pkg["type"]
             )
+            mt_ok = any(res.values()) if res else False
 
         return {
             "success": True,
@@ -4501,7 +4544,7 @@ async def create_new_package(payload: PackagePayload, request: Request):
 
 @app.put("/api/packages/{pkg_id}")
 async def update_existing_package(pkg_id: int, payload: PackagePayload, request: Request):
-    """Updates an existing speed package and updates its MikroTik profile."""
+    """Updates an existing speed package and updates its MikroTik profile across the router fleet."""
     require_admin_or_superadmin(request)
     logger.info(f"Updating package #{pkg_id}: {payload.name}, Rate: {payload.rate_limit}")
     try:
@@ -4523,12 +4566,13 @@ async def update_existing_package(pkg_id: int, payload: PackagePayload, request:
 
         mt_ok = False
         if payload.sync_router:
-            mt_ok = router_client.sync_package_profile(
+            res = mikrotik_client.broadcast_sync_package_profile(
                 profile_name=pkg["mikrotik_profile"],
                 rate_limit=pkg["rate_limit"],
                 shared_users=pkg["shared_users"],
                 package_type=pkg["type"]
             )
+            mt_ok = any(res.values()) if res else False
 
         return {
             "success": True,
@@ -4551,9 +4595,9 @@ async def delete_existing_package(pkg_id: int, request: Request):
         if not success:
             return JSONResponse(status_code=400, content={"success": False, "message": msg})
 
-        # Remove profile from MikroTik if present
+        # Remove profile from all active MikroTik routers if present
         if pkg and pkg.get("mikrotik_profile"):
-            router_client.delete_package_profile(
+            mikrotik_client.broadcast_delete_package_profile(
                 profile_name=pkg["mikrotik_profile"],
                 package_type=pkg.get("type", "hotspot")
             )
@@ -4566,22 +4610,23 @@ async def delete_existing_package(pkg_id: int, request: Request):
 
 @app.post("/api/packages/{pkg_id}/sync-router")
 async def sync_package_to_router(pkg_id: int):
-    """Pushes and provisions package profile directly to the active MikroTik router."""
+    """Pushes and provisions package profile directly to all active MikroTik routers."""
     pkg = database.get_package_by_id(pkg_id)
     if not pkg:
         raise HTTPException(status_code=404, detail="Package not found")
 
-    mt_ok = router_client.sync_package_profile(
+    res = mikrotik_client.broadcast_sync_package_profile(
         profile_name=pkg["mikrotik_profile"],
         rate_limit=pkg["rate_limit"],
         shared_users=pkg["shared_users"],
         package_type=pkg["type"]
     )
+    mt_ok = any(res.values()) if res else False
 
     if mt_ok:
-        return {"success": True, "message": f"Profile '{pkg['mikrotik_profile']}' successfully synced to MikroTik."}
+        return {"success": True, "message": f"Profile '{pkg['mikrotik_profile']}' successfully synced to MikroTik routers ({list(res.keys())})."}
     else:
-        return JSONResponse(status_code=500, content={"success": False, "message": "Failed to sync profile to MikroTik."})
+        return JSONResponse(status_code=500, content={"success": False, "message": "Failed to sync profile to MikroTik routers."})
 
 
 @app.post("/api/packages/{pkg_id}/toggle-active")

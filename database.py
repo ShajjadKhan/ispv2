@@ -2275,6 +2275,34 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
         return (new_status, macs)
 
 
+def activate_customer(customer_id: int) -> Tuple[bool, List[str]]:
+    """
+    Explicitly ensures customer status is 'active', all associated devices are 'approved',
+    and any open suspension records are closed.
+    Returns (True, list_of_approved_mac_addresses).
+    """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT status FROM customers WHERE id = ?", (customer_id,))
+        row = cursor.fetchone()
+        if not row:
+            return (False, [])
+
+        cursor.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer_id))
+        cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+        cursor.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
+
+        cursor.execute("SELECT mac_address FROM customer_devices WHERE customer_id = ?", (customer_id,))
+        macs = [r["mac_address"].upper() for r in cursor.fetchall()]
+        conn.commit()
+        return (True, macs)
+
+
 def add_customer_device(
     customer_id: int,
     mac_address: str,
@@ -2413,10 +2441,10 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
 
 
 def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
-    """Returns all customers configured with connection_type == 'pppoe'."""
+    """Returns all customers configured with connection_type in ('pppoe', 'both') or with pppoe_username configured."""
     with get_db() as conn:
         cursor = conn.cursor()
-        query = "SELECT * FROM customers WHERE connection_type = 'pppoe'"
+        query = "SELECT * FROM customers WHERE (connection_type IN ('pppoe', 'both') OR (pppoe_username IS NOT NULL AND TRIM(pppoe_username) != ''))"
         if active_only:
             query += " AND status = 'active'"
         query += " ORDER BY id ASC"
@@ -2558,8 +2586,13 @@ def record_customer_payment(
             WHERE id = ?
         """, (new_expiry, new_expiry, new_due_day, new_credit, new_billing_type, now_str, customer_id))
 
-        # Unblock any suspended customer devices
+        # Unblock any suspended customer devices & close open suspensions
         cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+        cursor.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
 
         conn.commit()
         return {
@@ -2633,8 +2666,13 @@ def apply_customer_credit(
             WHERE id = ?
         """, (new_credit, new_expiry, new_expiry, new_due_day, new_billing_type, now_str, customer_id))
 
-        # 2. Unblock customer devices if suspended
+        # 2. Unblock customer devices if suspended & close open suspensions
         cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+        cursor.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
 
         # 3. Log to collections ledger
         cursor.execute("""
@@ -5940,6 +5978,15 @@ def record_devices_traffic_batch(deltas: List[Dict[str, Any]]) -> int:
                 new_sess_id = cursor.lastrowid
                 active_sessions[mac] = {"id": new_sess_id, "duration_seconds": active_sec}
 
+            # Keep device IP address synchronized with live network subnet
+            if ip_addr and str(ip_addr).strip() and str(ip_addr).strip() != "0.0.0.0" and device_id:
+                clean_ip = str(ip_addr).strip()
+                cursor.execute("""
+                    UPDATE customer_devices
+                    SET ip_address = ?
+                    WHERE id = ? AND (ip_address IS NULL OR ip_address != ?)
+                """, (clean_ip, device_id, clean_ip))
+
             recorded_count += 1
 
         conn.commit()
@@ -6381,28 +6428,127 @@ def calculate_customer_realtime_balance(
     - Deducts active suspension / vacation hold periods.
     - Returns billable_days, total_owed, total_paid, balance, status, and current_daily_rate.
     """
-    close_conn = False
     if conn is None:
-        conn = get_db()
-        conn.row_factory = sqlite3.Row
-        close_conn = True
+        with get_db() as db_conn:
+            return calculate_customer_realtime_balance(cust_id, conn=db_conn)
 
+    cur = conn.cursor()
+    c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE id = ?", (cust_id,)).fetchone()
+    if not c:
+        return {
+            "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
+            "balance": 0.0, "status": "SETTLED", "daily_rate": 0.0
+        }
+
+    raw_fee = c["monthly_fee"]
+    fee = float(raw_fee) if raw_fee is not None else 30.0
+
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    cur_dim = calendar.monthrange(today.year, today.month)[1]
+    daily_rate = round(fee / float(cur_dim), 2) if fee > 0 else 0.0
+
+    start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
     try:
-        cur = conn.cursor()
-        c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE id = ?", (cust_id,)).fetchone()
-        if not c:
-            return {
-                "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
-                "balance": 0.0, "status": "SETTLED", "daily_rate": 0.0
-            }
+        start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+    except Exception:
+        start_d = today
 
+    # Fetch suspensions
+    susp_rows = cur.execute("SELECT suspended_at, resumed_at FROM customer_suspensions WHERE customer_id = ? ORDER BY id ASC", (cust_id,)).fetchall()
+    cust_susp = []
+    for s in susp_rows:
+        try:
+            s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+            r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+            cust_susp.append((s_d, r_d))
+        except Exception:
+            pass
+
+    if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
+        cust_susp.append((today, None))
+
+    total_owed = 0.0
+    billable = 0
+    cur_d = start_d
+    while cur_d <= yesterday:
+        in_susp = False
+        for s_start, s_end in cust_susp:
+            if s_end is None:
+                if cur_d >= s_start:
+                    in_susp = True
+                    break
+            else:
+                if s_start <= cur_d <= s_end:
+                    in_susp = True
+                    break
+        if not in_susp and fee > 0:
+            dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+            total_owed += (fee / float(dim))
+            billable += 1
+        cur_d += timedelta(days=1)
+
+    owed = round(total_owed, 2) if fee > 0 else 0.0
+
+    # Fetch paid amount
+    paid_row = cur.execute("""
+        SELECT COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0)
+        FROM collections
+        WHERE customer_id = ? AND (amount > 0 OR waived_amount > 0)
+    """, (cust_id,)).fetchone()
+    paid = round(float(paid_row[0] or 0.0), 2) if paid_row else 0.0
+
+    bal = round(paid - owed, 2)
+    st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+
+    return {
+        "billable_days": billable,
+        "total_owed": owed,
+        "total_paid": paid,
+        "balance": bal,
+        "status": st,
+        "daily_rate": daily_rate
+    }
+
+
+def sync_all_customer_realtime_balances(conn=None) -> int:
+    """
+    Synchronizes customers.credit_balance across all subscribers in real-time
+    using the exact month-aware daily calculation.
+    """
+    if conn is None:
+        with get_db() as db_conn:
+            return sync_all_customer_realtime_balances(conn=db_conn)
+
+    cur = conn.cursor()
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    col_rows = cur.execute("""
+        SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total
+        FROM collections
+        WHERE (amount > 0 OR waived_amount > 0)
+        GROUP BY customer_id
+    """).fetchall()
+    colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
+
+    susp_rows = cur.execute("SELECT customer_id, suspended_at, resumed_at FROM customer_suspensions ORDER BY id ASC").fetchall()
+    susp_by_cid = {}
+    for s in susp_rows:
+        scid = int(s["customer_id"])
+        try:
+            s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+            r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+            susp_by_cid.setdefault(scid, []).append((s_d, r_d))
+        except Exception:
+            pass
+
+    custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
+    updates = []
+    for c in custs:
+        cid = int(c["id"])
         raw_fee = c["monthly_fee"]
         fee = float(raw_fee) if raw_fee is not None else 30.0
-
-        today = date.today()
-        yesterday = today - timedelta(days=1)
-        cur_dim = calendar.monthrange(today.year, today.month)[1]
-        daily_rate = round(fee / float(cur_dim), 2) if fee > 0 else 0.0
 
         start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
         try:
@@ -6410,22 +6556,11 @@ def calculate_customer_realtime_balance(
         except Exception:
             start_d = today
 
-        # Fetch suspensions
-        susp_rows = cur.execute("SELECT suspended_at, resumed_at FROM customer_suspensions WHERE customer_id = ? ORDER BY id ASC", (cust_id,)).fetchall()
-        cust_susp = []
-        for s in susp_rows:
-            try:
-                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
-                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
-                cust_susp.append((s_d, r_d))
-            except Exception:
-                pass
-
+        cust_susp = list(susp_by_cid.get(cid, []))
         if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
             cust_susp.append((today, None))
 
         total_owed = 0.0
-        billable = 0
         cur_d = start_d
         while cur_d <= yesterday:
             in_susp = False
@@ -6441,119 +6576,19 @@ def calculate_customer_realtime_balance(
             if not in_susp and fee > 0:
                 dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
                 total_owed += (fee / float(dim))
-                billable += 1
             cur_d += timedelta(days=1)
 
         owed = round(total_owed, 2) if fee > 0 else 0.0
-
-        # Fetch paid amount
-        paid_row = cur.execute("""
-            SELECT COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0)
-            FROM collections
-            WHERE customer_id = ? AND (amount > 0 OR waived_amount > 0)
-        """, (cust_id,)).fetchone()
-        paid = round(float(paid_row[0] or 0.0), 2) if paid_row else 0.0
-
+        paid = round(colls_by_cid.get(cid, 0.0), 2)
         bal = round(paid - owed, 2)
-        st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+        curr_cb = round(float(c["credit_balance"] or 0.0), 2)
+        if abs(bal - curr_cb) > 0.01:
+            updates.append((bal, cid))
 
-        return {
-            "billable_days": billable,
-            "total_owed": owed,
-            "total_paid": paid,
-            "balance": bal,
-            "status": st,
-            "daily_rate": daily_rate
-        }
-    finally:
-        if close_conn:
-            conn.close()
-
-
-def sync_all_customer_realtime_balances(conn=None) -> int:
-    """
-    Synchronizes customers.credit_balance across all subscribers in real-time
-    using the exact month-aware daily calculation.
-    """
-    close_conn = False
-    if conn is None:
-        conn = get_db()
-        conn.row_factory = sqlite3.Row
-        close_conn = True
-
-    try:
-        cur = conn.cursor()
-        today = date.today()
-        yesterday = today - timedelta(days=1)
-
-        col_rows = cur.execute("""
-            SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total
-            FROM collections
-            WHERE (amount > 0 OR waived_amount > 0)
-            GROUP BY customer_id
-        """).fetchall()
-        colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
-
-        susp_rows = cur.execute("SELECT customer_id, suspended_at, resumed_at FROM customer_suspensions ORDER BY id ASC").fetchall()
-        susp_by_cid = {}
-        for s in susp_rows:
-            scid = int(s["customer_id"])
-            try:
-                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
-                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
-                susp_by_cid.setdefault(scid, []).append((s_d, r_d))
-            except Exception:
-                pass
-
-        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
-        updates = []
-        for c in custs:
-            cid = int(c["id"])
-            raw_fee = c["monthly_fee"]
-            fee = float(raw_fee) if raw_fee is not None else 30.0
-
-            start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
-            try:
-                start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
-            except Exception:
-                start_d = today
-
-            cust_susp = list(susp_by_cid.get(cid, []))
-            if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
-                cust_susp.append((today, None))
-
-            total_owed = 0.0
-            cur_d = start_d
-            while cur_d <= yesterday:
-                in_susp = False
-                for s_start, s_end in cust_susp:
-                    if s_end is None:
-                        if cur_d >= s_start:
-                            in_susp = True
-                            break
-                    else:
-                        if s_start <= cur_d <= s_end:
-                            in_susp = True
-                            break
-                if not in_susp and fee > 0:
-                    dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
-                    total_owed += (fee / float(dim))
-                cur_d += timedelta(days=1)
-
-            owed = round(total_owed, 2) if fee > 0 else 0.0
-            paid = round(colls_by_cid.get(cid, 0.0), 2)
-            bal = round(paid - owed, 2)
-            curr_cb = round(float(c["credit_balance"] or 0.0), 2)
-            if abs(bal - curr_cb) > 0.01:
-                updates.append((bal, cid))
-
-        if updates:
-            cur.executemany("UPDATE customers SET credit_balance = ? WHERE id = ?", updates)
-            conn.commit()
-        return len(updates)
-    finally:
-        if close_conn:
-            conn.close()
+    if updates:
+        cur.executemany("UPDATE customers SET credit_balance = ? WHERE id = ?", updates)
+        conn.commit()
+    return len(updates)
 
 
 def get_balance_sheet_data(
