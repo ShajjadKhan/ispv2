@@ -1,0 +1,1276 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | Onboard New Customer{% endblock %}
+{% block heading %}Register New Subscriber{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     CUSTOMER ADD PAGE ARCHITECTURE
+     ========================================================= */
+  .edit-page-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    padding-bottom: 120px;
+  }
+
+  /* TOP BREADCRUMB & BANNER */
+  .edit-header-banner {
+    background: var(--bg-card, #0f172a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .banner-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .cust-avatar-large {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    text-transform: uppercase;
+  }
+
+  .banner-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .banner-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .banner-cust-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-main, #ffffff);
+    letter-spacing: -0.01em;
+  }
+
+  .banner-sub {
+    font-size: 12px;
+    color: var(--text-dim, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-nav-back {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+    color: var(--text-muted, #94a3b8);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .btn-nav-back:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* MAIN 2-COLUMN GRID */
+  .edit-content-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+
+  /* SIDEBAR SNAPSHOT CARD */
+  .edit-sidebar-card {
+    background: var(--bg-card, #0f172a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    overflow: hidden;
+    position: sticky;
+    top: 70px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-section-header {
+    padding: 10px 14px;
+    background: var(--bg-card-header, rgba(255, 255, 255, 0.03));
+    border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sidebar-metrics-list {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .metric-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .metric-item .m-label { color: var(--text-dim, #94a3b8); font-weight: 600; }
+  .metric-item .m-value { color: #ffffff; font-weight: 700; text-align: right; }
+
+  .sidebar-checklist {
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: #94a3b8;
+  }
+  .check-item.active {
+    color: #34d399;
+    font-weight: 600;
+  }
+
+  /* FORM SECTIONS (CARDS) */
+  .edit-form-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .form-section-card {
+    background: var(--bg-card, #0f172a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .form-section-head {
+    padding: 12px 16px;
+    background: var(--bg-card-header, rgba(255, 255, 255, 0.03));
+    border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .form-section-head .sec-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .form-section-head .sec-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .form-section-head .sec-desc {
+    font-size: 11.5px;
+    color: var(--text-dim, #94a3b8);
+    margin-left: auto;
+  }
+
+  .form-section-body {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* CARD PICKERS (BILLING & PROTOCOL) */
+  .billing-card-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .b-picker-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1.5px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+  }
+  .b-picker-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .b-picker-card.selected {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: #38bdf8;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+  }
+  .card-radio-circle {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .b-picker-card.selected .card-radio-circle {
+    border-color: #38bdf8;
+    background: #38bdf8;
+  }
+  .b-picker-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .b-picker-sub {
+    font-size: 10.5px;
+    color: var(--text-dim, #94a3b8);
+    margin-top: 2px;
+  }
+
+  /* PRESET WRAPPERS */
+  .preset-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-preset {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+    color: var(--text-muted, #cbd5e1);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-preset:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #38bdf8;
+  }
+
+  /* STICKY BOTTOM ACTION BAR */
+  .sticky-submit-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 12px 24px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+  }
+  .bar-content-wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-submit-main {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+    transition: all 0.18s ease;
+  }
+  .btn-submit-main:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.45);
+  }
+  .btn-submit-main:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* RESPONSIVE LAYOUTS */
+  @media (max-width: 992px) {
+    .edit-content-grid {
+      grid-template-columns: 1fr;
+    }
+    .edit-sidebar-card {
+      position: static;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .modal-grid-2, .modal-grid-3 {
+      grid-template-columns: 1fr !important;
+    }
+    .edit-page-container {
+      padding-bottom: 140px;
+    }
+    .sticky-submit-bar {
+      padding: 10px 14px;
+    }
+    .bar-content-wrap {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .btn-submit-main {
+      width: 100%;
+      justify-content: center;
+      min-height: 44px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-page-container">
+  
+  <!-- TOP BREADCRUMB & BANNER -->
+  <div class="edit-header-banner">
+    <div class="banner-left">
+      <div class="cust-avatar-large" id="bannerAvatar">👤</div>
+      <div class="banner-details">
+        <div class="banner-title-row">
+          <span class="banner-cust-name" id="bannerName">New Subscriber Registration</span>
+          <span class="badge" id="bannerConnBadge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px;">HOTSPOT</span>
+          <span class="badge" id="bannerBillingBadge" style="background:rgba(168,85,247,0.15); color:#c084fc; font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px;">PREPAID</span>
+        </div>
+        <div class="banner-sub">
+          <span>⚡ Automatic MikroTik Fleet Provisioning</span>
+          <span>&bull;</span>
+          <span id="bannerPhone">Waiting for phone number...</span>
+        </div>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <a href="/customers" class="btn-nav-back">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <span>Back to Directory</span>
+      </a>
+    </div>
+  </div>
+
+  <form id="addCustFullForm" onsubmit="handleFullFormSubmit(event)">
+    <div class="edit-content-grid">
+      
+      <!-- ==========================================
+           LEFT SIDEBAR: LIVE SUBSCRIBER PREVIEW
+           ========================================== -->
+      <aside class="edit-sidebar-card">
+        <div class="sidebar-section-header">
+          <svg style="width:13px; height:13px; fill:#10b981;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <span>Live Subscriber Snapshot</span>
+        </div>
+        
+        <div class="sidebar-metrics-list">
+          <div class="metric-item">
+            <span class="m-label">Subscriber Name:</span>
+            <span class="m-value" id="sideName" style="color:#38bdf8;">—</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Phone:</span>
+            <span class="m-value font-mono" id="sidePhone">—</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Network Protocol:</span>
+            <span class="m-value" id="sideProtocol" style="color:#38bdf8;">Hotspot (MAC)</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Internet Package:</span>
+            <span class="m-value" id="sidePkg">—</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Allocated Bandwidth:</span>
+            <span class="m-value font-mono" id="sideSpeed" style="color:#fbbf24;">—</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Monthly Rate:</span>
+            <span class="m-value font-mono" id="sideFee" style="color:#34d399;">0.00 SAR</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Service Suspend Date:</span>
+            <span class="m-value font-mono" id="sideDueDate" style="color:#f59e0b;">—</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Allowed Devices:</span>
+            <span class="m-value font-mono" id="sideMaxDev">1 Device</span>
+          </div>
+          <div class="metric-item" id="sideAdvanceWrap" style="display:none; background:rgba(16,185,129,0.06); border-color:rgba(16,185,129,0.2);">
+            <span class="m-label" style="color:#34d399;">Advance Collected:</span>
+            <span class="m-value font-mono" id="sideAdvanceAmt" style="color:#34d399;">0.00 SAR</span>
+          </div>
+        </div>
+
+        <div class="sidebar-checklist">
+          <div style="font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em;">Fleet Provisioning Checklist</div>
+          <div class="check-item active">
+            <span>✓</span> <span>Synchronized across 3 MikroTik Routers</span>
+          </div>
+          <div class="check-item active" id="chkMac">
+            <span>✓</span> <span>Hardware MAC binding in IP-Binding</span>
+          </div>
+          <div class="check-item active" id="chkQueue">
+            <span>✓</span> <span>Rate Queue allocated on MikroTik</span>
+          </div>
+          <div class="check-item active">
+            <span>✓</span> <span>Automated expiry cutoff scheduled</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ==========================================
+           RIGHT COLUMN: SECTIONED FORM FLOW
+           ========================================== -->
+      <div class="edit-form-flow">
+        
+        <!-- SECTION 1: IDENTITY & CONTACT -->
+        <div class="form-section-card">
+          <div class="form-section-head">
+            <div class="sec-icon" style="background:rgba(56,189,248,0.15); color:#38bdf8;">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <div>
+              <div class="sec-title">Subscriber Identity &amp; Contact</div>
+            </div>
+            <span class="sec-desc">Full Name, Phone &amp; Room Details</span>
+          </div>
+
+          <div class="form-section-body">
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="newCustName">Customer Full Name <span style="color:#ef4444;">*</span></label>
+                <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi" oninput="updateLivePreview()">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="newCustPhone">Primary Phone Number <span style="color:#ef4444;">*</span></label>
+                <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567" oninput="updateLivePreview()">
+              </div>
+            </div>
+
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="newCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>Customer Note / Room # / Flat</span>
+                  <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+                </label>
+                <input type="text" class="form-input" id="newCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustReseller">Assigned Reseller / Partner Shop</label>
+                <select class="form-select" id="addCustReseller">
+                  <option value="">🏢 Direct ISP (No Reseller)</option>
+                  {% for r in resellers %}
+                    <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }} ({{ r.commission_rate }}% discount)</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: NETWORK PROTOCOL & PPPOE -->
+        <div class="form-section-card">
+          <div class="form-section-head">
+            <div class="sec-icon" style="background:rgba(192,132,252,0.15); color:#c084fc;">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+            </div>
+            <div>
+              <div class="sec-title">Network Access Mode &amp; PPPoE Account</div>
+            </div>
+            <span class="sec-desc">Hotspot Wi-Fi, PPPoE Router, or Hybrid</span>
+          </div>
+
+          <div class="form-section-body">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Connection Protocol</label>
+              <div class="billing-card-picker">
+                <div class="b-picker-card selected" id="cardConnHotspot" onclick="selectFullConnType('hotspot')">
+                  <div class="card-radio-circle"></div>
+                  <div class="b-picker-content">
+                    <div class="b-picker-title"><i class="fas fa-wifi" style="color:#38bdf8; margin-right:4px;"></i> Hotspot (MAC Bypass)</div>
+                    <div class="b-picker-sub">Direct Wi-Fi phone/laptop access</div>
+                  </div>
+                </div>
+
+                <div class="b-picker-card" id="cardConnPppoe" onclick="selectFullConnType('pppoe')">
+                  <div class="card-radio-circle"></div>
+                  <div class="b-picker-content">
+                    <div class="b-picker-title" style="color:#c084fc;"><i class="fas fa-network-wired" style="color:#c084fc; margin-right:4px;"></i> PPPoE Router / Fiber</div>
+                    <div class="b-picker-sub">Dedicated PPPoE username dial-up</div>
+                  </div>
+                </div>
+
+                <div class="b-picker-card" id="cardConnBoth" onclick="selectFullConnType('both')">
+                  <div class="card-radio-circle"></div>
+                  <div class="b-picker-content">
+                    <div class="b-picker-title" style="color:#34d399;"><i class="fas fa-layer-group" style="color:#34d399; margin-right:4px;"></i> Hybrid Dual Mode</div>
+                    <div class="b-picker-sub">Both Hotspot MACs and PPPoE Router</div>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" id="fullConnType" value="hotspot">
+            </div>
+
+            <!-- PPPOE CREDENTIALS BLOCK -->
+            <div id="fullPppoeWrap" style="display:none; background:rgba(192,132,252,0.04); border:1px solid rgba(192,132,252,0.25); border-radius:10px; padding:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-size:12px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.04em;">🔑 MikroTik PPPoE Secret Credentials:</span>
+                <span class="badge" style="background:rgba(192,132,252,0.15); color:#c084fc; font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px;">ALL ROUTERS SYNCED</span>
+              </div>
+
+              <div class="modal-grid-2">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label for="fullPppUser">PPPoE Username</label>
+                  <input type="text" class="form-input font-mono" id="fullPppUser" placeholder="e.g. phone or username">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label for="fullPppPass">PPPoE Password</label>
+                  <div style="position:relative;">
+                    <input type="text" class="form-input font-mono" id="fullPppPass" value="cyber123" placeholder="cyber123" style="padding-right:75px;">
+                    <button type="button" class="btn-preset" onclick="generateRandomPppPass()" style="position:absolute; right:6px; top:8px; font-size:10px; padding:3px 7px;">Generate</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-grid-2" style="margin-top:12px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label for="fullPppProfile">PPPoE Profile</label>
+                  <input type="text" class="form-input font-mono" id="fullPppProfile" value="pppoe-profile-ether4" placeholder="pppoe-profile-ether4">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label for="fullPppIp">Fixed Remote IP (Optional)</label>
+                  <input type="text" class="form-input font-mono" id="fullPppIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: PLAN & SPEED QUEUE -->
+        <div class="form-section-card">
+          <div class="form-section-head">
+            <div class="sec-icon" style="background:rgba(56,189,248,0.15); color:#38bdf8;">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </div>
+            <div>
+              <div class="sec-title">Internet Plan &amp; MikroTik Speed Queue</div>
+            </div>
+            <span class="sec-desc">Rate Limit &amp; Bandwidth Profile</span>
+          </div>
+
+          <div class="form-section-body">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustPkg">Speed Package</label>
+              <select class="form-select" id="addCustPkg" onchange="onFullPkgChange()">
+                {% for pkg in packages %}
+                <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label for="addCustSpeed" style="margin-bottom:0;">Allocated Speed Limit (Upload / Download)</label>
+                <span style="font-size:11px; color:#38bdf8; font-weight:700;">Live MikroTik Queue</span>
+              </div>
+              <div class="preset-wrap">
+                <input type="text" class="form-input font-mono" id="addCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;" oninput="updateLivePreview()">
+                <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('5M/5M')">5M</button>
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('10M/10M')">10M</button>
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('20M/20M')">20M</button>
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('30M/30M')">30M</button>
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('50M/50M')">50M</button>
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('100M/100M')">100M</button>
+                  <button type="button" class="btn-preset" onclick="setFullSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: BILLING & FINANCIAL TERMS -->
+        <div class="form-section-card">
+          <div class="form-section-head">
+            <div class="sec-icon" style="background:rgba(52,211,153,0.15); color:#34d399;">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            </div>
+            <div>
+              <div class="sec-title">Billing Model &amp; Renewal Terms</div>
+            </div>
+            <span class="sec-desc">Rate, Due Date &amp; Upfront Collection</span>
+          </div>
+
+          <div class="form-section-body">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Billing Model</label>
+              <div class="billing-card-picker">
+                <div class="b-picker-card selected" id="cardBillPre" onclick="selectFullBillingType('prepaid')">
+                  <div class="card-radio-circle"></div>
+                  <div class="b-picker-content">
+                    <div class="b-picker-title" style="color:#c084fc;">Prepaid (Standard)</div>
+                    <div class="b-picker-sub">Advance recharge before internet activation</div>
+                  </div>
+                </div>
+
+                <div class="b-picker-card" id="cardBillPost" onclick="selectFullBillingType('postpaid')">
+                  <div class="card-radio-circle"></div>
+                  <div class="b-picker-content">
+                    <div class="b-picker-title" style="color:#38bdf8;">Postpaid</div>
+                    <div class="b-picker-sub">Recurring monthly cycle &amp; month-end billing</div>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" id="fullBillingType" value="prepaid">
+            </div>
+
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustFee">Monthly Fee (SAR) <span style="color:#ef4444;">*</span></label>
+                <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateFullAdvance(); updateLivePreview();" style="color:#38bdf8; font-weight:700;">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label for="addCustDueDate" style="margin-bottom:0;">Service Suspend Date <span style="color:#ef4444;">*</span></label>
+                  <span class="badge" id="badgeAddSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto Cutoff</span>
+                </div>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off" onchange="updateLivePreview()">
+              </div>
+            </div>
+
+            <!-- Quick Suspend Presets -->
+            <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Date Presets:</span>
+                <button type="button" class="btn-preset" onclick="applyFullPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                  📦 As per Package (<span id="btnFullPkgDaysText">30d</span>)
+                </button>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="shiftFullDueDate(7)">+7 Days</button>
+                <button type="button" class="btn-preset" onclick="shiftFullDueDate(15)">+15 Days</button>
+                <button type="button" class="btn-preset" onclick="shiftFullDueDate(30)">+30 Days</button>
+                <button type="button" class="btn-preset" onclick="shiftFullDueDate(60)">+60 Days</button>
+                <button type="button" class="btn-preset" onclick="setFullEndOfMonth()">End of Month</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.08);">
+                <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(1)">Day 1</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(5)">Day 5</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(10)">Day 10</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(15)">Day 15</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(20)">Day 20</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(25)">Day 25</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(28)">Day 28</button>
+                <button type="button" class="btn-preset" onclick="setFullSpecificDay(30)">Day 30</button>
+              </div>
+            </div>
+
+            <!-- Advance Payment Collected -->
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustInitialPay">Initial / Advance Payment Collected (SAR) (Optional)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateFullAdvance(); updateLivePreview();" style="color:#34d399; font-weight:700;">
+              <span style="font-size:11.5px; color:var(--text-dim); margin-top:3px; display:block;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 75 SAR fee) is recorded to Customer Credit Wallet!</span>
+            </div>
+
+            <div id="fullAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:12px;">
+              <div style="font-size:12px; color:#e2e8f0; line-height:1.45;" id="fullAdvanceText"></div>
+              <div style="margin-top:8px; display:flex; gap:16px; font-size:11.5px;">
+                <label style="display:flex; align-items:center; gap:6px; color:#94a3b8; cursor:pointer;">
+                  <input type="radio" name="full_adv_mode" value="credit" checked onchange="calculateFullAdvance()">
+                  <span>Save surplus as Account Credit</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; color:#94a3b8; cursor:pointer;">
+                  <input type="radio" name="full_adv_mode" value="months" onchange="calculateFullAdvance()">
+                  <span>Extend Multiple Months</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: DEVICE QUOTAS & HARDWARE MAC -->
+        <div class="form-section-card">
+          <div class="form-section-head">
+            <div class="sec-icon" style="background:rgba(56,189,248,0.15); color:#38bdf8;">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z M10 4h4v2h-4z"/></svg>
+            </div>
+            <div>
+              <div class="sec-title">Device Concurrency &amp; Hardware MAC Binding</div>
+            </div>
+            <span class="sec-desc">Quota &amp; Router Auto-Bypass</span>
+          </div>
+
+          <div class="form-section-body">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustMaxDevices" style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
+              <div class="preset-wrap">
+                <input type="number" min="1" max="100" inputmode="numeric" class="form-input font-mono" id="addCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;" oninput="updateLivePreview()">
+                <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                  <button type="button" class="btn-preset" onclick="setFullDevLimit(1)">1 Device</button>
+                  <button type="button" class="btn-preset" onclick="setFullDevLimit(2)">2 Devices</button>
+                  <button type="button" class="btn-preset" onclick="setFullDevLimit(3)">3 Devices</button>
+                  <button type="button" class="btn-preset" onclick="setFullDevLimit(5)">5 Devices</button>
+                  <button type="button" class="btn-preset" onclick="setFullDevLimit(8)">8 Devices</button>
+                  <button type="button" class="btn-preset" onclick="setFullDevLimit(10)">10 Devices</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustMac">Initial Hardware MAC Address (Optional)</label>
+              <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74" oninput="handleMacInput(this)">
+              <div id="fullMacFeedback" style="display:none; margin-top:6px; font-size:12px; font-weight:600;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 6: ADVANCED CYCLE ORIGIN (COLLAPSIBLE) -->
+        <div class="form-section-card">
+          <div class="form-section-head" style="cursor:pointer;" onclick="toggleAdvancedDrawer()">
+            <div class="sec-icon" style="background:rgba(148,163,184,0.15); color:#94a3b8;">
+              <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+            </div>
+            <div>
+              <div class="sec-title" style="color:#cbd5e1;">Advanced Billing Origin Dates</div>
+            </div>
+            <span class="sec-desc" id="drawerIndicator">Click to View / Edit ▾</span>
+          </div>
+
+          <div class="form-section-body" id="advancedDrawerBody" style="display:none;">
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustJoinDate">Customer Joining Date</label>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustJoinDate" placeholder="YYYY-MM-DD" autocomplete="off">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Defaults to registration date</span>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustBillingStart">Billing Cycle Start Date</label>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustBillingStart" placeholder="YYYY-MM-DD" autocomplete="off">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Origin anchor for month-by-month ledger</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- STICKY BOTTOM ACTION BAR -->
+    <div class="sticky-submit-bar">
+      <div class="bar-content-wrap">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12px; color:var(--text-dim);">Ready to authorize:</span>
+          <span style="font-size:13px; font-weight:700; color:#38bdf8;" id="barCustSummary">New Subscriber</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <a href="/customers" class="btn-nav-back" style="padding:9px 18px;">Cancel</a>
+          <button type="submit" class="btn-submit-main" id="btnSubmitFull">
+            <span>🚀 Create &amp; Authorize Customer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Page initialization
+  document.addEventListener('DOMContentLoaded', () => {
+    initDefaultDates();
+    onFullPkgChange();
+    updateLivePreview();
+  });
+
+  function initDefaultDates() {
+    const today = new Date();
+    const todayStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + 30);
+    const futureStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
+
+    if (window.setPickerDate) {
+      window.setPickerDate('addCustDueDate', futureStr);
+      window.setPickerDate('addCustJoinDate', todayStr);
+      window.setPickerDate('addCustBillingStart', todayStr);
+    } else {
+      document.getElementById('addCustDueDate').value = futureStr;
+      document.getElementById('addCustJoinDate').value = todayStr;
+      document.getElementById('addCustBillingStart').value = todayStr;
+    }
+  }
+
+  function toggleAdvancedDrawer() {
+    const b = document.getElementById('advancedDrawerBody');
+    const ind = document.getElementById('drawerIndicator');
+    if (b.style.display === 'none') {
+      b.style.display = 'flex';
+      ind.textContent = 'Hide ▲';
+    } else {
+      b.style.display = 'none';
+      ind.textContent = 'Click to View / Edit ▾';
+    }
+  }
+
+  function selectFullConnType(type) {
+    document.getElementById('fullConnType').value = type;
+    const hCard = document.getElementById('cardConnHotspot');
+    const pCard = document.getElementById('cardConnPppoe');
+    const bCard = document.getElementById('cardConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (type === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (type === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (type === 'both' && bCard) bCard.classList.add('selected');
+
+    const wrap = document.getElementById('fullPppoeWrap');
+    if (wrap) {
+      if (type === 'pppoe' || type === 'both') {
+        wrap.style.display = 'block';
+        const userEl = document.getElementById('fullPppUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('newCustPhone')?.value.trim() || '';
+        }
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+    updateLivePreview();
+  }
+
+  function generateRandomPppPass() {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    let pass = '';
+    for (let i = 0; i < 6; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('fullPppPass').value = pass;
+  }
+
+  function selectFullBillingType(t) {
+    document.getElementById('fullBillingType').value = t;
+    const pre = document.getElementById('cardBillPre');
+    const post = document.getElementById('cardBillPost');
+    if (t === 'prepaid') {
+      pre.classList.add('selected');
+      post.classList.remove('selected');
+    } else {
+      pre.classList.remove('selected');
+      post.classList.add('selected');
+    }
+    updateLivePreview();
+  }
+
+  function onFullPkgChange() {
+    const sel = document.getElementById('addCustPkg');
+    if (!sel || sel.selectedIndex < 0) return;
+    const opt = sel.options[sel.selectedIndex];
+    const price = opt.getAttribute('data-price') || '75.00';
+    const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
+
+    document.getElementById('addCustFee').value = price;
+    if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
+      document.getElementById('addCustSpeed').value = rate;
+    } else {
+      document.getElementById('addCustSpeed').value = 'Unlimited';
+    }
+
+    const daysText = document.getElementById('btnFullPkgDaysText');
+    if (daysText) daysText.textContent = `${days}d`;
+
+    // Auto calculate suspend date based on package validity
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
+    setFullDueDateValue(dateStr);
+
+    calculateFullAdvance();
+    updateLivePreview();
+  }
+
+  function setFullSpeed(spd) {
+    document.getElementById('addCustSpeed').value = spd;
+    updateLivePreview();
+  }
+
+  function setFullDevLimit(n) {
+    document.getElementById('addCustMaxDevices').value = n;
+    updateLivePreview();
+  }
+
+  function setFullDueDateValue(dateStr) {
+    const el = document.getElementById('addCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) window.setPickerDate('addCustDueDate', dateStr);
+    updateLivePreview();
+  }
+
+  function shiftFullDueDate(days) {
+    const el = document.getElementById('addCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setFullDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) badge.textContent = `+${days}d`;
+  }
+
+  function applyFullPkgValidity() {
+    onFullPkgChange();
+  }
+
+  function setFullEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setFullDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) badge.textContent = `End of Month`;
+  }
+
+  function setFullSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setFullDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) badge.textContent = `Day ${dayNum}`;
+  }
+
+  function calculateFullAdvance() {
+    const feeInput = document.getElementById('addCustFee');
+    const payInput = document.getElementById('addCustInitialPay');
+    const previewBox = document.getElementById('fullAdvancePreview');
+    const textEl = document.getElementById('fullAdvanceText');
+    if (!feeInput || !payInput || !previewBox) return;
+
+    const fee = parseFloat(feeInput.value) || 0.0;
+    const paid = parseFloat(payInput.value) || 0.0;
+    const mode = (document.querySelector('input[name="full_adv_mode"]:checked') || {}).value || 'credit';
+
+    const sideAdvWrap = document.getElementById('sideAdvanceWrap');
+    const sideAdvAmt = document.getElementById('sideAdvanceAmt');
+
+    if (paid > 0 && sideAdvWrap && sideAdvAmt) {
+      sideAdvWrap.style.display = 'flex';
+      sideAdvAmt.textContent = paid.toFixed(2) + ' SAR';
+    } else if (sideAdvWrap) {
+      sideAdvWrap.style.display = 'none';
+    }
+
+    if (paid === 0) {
+      selectFullBillingType('postpaid');
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(234, 179, 8, 0.1)';
+      previewBox.style.borderColor = 'rgba(234, 179, 8, 0.3)';
+      textEl.innerHTML = `⚠️ <strong>Zero Initial Payment:</strong> Customer registered without paying upfront. Auto-selected as <strong style="color:#facc15;">POSTPAID</strong>.`;
+      return;
+    }
+
+    if (paid >= fee && fee > 0) {
+      selectFullBillingType('prepaid');
+      previewBox.style.display = 'block';
+      previewBox.style.background = 'rgba(16,185,129,0.08)';
+      previewBox.style.borderColor = 'rgba(16,185,129,0.25)';
+      if (paid > fee) {
+        if (mode === 'months') {
+          const months = Math.floor(paid / fee);
+          const rem = parseFloat((paid - (months * fee)).toFixed(2));
+          textEl.innerHTML = `💡 Advance Payment: Customer pays <strong>${paid.toFixed(2)} SAR</strong> upfront. <strong>${(months * fee).toFixed(2)} SAR</strong> covers <strong>${months} full months</strong>. Remaining <strong>+${rem.toFixed(2)} SAR</strong> will be saved in Customer Credit Wallet. <span style="color:#c084fc;">(Auto-set to PREPAID)</span>`;
+        } else {
+          const surplus = parseFloat((paid - fee).toFixed(2));
+          textEl.innerHTML = `💡 Advance Payment: Customer pays <strong>${paid.toFixed(2)} SAR</strong> upfront. <strong>${fee.toFixed(2)} SAR</strong> activates the 1st cycle. Extra <strong>+${surplus.toFixed(2)} SAR</strong> will be credited to Customer Wallet! <span style="color:#c084fc;">(Auto-set to PREPAID)</span>`;
+        }
+      } else {
+        textEl.innerHTML = `Payment of <strong>${paid.toFixed(2)} SAR</strong> covers the first billing cycle in full. <span style="color:#c084fc;">(Auto-set to PREPAID)</span>`;
+      }
+    } else {
+      previewBox.style.display = 'none';
+    }
+  }
+
+  function handleMacInput(el) {
+    let val = el.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+    let formatted = '';
+    for (let i = 0; i < val.length && i < 12; i++) {
+      if (i > 0 && i % 2 === 0) formatted += ':';
+      formatted += val[i];
+    }
+    el.value = formatted;
+
+    const feedback = document.getElementById('fullMacFeedback');
+    if (!formatted) {
+      feedback.style.display = 'none';
+      return;
+    }
+
+    if (isRandomMac(formatted)) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#ef4444';
+      feedback.innerHTML = '⚠️ <strong>Randomized MAC Detected!</strong> Customer has Private Wi-Fi enabled. CyberNet strictly requires physical Device MAC.';
+    } else if (formatted.length === 17) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#34d399';
+      feedback.innerHTML = '✓ Valid Physical Hardware MAC Address';
+    } else {
+      feedback.style.display = 'none';
+    }
+    updateLivePreview();
+  }
+
+  function isRandomMac(mac) {
+    if (!mac) return false;
+    const clean = mac.replace(/[^0-9A-Fa-f]/g, '');
+    if (clean.length < 2) return false;
+    const firstByte = parseInt(clean.substring(0, 2), 16);
+    return (firstByte & 0x02) !== 0;
+  }
+
+  function updateLivePreview() {
+    const name = document.getElementById('newCustName')?.value.trim() || 'New Subscriber';
+    const phone = document.getElementById('newCustPhone')?.value.trim() || '—';
+    const connType = document.getElementById('fullConnType')?.value || 'hotspot';
+    const bType = document.getElementById('fullBillingType')?.value || 'prepaid';
+    const pkg = document.getElementById('addCustPkg')?.value || '—';
+    const speed = document.getElementById('addCustSpeed')?.value.trim() || '—';
+    const fee = parseFloat(document.getElementById('addCustFee')?.value) || 0.0;
+    const dueDate = document.getElementById('addCustDueDate')?.value || '—';
+    const maxDev = document.getElementById('addCustMaxDevices')?.value || '1';
+
+    // Banner
+    const bannerName = document.getElementById('bannerName');
+    if (bannerName) bannerName.textContent = name;
+    const bannerPhone = document.getElementById('bannerPhone');
+    if (bannerPhone) bannerPhone.textContent = phone !== '—' ? phone : 'Waiting for phone number...';
+    const bannerAvatar = document.getElementById('bannerAvatar');
+    if (bannerAvatar) {
+      bannerAvatar.textContent = name !== 'New Subscriber' && name.length > 0 ? name.charAt(0).toUpperCase() : '👤';
+    }
+
+    const bConn = document.getElementById('bannerConnBadge');
+    if (bConn) {
+      bConn.textContent = connType.toUpperCase();
+      if (connType === 'pppoe') {
+        bConn.style.background = 'rgba(168,85,247,0.15)';
+        bConn.style.color = '#c084fc';
+      } else if (connType === 'both') {
+        bConn.style.background = 'rgba(16,185,129,0.15)';
+        bConn.style.color = '#34d399';
+      } else {
+        bConn.style.background = 'rgba(56,189,248,0.15)';
+        bConn.style.color = '#38bdf8';
+      }
+    }
+
+    const bBill = document.getElementById('bannerBillingBadge');
+    if (bBill) {
+      bBill.textContent = bType.toUpperCase();
+      bBill.style.background = bType === 'prepaid' ? 'rgba(168,85,247,0.15)' : 'rgba(56,189,248,0.15)';
+      bBill.style.color = bType === 'prepaid' ? '#c084fc' : '#38bdf8';
+    }
+
+    // Sidebar
+    const sideName = document.getElementById('sideName');
+    if (sideName) sideName.textContent = name;
+    const sidePhone = document.getElementById('sidePhone');
+    if (sidePhone) sidePhone.textContent = phone;
+    const sideProtocol = document.getElementById('sideProtocol');
+    if (sideProtocol) {
+      sideProtocol.textContent = connType === 'pppoe' ? 'PPPoE Router' : (connType === 'both' ? 'Hybrid Dual' : 'Hotspot (MAC)');
+      sideProtocol.style.color = connType === 'pppoe' ? '#c084fc' : (connType === 'both' ? '#34d399' : '#38bdf8');
+    }
+    const sidePkg = document.getElementById('sidePkg');
+    if (sidePkg) sidePkg.textContent = pkg;
+    const sideSpeed = document.getElementById('sideSpeed');
+    if (sideSpeed) sideSpeed.textContent = speed;
+    const sideFee = document.getElementById('sideFee');
+    if (sideFee) sideFee.textContent = fee.toFixed(2) + ' SAR';
+    const sideDueDate = document.getElementById('sideDueDate');
+    if (sideDueDate) sideDueDate.textContent = dueDate;
+    const sideMaxDev = document.getElementById('sideMaxDev');
+    if (sideMaxDev) sideMaxDev.textContent = `${maxDev} Device${maxDev != 1 ? 's' : ''}`;
+
+    // Bottom bar summary
+    const barCustSummary = document.getElementById('barCustSummary');
+    if (barCustSummary) {
+      barCustSummary.textContent = `${name} • ${pkg} (${fee.toFixed(2)} SAR)`;
+    }
+  }
+
+  async function handleFullFormSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitFull');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Creating &amp; Synchronizing on MikroTik...</span>';
+
+    const name = document.getElementById('newCustName').value.trim();
+    const phone = document.getElementById('newCustPhone').value.trim();
+    const bType = document.getElementById('fullBillingType').value;
+    const pkg = document.getElementById('addCustPkg').value;
+    const speed = document.getElementById('addCustSpeed').value.trim();
+    const fee = parseFloat(document.getElementById('addCustFee').value) || 0.0;
+    const dueDate = document.getElementById('addCustDueDate').value;
+    const maxDev = parseInt(document.getElementById('addCustMaxDevices').value) || 1;
+    const mac = document.getElementById('addCustMac').value.trim();
+    const initPay = parseFloat(document.getElementById('addCustInitialPay').value) || 0.0;
+    const advMode = (document.querySelector('input[name="full_adv_mode"]:checked') || {}).value || 'credit';
+    const resellerVal = document.getElementById('addCustReseller') ? document.getElementById('addCustReseller').value : '';
+    const resellerId = resellerVal ? parseInt(resellerVal) : null;
+    const joinDate = document.getElementById('addCustJoinDate') ? document.getElementById('addCustJoinDate').value : null;
+    const bStart = document.getElementById('addCustBillingStart') ? document.getElementById('addCustBillingStart').value : null;
+    const notes = document.getElementById('newCustNotes') ? document.getElementById('newCustNotes').value.trim() : '';
+    const connType = document.getElementById('fullConnType') ? document.getElementById('fullConnType').value : 'hotspot';
+    const pppUser = document.getElementById('fullPppUser') ? document.getElementById('fullPppUser').value.trim() : null;
+    const pppPass = document.getElementById('fullPppPass') ? document.getElementById('fullPppPass').value.trim() : null;
+    const pppProf = document.getElementById('fullPppProfile') ? document.getElementById('fullPppProfile').value.trim() : null;
+    const pppIp = document.getElementById('fullPppIp') ? document.getElementById('fullPppIp').value.trim() : null;
+
+    if (mac && isRandomMac(mac)) {
+      cyberToast('Cannot create subscriber: Randomized MAC address detected! Please turn off Private Wi-Fi.');
+      btn.disabled = false;
+      btn.innerHTML = '<span>🚀 Create &amp; Authorize Customer</span>';
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          phone: phone,
+          billing_type: bType,
+          package_name: pkg,
+          speed_limit: speed,
+          monthly_fee: fee,
+          due_date: dueDate,
+          max_devices: maxDev,
+          mac_address: mac || null,
+          initial_payment: initPay,
+          advance_mode: advMode,
+          reseller_id: resellerId,
+          join_date: joinDate || null,
+          billing_start_date: bStart || null,
+          notes: notes,
+          connection_type: connType,
+          pppoe_username: pppUser,
+          pppoe_password: pppPass,
+          pppoe_profile: pppProf,
+          pppoe_remote_ip: pppIp
+        })
+      });
+
+      const res = await resp.json();
+      if (res.success) {
+        cyberToast('Subscriber successfully authorized and synced across MikroTik fleet!');
+        setTimeout(() => {
+          window.location.href = '/customers';
+        }, 500);
+      } else {
+        cyberToast('Failed: ' + (res.error || res.message));
+        btn.disabled = false;
+        btn.innerHTML = '<span>🚀 Create &amp; Authorize Customer</span>';
+      }
+    } catch (err) {
+      cyberToast('Error: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span>🚀 Create &amp; Authorize Customer</span>';
+    }
+  }
+</script>
+{% endblock %}

@@ -1303,10 +1303,15 @@
         {% endfor %}
       </select>
 
-      <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
-        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        <span>Add Customer</span>
-      </button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
+          <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span>Add Customer</span>
+        </button>
+        <a href="/customers/add" class="btn-action-sm" title="Open Full-Page Customer Onboarding" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); height:36px; padding:0 10px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:700; font-size:12px;">
+          <span>Full Page ↗</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -2058,212 +2063,308 @@
 <!-- =========================================================
      MANUAL ADD CUSTOMER MODAL
      ========================================================= -->
+<!-- =========================================================
+     MANUAL ADD CUSTOMER MODAL
+     ========================================================= -->
 <div class="modal-overlay" id="addCustomerModal">
-  <div class="modal-box">
+  <div class="modal-box-lg" style="max-width:680px;">
     <div class="modal-header">
       <div>
-        <h3>Register New Customer</h3>
-        <p>Direct onboarding without captive portal submission</p>
+        <h3 id="addCustModalTitle" style="display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <span>Register New Customer</span>
+        </h3>
+        <p>Direct MikroTik authorization, speed queueing &amp; billing setup</p>
       </div>
-      <button type="button" class="btn-close-modal" onclick="closeAddCustomerModal()">&times;</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="/customers/add" class="btn-action-sm" style="background:rgba(56,189,248,0.12); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+          <span>Full Page ↗</span>
+        </a>
+        <button type="button" class="btn-close-modal" onclick="closeAddCustomerModal()">&times;</button>
+      </div>
     </div>
 
     <form id="addCustForm" onsubmit="submitNewCustomer(event)">
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="newCustName">Customer Full Name</label>
-          <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi">
-        </div>
-
-        <div class="form-group">
-          <label for="newCustPhone">Primary Phone Number</label>
-          <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
-        </div>
-
-        <div class="form-group">
-          <label for="newCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Customer Note / Room # / Flat</span>
-            <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
-          </label>
-          <input type="text" class="form-input" id="newCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
-        </div>
-
-        <div class="form-group">
-          <label for="addCustReseller">Assigned Reseller / Partner Shop (Optional)</label>
-          <select class="form-select" id="addCustReseller">
-            <option value="">🏢 Direct ISP (No Reseller)</option>
-            {% for r in resellers %}
-              <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }} ({{ r.commission_rate }}% discount)</option>
-            {% endfor %}
-          </select>
-          <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Attributes subscriber to a partner shop/broker for dedicated POS collection.</span>
-        </div>
-
-        <div class="form-group">
-          <label>Billing Type</label>
-          <div class="billing-type-grid">
-            <div class="type-option-card prepaid-selected selected" id="addTypePre" onclick="selectNewCustType('prepaid')">
-              <div class="title">Prepaid</div>
-              <div class="desc">Advance 30-day recharge</div>
-            </div>
-            <div class="type-option-card" id="addTypePost" onclick="selectNewCustType('postpaid')">
-              <div class="title">Postpaid</div>
-              <div class="desc">Recurring monthly cycle</div>
-            </div>
+      <div class="modal-body-scroll" style="max-height:75vh; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px;">
+        
+        <!-- SECTION 1: IDENTITY & CONTACT -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Subscriber Profile &amp; Contact</span>
           </div>
-          <input type="hidden" id="addCustType" value="prepaid">
-        </div>
 
-        <div class="form-group">
-          <label>Network Connection Mode</label>
-          <div class="billing-type-grid" style="grid-template-columns: repeat(3, 1fr);">
-            <div class="type-option-card selected" id="addConnHotspot" onclick="selectAddCustConnType('hotspot')">
-              <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-wifi" style="color:#38bdf8;"></i> Hotspot</div>
-              <div class="desc">Captive / MAC Bypass</div>
-            </div>
-            <div class="type-option-card" id="addConnPppoe" onclick="selectAddCustConnType('pppoe')">
-              <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-network-wired" style="color:#a855f7;"></i> PPPoE</div>
-              <div class="desc">Direct Router Secret</div>
-            </div>
-            <div class="type-option-card" id="addConnBoth" onclick="selectAddCustConnType('both')">
-              <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-layer-group" style="color:#10b981;"></i> Hybrid</div>
-              <div class="desc">Hotspot + PPPoE Dual</div>
-            </div>
-          </div>
-          <input type="hidden" id="addCustConnType" value="hotspot">
-        </div>
-
-        <div id="addCustPppoeBlock" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:10px; padding:12px; margin-bottom:12px;">
-          <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-            <i class="fas fa-key"></i>
-            <span>PPPoE Secret Configuration</span>
-          </div>
           <div class="modal-grid-2">
-            <div class="form-group" style="margin-bottom:6px;">
-              <label for="addCustPppoeUser" style="font-size:12px;">PPPoE Username</label>
-              <input type="text" class="form-input font-mono" id="addCustPppoeUser" placeholder="e.g. phone or username">
-            </div>
-            <div class="form-group" style="margin-bottom:6px;">
-              <label for="addCustPppoePass" style="font-size:12px;">PPPoE Password</label>
-              <input type="text" class="form-input font-mono" id="addCustPppoePass" value="cyber123" placeholder="cyber123">
-            </div>
-          </div>
-          <div class="modal-grid-2" style="margin-top:4px;">
             <div class="form-group" style="margin-bottom:0;">
-              <label for="addCustPppoeProfile" style="font-size:12px;">PPPoE Profile</label>
-              <input type="text" class="form-input font-mono" id="addCustPppoeProfile" value="pppoe-profile-ether4" placeholder="pppoe-profile-ether4">
+              <label for="newCustName">Customer Full Name <span style="color:#ef4444;">*</span></label>
+              <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi">
             </div>
+
             <div class="form-group" style="margin-bottom:0;">
-              <label for="addCustPppoeIp" style="font-size:12px;">Fixed Remote IP (Optional)</label>
-              <input type="text" class="form-input font-mono" id="addCustPppoeIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              <label for="newCustPhone">Primary Phone Number <span style="color:#ef4444;">*</span></label>
+              <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
+            </div>
+          </div>
+
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="newCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Customer Note / Room # / Flat</span>
+                <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+              </label>
+              <input type="text" class="form-input" id="newCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustReseller">Assigned Reseller / Partner Shop</label>
+              <select class="form-select" id="addCustReseller">
+                <option value="">🏢 Direct ISP (No Reseller)</option>
+                {% for r in resellers %}
+                  <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }} ({{ r.commission_rate }}% discount)</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="addCustPkg">Speed Package</label>
-          <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
-            {% for pkg in packages %}
-            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="addCustSpeed" style="margin-bottom:0;">Speed that Customer Will Get (Speed Limit)</label>
-            <span style="font-size:11px; color:var(--text-dim);">Live MikroTik Queue</span>
+        <!-- SECTION 2: NETWORK PROTOCOL & PPPOE -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+            <span>Network Access Mode &amp; PPPoE Account</span>
           </div>
-          <div class="preset-wrap">
-            <input type="text" class="form-input font-mono" id="addCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('5M/5M')">5M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('10M/10M')">10M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('20M/20M')">20M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('30M/30M')">30M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('50M/50M')">50M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('100M/100M')">100M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Connection Protocol</label>
+            <div class="billing-type-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="type-option-card selected" id="addConnHotspot" onclick="selectAddCustConnType('hotspot')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-wifi" style="color:#38bdf8;"></i> Hotspot</div>
+                <div class="desc">MAC Bypass</div>
+              </div>
+              <div class="type-option-card" id="addConnPppoe" onclick="selectAddCustConnType('pppoe')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-network-wired" style="color:#a855f7;"></i> PPPoE</div>
+                <div class="desc">Router Dial-in</div>
+              </div>
+              <div class="type-option-card" id="addConnBoth" onclick="selectAddCustConnType('both')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-layer-group" style="color:#10b981;"></i> Hybrid</div>
+                <div class="desc">Dual Mode</div>
+              </div>
+            </div>
+            <input type="hidden" id="addCustConnType" value="hotspot">
+          </div>
+
+          <div id="addCustPppoeBlock" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:10px; padding:12px;">
+            <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              <i class="fas fa-key"></i>
+              <span>PPPoE Secret Configuration</span>
+            </div>
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="addCustPppoeUser" style="font-size:12px;">PPPoE Username</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoeUser" placeholder="e.g. phone or username">
+              </div>
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="addCustPppoePass" style="font-size:12px;">PPPoE Password</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoePass" value="cyber123" placeholder="cyber123">
+              </div>
+            </div>
+            <div class="modal-grid-2" style="margin-top:4px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustPppoeProfile" style="font-size:12px;">PPPoE Profile</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoeProfile" value="pppoe-profile-ether4" placeholder="pppoe-profile-ether4">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustPppoeIp" style="font-size:12px;">Fixed Remote IP (Optional)</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoeIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              </div>
             </div>
           </div>
-          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter upload/download speed (e.g. 15M/15M) or pick Unlimited.</p>
         </div>
 
-        <div class="modal-grid-2">
-          <div class="form-group">
-            <label for="addCustFee">Monthly Fee (SAR)</label>
-            <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()">
+        <!-- SECTION 3: PLAN & SPEED QUEUE -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span>Internet Plan &amp; MikroTik Speed Queue</span>
           </div>
-          <div class="form-group">
-            <label for="addCustDueDate">Service Suspend Date (Auto / Manual)</label>
-            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
-          </div>
-        </div>
 
-        <div class="modal-grid-2">
-          <div class="form-group">
-            <label for="addCustJoinDate">Customer Joining Date</label>
-            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustJoinDate" placeholder="YYYY-MM-DD" autocomplete="off">
-            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date joined ISP (auto-registered, editable)</span>
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustPkg">Speed Package</label>
+            <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
+              {% for pkg in packages %}
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
+              {% endfor %}
+            </select>
           </div>
-          <div class="form-group">
-            <label for="addCustBillingStart">Billing Cycle Start Date</label>
-            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustBillingStart" placeholder="YYYY-MM-DD" autocomplete="off">
-            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Calculation origin for billing ledger &amp; cycle</span>
-          </div>
-        </div>
 
-        <div class="form-group">
-          <label for="addCustInitialPay">Initial / Advance Payment Collected (SAR) (Optional)</label>
-          <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateAddCustAdvance()">
-          <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 30 SAR fee) goes to Credit Balance!</span>
-        </div>
-
-        <!-- Live Advance Preview for Add Customer -->
-        <div id="addCustAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px; margin-bottom:12px;">
-          <div style="font-size:12px; color:#e2e8f0; line-height:1.4;" id="addCustAdvanceText"></div>
-          <div style="margin-top:8px; display:flex; gap:14px; font-size:11.5px;">
-            <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
-              <input type="radio" name="add_cust_adv_mode" value="credit" checked onchange="calculateAddCustAdvance()">
-              <span>Save surplus as Account Credit</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
-              <input type="radio" name="add_cust_adv_mode" value="months" onchange="calculateAddCustAdvance()">
-              <span>Extend Multiple Months</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="addCustMaxDevices" style="margin-bottom:0;">Allowed Devices (Max Device Limit)</label>
-            <span style="font-size:11px; color:var(--text-dim);">Simultaneous logins</span>
-          </div>
-          <div class="preset-wrap">
-            <input type="number" min="1" max="100" inputmode="numeric" class="form-input font-mono" id="addCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(1)">1</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(2)">2</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(3)">3</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(5)">5</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(8)">8</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(10)">10</button>
+          <div class="form-group" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="addCustSpeed" style="margin-bottom:0;">Speed Limit (Upload / Download)</label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:700;">Live MikroTik Queue</span>
+            </div>
+            <div class="preset-wrap">
+              <input type="text" class="form-input font-mono" id="addCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('5M/5M')">5M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('10M/10M')">10M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('20M/20M')">20M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('30M/30M')">30M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('50M/50M')">50M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('100M/100M')">100M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+              </div>
             </div>
           </div>
-          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter manually or pick a preset for allowed concurrent devices.</p>
         </div>
 
-        <div class="form-group">
-          <label for="addCustMac">Initial Device MAC Address (Optional)</label>
-          <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74 (Auto-bypasses on MikroTik)">
-          <div id="addCustMacFeedback" style="display:none; margin-top:5px; font-size:11.5px; font-weight:600;"></div>
+        <!-- SECTION 4: BILLING TERMS & SUSPEND DATE -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            <span>Billing Model &amp; Renewal Terms</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Billing Model</label>
+            <div class="billing-type-grid">
+              <div class="type-option-card prepaid-selected selected" id="addTypePre" onclick="selectNewCustType('prepaid')">
+                <div class="title">Prepaid</div>
+                <div class="desc">Advance recharge (Standard)</div>
+              </div>
+              <div class="type-option-card" id="addTypePost" onclick="selectNewCustType('postpaid')">
+                <div class="title">Postpaid</div>
+                <div class="desc">Recurring monthly cycle</div>
+              </div>
+            </div>
+            <input type="hidden" id="addCustType" value="prepaid">
+          </div>
+
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustFee">Monthly Fee (SAR) <span style="color:#ef4444;">*</span></label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()" style="color:#38bdf8; font-weight:700;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="addCustDueDate" style="margin-bottom:0;">Service Suspend Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeAddSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto Cutoff</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+            </div>
+          </div>
+
+          <!-- Quick Suspend Presets -->
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Date Presets:</span>
+              <button type="button" class="btn-preset" onclick="applyAddPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                📦 As per Package (<span id="btnModalAddPkgDaysText">30d</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setAddEndOfMonth()">End of Month</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(30)">Day 30</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustInitialPay">Initial / Advance Payment Collected (SAR) (Optional)</label>
+            <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateAddCustAdvance()" style="color:#34d399; font-weight:700;">
+            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 75 SAR fee) is recorded to Credit Wallet!</span>
+          </div>
+
+          <!-- Live Advance Preview -->
+          <div id="addCustAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px;">
+            <div style="font-size:12px; color:#e2e8f0; line-height:1.4;" id="addCustAdvanceText"></div>
+            <div style="margin-top:8px; display:flex; gap:14px; font-size:11.5px;">
+              <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
+                <input type="radio" name="add_cust_adv_mode" value="credit" checked onchange="calculateAddCustAdvance()">
+                <span>Save surplus as Account Credit</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
+                <input type="radio" name="add_cust_adv_mode" value="months" onchange="calculateAddCustAdvance()">
+                <span>Extend Multiple Months</span>
+              </label>
+            </div>
+          </div>
         </div>
+
+        <!-- SECTION 5: DEVICE QUOTAS & MAC ADDRESS -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z M10 4h4v2h-4z"/></svg>
+            <span>Device Concurrency Quota &amp; Hardware MAC</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustMaxDevices" style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
+            <div class="preset-wrap">
+              <input type="number" min="1" max="100" inputmode="numeric" class="form-input font-mono" id="addCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(1)">1 Device</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(2)">2 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(3)">3 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(5)">5 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(8)">8 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(10)">10 Devices</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustMac">Initial Hardware Device MAC Address (Optional)</label>
+            <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74" oninput="handleAddModalMacInput(this)">
+            <div id="addCustMacFeedback" style="display:none; margin-top:5px; font-size:11.5px; font-weight:600;"></div>
+          </div>
+        </div>
+
+        <!-- SECTION 6: ADVANCED DATES (COLLAPSIBLE) -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleAddAdvancedDrawer()">
+            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+              <span>Advanced Registration Dates</span>
+            </div>
+            <span style="font-size:11px; color:#38bdf8;" id="addDrawerIndicator">Click to View / Edit ▾</span>
+          </div>
+
+          <div id="addAdvancedDrawerBody" style="display:none; margin-top:6px;">
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustJoinDate">Customer Joining Date</label>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustJoinDate" placeholder="YYYY-MM-DD" autocomplete="off">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Defaults to registration date</span>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustBillingStart">Billing Cycle Start Date</label>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustBillingStart" placeholder="YYYY-MM-DD" autocomplete="off">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Origin anchor for monthly ledger</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn-cancel" onclick="closeAddCustomerModal()">Cancel</button>
-        <button type="submit" class="btn-confirm-approve" id="btnAddCustSubmit">
-          <span>Create &amp; Authorize Customer</span>
+        <button type="submit" class="btn-confirm-approve" id="btnAddCustSubmit" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
+          <span>🚀 Create &amp; Authorize Customer</span>
         </button>
       </div>
     </form>
@@ -4026,16 +4127,118 @@
     } else {
       document.getElementById('addCustSpeed').value = 'Unlimited';
     }
+    const daysEl = document.getElementById('btnModalAddPkgDaysText');
+    if (daysEl) daysEl.textContent = `${days}d`;
     // Auto-calculate suspend date for new customer based on selected package
     const target = new Date();
     target.setDate(target.getDate() + days);
     const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
-    const dueEl = document.getElementById('addCustDueDate');
-    if (dueEl) {
-      dueEl.value = dateStr;
-      if (window.setPickerDate) window.setPickerDate('addCustDueDate', dateStr);
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d`;
+      badge.style.color = '#38bdf8';
     }
     calculateAddCustAdvance();
+  }
+
+  function setAddDueDateValue(dateStr) {
+    const el = document.getElementById('addCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) window.setPickerDate('addCustDueDate', dateStr);
+  }
+
+  function shiftAddDueDate(days) {
+    const el = document.getElementById('addCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = `+${days}d`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function applyAddPkgValidity() {
+    onAddPkgChange();
+  }
+
+  function setAddEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = 'End of Month';
+      badge.style.color = '#34d399';
+    }
+  }
+
+  function setAddSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = `Day ${dayNum}`;
+      badge.style.color = '#34d399';
+    }
+  }
+
+  function toggleAddAdvancedDrawer() {
+    const b = document.getElementById('addAdvancedDrawerBody');
+    const ind = document.getElementById('addDrawerIndicator');
+    if (!b) return;
+    if (b.style.display === 'none') {
+      b.style.display = 'block';
+      if (ind) ind.textContent = 'Hide ▲';
+    } else {
+      b.style.display = 'none';
+      if (ind) ind.textContent = 'Click to View / Edit ▾';
+    }
+  }
+
+  function handleAddModalMacInput(el) {
+    let val = el.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+    let formatted = '';
+    for (let i = 0; i < val.length && i < 12; i++) {
+      if (i > 0 && i % 2 === 0) formatted += ':';
+      formatted += val[i];
+    }
+    el.value = formatted;
+
+    const feedback = document.getElementById('addCustMacFeedback');
+    if (!feedback) return;
+    if (!formatted) {
+      feedback.style.display = 'none';
+      return;
+    }
+
+    if (isRandomMac(formatted)) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#ef4444';
+      feedback.innerHTML = '⚠️ <strong>Randomized MAC Detected!</strong> Customer has Private Wi-Fi enabled.';
+    } else if (formatted.length === 17) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#34d399';
+      feedback.innerHTML = '✓ Valid Physical Hardware MAC Address';
+    } else {
+      feedback.style.display = 'none';
+    }
   }
 
   function setAddCustSpeed(spd) {

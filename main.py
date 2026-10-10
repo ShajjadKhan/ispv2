@@ -1979,6 +1979,28 @@ async def customers_view(request: Request):
     )
 
 
+@app.api_route("/customers/add", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/customers/new", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def customer_add_view(request: Request):
+    """
+    Dedicated Full-Page Add Customer & Subscriber Onboarding View.
+    """
+    live_status = router_client.get_live_status()
+    packages = database.get_packages()
+    resellers = auth_service.get_resellers_list()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="customer_add.html",
+        context={
+            "router": live_status,
+            "active_page": "customers",
+            "packages": packages,
+            "resellers": resellers
+        }
+    )
+
+
 @app.api_route("/customers/{customer_id}/edit", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def customer_edit_view(request: Request, customer_id: int):
     """
