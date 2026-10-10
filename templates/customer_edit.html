@@ -1099,6 +1099,82 @@
         </div>
       </div>
 
+      <!-- SECTION 2: CONNECTION MODE & PPPOE PROVISIONING -->
+      <div class="form-section-card">
+        <div class="form-section-head">
+          <div class="sec-icon" style="background:rgba(192,132,252,0.15); color:#c084fc;">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title">Network Access Mode &amp; PPPoE Account</div>
+          </div>
+          <span class="sec-desc">Hotspot Wi-Fi, PPPoE Router, or Hybrid</span>
+        </div>
+
+        <div class="form-section-body">
+          <div class="form-group">
+            <label>Connection Protocol</label>
+            <div class="billing-card-picker">
+              <div class="b-picker-card {% if c.connection_type == 'hotspot' or not c.connection_type %}selected{% endif %}" id="cardPickConnHotspot" onclick="selectConnectionType('hotspot')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title">Hotspot (MAC Bypass)</div>
+                  <div class="b-picker-sub">Wi-Fi phone/laptop direct access</div>
+                </div>
+              </div>
+
+              <div class="b-picker-card {% if c.connection_type == 'pppoe' %}selected{% endif %}" id="cardPickConnPppoe" onclick="selectConnectionType('pppoe')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title" style="color:#c084fc;">PPPoE Fiber / Router</div>
+                  <div class="b-picker-sub">Dedicated PPPoE username dial-up</div>
+                </div>
+              </div>
+
+              <div class="b-picker-card {% if c.connection_type == 'both' %}selected{% endif %}" id="cardPickConnBoth" onclick="selectConnectionType('both')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title" style="color:#38bdf8;">Hybrid (Hotspot + PPPoE)</div>
+                  <div class="b-picker-sub">Both Wi-Fi MACs and Home Router</div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="custConnectionType" name="connection_type" value="{{ c.connection_type or 'hotspot' }}">
+          </div>
+
+          <div id="pppoeFieldsWrap" style="{% if c.connection_type not in ['pppoe', 'both'] and not c.pppoe_username %}display:none;{% endif %} margin-top:14px; padding:14px; background:rgba(192,132,252,0.04); border:1px solid rgba(192,132,252,0.2); border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <span style="font-size:12px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.04em;">🔑 MikroTik PPPoE Secret Credentials:</span>
+              <span class="badge" style="background:rgba(192,132,252,0.15); color:#c084fc; font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px;">ALL ROUTERS SYNCED</span>
+            </div>
+
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>PPPoE Username</label>
+                <input type="text" class="form-input font-mono" id="custPppoeUser" name="pppoe_username" value="{{ c.pppoe_username or '' }}" placeholder="e.g. {{ c.phone }} or username">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>PPPoE Password</label>
+                <input type="text" class="form-input font-mono" id="custPppoePass" name="pppoe_password" value="{{ c.pppoe_password or 'cyber123' }}" placeholder="cyber123">
+              </div>
+            </div>
+
+            <div class="modal-grid-2" style="margin-top:12px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>PPPoE Profile</label>
+                <input type="text" class="form-input font-mono" id="custPppoeProfile" name="pppoe_profile" value="{{ c.pppoe_profile or 'pppoe-profile-ether4' }}" placeholder="pppoe-profile-ether4">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Fixed Remote IP (Optional)</label>
+                <input type="text" class="form-input font-mono" id="custPppoeIp" name="pppoe_remote_ip" value="{{ c.pppoe_remote_ip or '' }}" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SECTION 2: PLAN & BANDWIDTH (MIKROTIK QUEUE) -->
       <div class="form-section-card">
         <div class="form-section-head">
@@ -1479,6 +1555,33 @@
     }
   }
 
+  function selectConnectionType(type) {
+    const hiddenEl = document.getElementById('custConnectionType');
+    if (hiddenEl) hiddenEl.value = type;
+    const hCard = document.getElementById('cardPickConnHotspot');
+    const pCard = document.getElementById('cardPickConnPppoe');
+    const bCard = document.getElementById('cardPickConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (type === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (type === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (type === 'both' && bCard) bCard.classList.add('selected');
+
+    const wrap = document.getElementById('pppoeFieldsWrap');
+    if (wrap) {
+      if (type === 'pppoe' || type === 'both') {
+        wrap.style.display = 'block';
+        const userEl = document.getElementById('custPppoeUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('custPhone')?.value.trim() || '';
+        }
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+  }
+
   function getSelectedPackageDays() {
     const sel = document.getElementById('custPackage');
     if (!sel || sel.selectedIndex < 0) return 30;
@@ -1647,7 +1750,12 @@
       reseller_id: resellerId,
       join_date: document.getElementById('custJoinDate') ? document.getElementById('custJoinDate').value : null,
       billing_start_date: document.getElementById('custBillingStartDate') ? document.getElementById('custBillingStartDate').value : null,
-      notes: document.getElementById('custNotes') ? document.getElementById('custNotes').value.trim() : ''
+      notes: document.getElementById('custNotes') ? document.getElementById('custNotes').value.trim() : '',
+      connection_type: document.getElementById('custConnectionType') ? document.getElementById('custConnectionType').value : 'hotspot',
+      pppoe_username: document.getElementById('custPppoeUser') ? document.getElementById('custPppoeUser').value.trim() : null,
+      pppoe_password: document.getElementById('custPppoePass') ? document.getElementById('custPppoePass').value.trim() : null,
+      pppoe_profile: document.getElementById('custPppoeProfile') ? document.getElementById('custPppoeProfile').value.trim() : null,
+      pppoe_remote_ip: document.getElementById('custPppoeIp') ? document.getElementById('custPppoeIp').value.trim() : null
     };
 
     try {

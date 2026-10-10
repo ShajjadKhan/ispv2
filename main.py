@@ -3431,7 +3431,8 @@ async def create_new_customer(payload: CreateCustomerPayload):
         effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
         notes_str = f" [{cust['notes'].strip()}]" if cust.get("notes") and cust["notes"].strip() else ""
 
-        if cust.get("connection_type") == "pppoe" or (payload.connection_type and payload.connection_type.lower() == "pppoe"):
+        is_pppoe_enabled = (cust.get("connection_type") in ("pppoe", "both")) or (payload.connection_type and payload.connection_type.lower() in ("pppoe", "both")) or bool(payload.pppoe_username and payload.pppoe_username.strip())
+        if is_pppoe_enabled:
             pp_user = cust.get("pppoe_username") or payload.pppoe_username or cust.get("phone")
             pp_pass = cust.get("pppoe_password") or payload.pppoe_password or "cyber123"
             pp_prof = cust.get("pppoe_profile") or payload.pppoe_profile or "pppoe-profile-ether4"
@@ -3447,13 +3448,15 @@ async def create_new_customer(payload: CreateCustomerPayload):
                 comment=pp_comm
             )
             mt_ok = any(pp_res.values()) if pp_res else False
-        elif payload.mac_address and payload.mac_address.strip():
+
+        if (payload.connection_type != "pppoe" or payload.mac_address) and payload.mac_address and payload.mac_address.strip():
             comment = f"CyberNet: {cust['phone']} - {cust['name']}{notes_str} ({cust['billing_type'].upper()})"
-            mt_ok = router_client.bind_device(
+            dev_res = mikrotik_client.broadcast_bind_device(
                 mac_address=payload.mac_address,
                 comment=comment,
                 rate_limit=effective_rate
             )
+            mt_ok = any(dev_res.values()) if dev_res else mt_ok
 
         return {
             "success": True,
@@ -3510,9 +3513,11 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
         comment_str = f"CyberNet: {updated['phone']} - {updated['name']}{notes_str} ({updated['billing_type']})"
 
         fleet_res = {}
-        if updated.get("connection_type") == "pppoe":
+        # 1. Sync PPPoE secret across fleet if PPPoE is enabled
+        is_pppoe_enabled = (updated.get("connection_type") in ("pppoe", "both")) or bool(updated.get("pppoe_username") and updated["pppoe_username"].strip())
+        if is_pppoe_enabled:
             pp_comm = f"CyberNet PPPoE: {updated['phone']} - {updated['name']}{notes_str}"
-            fleet_res = mikrotik_client.broadcast_sync_pppoe_secret(
+            pp_res = mikrotik_client.broadcast_sync_pppoe_secret(
                 username=updated.get("pppoe_username") or updated.get("phone"),
                 password=updated.get("pppoe_password") or "cyber123",
                 profile=updated.get("pppoe_profile") or "pppoe-profile-ether4",
@@ -3521,12 +3526,16 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
                 disabled=(updated.get("status") == "suspended"),
                 comment=pp_comm
             )
-        else:
-            fleet_res = mikrotik_client.broadcast_sync_customer_devices_speed(
+            fleet_res.update(pp_res or {})
+
+        # 2. Sync Hotspot devices speed if devices exist or Hotspot mode active
+        if updated.get("connection_type") != "pppoe" or devices:
+            dev_res = mikrotik_client.broadcast_sync_customer_devices_speed(
                 devices=devices,
                 rate_limit=effective_speed,
                 comment=comment_str
             )
+            fleet_res.update(dev_res or {})
         mt_ok = any(fleet_res.values()) if fleet_res else False
 
         return {

@@ -1369,11 +1369,18 @@
                 </td>
                 <td class="font-mono text-white" style="font-weight:600; white-space:nowrap;">{{ c.phone }}</td>
                 <td>
-                  {% if c.billing_type == 'prepaid' %}
-                    <span class="badge-plan prepaid">PREPAID</span>
-                  {% else %}
-                    <span class="badge-plan postpaid">POSTPAID</span>
-                  {% endif %}
+                  <div style="display:flex; flex-direction:column; gap:4px;">
+                    {% if c.billing_type == 'prepaid' %}
+                      <span class="badge-plan prepaid">PREPAID</span>
+                    {% else %}
+                      <span class="badge-plan postpaid">POSTPAID</span>
+                    {% endif %}
+                    {% if c.connection_type == 'pppoe' %}
+                      <span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px; width:fit-content;" title="PPPoE: {{ c.pppoe_username or 'Active' }}">PPPoE</span>
+                    {% elif c.connection_type == 'both' %}
+                      <span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px; width:fit-content;" title="Hybrid: Hotspot + PPPoE ({{ c.pppoe_username or '' }})">HYBRID</span>
+                    {% endif %}
+                  </div>
                 </td>
                 <td>
                   <div class="cust-package-cell">
@@ -1569,6 +1576,11 @@
                 <span class="badge-plan prepaid" style="font-size:10px;">PREPAID</span>
               {% else %}
                 <span class="badge-plan postpaid" style="font-size:10px;">POSTPAID</span>
+              {% endif %}
+              {% if c.connection_type == 'pppoe' %}
+                <span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px;" title="PPPoE: {{ c.pppoe_username }}">PPPoE</span>
+              {% elif c.connection_type == 'both' %}
+                <span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px;" title="Hybrid: Hotspot + PPPoE">HYBRID</span>
               {% endif %}
             </div>
           </div>
@@ -1827,6 +1839,39 @@
               <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Reseller / Partner</div>
               <div style="margin-top:2px; font-weight:700; color:#f472b6;" id="profReseller">—</div>
             </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Network Protocol</div>
+              <div style="margin-top:2px;" id="profConnType">—</div>
+            </div>
+          </div>
+
+          <!-- PPPOE CREDENTIALS (IF PPPOE OR HYBRID) -->
+          <div id="profPppoeCard" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:12px; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+                <i class="fas fa-network-wired"></i>
+                <span>PPPoE Router Secret (MikroTik /ppp/secret)</span>
+              </div>
+              <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 8px; border-color:rgba(168,85,247,0.3); color:#c084fc;">Edit Secret</button>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; font-size:12px;">
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">PPPoE User:</span>
+                <strong class="font-mono" style="color:#ffffff;" id="profPppoeUser">—</strong>
+              </div>
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">Password:</span>
+                <strong class="font-mono" style="color:#ffffff;" id="profPppoePass">—</strong>
+              </div>
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">Profile:</span>
+                <strong class="font-mono" style="color:#38bdf8;" id="profPppoeProfile">—</strong>
+              </div>
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">Remote IP:</span>
+                <strong class="font-mono" style="color:#34d399;" id="profPppoeIp">—</strong>
+              </div>
+            </div>
           </div>
 
           <!-- LINKED DEVICES (MACS) -->
@@ -2070,6 +2115,52 @@
         </div>
 
         <div class="form-group">
+          <label>Network Connection Mode</label>
+          <div class="billing-type-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="type-option-card selected" id="addConnHotspot" onclick="selectAddCustConnType('hotspot')">
+              <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-wifi" style="color:#38bdf8;"></i> Hotspot</div>
+              <div class="desc">Captive / MAC Bypass</div>
+            </div>
+            <div class="type-option-card" id="addConnPppoe" onclick="selectAddCustConnType('pppoe')">
+              <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-network-wired" style="color:#a855f7;"></i> PPPoE</div>
+              <div class="desc">Direct Router Secret</div>
+            </div>
+            <div class="type-option-card" id="addConnBoth" onclick="selectAddCustConnType('both')">
+              <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-layer-group" style="color:#10b981;"></i> Hybrid</div>
+              <div class="desc">Hotspot + PPPoE Dual</div>
+            </div>
+          </div>
+          <input type="hidden" id="addCustConnType" value="hotspot">
+        </div>
+
+        <div id="addCustPppoeBlock" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:10px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-key"></i>
+            <span>PPPoE Secret Configuration</span>
+          </div>
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:6px;">
+              <label for="addCustPppoeUser" style="font-size:12px;">PPPoE Username</label>
+              <input type="text" class="form-input font-mono" id="addCustPppoeUser" placeholder="e.g. phone or username">
+            </div>
+            <div class="form-group" style="margin-bottom:6px;">
+              <label for="addCustPppoePass" style="font-size:12px;">PPPoE Password</label>
+              <input type="text" class="form-input font-mono" id="addCustPppoePass" value="cyber123" placeholder="cyber123">
+            </div>
+          </div>
+          <div class="modal-grid-2" style="margin-top:4px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustPppoeProfile" style="font-size:12px;">PPPoE Profile</label>
+              <input type="text" class="form-input font-mono" id="addCustPppoeProfile" value="pppoe-profile-ether4" placeholder="pppoe-profile-ether4">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustPppoeIp" style="font-size:12px;">Fixed Remote IP (Optional)</label>
+              <input type="text" class="form-input font-mono" id="addCustPppoeIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
           <label for="addCustPkg">Speed Package</label>
           <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
             {% for pkg in packages %}
@@ -2225,7 +2316,60 @@
           </div>
         </div>
 
-        <!-- SECTION 2: INTERNET PLAN & QUEUE SPEED -->
+        <!-- SECTION 2: CONNECTION MODE & PPPOE PROVISIONING -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+            <span>Network Access Mode &amp; PPPoE Account</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Connection Protocol</label>
+            <div class="billing-type-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="type-option-card selected" id="editConnHotspot" onclick="selectEditCustConnType('hotspot')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-wifi" style="color:#38bdf8;"></i> Hotspot</div>
+                <div class="desc">MAC Bypass</div>
+              </div>
+              <div class="type-option-card" id="editConnPppoe" onclick="selectEditCustConnType('pppoe')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-network-wired" style="color:#a855f7;"></i> PPPoE</div>
+                <div class="desc">Router Dial-in</div>
+              </div>
+              <div class="type-option-card" id="editConnBoth" onclick="selectEditCustConnType('both')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-layer-group" style="color:#10b981;"></i> Hybrid</div>
+                <div class="desc">Dual Mode</div>
+              </div>
+            </div>
+            <input type="hidden" id="editCustConnType" value="hotspot">
+          </div>
+
+          <div id="editCustPppoeBlock" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.2); border-radius:10px; padding:12px;">
+            <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">
+              <span>🔑 MikroTik PPPoE Secret Credentials:</span>
+            </div>
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="editCustPppoeUser" style="font-size:12px;">PPPoE Username</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoeUser" placeholder="e.g. phone or username">
+              </div>
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="editCustPppoePass" style="font-size:12px;">PPPoE Password</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoePass" placeholder="cyber123">
+              </div>
+            </div>
+            <div class="modal-grid-2" style="margin-top:4px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="editCustPppoeProfile" style="font-size:12px;">PPPoE Profile</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoeProfile" placeholder="pppoe-profile-ether4">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="editCustPppoeIp" style="font-size:12px;">Fixed Remote IP (Optional)</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoeIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: INTERNET PLAN & QUEUE SPEED -->
         <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
@@ -3230,6 +3374,35 @@
         }
       }
 
+      const connType = (c.connection_type || 'hotspot').toLowerCase();
+      const profConnTypeEl = document.getElementById('profConnType');
+      if (profConnTypeEl) {
+        if (connType === 'pppoe') {
+          profConnTypeEl.innerHTML = '<span class="badge" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-network-wired"></i> PPPoE</span>';
+        } else if (connType === 'both') {
+          profConnTypeEl.innerHTML = '<span class="badge" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-layer-group"></i> HYBRID</span>';
+        } else {
+          profConnTypeEl.innerHTML = '<span class="badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-wifi"></i> HOTSPOT</span>';
+        }
+      }
+
+      const pppoeCard = document.getElementById('profPppoeCard');
+      if (pppoeCard) {
+        if (connType === 'pppoe' || connType === 'both' || c.pppoe_username) {
+          pppoeCard.style.display = 'block';
+          const uEl = document.getElementById('profPppoeUser');
+          const pEl = document.getElementById('profPppoePass');
+          const prEl = document.getElementById('profPppoeProfile');
+          const ipEl = document.getElementById('profPppoeIp');
+          if (uEl) uEl.textContent = c.pppoe_username || '—';
+          if (pEl) pEl.textContent = c.pppoe_password || '—';
+          if (prEl) prEl.textContent = c.pppoe_profile || 'Default';
+          if (ipEl) ipEl.textContent = c.pppoe_remote_ip || 'Dynamic Pool';
+        } else {
+          pppoeCard.style.display = 'none';
+        }
+      }
+
       const fee = parseFloat(c.monthly_fee || 0.0);
       const credit = parseFloat(c.credit_balance || 0.0);
 
@@ -3926,6 +4099,17 @@
       const editNotesEl = document.getElementById('editCustNotes');
       if (editNotesEl) editNotesEl.value = c.notes || '';
 
+      // Connection type & PPPoE credentials
+      selectEditCustConnType(c.connection_type || 'hotspot');
+      const editPppUserEl = document.getElementById('editCustPppoeUser');
+      if (editPppUserEl) editPppUserEl.value = c.pppoe_username || '';
+      const editPppPassEl = document.getElementById('editCustPppoePass');
+      if (editPppPassEl) editPppPassEl.value = c.pppoe_password || 'cyber123';
+      const editPppProfEl = document.getElementById('editCustPppoeProfile');
+      if (editPppProfEl) editPppProfEl.value = c.pppoe_profile || 'pppoe-profile-ether4';
+      const editPppIpEl = document.getElementById('editCustPppoeIp');
+      if (editPppIpEl) editPppIpEl.value = c.pppoe_remote_ip || '';
+
       document.getElementById('editCustomerModal').classList.add('open');
     } catch (err) {
       cyberToast('Failed to load customer details: ' + err.message);
@@ -3946,6 +4130,60 @@
     } else {
       pre.className = 'type-option-card';
       post.className = 'type-option-card selected';
+    }
+  }
+
+  function selectAddCustConnType(t) {
+    const hidden = document.getElementById('addCustConnType');
+    if (hidden) hidden.value = t;
+    const hCard = document.getElementById('addConnHotspot');
+    const pCard = document.getElementById('addConnPppoe');
+    const bCard = document.getElementById('addConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (t === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (t === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (t === 'both' && bCard) bCard.classList.add('selected');
+
+    const block = document.getElementById('addCustPppoeBlock');
+    if (block) {
+      if (t === 'pppoe' || t === 'both') {
+        block.style.display = 'block';
+        const userEl = document.getElementById('addCustPppoeUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('newCustPhone')?.value.trim() || '';
+        }
+      } else {
+        block.style.display = 'none';
+      }
+    }
+  }
+
+  function selectEditCustConnType(t) {
+    const hidden = document.getElementById('editCustConnType');
+    if (hidden) hidden.value = t;
+    const hCard = document.getElementById('editConnHotspot');
+    const pCard = document.getElementById('editConnPppoe');
+    const bCard = document.getElementById('editConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (t === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (t === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (t === 'both' && bCard) bCard.classList.add('selected');
+
+    const block = document.getElementById('editCustPppoeBlock');
+    if (block) {
+      if (t === 'pppoe' || t === 'both') {
+        block.style.display = 'block';
+        const userEl = document.getElementById('editCustPppoeUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('editCustPhone')?.value.trim() || '';
+        }
+      } else {
+        block.style.display = 'none';
+      }
     }
   }
 
@@ -4050,6 +4288,11 @@
     const dueDate = document.getElementById('editCustDueDate').value;
     const maxDev = parseInt(document.getElementById('editCustMaxDevices').value) || 1;
     const credit = parseFloat(document.getElementById('editCustCredit').value) || 0.0;
+    const connType = document.getElementById('editCustConnType') ? document.getElementById('editCustConnType').value : 'hotspot';
+    const pppUser = document.getElementById('editCustPppoeUser') ? document.getElementById('editCustPppoeUser').value.trim() : null;
+    const pppPass = document.getElementById('editCustPppoePass') ? document.getElementById('editCustPppoePass').value.trim() : null;
+    const pppProf = document.getElementById('editCustPppoeProfile') ? document.getElementById('editCustPppoeProfile').value.trim() : null;
+    const pppIp = document.getElementById('editCustPppoeIp') ? document.getElementById('editCustPppoeIp').value.trim() : null;
 
     try {
       const resp = await fetch(`/api/customers/${activeEditCustomerId}/edit`, {
@@ -4065,7 +4308,12 @@
           due_date: dueDate,
           max_devices: maxDev,
           credit_balance: credit,
-          notes: notes
+          notes: notes,
+          connection_type: connType,
+          pppoe_username: pppUser,
+          pppoe_password: pppPass,
+          pppoe_profile: pppProf,
+          pppoe_remote_ip: pppIp
         })
       });
 
@@ -4138,6 +4386,11 @@
     const joinDate = document.getElementById('addCustJoinDate') ? document.getElementById('addCustJoinDate').value : null;
     const bStart = document.getElementById('addCustBillingStart') ? document.getElementById('addCustBillingStart').value : null;
     const notes = document.getElementById('newCustNotes') ? document.getElementById('newCustNotes').value.trim() : '';
+    const connType = document.getElementById('addCustConnType') ? document.getElementById('addCustConnType').value : 'hotspot';
+    const pppUser = document.getElementById('addCustPppoeUser') ? document.getElementById('addCustPppoeUser').value.trim() : null;
+    const pppPass = document.getElementById('addCustPppoePass') ? document.getElementById('addCustPppoePass').value.trim() : null;
+    const pppProf = document.getElementById('addCustPppoeProfile') ? document.getElementById('addCustPppoeProfile').value.trim() : null;
+    const pppIp = document.getElementById('addCustPppoeIp') ? document.getElementById('addCustPppoeIp').value.trim() : null;
 
     if (mac && isRandomMac(mac)) {
       cyberToast('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
@@ -4165,7 +4418,12 @@
           reseller_id: resellerId,
           join_date: joinDate || null,
           billing_start_date: bStart || null,
-          notes: notes
+          notes: notes,
+          connection_type: connType,
+          pppoe_username: pppUser,
+          pppoe_password: pppPass,
+          pppoe_profile: pppProf,
+          pppoe_remote_ip: pppIp
         })
       });
 
