@@ -96,23 +96,11 @@
     border-color: #38bdf8;
   }
 
-  /* RESPONSIVE KPI DECK GRID: WIDE PC (7 COLS), LAPTOP/MACBOOK (4 COLS) */
+  /* 7-CARD HIGH-DENSITY KPI GRID (SINGLE ROW ON DESKTOP/LAPTOP) */
   .kpi-deck-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 8px;
-  }
-  @media (min-width: 769px) and (max-width: 1440px) {
-    .kpi-deck-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-    }
-  }
-  @media (min-width: 1441px) {
-    .kpi-deck-grid {
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 8px;
-    }
   }
 
   .kpi-card {
@@ -1940,17 +1928,11 @@
     .modal-container, .modal-box, .modal-box-lg {
       max-width: 96vw !important;
       width: 96vw !important;
-      max-height: 92dvh !important;
-      display: flex !important;
-      flex-direction: column !important;
       margin: 8px auto !important;
       box-sizing: border-box !important;
-      border-radius: 14px !important;
+      border-radius: 12px !important;
     }
     .modal-body {
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      flex-grow: 1 !important;
       padding: 12px 10px !important;
       gap: 10px !important;
       box-sizing: border-box !important;
@@ -2422,36 +2404,26 @@
       </div>
     </div>
 
-    <!-- Card 6: Accounts Due for Suspension (Will Suspend / Expiring) -->
-    <div class="kpi-card {% if metrics.expiring_tiers.will_suspend > 0 %}theme-rose{% elif metrics.expiring_tiers.total_queue > 0 %}theme-amber{% else %}theme-emerald{% endif %}" onclick="handleKpiCardClick('will_suspend')" title="Click to view Accounts Due for Suspension Cutoff / Expiration Queue">
+    <!-- Card 6: Accounts Due for Suspension (Will Suspend) -->
+    <div class="kpi-card theme-rose" onclick="handleKpiCardClick('will_suspend')" title="Click to view Accounts Due for Suspension Cutoff">
       <div class="kpi-card-top">
-        <span class="kpi-label">Will Suspend / Expiring</span>
+        <span class="kpi-label">Will Suspend</span>
         <div class="kpi-icon-pill">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z"/></svg>
         </div>
       </div>
       <div class="kpi-val-group">
-        <div class="kpi-main-number font-mono" id="kpiWillSuspendCount">
-          {% if metrics.expiring_tiers.will_suspend > 0 %}
-            <span class="text-rose">{{ metrics.expiring_tiers.will_suspend }}</span> <span style="font-size:13px; font-weight:600; color:var(--text-dim);">To Cut</span> <span style="font-size:11px; font-weight:500; color:var(--text-muted);">/ {{ metrics.expiring_tiers.total_queue }} due</span>
-          {% elif metrics.expiring_tiers.total_queue > 0 %}
-            <span class="text-amber">{{ metrics.expiring_tiers.total_queue }}</span> <span style="font-size:13px; font-weight:600; color:var(--text-dim);">Expiring</span>{% if metrics.expiring_tiers.in_3d > 0 %} <span style="font-size:11px; font-weight:600; color:#38bdf8;">({{ metrics.expiring_tiers.in_3d }} in &le;3d)</span>{% endif %}
-          {% else %}
-            <span class="text-emerald">0</span> <span style="font-size:13px; font-weight:600; color:var(--text-dim);">To Cut</span>
-          {% endif %}
-        </div>
-        <div class="kpi-sub-text" id="kpiWillSuspendSub">
+        <div class="kpi-main-number text-rose">{{ metrics.expiring_tiers.will_suspend }} <span style="font-size:15px; font-weight:500;">Accounts</span></div>
+        <div class="kpi-sub-text">
           {% if metrics.expiring_tiers.will_suspend > 0 %}
             <span style="color:#ef4444; font-weight:700;">🚨 {{ metrics.expiring_tiers.overdue }} Overdue &bull; {{ metrics.expiring_tiers.today }} Today</span> &bull; {{ metrics.expiring_tiers.in_3d }} in 3d
-          {% elif metrics.expiring_tiers.total_queue > 0 %}
-            <span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; <span style="color:{% if metrics.expiring_tiers.in_3d > 0 %}#38bdf8; font-weight:700;{% else %}var(--text-muted);{% endif %}">{{ metrics.expiring_tiers.in_3d }} in 3d</span> &bull; {{ metrics.expiring_tiers.in_7_15d or ((metrics.expiring_tiers.in_7d or 0) + (metrics.expiring_tiers.in_15d or 0)) }} in 7-15d
           {% else %}
-            <span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; All accounts active
+            <span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; {{ metrics.expiring_tiers.in_3d }} in 3d &bull; {{ metrics.expiring_tiers.upcoming_renewals }} in 7-15d
           {% endif %}
         </div>
       </div>
       <div class="kpi-progress-bar">
-        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.will_suspend > 0 %}100{% elif metrics.expiring_tiers.total_queue > 0 %}{{ [100, (((metrics.expiring_tiers.in_3d or 0) / (metrics.expiring_tiers.total_queue or 1)) * 100)|round|int]|min }}%{% else %}0%{% endif %}; background: {% if metrics.expiring_tiers.will_suspend > 0 %}linear-gradient(90deg, #dc2626, #ef4444){% elif metrics.expiring_tiers.total_queue > 0 %}linear-gradient(90deg, #d97706, #f59e0b){% else %}linear-gradient(90deg, #059669, #10b981){% endif %};"></div>
+        <div class="kpi-progress-fill" style="width: {% if metrics.expiring_tiers.will_suspend > 0 %}100{% else %}0{% endif %}%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
       </div>
       <div class="kpi-filter-hint">
         <span>🔍 View Will Suspend List ↓</span>
@@ -2647,10 +2619,20 @@
                   {% elif req.is_secondary %}
                     <button type="button" class="btn-approve"
                       data-req-id="{{ req.id }}"
+                      data-phone="{{ req.phone }}"
+                      data-mac="{{ req.mac_address }}"
+                      data-ip="{{ req.ip_address or '' }}"
                       data-cust-name="{{ (req.existing_customer_name or '') | escape }}"
-                      onclick="quickApproveSecondaryFromBtn(this)"
+                      data-is-secondary="1"
+                      data-max-devices="{{ req.customer_max_devices or 1 }}"
+                      data-current-devices="{{ req.current_device_count or 0 }}"
+                      data-pkg-name="{{ req.existing_package_name or '' }}"
+                      data-expiry-date="{{ req.existing_expiry_date or '' }}"
+                      data-notes="{{ (req.existing_customer_notes or req.notes or '') | escape }}"
+                      data-device-model="{{ (req.device_model or 'Client Device') | escape }}"
+                      onclick="openApprovalModalFromBtn(this)"
                       style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
-                      title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (No Billing)">
+                      title="Quick Authorize device for {{ req.existing_customer_name or 'customer' }} (Review &amp; Guest/Permanent Pass)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
@@ -2666,9 +2648,10 @@
                       data-pkg-name="{{ req.existing_package_name or '' }}"
                       data-expiry-date="{{ req.existing_expiry_date or '' }}"
                       data-notes="{{ (req.existing_customer_notes or req.notes or '') | escape }}"
+                      data-device-model="{{ (req.device_model or 'Client Device') | escape }}"
                       onclick="openApprovalModalFromBtn(this)"
                       style="background:#1e293b; border-color:#334155; color:#cbd5e1;"
-                      title="Review Subscriber & Authorize">
+                      title="Review Subscriber &amp; Authorize">
                       <span>Review</span>
                     </button>
                     <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
@@ -2817,7 +2800,7 @@
           <tr id="emptyCustRow">
             <td colspan="8" style="text-align: center; padding: 36px; color: var(--text-dim);">
               <svg style="width: 36px; height: 36px; fill: #64748b; margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-              <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff);">No Customers Registered Yet</div>
+              <div style="font-size: 14px; font-weight: 700; color: #ffffff;">No Customers Registered Yet</div>
               <div style="font-size: 12px; margin-top: 4px;">Subscribers will appear here once approved from Wi-Fi Join Requests.</div>
             </td>
           </tr>
@@ -2835,7 +2818,7 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik Router{% else %}Offline{% endif %}"></span>
                   <div>
-                    <div style="font-weight: 700; color: var(--text-main, #ffffff); display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <div style="font-weight: 700; color: #ffffff; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       <span>{{ c.name }}</span>
                       {% if c.is_sharing_hotspot %}
                         <span class="badge-status badge-hotspot-sharing" style="font-size:10px; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:1.5px 6px; border-radius:4px; font-weight:700; display:inline-flex; align-items:center; gap:3px;" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
@@ -3256,7 +3239,7 @@
       <div id="printableReportArea" style="margin-top: 10px; display: none;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--border-subtle); padding-bottom: 14px; margin-bottom: 16px;">
           <div>
-            <h2 style="font-size: 18px; font-weight: 800; color: var(--text-main, #ffffff);" id="rptHeading">Collections Audit Report</h2>
+            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff;" id="rptHeading">Collections Audit Report</h2>
             <div style="font-size: 12px; color: var(--text-dim);" id="rptPeriod">Period: 2026-09-01 to 2026-09-19</div>
           </div>
           <div class="no-print">
@@ -3378,7 +3361,7 @@
                 <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 <span>Existing Active Subscriber</span>
               </div>
-              <div style="font-size:16px; font-weight:800; color:var(--text-main, #ffffff);" id="secondaryCustName">Customer</div>
+              <div style="font-size:16px; font-weight:800; color:#ffffff;" id="secondaryCustName">Customer</div>
             </div>
             <span class="badge" style="background:rgba(52, 211, 153, 0.2); color:#34d399; border:1px solid rgba(52, 211, 153, 0.4); font-size:11.5px; font-weight:700; padding:4px 10px; white-space:nowrap;" id="secondarySlotBadge">Device 4 of 4</span>
           </div>
@@ -3400,6 +3383,17 @@
 
           <div style="margin-top:12px; font-size:12px; color:#cbd5e1; line-height:1.45;">
             💡 <strong>No billing required:</strong> This extra phone connects under the subscriber's existing active account. All existing subscription dates, monthly rates, and package settings remain untouched.
+          </div>
+
+          <!-- Incoming Device Info Banner -->
+          <div style="margin-top:10px; padding:8px 12px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+            <div>
+              <span style="color:#94a3b8; font-size:10.5px; display:block;">Incoming Device Request</span>
+              <strong style="color:#38bdf8;" id="secondaryIncomingModel">Client Device</strong>
+            </div>
+            <div style="text-align:right;">
+              <span class="font-mono text-cyan" id="secondaryIncomingMac" style="font-size:11.5px; font-weight:700;"></span>
+            </div>
           </div>
 
           <!-- Guest Internet Pass Setup -->
@@ -4423,30 +4417,8 @@
         return r.json();
       })
       .then(res => {
-        if (res && res.metrics && res.metrics.expiring_tiers) {
-          const tiers = res.metrics.expiring_tiers;
-          const kpiCountEl = document.getElementById('kpiWillSuspendCount');
-          const kpiSubEl = document.getElementById('kpiWillSuspendSub');
-          if (kpiCountEl) {
-            if (tiers.will_suspend > 0) {
-              kpiCountEl.innerHTML = `<span class="text-rose">${tiers.will_suspend}</span> <span style="font-size:13px; font-weight:600; color:var(--text-dim);">To Cut</span> <span style="font-size:11px; font-weight:500; color:var(--text-muted);">/ ${tiers.total_queue || tiers.will_suspend} due</span>`;
-            } else if (tiers.total_queue > 0) {
-              const in3 = tiers.in_3d || 0;
-              kpiCountEl.innerHTML = `<span class="text-amber">${tiers.total_queue}</span> <span style="font-size:13px; font-weight:600; color:var(--text-dim);">Expiring</span> ${in3 > 0 ? `<span style="font-size:11px; font-weight:600; color:#38bdf8;">(${in3} in &le;3d)</span>` : ''}`;
-            } else {
-              kpiCountEl.innerHTML = `<span class="text-emerald">0</span> <span style="font-size:13px; font-weight:600; color:var(--text-dim);">To Cut</span>`;
-            }
-          }
-          if (kpiSubEl) {
-            if (tiers.will_suspend > 0) {
-              kpiSubEl.innerHTML = `<span style="color:#ef4444; font-weight:700;">🚨 ${tiers.overdue || 0} Overdue &bull; ${tiers.today || 0} Today</span> &bull; ${tiers.in_3d || 0} in 3d`;
-            } else if (tiers.total_queue > 0) {
-              const in7_15 = tiers.in_7_15d !== undefined ? tiers.in_7_15d : ((tiers.in_7d || 0) + (tiers.in_15d || 0));
-              kpiSubEl.innerHTML = `<span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; <span style="color:${(tiers.in_3d || 0) > 0 ? '#38bdf8; font-weight:700;' : 'var(--text-muted);'}">${tiers.in_3d || 0} in 3d</span> &bull; ${in7_15} in 7-15d`;
-            } else {
-              kpiSubEl.innerHTML = `<span style="color:#10b981; font-weight:700;">✓ 0 to cut</span> &bull; All accounts active`;
-            }
-          }
+        if (res && res.metrics) {
+          // Optional telemetry updates
         }
       })
       .catch(() => {});
@@ -4568,9 +4540,7 @@
   // Safe caller wrappers for dataset attributes
   function quickApproveSecondaryFromBtn(btn) {
     if (!btn) return;
-    const reqId = btn.dataset.reqId;
-    const custName = btn.dataset.custName || '';
-    quickApproveSecondary(reqId, custName, btn);
+    openApprovalModalFromBtn(btn);
   }
 
   function openApprovalModalFromBtn(btn) {
@@ -4587,11 +4557,12 @@
       parseInt(ds.currentDevices) || 0,
       ds.pkgName || '',
       ds.expiryDate || '',
-      ds.notes || ''
+      ds.notes || '',
+      ds.deviceModel || 'Client Device'
     );
   }
 
-  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes) {
+  function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes, deviceModel) {
     const modalReqId = document.getElementById('modalReqId');
     if (modalReqId) modalReqId.value = reqId;
     const modalMac = document.getElementById('modalMac');
@@ -4602,6 +4573,11 @@
     if (dispPhone) dispPhone.textContent = phone;
     const dispMac = document.getElementById('dispMac');
     if (dispMac) dispMac.textContent = mac;
+
+    const incomingModel = document.getElementById('secondaryIncomingModel');
+    if (incomingModel) incomingModel.textContent = deviceModel || 'Client Device';
+    const incomingMac = document.getElementById('secondaryIncomingMac');
+    if (incomingMac) incomingMac.textContent = mac || '';
 
     const notesInput = document.getElementById('custNotes');
     if (notesInput) notesInput.value = existingNotes || '';
@@ -4626,7 +4602,7 @@
       if (newBox) newBox.style.display = 'none';
       if (modalTitle) modalTitle.textContent = 'Authorize Extra Device';
       if (modalSub) modalSub.textContent = 'Authorize secondary phone under existing subscriber account — Billing already settled';
-      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (No Billing)</span>';
+      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (Permanent)</span>';
 
       const secName = document.getElementById('secondaryCustName');
       if (secName) secName.textContent = custName || ('Customer ' + phone);
@@ -4780,7 +4756,7 @@
           body: JSON.stringify({
             name: custName,
             is_secondary: true,
-            collected_today: extraFee || guestFee,
+            collected_today: (extraFee || 0.0) + (guestFee || 0.0),
             notes: secNotes,
             is_guest: chkGuest,
             guest_days: guestDays,
@@ -4873,45 +4849,13 @@
     }
   }
 
-  async function quickApproveSecondary(reqId, custName, btnElement) {
-    const btn = btnElement || (typeof event !== 'undefined' && event && event.currentTarget) || (typeof event !== 'undefined' && event && event.target && event.target.closest('button'));
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = '<svg style="width:13px; height:13px; animation:spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Authorizing...</span>';
+  function quickApproveSecondary(reqId, custName, btnElement) {
+    const btn = btnElement || document.querySelector(`button.btn-approve[data-req-id="${reqId}"]`) || document.querySelector(`#req-row-${reqId} button.btn-approve`);
+    if (btn && btn.dataset && btn.dataset.reqId) {
+      openApprovalModalFromBtn(btn);
+      return;
     }
-
-    try {
-      const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: custName || 'Customer',
-          is_secondary: true,
-          collected_today: 0.0
-        })
-      });
-      const res = await resp.json();
-      if (res.success) {
-        cyberToast(`Extra device for ${custName || 'subscriber'} authorized successfully!`, 'success');
-        const row = document.getElementById('req-row-' + reqId);
-        if (row) row.remove();
-        if (typeof refreshPendingRequests === 'function') {
-          refreshPendingRequests();
-        }
-      } else {
-        cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'), 'error');
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> <span>Quick Authorize</span>';
-        }
-      }
-    } catch (err) {
-      cyberToast('Error authorizing device: ' + err.message, 'error');
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> <span>Quick Authorize</span>';
-      }
-    }
+    openApprovalModal(reqId, '', '', '', custName || '', 1, 1, 0, '', '', '');
   }
   window.quickApproveSecondary = quickApproveSecondary;
 
@@ -5034,15 +4978,58 @@
                </button>
                <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})" title="Reject Random MAC request">Reject</button>`
             : req.is_secondary
-            ? `<button type="button" class="btn-approve" onclick="quickApproveSecondary(${req.id}, ${JSON.stringify(req.existing_customer_name || '')}, this)" style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;" title="1-Click Quick Authorize (No Billing)">
+            ? `<button type="button" class="btn-approve"
+                 data-req-id="${req.id}"
+                 data-phone="${safePhone}"
+                 data-mac="${req.mac_address}"
+                 data-ip="${req.ip_address || ''}"
+                 data-cust-name="${safeName}"
+                 data-is-secondary="1"
+                 data-max-devices="${req.customer_max_devices || 1}"
+                 data-current-devices="${req.current_device_count || 0}"
+                 data-pkg-name="${req.existing_package_name || ''}"
+                 data-expiry-date="${req.existing_expiry_date || ''}"
+                 data-notes="${safeNotes}"
+                 data-device-model="${(req.device_model || 'Client Device').replace(/"/g, '&quot;')}"
+                 onclick="openApprovalModalFromBtn(this)"
+                 style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
+                 title="Quick Authorize device for ${safeName || 'customer'} (Review &amp; Guest/Permanent Pass)">
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                  <span>Quick Authorize</span>
                </button>
-               <button type="button" class="btn-approve btn-review-req" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', ${JSON.stringify(req.existing_customer_name || '')}, 1, ${req.customer_max_devices || 1}, ${req.current_device_count || 0}, '${req.existing_package_name || ''}', '${req.existing_expiry_date || ''}', ${JSON.stringify(req.existing_customer_notes || req.notes || '')})" style="background:#1e293b; border-color:#334155; color:#cbd5e1;" title="Review Subscriber & Authorize">
+               <button type="button" class="btn-approve btn-review-req"
+                 data-req-id="${req.id}"
+                 data-phone="${safePhone}"
+                 data-mac="${req.mac_address}"
+                 data-ip="${req.ip_address || ''}"
+                 data-cust-name="${safeName}"
+                 data-is-secondary="1"
+                 data-max-devices="${req.customer_max_devices || 1}"
+                 data-current-devices="${req.current_device_count || 0}"
+                 data-pkg-name="${req.existing_package_name || ''}"
+                 data-expiry-date="${req.existing_expiry_date || ''}"
+                 data-notes="${safeNotes}"
+                 data-device-model="${(req.device_model || 'Client Device').replace(/"/g, '&quot;')}"
+                 onclick="openApprovalModalFromBtn(this)"
+                 style="background:#1e293b; border-color:#334155; color:#cbd5e1;"
+                 title="Review Subscriber &amp; Authorize">
                  <span>Review</span>
                </button>
                <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`
-            : `<button type="button" class="btn-approve" onclick="openApprovalModal(${req.id}, '${req.phone}', '${req.mac_address}', '${req.ip_address || ''}', ${JSON.stringify(req.existing_customer_name || req.customer_name || '')}, 0, 1, 0, '', '', ${JSON.stringify(req.notes || '')})">
+            : `<button type="button" class="btn-approve"
+                 data-req-id="${req.id}"
+                 data-phone="${safePhone}"
+                 data-mac="${req.mac_address}"
+                 data-ip="${req.ip_address || ''}"
+                 data-cust-name="${safeName}"
+                 data-is-secondary="0"
+                 data-max-devices="1"
+                 data-current-devices="0"
+                 data-pkg-name=""
+                 data-expiry-date=""
+                 data-notes="${safeNotes}"
+                 data-device-model="${(req.device_model || 'Client Device').replace(/"/g, '&quot;')}"
+                 onclick="openApprovalModalFromBtn(this)">
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                  <span>Approve</span>
                </button>

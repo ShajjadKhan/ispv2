@@ -1122,30 +1122,6 @@
     }
   }
 
-  @media (max-width: 440px) {
-    .stats-row {
-      grid-template-columns: 1fr 1fr !important;
-      gap: 6px !important;
-    }
-    .stat-card {
-      padding: 8px 10px !important;
-    }
-    .stat-data .num {
-      font-size: 16px !important;
-    }
-    .pending-actions-wrap {
-      flex-direction: column !important;
-      gap: 6px !important;
-    }
-    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-approve,
-    .req-table-row td.td-actions button.btn-approve,
-    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject,
-    .req-table-row td.td-actions button.btn-reject {
-      width: 100% !important;
-      min-height: 44px !important;
-    }
-  }
-
   /* Day Mode (Light Theme) Contrast & Visibility Enhancements */
   html[data-theme="light"] #pendingTable tr[id^="req-row-"],
   html[data-theme="light"] .req-table-row {
@@ -1256,7 +1232,7 @@
                 {% if req.is_secondary and req.existing_customer_name %}
                   <div style="display:flex; flex-direction:column; gap:2px;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                      <span style="font-weight:800; font-size:13.5px; color:var(--text-main, #ffffff); letter-spacing:-0.01em;">{{ req.existing_customer_name }}</span>
+                      <span style="font-weight:800; font-size:13.5px; color:#ffffff; letter-spacing:-0.01em;">{{ req.existing_customer_name }}</span>
                       <span class="badge" style="background:rgba(52, 211, 153, 0.18); color:#34d399; border:1px solid rgba(52, 211, 153, 0.35); font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:4px; text-transform:uppercase;">EXISTING SUBSCRIBER</span>
                     </div>
                     {% if req.existing_customer_notes %}
@@ -1279,7 +1255,7 @@
                   </div>
                 {% elif req.customer_name %}
                   <div style="display:flex; flex-direction:column; gap:2px;">
-                    <div style="font-weight:800; font-size:13.5px; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                    <div style="font-weight:800; font-size:13.5px; color:#ffffff; display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                       <span>{{ req.customer_name }}</span>
                       {% if req.notes %}
                         <span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); padding:1px 5px; border-radius:4px; font-weight:600;" title="Room: {{ req.notes }}">🚪 {{ req.notes }}</span>
@@ -1304,7 +1280,7 @@
                       <span style="width:6px; height:6px; border-radius:50%; background:#38bdf8; display:inline-block;"></span>
                       <span>New Subscriber</span>
                     </div>
-                    <span class="phone-wrap font-mono" style="font-size:12.5px; color:var(--text-main, #ffffff); font-weight:700; margin-top:1px;">
+                    <span class="phone-wrap font-mono" style="font-size:12.5px; color:#ffffff; font-weight:700; margin-top:1px;">
                       <span class="phone-val text-cyan">{{ req.phone }}</span>
                       <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ req.phone }}', this, event)" title="Copy Phone Number: {{ req.phone }}" aria-label="Copy phone number">
                         <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1397,7 +1373,7 @@
                       style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
                       title="Review subscriber & authorize device (Permanent or Guest Pass)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-                      <span>Authorize</span>
+                      <span>Quick Authorize</span>
                     </button>
                     <button type="button" class="btn-approve"
                       data-req-id="{{ req.id }}"
@@ -1453,7 +1429,7 @@
               <td colspan="7">
                 <div class="empty-state">
                   <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
-                  <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Pending Connection Requests</p>
+                  <p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Pending Connection Requests</p>
                   <p style="font-size:12px;">When a user submits their phone number on the captive portal popup, it will appear here instantly for your review.</p>
                 </div>
               </td>
@@ -1494,9 +1470,9 @@
           {% if approved_customers %}
             {% for cust in approved_customers %}
             <tr class="approved-dev-row" data-billing="{{ cust.billing_type }}">
-              <td data-label="Customer Name" style="font-weight:700; color:var(--text-main, #ffffff);">
+              <td data-label="Customer Name" style="font-weight:700; color:#ffffff;">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  <a href="/customers/{{ cust.customer_id }}/edit" style="color:var(--text-main, #ffffff); font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
+                  <a href="/customers/{{ cust.customer_id }}/edit" style="color:#ffffff; font-weight:700; text-decoration:none;" title="View & Edit Customer Profile">
                     {{ cust.customer_name }}
                   </a>
                   {% if cust.notes %}
@@ -2354,7 +2330,7 @@
           body: JSON.stringify({
             name: custName,
             is_secondary: true,
-            collected_today: extraFee || guestFee,
+            collected_today: (extraFee || 0.0) + (guestFee || 0.0),
             notes: secNotes,
             is_guest: chkGuest,
             guest_days: guestDays,
@@ -2451,43 +2427,13 @@
     }
   }
 
-  async function quickApproveSecondary(reqId, custName, btnElement) {
-    const btn = btnElement || (typeof event !== 'undefined' && event && event.currentTarget) || (typeof event !== 'undefined' && event && event.target && event.target.closest('button'));
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = '<svg style="width:13px; height:13px; animation:spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Authorizing...</span>';
+  function quickApproveSecondary(reqId, custName, btnElement) {
+    const btn = btnElement || document.querySelector(`button.btn-approve[data-req-id="${reqId}"]`) || document.querySelector(`#req-row-${reqId} button.btn-approve`);
+    if (btn && btn.dataset && btn.dataset.reqId) {
+      openApprovalModalFromBtn(btn);
+      return;
     }
-
-    try {
-      const resp = await fetch(`/api/hotspot/requests/${reqId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: custName || 'Customer',
-          is_secondary: true,
-          collected_today: 0.0
-        })
-      });
-      const res = await resp.json();
-      if (res.success) {
-        cyberToast(`Extra device for ${custName || 'subscriber'} authorized successfully!`, 'success');
-        const row = document.getElementById('req-row-' + reqId);
-        if (row) row.remove();
-        setTimeout(() => location.reload(), 300);
-      } else {
-        cyberToast('Approval failed: ' + (res.error || res.message || 'Unknown error'), 'error');
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> <span>Quick Authorize</span>';
-        }
-      }
-    } catch (err) {
-      cyberToast('Error authorizing device: ' + err.message, 'error');
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> <span>Quick Authorize</span>';
-      }
-    }
+    openApprovalModal(reqId, '', '', '', custName || '', 1, 1, 0, '', '', '', [], 'Client Device', false);
   }
   window.quickApproveSecondary = quickApproveSecondary;
 
