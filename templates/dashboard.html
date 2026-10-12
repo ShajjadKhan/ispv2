@@ -1047,6 +1047,27 @@
     flex-direction: column;
     animation: modal-appear 0.2s ease-out;
   }
+
+  /* Edit Customer Modal Form Layout (Guarantees scrollable body and visible footer) */
+  #editCustomerModal {
+    z-index: 1100;
+  }
+  #editCustForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #editCustForm .modal-body-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #editCustForm .modal-footer {
+    flex-shrink: 0;
+  }
   @keyframes modal-appear {
     from { opacity: 0; transform: scale(0.96) translateY(-10px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
@@ -1925,12 +1946,29 @@
 
   /* MODALS & SMARTPHONE SPECIFIC ADAPTATIONS (<= 640px) */
   @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 8px !important;
+      align-items: flex-end !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
     .modal-container, .modal-box, .modal-box-lg {
-      max-width: 96vw !important;
-      width: 96vw !important;
-      margin: 8px auto !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      max-height: 92vh !important;
+      margin: 0 auto !important;
       box-sizing: border-box !important;
-      border-radius: 12px !important;
+      border-radius: 16px 16px 0 0 !important;
+    }
+    #editCustomerModal .modal-footer {
+      padding: 12px 16px !important;
+      gap: 10px !important;
+      background: var(--bg-card-header, #0d1527) !important;
+      border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08)) !important;
+    }
+    #editCustomerModal .modal-footer button {
+      min-height: 44px !important;
+      font-size: 13px !important;
     }
     .modal-body {
       padding: 12px 10px !important;

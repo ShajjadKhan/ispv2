@@ -414,6 +414,34 @@
     flex-direction: column;
   }
 
+  /* Edit Customer Modal Form Layout (Guarantees scrollable body and visible footer) */
+  #editCustomerModal {
+    z-index: 1100;
+  }
+  #editCustForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #editCustForm .modal-body-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #editCustForm .modal-footer {
+    flex-shrink: 0;
+  }
+
+  .prof-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
   /* Manage Modal Tabs Navigation */
   .manage-tabs-nav {
     display: flex;
@@ -1118,12 +1146,29 @@
     .preset-wrap input {
       width: 100% !important;
     }
+    .modal-overlay {
+      padding: 8px !important;
+      align-items: flex-end !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
     .modal-box, .modal-box-lg {
-      max-width: 95vw !important;
-      width: 95vw !important;
-      max-height: 90vh !important;
-      margin: 10px auto !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      max-height: 92vh !important;
+      margin: 0 auto !important;
+      border-radius: 18px 18px 0 0 !important;
       box-sizing: border-box !important;
+    }
+    #editCustomerModal .modal-footer {
+      padding: 12px 16px !important;
+      gap: 10px !important;
+      background: var(--bg-card-header, #0d1527) !important;
+      border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08)) !important;
+    }
+    #editCustomerModal .modal-footer button {
+      min-height: 44px !important;
+      font-size: 13px !important;
     }
     .custom-pay-grid {
       grid-template-columns: 1fr !important;
@@ -1748,7 +1793,7 @@
         <h3 id="profName">Customer Profile</h3>
         <p class="font-mono text-dim" style="font-size:12px;" id="profSubhead">Loading details...</p>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
+      <div class="prof-header-actions" style="display:flex; align-items:center; gap:8px;">
         <a id="profUsagePageBtn" href="#" class="btn-action-sm" style="background:rgba(168,85,247,0.15); color:#c084fc; border-color:rgba(168,85,247,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" title="Open Dedicated 90-Day Usage Dashboard">
           <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
           <span>90d Usage</span>
