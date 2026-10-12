@@ -2647,7 +2647,13 @@
               <td data-label="Actions" class="td-actions" style="text-align:right;">
                 <div class="pending-actions-wrap" style="display:inline-flex; gap:8px;">
                   {% if req.is_random_mac %}
-                    <button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
+                    <button type="button" class="btn-approve btn-random-mac"
+                      data-mac="{{ req.mac_address }}"
+                      data-phone="{{ req.phone }}"
+                      data-random-mac="1"
+                      onclick="showRandomMacNotice('{{ req.mac_address }}', '{{ req.phone }}')"
+                      style="background:rgba(239, 68, 68, 0.15); color:#fca5a5; border:1px solid rgba(239, 68, 68, 0.4); cursor:pointer;"
+                      title="Randomized MAC detected. Click to view instructions.">
                       <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
                       <span>Random MAC</span>
                     </button>
@@ -2674,7 +2680,7 @@
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve"
+                    <button type="button" class="btn-approve btn-review-req"
                       data-req-id="{{ req.id }}"
                       data-phone="{{ req.phone }}"
                       data-mac="{{ req.mac_address }}"
@@ -2708,6 +2714,7 @@
                       data-pkg-name=""
                       data-expiry-date=""
                       data-notes="{{ (req.notes or '') | escape }}"
+                      data-device-model="{{ (req.device_model or 'Client Device') | escape }}"
                       onclick="openApprovalModalFromBtn(this)">
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
@@ -4465,11 +4472,10 @@
   // =========================================================
   // APPROVAL & JOIN REQUEST LOGIC
   // =========================================================
-  let currentBillingType = 'prepaid';
-
   function selectBillingType(type) {
     currentBillingType = type;
-    document.getElementById('selectedBillingType').value = type;
+    const selType = document.getElementById('selectedBillingType');
+    if (selType) selType.value = type;
 
     const cardPre = document.getElementById('cardPrepaid');
     const cardPost = document.getElementById('cardPostpaid');
@@ -4481,18 +4487,18 @@
     const prepDate = document.getElementById('inputPrepaidDueDate');
 
     if (type === 'prepaid') {
-      cardPre.className = 'type-option-card prepaid-selected selected';
-      cardPost.className = 'type-option-card';
-      boxPre.style.display = 'flex';
-      boxPost.style.display = 'none';
+      if (cardPre) cardPre.className = 'type-option-card prepaid-selected selected';
+      if (cardPost) cardPost.className = 'type-option-card';
+      if (boxPre) boxPre.style.display = 'flex';
+      if (boxPost) boxPost.style.display = 'none';
       if (colToday) colToday.required = true;
       if (prepMonthly) prepMonthly.required = true;
       if (prepDate) prepDate.required = false;
     } else {
-      cardPre.className = 'type-option-card';
-      cardPost.className = 'type-option-card selected';
-      boxPre.style.display = 'none';
-      boxPost.style.display = 'flex';
+      if (cardPre) cardPre.className = 'type-option-card';
+      if (cardPost) cardPost.className = 'type-option-card selected';
+      if (boxPre) boxPre.style.display = 'none';
+      if (boxPost) boxPost.style.display = 'flex';
       if (colToday) colToday.required = false;
       if (prepMonthly) prepMonthly.required = false;
       if (prepDate) prepDate.required = false;
@@ -4501,18 +4507,22 @@
 
   function setDevLimit(n) {
     const el = document.getElementById('inputMaxDevices');
-    el.value = n;
-    el.dataset.manuallySet = "true";
+    if (el) {
+      el.value = n;
+      el.dataset.manuallySet = "true";
+    }
   }
 
   function setApprovalSpeed(spd) {
-    document.getElementById('approvalCustSpeed').value = spd;
+    const el = document.getElementById('approvalCustSpeed');
+    if (el) el.value = spd;
   }
 
   function onPackageChanged() {
     const sel = document.getElementById('pkgSelect');
     if (!sel || !sel.options || sel.selectedIndex < 0) return;
     const opt = sel.options[sel.selectedIndex];
+    if (!opt) return;
     const price = opt.getAttribute('data-price') || '75.00';
     const shared = opt.getAttribute('data-shared') || '1';
     const rate = opt.getAttribute('data-rate') || '';
@@ -4575,15 +4585,36 @@
     }
   }
 
+  // Educational popup for Randomized MAC addresses
+  function showRandomMacNotice(mac, phone) {
+    const msg = `⚠️ Randomized / Private MAC Detected (${mac || 'Unknown MAC'})\n\nPhone: ${phone || 'Unknown'}\n\nThis phone is using Apple/Android "Private Wi-Fi Address". Before internet can be activated, the subscriber must:\n1. Open Wi-Fi settings on their phone\n2. Tap the (i) or ⚙️ Settings icon next to the Wi-Fi network\n3. Switch "MAC Address Type" from "Random MAC" to "Device MAC" (or "Phone MAC")\n4. Reconnect to Wi-Fi\n\nOnce reconnected, their verified hardware MAC will appear here for instant approval.`;
+    if (typeof cyberConfirm === 'function') {
+      cyberConfirm(msg, {
+        title: '🔒 Private MAC Address Detected',
+        okText: 'Understood',
+        cancelText: '',
+        danger: false
+      });
+    } else if (typeof cyberToast === 'function') {
+      cyberToast('⚠️ Randomized MAC: Phone must switch to "Use Device MAC" in Wi-Fi settings before approval.', 'warning', 8000);
+    } else {
+      alert(msg);
+    }
+  }
+  window.showRandomMacNotice = showRandomMacNotice;
+
   // Safe caller wrappers for dataset attributes
   function quickApproveSecondaryFromBtn(btn) {
+    if (window.event && window.event.stopPropagation) window.event.stopPropagation();
     if (!btn) return;
     openApprovalModalFromBtn(btn);
   }
 
   function openApprovalModalFromBtn(btn) {
+    if (window.event && window.event.stopPropagation) window.event.stopPropagation();
     if (!btn) return;
     const ds = btn.dataset;
+    if (!ds) return;
     openApprovalModal(
       ds.reqId,
       ds.phone,
@@ -4601,133 +4632,139 @@
   }
 
   function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes, deviceModel) {
-    const modalReqId = document.getElementById('modalReqId');
-    if (modalReqId) modalReqId.value = reqId;
-    const modalMac = document.getElementById('modalMac');
-    if (modalMac) modalMac.value = mac;
-    const modalIp = document.getElementById('modalIp');
-    if (modalIp) modalIp.value = ip;
-    const dispPhone = document.getElementById('dispPhone');
-    if (dispPhone) dispPhone.textContent = phone;
-    const dispMac = document.getElementById('dispMac');
-    if (dispMac) dispMac.textContent = mac;
+    try {
+      const modal = document.getElementById('approvalModal');
+      if (modal) modal.classList.add('open');
 
-    const incomingModel = document.getElementById('secondaryIncomingModel');
-    if (incomingModel) incomingModel.textContent = deviceModel || 'Client Device';
-    const incomingMac = document.getElementById('secondaryIncomingMac');
-    if (incomingMac) incomingMac.textContent = mac || '';
+      const modalReqId = document.getElementById('modalReqId');
+      if (modalReqId) modalReqId.value = reqId || '';
+      const modalMac = document.getElementById('modalMac');
+      if (modalMac) modalMac.value = mac || '';
+      const modalIp = document.getElementById('modalIp');
+      if (modalIp) modalIp.value = ip || '';
+      const dispPhone = document.getElementById('dispPhone');
+      if (dispPhone) dispPhone.textContent = phone || '—';
+      const dispMac = document.getElementById('dispMac');
+      if (dispMac) dispMac.textContent = mac || '—';
 
-    const notesInput = document.getElementById('custNotes');
-    if (notesInput) notesInput.value = existingNotes || '';
-    const secNotesInput = document.getElementById('secondaryCustNotes');
-    if (secNotesInput) secNotesInput.value = existingNotes || '';
+      const incomingModel = document.getElementById('secondaryIncomingModel');
+      if (incomingModel) incomingModel.textContent = deviceModel || 'Client Device';
+      const incomingMac = document.getElementById('secondaryIncomingMac');
+      if (incomingMac) incomingMac.textContent = mac || '';
 
-    const isSec = Boolean(isSecondary && isSecondary !== '0' && isSecondary !== 0);
-    const modalIsSec = document.getElementById('modalIsSecondary');
-    if (modalIsSec) modalIsSec.value = isSec ? '1' : '0';
+      const notesInput = document.getElementById('custNotes');
+      if (notesInput) notesInput.value = existingNotes || '';
+      const secNotesInput = document.getElementById('secondaryCustNotes');
+      if (secNotesInput) secNotesInput.value = existingNotes || '';
 
-    const secBox = document.getElementById('secondaryApprovalBox');
-    const newBox = document.getElementById('newCustomerBillingBox');
-    const modalTitle = document.getElementById('modalHeaderTitle');
-    const modalSub = document.getElementById('modalHeaderSubtitle');
-    const btnApprove = document.getElementById('btnSubmitApprove');
-    const nameField = document.getElementById('custName');
-    const colToday = document.getElementById('inputCollectedToday');
-    const prepMonthly = document.getElementById('inputPrepaidMonthly');
+      const isSec = Boolean(isSecondary && isSecondary !== '0' && isSecondary !== 0);
+      const modalIsSec = document.getElementById('modalIsSecondary');
+      if (modalIsSec) modalIsSec.value = isSec ? '1' : '0';
 
-    if (isSec) {
-      if (secBox) secBox.style.display = 'block';
-      if (newBox) newBox.style.display = 'none';
-      if (modalTitle) modalTitle.textContent = 'Authorize Extra Device';
-      if (modalSub) modalSub.textContent = 'Authorize secondary phone under existing subscriber account — Billing already settled';
-      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (Permanent)</span>';
+      const secBox = document.getElementById('secondaryApprovalBox');
+      const newBox = document.getElementById('newCustomerBillingBox');
+      const modalTitle = document.getElementById('modalHeaderTitle');
+      const modalSub = document.getElementById('modalHeaderSubtitle');
+      const btnApprove = document.getElementById('btnSubmitApprove');
+      const nameField = document.getElementById('custName');
+      const colToday = document.getElementById('inputCollectedToday');
+      const prepMonthly = document.getElementById('inputPrepaidMonthly');
 
-      const secName = document.getElementById('secondaryCustName');
-      if (secName) secName.textContent = custName || ('Customer ' + phone);
+      if (isSec) {
+        if (secBox) secBox.style.display = 'block';
+        if (newBox) newBox.style.display = 'none';
+        if (modalTitle) modalTitle.textContent = 'Authorize Extra Device';
+        if (modalSub) modalSub.textContent = 'Authorize secondary phone under existing subscriber account — Billing already settled';
+        if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (Permanent)</span>';
 
-      const devSlot = (parseInt(currentDevCnt) || 0) + 1;
-      const maxSlots = parseInt(existingMaxDev) || 1;
-      const secSlot = document.getElementById('secondarySlotBadge');
-      if (secSlot) {
-        secSlot.textContent = `Device ${devSlot} of ${maxSlots}`;
-        secSlot.style.color = (devSlot > maxSlots) ? '#f87171' : '#34d399';
-      }
+        const secName = document.getElementById('secondaryCustName');
+        if (secName) secName.textContent = custName || ('Customer ' + phone);
 
-      const secPlan = document.getElementById('secondaryPlanName');
-      if (secPlan) secPlan.textContent = pkgName || 'Active Plan';
-      const secExp = document.getElementById('secondaryExpiryDate');
-      if (secExp) secExp.textContent = expiryDate || 'Active';
-
-      // Reset extra collection toggle
-      const chkExtra = document.getElementById('chkCollectExtraSecondary');
-      if (chkExtra) chkExtra.checked = false;
-      const extraBox = document.getElementById('secondaryExtraFeeBox');
-      if (extraBox) extraBox.style.display = 'none';
-      const extraFeeInput = document.getElementById('inputSecondaryExtraFee');
-      if (extraFeeInput) extraFeeInput.value = '0.00';
-
-      // Setup guest pass controls - ALWAYS UNCHECKED by default per admin requirement
-      const chkGuest = document.getElementById('chkIsGuestPass');
-      if (chkGuest) {
-        chkGuest.checked = false;
-        toggleGuestPassControls();
-      }
-
-      // Disable 'required' on hidden fields
-      if (nameField) nameField.required = false;
-      if (colToday) colToday.required = false;
-      if (prepMonthly) prepMonthly.required = false;
-
-    } else {
-      if (secBox) secBox.style.display = 'none';
-      if (newBox) newBox.style.display = 'block';
-      if (modalTitle) modalTitle.textContent = 'Approve Customer Connection';
-      if (modalSub) modalSub.textContent = 'Assign billing type, speed package, and manual fee';
-      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Approve &amp; Activate Internet</span>';
-
-      if (nameField) {
-        nameField.required = true;
-        nameField.value = custName ? custName : ('Customer ' + phone);
-      }
-
-      const devInput = document.getElementById('inputMaxDevices');
-      if (devInput) {
-        devInput.dataset.manuallySet = "";
-        if (existingMaxDev && parseInt(existingMaxDev) > 0) {
-          devInput.value = existingMaxDev;
-          devInput.dataset.manuallySet = "true";
-        } else {
-          devInput.value = 1;
+        const devSlot = (parseInt(currentDevCnt) || 0) + 1;
+        const maxSlots = parseInt(existingMaxDev) || 1;
+        const secSlot = document.getElementById('secondarySlotBadge');
+        if (secSlot) {
+          secSlot.textContent = `Device ${devSlot} of ${maxSlots}`;
+          secSlot.style.color = (devSlot > maxSlots) ? '#f87171' : '#34d399';
         }
-      }
 
-      // Default dates: 30 days from now
-      const today = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + 30);
-      const dateStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
+        const secPlan = document.getElementById('secondaryPlanName');
+        if (secPlan) secPlan.textContent = pkgName || 'Active Plan';
+        const secExp = document.getElementById('secondaryExpiryDate');
+        if (secExp) secExp.textContent = expiryDate || 'Active';
 
-      if (window.setPickerDate) {
-        window.setPickerDate('inputPrepaidDueDate', dateStr);
-        window.setPickerDate('inputPostpaidDueDate', dateStr);
+        // Reset extra collection toggle
+        const chkExtra = document.getElementById('chkCollectExtraSecondary');
+        if (chkExtra) chkExtra.checked = false;
+        const extraBox = document.getElementById('secondaryExtraFeeBox');
+        if (extraBox) extraBox.style.display = 'none';
+        const extraFeeInput = document.getElementById('inputSecondaryExtraFee');
+        if (extraFeeInput) extraFeeInput.value = '0.00';
+
+        // Setup guest pass controls - ALWAYS UNCHECKED by default per admin requirement
+        const chkGuest = document.getElementById('chkIsGuestPass');
+        if (chkGuest) {
+          chkGuest.checked = false;
+          toggleGuestPassControls();
+        }
+
+        // Disable 'required' on hidden fields
+        if (nameField) nameField.required = false;
+        if (colToday) colToday.required = false;
+        if (prepMonthly) prepMonthly.required = false;
+
       } else {
-        const prepDateEl = document.getElementById('inputPrepaidDueDate');
-        if (prepDateEl) prepDateEl.value = dateStr;
-        const postDateEl = document.getElementById('inputPostpaidDueDate');
-        if (postDateEl) postDateEl.value = dateStr;
+        if (secBox) secBox.style.display = 'none';
+        if (newBox) newBox.style.display = 'block';
+        if (modalTitle) modalTitle.textContent = 'Approve Customer Connection';
+        if (modalSub) modalSub.textContent = 'Assign billing type, speed package, and manual fee';
+        if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Approve &amp; Activate Internet</span>';
+
+        if (nameField) {
+          nameField.required = true;
+          nameField.value = custName ? custName : ('Customer ' + phone);
+        }
+
+        const devInput = document.getElementById('inputMaxDevices');
+        if (devInput) {
+          devInput.dataset.manuallySet = "";
+          if (existingMaxDev && parseInt(existingMaxDev) > 0) {
+            devInput.value = existingMaxDev;
+            devInput.dataset.manuallySet = "true";
+          } else {
+            devInput.value = 1;
+          }
+        }
+
+        // Default dates: 30 days from now
+        const today = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + 30);
+        const dateStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
+
+        if (window.setPickerDate) {
+          window.setPickerDate('inputPrepaidDueDate', dateStr);
+          window.setPickerDate('inputPostpaidDueDate', dateStr);
+        } else {
+          const prepDateEl = document.getElementById('inputPrepaidDueDate');
+          if (prepDateEl) prepDateEl.value = dateStr;
+          const postDateEl = document.getElementById('inputPostpaidDueDate');
+          if (postDateEl) postDateEl.value = dateStr;
+        }
+        const dueDayEl = document.getElementById('inputDueDay');
+        if (dueDayEl) dueDayEl.value = futureDate.getDate();
+        const postColEl = document.getElementById('inputPostpaidCollected');
+        if (postColEl) postColEl.value = '0.00';
+
+        try { selectBillingType('prepaid'); } catch(e) { console.warn('selectBillingType warn:', e); }
+        try { onPackageChanged(); } catch(e) { console.warn('onPackageChanged warn:', e); }
+        try { calculatePostpaidAdvance(); } catch(e) { console.warn('calculatePostpaidAdvance warn:', e); }
       }
-      const dueDayEl = document.getElementById('inputDueDay');
-      if (dueDayEl) dueDayEl.value = futureDate.getDate();
-      const postColEl = document.getElementById('inputPostpaidCollected');
-      if (postColEl) postColEl.value = '0.00';
-
-      selectBillingType('prepaid');
-      onPackageChanged();
-      calculatePostpaidAdvance();
+    } catch (err) {
+      console.error('Error opening approval modal:', err);
+      const modal = document.getElementById('approvalModal');
+      if (modal) modal.classList.add('open');
     }
-
-    const modal = document.getElementById('approvalModal');
-    if (modal) modal.classList.add('open');
   }
 
   function closeApprovalModal() {
@@ -4937,9 +4974,17 @@
     return raw.substring(0, 30);
   }
 
-  // Refresh Pending Requests
+  // Refresh Pending Requests with Active Modal Protection & DOM Cache
+  let _lastPendingSignature = null;
+
   async function refreshPendingRequests() {
     try {
+      // Guard 1: Do NOT interrupt administrator if approval modal is currently open
+      const modal = document.getElementById('approvalModal');
+      if (modal && modal.classList.contains('open')) {
+        return;
+      }
+
       const resp = await fetch('/api/hotspot/requests/pending');
       if (resp.status === 401) {
         if (typeof window.handleAuthExpired === 'function') window.handleAuthExpired();
@@ -4972,9 +5017,41 @@
         banner.style.display = count > 0 ? 'flex' : 'none';
       }
 
-      // Re-render table body
       const tbody = document.getElementById('pendingTableBody');
       if (!tbody) return;
+
+      // Guard 2: Signature check to prevent DOM recreation when data hasn't changed.
+      // Eliminates the browser race condition where elements are destroyed between mousedown and mouseup.
+      const currentSignature = JSON.stringify(requests.map(r => ({
+        id: r.id,
+        status: r.status,
+        phone: r.phone,
+        mac: r.mac_address,
+        ip: r.ip_address,
+        random: !!r.is_random_mac,
+        sec: !!r.is_secondary,
+        maxDev: r.customer_max_devices,
+        curDev: r.current_device_count,
+        name: r.existing_customer_name || r.customer_name,
+        notes: r.existing_customer_notes || r.notes,
+        model: r.device_model
+      })));
+
+      // If initial page render already has matching rows, initialize signature without touching DOM
+      if (_lastPendingSignature === null) {
+        const renderedRows = tbody.querySelectorAll('tr[id^="req-row-"]');
+        const renderedIds = Array.from(renderedRows).map(tr => tr.id.replace('req-row-', '')).join(',');
+        const requestIds = requests.map(r => String(r.id)).join(',');
+        if (renderedIds === requestIds && (renderedIds !== '' || tbody.querySelector('#emptyPendingRow'))) {
+          _lastPendingSignature = currentSignature;
+          return;
+        }
+      } else if (_lastPendingSignature === currentSignature) {
+        // Data has not changed: preserve existing DOM elements intact!
+        return;
+      }
+
+      _lastPendingSignature = currentSignature;
 
       if (requests.length === 0) {
         tbody.innerHTML = `
@@ -4991,9 +5068,12 @@
       } else {
         tbody.innerHTML = requests.map(req => {
           const isRandom = !!req.is_random_mac;
-          const safeName = (req.existing_customer_name || req.customer_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          const safePhone = (req.phone || '');
-          const safeNotes = (req.existing_customer_notes || req.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const rawName = (req.existing_customer_name || req.customer_name || '');
+          const safeName = escapeHtml(rawName);
+          const safePhone = escapeHtml(req.phone || '');
+          const rawNotes = (req.existing_customer_notes || req.notes || '');
+          const safeNotes = escapeHtml(rawNotes);
+          const safeModel = escapeHtml(formatDeviceModel(req.device_model || 'Client Device'));
 
           const macBadge = isRandom
             ? `<span class="tag-mac-warn" title="Randomized MAC address detected. Real Device MAC required.">⚠ RANDOM MAC</span>`
@@ -5010,7 +5090,13 @@
             : `<span class="tag-device-type new">New Customer</span>`;
 
           const actionBtns = isRandom
-            ? `<button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
+            ? `<button type="button" class="btn-approve btn-random-mac"
+                 data-mac="${escapeHtml(req.mac_address)}"
+                 data-phone="${safePhone}"
+                 data-random-mac="1"
+                 onclick="showRandomMacNotice('${escapeHtml(req.mac_address)}', '${safePhone}')"
+                 style="background:rgba(239, 68, 68, 0.15); color:#fca5a5; border:1px solid rgba(239, 68, 68, 0.4); cursor:pointer;"
+                 title="Randomized MAC detected. Click to view instructions.">
                  <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
                  <span>Random MAC</span>
                </button>
@@ -5019,16 +5105,16 @@
             ? `<button type="button" class="btn-approve"
                  data-req-id="${req.id}"
                  data-phone="${safePhone}"
-                 data-mac="${req.mac_address}"
-                 data-ip="${req.ip_address || ''}"
+                 data-mac="${escapeHtml(req.mac_address)}"
+                 data-ip="${escapeHtml(req.ip_address || '')}"
                  data-cust-name="${safeName}"
                  data-is-secondary="1"
                  data-max-devices="${req.customer_max_devices || 1}"
                  data-current-devices="${req.current_device_count || 0}"
-                 data-pkg-name="${req.existing_package_name || ''}"
-                 data-expiry-date="${req.existing_expiry_date || ''}"
+                 data-pkg-name="${escapeHtml(req.existing_package_name || '')}"
+                 data-expiry-date="${escapeHtml(req.existing_expiry_date || '')}"
                  data-notes="${safeNotes}"
-                 data-device-model="${(req.device_model || 'Client Device').replace(/"/g, '&quot;')}"
+                 data-device-model="${safeModel}"
                  onclick="openApprovalModalFromBtn(this)"
                  style="background:linear-gradient(135deg, #059669, #10b981); border-color:#10b981;"
                  title="Quick Authorize device for ${safeName || 'customer'} (Review &amp; Guest/Permanent Pass)">
@@ -5038,16 +5124,16 @@
                <button type="button" class="btn-approve btn-review-req"
                  data-req-id="${req.id}"
                  data-phone="${safePhone}"
-                 data-mac="${req.mac_address}"
-                 data-ip="${req.ip_address || ''}"
+                 data-mac="${escapeHtml(req.mac_address)}"
+                 data-ip="${escapeHtml(req.ip_address || '')}"
                  data-cust-name="${safeName}"
                  data-is-secondary="1"
                  data-max-devices="${req.customer_max_devices || 1}"
                  data-current-devices="${req.current_device_count || 0}"
-                 data-pkg-name="${req.existing_package_name || ''}"
-                 data-expiry-date="${req.existing_expiry_date || ''}"
+                 data-pkg-name="${escapeHtml(req.existing_package_name || '')}"
+                 data-expiry-date="${escapeHtml(req.existing_expiry_date || '')}"
                  data-notes="${safeNotes}"
-                 data-device-model="${(req.device_model || 'Client Device').replace(/"/g, '&quot;')}"
+                 data-device-model="${safeModel}"
                  onclick="openApprovalModalFromBtn(this)"
                  style="background:#1e293b; border-color:#334155; color:#cbd5e1;"
                  title="Review Subscriber &amp; Authorize">
@@ -5057,8 +5143,8 @@
             : `<button type="button" class="btn-approve"
                  data-req-id="${req.id}"
                  data-phone="${safePhone}"
-                 data-mac="${req.mac_address}"
-                 data-ip="${req.ip_address || ''}"
+                 data-mac="${escapeHtml(req.mac_address)}"
+                 data-ip="${escapeHtml(req.ip_address || '')}"
                  data-cust-name="${safeName}"
                  data-is-secondary="0"
                  data-max-devices="1"
@@ -5066,7 +5152,7 @@
                  data-pkg-name=""
                  data-expiry-date=""
                  data-notes="${safeNotes}"
-                 data-device-model="${(req.device_model || 'Client Device').replace(/"/g, '&quot;')}"
+                 data-device-model="${safeModel}"
                  onclick="openApprovalModalFromBtn(this)">
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                  <span>Approve</span>
@@ -5118,14 +5204,14 @@
               <td data-label="Subscriber / Phone" class="td-phone">${phoneCell}</td>
               <td data-label="Device MAC" class="font-mono td-mac">
                 <div style="display:flex; align-items:center; gap:6px;">
-                  <span class="text-cyan" style="font-weight:700;">${req.mac_address}</span>
+                  <span class="text-cyan" style="font-weight:700;">${escapeHtml(req.mac_address)}</span>
                   ${macBadge}
                 </div>
               </td>
-              <td data-label="IP Address" class="font-mono text-dim td-ip">${req.ip_address || '—'}</td>
+              <td data-label="IP Address" class="font-mono text-dim td-ip">${escapeHtml(req.ip_address || '—')}</td>
               <td data-label="Account Type" class="td-type">${typeCol}</td>
-              <td data-label="Device Model" class="text-dim td-device" style="font-size:12px;">${formatDeviceModel(req.device_model)}</td>
-              <td data-label="Requested Time" class="font-mono text-dim td-time" style="font-size:12px;">${req.created_at || '—'}</td>
+              <td data-label="Device Model" class="text-dim td-device" style="font-size:12px;">${safeModel}</td>
+              <td data-label="Requested Time" class="font-mono text-dim td-time" style="font-size:12px;">${escapeHtml(req.created_at || '—')}</td>
               <td data-label="Actions" class="td-actions" style="text-align:right;">
                 <div class="pending-actions-wrap" style="display:inline-flex; gap:8px;">${actionBtns}</div>
               </td>
@@ -5137,6 +5223,25 @@
       console.warn('Could not refresh pending requests:', err);
     }
   }
+
+  // Fail-safe click delegation listener for pending requests
+  document.addEventListener('DOMContentLoaded', () => {
+    const tableBody = document.getElementById('pendingTableBody');
+    if (tableBody) {
+      tableBody.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-approve');
+        if (!btn) return;
+        if (btn.classList.contains('btn-random-mac') || btn.dataset.randomMac === '1') {
+          showRandomMacNotice(btn.dataset.mac, btn.dataset.phone);
+          return;
+        }
+        const modal = document.getElementById('approvalModal');
+        if (modal && !modal.classList.contains('open') && btn.dataset.reqId) {
+          openApprovalModalFromBtn(btn);
+        }
+      });
+    }
+  });
 
 
   // Copy Phone Number to clipboard with instant visual feedback and toast

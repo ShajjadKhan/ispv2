@@ -1347,7 +1347,13 @@
               <td data-label="Actions" class="td-actions" style="text-align:right;">
                 <div style="display:inline-flex; gap:8px;">
                   {% if req.is_random_mac %}
-                    <button type="button" class="btn-approve" disabled style="opacity:0.45; cursor:not-allowed; background:#1e293b; color:#94a3b8; border:1px solid rgba(255,255,255,0.1);" title="Cannot approve: Phone has Random MAC enabled. Customer must switch to Device MAC in Wi-Fi settings.">
+                    <button type="button" class="btn-approve btn-random-mac"
+                      data-mac="{{ req.mac_address }}"
+                      data-phone="{{ req.phone }}"
+                      data-random-mac="1"
+                      onclick="showRandomMacNotice('{{ req.mac_address }}', '{{ req.phone }}')"
+                      style="background:rgba(239, 68, 68, 0.15); color:#fca5a5; border:1px solid rgba(239, 68, 68, 0.4); cursor:pointer;"
+                      title="Randomized MAC detected. Click to view instructions.">
                       <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
                       <span>Random MAC</span>
                     </button>
@@ -1375,7 +1381,7 @@
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
                       <span>Quick Authorize</span>
                     </button>
-                    <button type="button" class="btn-approve"
+                    <button type="button" class="btn-approve btn-review-req"
                       data-req-id="{{ req.id }}"
                       data-phone="{{ req.phone }}"
                       data-mac="{{ req.mac_address }}"
@@ -1925,7 +1931,8 @@
 
   function selectBillingType(type) {
     currentBillingType = type;
-    document.getElementById('selectedBillingType').value = type;
+    const selType = document.getElementById('selectedBillingType');
+    if (selType) selType.value = type;
 
     const cardPre = document.getElementById('cardPrepaid');
     const cardPost = document.getElementById('cardPostpaid');
@@ -1937,18 +1944,18 @@
     const prepDate = document.getElementById('inputPrepaidDueDate');
 
     if (type === 'prepaid') {
-      cardPre.className = 'type-option-card prepaid-selected selected';
-      cardPost.className = 'type-option-card';
-      boxPre.style.display = 'flex';
-      boxPost.style.display = 'none';
+      if (cardPre) cardPre.className = 'type-option-card prepaid-selected selected';
+      if (cardPost) cardPost.className = 'type-option-card';
+      if (boxPre) boxPre.style.display = 'flex';
+      if (boxPost) boxPost.style.display = 'none';
       if (colToday) colToday.required = true;
       if (prepMonthly) prepMonthly.required = true;
       if (prepDate) prepDate.required = false;
     } else {
-      cardPre.className = 'type-option-card';
-      cardPost.className = 'type-option-card selected';
-      boxPre.style.display = 'none';
-      boxPost.style.display = 'flex';
+      if (cardPre) cardPre.className = 'type-option-card';
+      if (cardPost) cardPost.className = 'type-option-card selected';
+      if (boxPre) boxPre.style.display = 'none';
+      if (boxPost) boxPost.style.display = 'flex';
       if (colToday) colToday.required = false;
       if (prepMonthly) prepMonthly.required = false;
       if (prepDate) prepDate.required = false;
@@ -1957,35 +1964,45 @@
 
   function setDevLimit(n) {
     const el = document.getElementById('inputMaxDevices');
-    el.value = n;
-    el.dataset.manuallySet = "true";
+    if (el) {
+      el.value = n;
+      el.dataset.manuallySet = "true";
+    }
   }
 
   function setApprovalSpeed(spd) {
-    document.getElementById('approvalCustSpeed').value = spd;
+    const el = document.getElementById('approvalCustSpeed');
+    if (el) el.value = spd;
   }
 
   function onPackageChanged() {
     const sel = document.getElementById('pkgSelect');
     if (!sel || sel.selectedIndex < 0 || !sel.options[sel.selectedIndex]) return;
     const opt = sel.options[sel.selectedIndex];
+    if (!opt) return;
     const price = opt.getAttribute('data-price') || '75.00';
     const shared = opt.getAttribute('data-shared') || '1';
     const rate = opt.getAttribute('data-rate') || '';
 
     // Update defaults in manual fields if user hasn't heavily customized
-    document.getElementById('inputCollectedToday').value = price;
-    document.getElementById('inputPrepaidMonthly').value = price;
-    document.getElementById('inputPostpaidMonthly').value = price;
+    const colToday = document.getElementById('inputCollectedToday');
+    if (colToday) colToday.value = price;
+    const prepMonthly = document.getElementById('inputPrepaidMonthly');
+    if (prepMonthly) prepMonthly.value = price;
+    const postMonthly = document.getElementById('inputPostpaidMonthly');
+    if (postMonthly) postMonthly.value = price;
 
-    if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
-      document.getElementById('approvalCustSpeed').value = rate;
-    } else {
-      document.getElementById('approvalCustSpeed').value = 'Unlimited';
+    const spdInput = document.getElementById('approvalCustSpeed');
+    if (spdInput) {
+      if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
+        spdInput.value = rate;
+      } else {
+        spdInput.value = 'Unlimited';
+      }
     }
 
     const devInput = document.getElementById('inputMaxDevices');
-    if (!devInput.dataset.manuallySet) {
+    if (devInput && !devInput.dataset.manuallySet) {
       devInput.value = shared;
     }
   }
@@ -2030,10 +2047,31 @@
     }
   }
 
+  // Educational popup for Randomized MAC addresses
+  function showRandomMacNotice(mac, phone) {
+    if (window.event && window.event.stopPropagation) window.event.stopPropagation();
+    const msg = `⚠️ Randomized / Private MAC Detected (${mac || 'Unknown MAC'})\n\nPhone: ${phone || 'Unknown'}\n\nThis phone is using Apple/Android "Private Wi-Fi Address". Before internet can be activated, the subscriber must:\n1. Open Wi-Fi settings on their phone\n2. Tap the (i) or ⚙️ Settings icon next to the Wi-Fi network\n3. Switch "MAC Address Type" from "Random MAC" to "Device MAC" (or "Phone MAC")\n4. Reconnect to Wi-Fi\n\nOnce reconnected, their verified hardware MAC will appear here for instant approval.`;
+    if (typeof cyberConfirm === 'function') {
+      cyberConfirm(msg, {
+        title: '🔒 Private MAC Address Detected',
+        okText: 'Understood',
+        cancelText: '',
+        danger: false
+      });
+    } else if (typeof cyberToast === 'function') {
+      cyberToast('⚠️ Randomized MAC: Phone must switch to "Use Device MAC" in Wi-Fi settings before approval.', 'warning', 8000);
+    } else {
+      alert(msg);
+    }
+  }
+  window.showRandomMacNotice = showRandomMacNotice;
+
   // Safe wrapper for dataset attributes to eliminate JS quote syntax errors
   function openApprovalModalFromBtn(btn) {
+    if (window.event && window.event.stopPropagation) window.event.stopPropagation();
     if (!btn) return;
     const ds = btn.dataset;
+    if (!ds) return;
     let existingDevs = [];
     try {
       if (ds.existingDevices) {
@@ -2061,201 +2099,207 @@
   }
 
   function openApprovalModal(reqId, phone, mac, ip, custName, isSecondary, existingMaxDev, currentDevCnt, pkgName, expiryDate, existingNotes, existingDevices, incomingModel, defaultAsGuest) {
-    const modalReqId = document.getElementById('modalReqId');
-    if (modalReqId) modalReqId.value = reqId;
-    const modalMac = document.getElementById('modalMac');
-    if (modalMac) modalMac.value = mac;
-    const modalIp = document.getElementById('modalIp');
-    if (modalIp) modalIp.value = ip;
-    const dispPhone = document.getElementById('dispPhone');
-    if (dispPhone) dispPhone.textContent = phone;
-    const dispMac = document.getElementById('dispMac');
-    if (dispMac) dispMac.textContent = mac;
+    try {
+      const modal = document.getElementById('approvalModal');
+      if (modal) modal.classList.add('open');
 
-    const notesInput = document.getElementById('custNotes');
-    if (notesInput) notesInput.value = existingNotes || '';
-    const secNotesInput = document.getElementById('secondaryCustNotes');
-    if (secNotesInput) secNotesInput.value = existingNotes || '';
+      const modalReqId = document.getElementById('modalReqId');
+      if (modalReqId) modalReqId.value = reqId || '';
+      const modalMac = document.getElementById('modalMac');
+      if (modalMac) modalMac.value = mac || '';
+      const modalIp = document.getElementById('modalIp');
+      if (modalIp) modalIp.value = ip || '';
+      const dispPhone = document.getElementById('dispPhone');
+      if (dispPhone) dispPhone.textContent = phone || '—';
+      const dispMac = document.getElementById('dispMac');
+      if (dispMac) dispMac.textContent = mac || '—';
 
-    const isSec = Boolean(isSecondary && isSecondary !== '0' && isSecondary !== 0);
-    const modalIsSec = document.getElementById('modalIsSecondary');
-    if (modalIsSec) modalIsSec.value = isSec ? '1' : '0';
+      const notesInput = document.getElementById('custNotes');
+      if (notesInput) notesInput.value = existingNotes || '';
+      const secNotesInput = document.getElementById('secondaryCustNotes');
+      if (secNotesInput) secNotesInput.value = existingNotes || '';
 
-    const secBox = document.getElementById('secondaryApprovalBox');
-    const newBox = document.getElementById('newCustomerBillingBox');
-    const modalTitle = document.getElementById('modalHeaderTitle');
-    const modalSub = document.getElementById('modalHeaderSubtitle');
-    const btnApprove = document.getElementById('btnSubmitApprove');
-    const nameField = document.getElementById('custName');
-    const colToday = document.getElementById('inputCollectedToday');
-    const prepMonthly = document.getElementById('inputPrepaidMonthly');
-    const prepDate = document.getElementById('inputPrepaidDueDate');
+      const isSec = Boolean(isSecondary && isSecondary !== '0' && isSecondary !== 0);
+      const modalIsSec = document.getElementById('modalIsSecondary');
+      if (modalIsSec) modalIsSec.value = isSec ? '1' : '0';
 
-    if (isSec) {
-      if (secBox) secBox.style.display = 'block';
-      if (newBox) newBox.style.display = 'none';
-      if (modalTitle) modalTitle.textContent = 'Authorize Extra Device';
-      if (modalSub) modalSub.textContent = 'Authorize secondary phone under existing subscriber account — Billing already settled';
-      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (No Billing)</span>';
+      const secBox = document.getElementById('secondaryApprovalBox');
+      const newBox = document.getElementById('newCustomerBillingBox');
+      const modalTitle = document.getElementById('modalHeaderTitle');
+      const modalSub = document.getElementById('modalHeaderSubtitle');
+      const btnApprove = document.getElementById('btnSubmitApprove');
+      const nameField = document.getElementById('custName');
+      const colToday = document.getElementById('inputCollectedToday');
+      const prepMonthly = document.getElementById('inputPrepaidMonthly');
+      const prepDate = document.getElementById('inputPrepaidDueDate');
 
-      const secName = document.getElementById('secondaryCustName');
-      if (secName) secName.textContent = custName || ('Customer ' + phone);
+      if (isSec) {
+        if (secBox) secBox.style.display = 'block';
+        if (newBox) newBox.style.display = 'none';
+        if (modalTitle) modalTitle.textContent = 'Authorize Extra Device';
+        if (modalSub) modalSub.textContent = 'Authorize secondary phone under existing subscriber account — Billing already settled';
+        if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Authorize Device (No Billing)</span>';
 
-      const devSlot = (parseInt(currentDevCnt) || 0) + 1;
-      const maxSlots = parseInt(existingMaxDev) || 1;
-      const secSlot = document.getElementById('secondarySlotBadge');
-      if (secSlot) {
-        secSlot.textContent = `Device ${devSlot} of ${maxSlots}`;
-        secSlot.style.color = (devSlot > maxSlots) ? '#f87171' : '#34d399';
-      }
+        const secName = document.getElementById('secondaryCustName');
+        if (secName) secName.textContent = custName || ('Customer ' + phone);
 
-      const secPlan = document.getElementById('secondaryPlanName');
-      if (secPlan) secPlan.textContent = pkgName || 'Active Plan';
-      const secExp = document.getElementById('secondaryExpiryDate');
-      if (secExp) secExp.textContent = expiryDate || 'Active';
-      const tipExp = document.getElementById('secondaryExpiryTip');
-      if (tipExp) tipExp.textContent = expiryDate || 'Active';
+        const devSlot = (parseInt(currentDevCnt) || 0) + 1;
+        const maxSlots = parseInt(existingMaxDev) || 1;
+        const secSlot = document.getElementById('secondarySlotBadge');
+        if (secSlot) {
+          secSlot.textContent = `Device ${devSlot} of ${maxSlots}`;
+          secSlot.style.color = (devSlot > maxSlots) ? '#f87171' : '#34d399';
+        }
 
-      const todayStr = window.formatDateISO ? window.formatDateISO(new Date()) : new Date().toISOString().slice(0, 10);
-      const isExp = Boolean(expiryDate && expiryDate.slice(0, 10) < todayStr);
-      const warnBox = document.getElementById('secondaryExpiredWarning');
-      const warnDate = document.getElementById('secondaryExpiredDate');
-      const secStatus = document.getElementById('secondaryBillingStatus');
-      if (warnBox) {
-        if (isExp) {
-          warnBox.style.display = 'block';
-          if (warnDate) warnDate.textContent = expiryDate;
-          if (secStatus) {
-            secStatus.textContent = '❌ EXPIRED';
-            secStatus.style.color = '#f87171';
+        const secPlan = document.getElementById('secondaryPlanName');
+        if (secPlan) secPlan.textContent = pkgName || 'Active Plan';
+        const secExp = document.getElementById('secondaryExpiryDate');
+        if (secExp) secExp.textContent = expiryDate || 'Active';
+        const tipExp = document.getElementById('secondaryExpiryTip');
+        if (tipExp) tipExp.textContent = expiryDate || 'Active';
+
+        const todayStr = window.formatDateISO ? window.formatDateISO(new Date()) : new Date().toISOString().slice(0, 10);
+        const isExp = Boolean(expiryDate && expiryDate.slice(0, 10) < todayStr);
+        const warnBox = document.getElementById('secondaryExpiredWarning');
+        const warnDate = document.getElementById('secondaryExpiredDate');
+        const secStatus = document.getElementById('secondaryBillingStatus');
+        if (warnBox) {
+          if (isExp) {
+            warnBox.style.display = 'block';
+            if (warnDate) warnDate.textContent = expiryDate;
+            if (secStatus) {
+              secStatus.textContent = '❌ EXPIRED';
+              secStatus.style.color = '#f87171';
+            }
+          } else {
+            warnBox.style.display = 'none';
+            if (secStatus) {
+              secStatus.textContent = '✅ Settled / Active';
+              secStatus.style.color = '#34d399';
+            }
           }
-        } else {
-          warnBox.style.display = 'none';
-          if (secStatus) {
-            secStatus.textContent = '✅ Settled / Active';
-            secStatus.style.color = '#34d399';
+        }
+
+        // Render existing devices
+        const devListEl = document.getElementById('secondaryExistingDevList');
+        const countEl = document.getElementById('dispCurrentDevCount');
+        if (devListEl) {
+          devListEl.innerHTML = '';
+          let devs = [];
+          if (typeof existingDevices === 'string') {
+            try { devs = JSON.parse(existingDevices); } catch (e) { devs = []; }
+          } else if (Array.isArray(existingDevices)) {
+            devs = existingDevices;
+          }
+          if (countEl) countEl.textContent = `${devs.length} Active / ${existingMaxDev || 1} Allowed`;
+          if (devs && devs.length > 0) {
+            devs.forEach((d, idx) => {
+              const item = document.createElement('div');
+              item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px; font-size:11.5px;';
+              const isG = Boolean(d.is_guest);
+              item.innerHTML = `
+                <div>
+                  <span style="color:#ffffff; font-weight:600;">#${idx+1} ${d.device_name || 'Client Device'}</span>
+                  <span class="font-mono text-cyan" style="font-size:10.5px; margin-left:6px;">${d.mac_address}</span>
+                </div>
+                <span class="badge" style="font-size:10px; padding:1px 6px; ${isG ? 'background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4);' : 'background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3);'}">
+                  ${isG ? '⏳ Guest' : '🟢 Permanent'}
+                </span>
+              `;
+              devListEl.appendChild(item);
+            });
+          } else {
+            devListEl.innerHTML = '<div style="color:#64748b; font-size:11px; padding:2px 0;">No existing devices recorded.</div>';
           }
         }
-      }
 
-      // Render existing devices
-      const devListEl = document.getElementById('secondaryExistingDevList');
-      const countEl = document.getElementById('dispCurrentDevCount');
-      if (devListEl) {
-        devListEl.innerHTML = '';
-        let devs = [];
-        if (typeof existingDevices === 'string') {
-          try { devs = JSON.parse(existingDevices); } catch (e) { devs = []; }
-        } else if (Array.isArray(existingDevices)) {
-          devs = existingDevices;
+        // Update incoming model and mac
+        const modelEl = document.getElementById('secondaryIncomingModel');
+        if (modelEl) modelEl.textContent = incomingModel || 'Client Device';
+        const incMacEl = document.getElementById('secondaryIncomingMac');
+        if (incMacEl) incMacEl.textContent = mac || '';
+
+        // Setup guest pass controls - ALWAYS unchecked by default per admin requirement
+        const chkGuest = document.getElementById('chkIsGuestPass');
+        if (chkGuest) {
+          chkGuest.checked = false;
+          toggleGuestPassControls();
         }
-        if (countEl) countEl.textContent = `${devs.length} Active / ${existingMaxDev || 1} Allowed`;
-        if (devs && devs.length > 0) {
-          devs.forEach((d, idx) => {
-            const item = document.createElement('div');
-            item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px; font-size:11.5px;';
-            const isG = Boolean(d.is_guest);
-            item.innerHTML = `
-              <div>
-                <span style="color:#ffffff; font-weight:600;">#${idx+1} ${d.device_name || 'Client Device'}</span>
-                <span class="font-mono text-cyan" style="font-size:10.5px; margin-left:6px;">${d.mac_address}</span>
-              </div>
-              <span class="badge" style="font-size:10px; padding:1px 6px; ${isG ? 'background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4);' : 'background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3);'}">
-                ${isG ? '⏳ Guest' : '🟢 Permanent'}
-              </span>
-            `;
-            devListEl.appendChild(item);
-          });
-        } else {
-          devListEl.innerHTML = '<div style="color:#64748b; font-size:11px; padding:2px 0;">No existing devices recorded.</div>';
-        }
-      }
 
-      // Update incoming model and mac
-      const modelEl = document.getElementById('secondaryIncomingModel');
-      if (modelEl) modelEl.textContent = incomingModel || 'Client Device';
-      const incMacEl = document.getElementById('secondaryIncomingMac');
-      if (incMacEl) incMacEl.textContent = mac;
+        // Reset extra collection toggle
+        const chkExtra = document.getElementById('chkCollectExtraSecondary');
+        if (chkExtra) chkExtra.checked = false;
+        const extraBox = document.getElementById('secondaryExtraFeeBox');
+        if (extraBox) extraBox.style.display = 'none';
+        const extraFeeInput = document.getElementById('inputSecondaryExtraFee');
+        if (extraFeeInput) extraFeeInput.value = '0.00';
 
-      // Setup guest pass controls - ALWAYS unchecked by default per admin requirement
-      const chkGuest = document.getElementById('chkIsGuestPass');
-      if (chkGuest) {
-        chkGuest.checked = false;
-        toggleGuestPassControls();
-      }
+        // Disable 'required' on hidden fields
+        if (nameField) nameField.required = false;
+        if (colToday) colToday.required = false;
+        if (prepMonthly) prepMonthly.required = false;
+        if (prepDate) prepDate.required = false;
 
-      // Reset extra collection toggle
-      const chkExtra = document.getElementById('chkCollectExtraSecondary');
-      if (chkExtra) chkExtra.checked = false;
-      const extraBox = document.getElementById('secondaryExtraFeeBox');
-      if (extraBox) extraBox.style.display = 'none';
-      const extraFeeInput = document.getElementById('inputSecondaryExtraFee');
-      if (extraFeeInput) extraFeeInput.value = '0.00';
-
-      // Disable 'required' on hidden fields
-      if (nameField) nameField.required = false;
-      if (colToday) colToday.required = false;
-      if (prepMonthly) prepMonthly.required = false;
-      if (prepDate) prepDate.required = false;
-
-    } else {
-      if (secBox) secBox.style.display = 'none';
-      if (newBox) newBox.style.display = 'block';
-      if (modalTitle) modalTitle.textContent = 'Approve Customer Connection';
-      if (modalSub) modalSub.textContent = 'Assign billing type, speed package, and manual fee';
-      if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Approve &amp; Activate Internet</span>';
-
-      if (nameField) {
-        nameField.required = true;
-        nameField.value = custName ? custName : ('Customer ' + phone);
-      }
-
-      const devInput = document.getElementById('inputMaxDevices');
-      if (devInput) {
-        devInput.dataset.manuallySet = "";
-        if (existingMaxDev && parseInt(existingMaxDev) > 0) {
-          devInput.value = existingMaxDev;
-          devInput.dataset.manuallySet = "true";
-        } else {
-          devInput.value = 1;
-        }
-      }
-
-      // Default dates: 30 days from now
-      const today = new Date();
-      const todayStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + 30);
-      const dateStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
-
-      if (window.setPickerDate) {
-        window.setPickerDate('inputPrepaidDueDate', dateStr);
-        window.setPickerDate('inputPostpaidDueDate', dateStr);
-        window.setPickerDate('inputJoinDate', todayStr);
-        window.setPickerDate('inputBillingStartDate', todayStr);
       } else {
-        if (prepDate) prepDate.value = dateStr;
-        const postDateEl = document.getElementById('inputPostpaidDueDate');
-        if (postDateEl) postDateEl.value = dateStr;
-        const joinDateEl = document.getElementById('inputJoinDate');
-        if (joinDateEl) joinDateEl.value = todayStr;
-        const bStartEl = document.getElementById('inputBillingStartDate');
-        if (bStartEl) bStartEl.value = todayStr;
+        if (secBox) secBox.style.display = 'none';
+        if (newBox) newBox.style.display = 'block';
+        if (modalTitle) modalTitle.textContent = 'Approve Customer Connection';
+        if (modalSub) modalSub.textContent = 'Assign billing type, speed package, and manual fee';
+        if (btnApprove) btnApprove.innerHTML = '<svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span>Approve &amp; Activate Internet</span>';
+
+        if (nameField) {
+          nameField.required = true;
+          nameField.value = custName ? custName : ('Customer ' + phone);
+        }
+
+        const devInput = document.getElementById('inputMaxDevices');
+        if (devInput) {
+          devInput.dataset.manuallySet = "";
+          if (existingMaxDev && parseInt(existingMaxDev) > 0) {
+            devInput.value = existingMaxDev;
+            devInput.dataset.manuallySet = "true";
+          } else {
+            devInput.value = 1;
+          }
+        }
+
+        // Default dates: 30 days from now
+        const today = new Date();
+        const todayStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + 30);
+        const dateStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
+
+        if (window.setPickerDate) {
+          window.setPickerDate('inputPrepaidDueDate', dateStr);
+          window.setPickerDate('inputPostpaidDueDate', dateStr);
+          window.setPickerDate('inputJoinDate', todayStr);
+          window.setPickerDate('inputBillingStartDate', todayStr);
+        } else {
+          if (prepDate) prepDate.value = dateStr;
+          const postDateEl = document.getElementById('inputPostpaidDueDate');
+          if (postDateEl) postDateEl.value = dateStr;
+          const joinDateEl = document.getElementById('inputJoinDate');
+          if (joinDateEl) joinDateEl.value = todayStr;
+          const bStartEl = document.getElementById('inputBillingStartDate');
+          if (bStartEl) bStartEl.value = todayStr;
+        }
+
+        const dueDayEl = document.getElementById('inputDueDay');
+        if (dueDayEl) dueDayEl.value = futureDate.getDate();
+
+        const postColEl = document.getElementById('inputPostpaidCollected');
+        if (postColEl) postColEl.value = '0.00';
+
+        try { selectBillingType('prepaid'); } catch(e) { console.warn('selectBillingType warn:', e); }
+        try { onPackageChanged(); } catch(e) { console.warn('onPackageChanged warn:', e); }
+        try { calculatePostpaidAdvance(); } catch(e) { console.warn('calculatePostpaidAdvance warn:', e); }
       }
-
-      const dueDayEl = document.getElementById('inputDueDay');
-      if (dueDayEl) dueDayEl.value = futureDate.getDate();
-
-      const postColEl = document.getElementById('inputPostpaidCollected');
-      if (postColEl) postColEl.value = '0.00';
-
-      selectBillingType('prepaid');
-      onPackageChanged();
-      calculatePostpaidAdvance();
+    } catch (err) {
+      console.error('Error opening approval modal in approvals.html:', err);
+      const modal = document.getElementById('approvalModal');
+      if (modal) modal.classList.add('open');
     }
-
-    const modal = document.getElementById('approvalModal');
-    if (modal) modal.classList.add('open');
   }
 
   function closeApprovalModal() {
