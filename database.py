@@ -1528,9 +1528,10 @@ def approve_connection(
 
             final_notes = notes.strip() if notes and notes.strip() else ""
             new_credit = round(credit_to_add, 2)
-            final_conn_type = "pppoe" if connection_type and connection_type.strip().lower() == "pppoe" else (req.get("connection_type") or "hotspot")
-            final_pppoe_user = pppoe_username.strip() if pppoe_username and pppoe_username.strip() else (req.get("pppoe_username") or (phone.strip() if final_conn_type == "pppoe" else ""))
-            final_pppoe_pass = pppoe_password.strip() if pppoe_password and pppoe_password.strip() else (req.get("pppoe_password") or ("" if final_conn_type != "pppoe" else "cyber" + phone.strip()[-4:]))
+            raw_c_type = (connection_type or req.get("connection_type") or "hotspot").strip().lower()
+            final_conn_type = raw_c_type if raw_c_type in ("pppoe", "both", "hotspot") else "hotspot"
+            final_pppoe_user = pppoe_username.strip() if pppoe_username and pppoe_username.strip() else (req.get("pppoe_username") or (phone.strip() if final_conn_type in ("pppoe", "both") else ""))
+            final_pppoe_pass = pppoe_password.strip() if pppoe_password and pppoe_password.strip() else (req.get("pppoe_password") or ("" if final_conn_type not in ("pppoe", "both") else "cyber" + phone.strip()[-4:]))
             final_pppoe_prof = pppoe_profile.strip() if pppoe_profile and pppoe_profile.strip() else ""
             final_pppoe_ip = pppoe_remote_ip.strip() if pppoe_remote_ip and pppoe_remote_ip.strip() else ""
 
@@ -1995,9 +1996,10 @@ def create_customer(
     clean_limit = max(1, int(max_devices or 1))
     clean_speed = speed_limit.strip() if speed_limit and speed_limit.strip() else None
 
-    final_conn_type = "pppoe" if connection_type and connection_type.strip().lower() == "pppoe" else "hotspot"
-    final_pppoe_user = pppoe_username.strip() if pppoe_username and pppoe_username.strip() else (phone.strip() if final_conn_type == "pppoe" else "")
-    final_pppoe_pass = pppoe_password.strip() if pppoe_password and pppoe_password.strip() else ("" if final_conn_type != "pppoe" else "cyber" + phone.strip()[-4:])
+    raw_ct = (connection_type or "hotspot").strip().lower()
+    final_conn_type = raw_ct if raw_ct in ("pppoe", "both", "hotspot") else "hotspot"
+    final_pppoe_user = pppoe_username.strip() if pppoe_username and pppoe_username.strip() else (phone.strip() if final_conn_type in ("pppoe", "both") else "")
+    final_pppoe_pass = pppoe_password.strip() if pppoe_password and pppoe_password.strip() else ("" if final_conn_type not in ("pppoe", "both") else "cyber" + phone.strip()[-4:])
     final_pppoe_prof = pppoe_profile.strip() if pppoe_profile and pppoe_profile.strip() else ""
     final_pppoe_ip = pppoe_remote_ip.strip() if pppoe_remote_ip and pppoe_remote_ip.strip() else ""
 
@@ -2407,10 +2409,10 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
 
 
 def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
-    """Returns all customers configured with connection_type == 'pppoe'."""
+    """Returns all customers configured with connection_type in ('pppoe', 'both') or having a non-empty pppoe_username."""
     with get_db() as conn:
         cursor = conn.cursor()
-        query = "SELECT * FROM customers WHERE connection_type = 'pppoe'"
+        query = "SELECT * FROM customers WHERE (connection_type IN ('pppoe', 'both') OR (pppoe_username IS NOT NULL AND TRIM(pppoe_username) != ''))"
         if active_only:
             query += " AND status = 'active'"
         query += " ORDER BY id ASC"
