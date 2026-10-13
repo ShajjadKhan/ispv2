@@ -1055,16 +1055,55 @@ class RouterClient:
             api = pool.get_api()
             active_res = api.get_resource('/ppp/active')
             sessions = active_res.get()
+
+            # Query dynamic PPPoE server interfaces to get live hardware byte counters
+            pppoe_ifaces_map = {}
+            try:
+                ifaces = api.get_resource('/interface').get(type='pppoe-in')
+                for iface in ifaces:
+                    iname = (iface.get('name') or '').strip()
+                    # e.g., "<pppoe-B1G7D>" or "pppoe-B1G7D"
+                    u_cand = iname.strip('<> ')
+                    if u_cand.lower().startswith('pppoe-in-'):
+                        u_cand = u_cand[9:]
+                    elif u_cand.lower().startswith('pppoe-'):
+                        u_cand = u_cand[6:]
+                    pppoe_ifaces_map[u_cand.lower()] = iface
+                    pppoe_ifaces_map[iname.lower()] = iface
+            except Exception as iface_err:
+                logger.debug(f"Failed to fetch pppoe-in interfaces on {self.host}: {iface_err}")
+
             clean = []
             for s in sessions:
+                s_name = (s.get("name") or "").strip()
+                iface = pppoe_ifaces_map.get(s_name.lower()) or pppoe_ifaces_map.get(f"<pppoe-{s_name.lower()}>") or pppoe_ifaces_map.get(f"pppoe-{s_name.lower()}")
+                
+                # In MikroTik RouterOS interface traffic:
+                # rx-byte = received from subscriber = Subscriber Upload
+                # tx-byte = transmitted to subscriber = Subscriber Download
+                rx_bytes = int(iface.get("rx-byte", 0) or 0) if iface else 0
+                tx_bytes = int(iface.get("tx-byte", 0) or 0) if iface else 0
+                total_bytes = rx_bytes + tx_bytes
+
                 clean.append({
                     "id": s.get("id"),
-                    "name": s.get("name"),
+                    "name": s_name,
                     "service": s.get("service", "pppoe"),
                     "caller_id": s.get("caller-id", ""),
                     "address": s.get("address", ""),
                     "uptime": s.get("uptime", ""),
-                    "encoding": s.get("encoding", "")
+                    "encoding": s.get("encoding", ""),
+                    "interface": (iface.get("name") if iface else f"<pppoe-{s_name}>"),
+                    "rx_bytes": rx_bytes,
+                    "tx_bytes": tx_bytes,
+                    "bytes_in": rx_bytes,
+                    "bytes_out": tx_bytes,
+                    "download_bytes": tx_bytes,
+                    "upload_bytes": rx_bytes,
+                    "total_bytes": total_bytes,
+                    "download_formatted": format_bytes(tx_bytes),
+                    "upload_formatted": format_bytes(rx_bytes),
+                    "total_formatted": format_bytes(total_bytes)
                 })
             return clean
         except Exception as e:

@@ -90,14 +90,14 @@ _last_host_traffic_snapshot: Dict[str, Dict[str, Any]] = {}
 _last_daily_prune_time: float = 0.0
 
 def collect_router_traffic_snapshot():
-    """Polls live hotspot hosts from MikroTik, computes delta traffic, and writes to database."""
+    """Polls live hotspot hosts and PPPoE sessions from MikroTik, computes delta traffic, and writes to database."""
     global _last_host_traffic_snapshot, _last_daily_prune_time
     now = time.time()
     try:
         hosts = router_client.get_hotspot_hosts_raw()
     except Exception as e:
-        logger.debug(f"Traffic collector read error: {e}")
-        return
+        logger.debug(f"Traffic collector hotspot read error: {e}")
+        hosts = []
 
     current_macs = set()
     for h in hosts:
@@ -137,11 +137,64 @@ def collect_router_traffic_snapshot():
             ip_address=ip_addr
         )
 
-    # Disconnected devices
-    disconnected_macs = set(_last_host_traffic_snapshot.keys()) - current_macs
+    # Poll fleet-wide active PPPoE sessions
+    current_pppoe_keys = set()
+    try:
+        pppoe_sessions = mikrotik_client.broadcast_get_active_pppoe_sessions()
+        for u_name, p_sess in pppoe_sessions.items():
+            clean_u = (u_name or "").strip()
+            if not clean_u:
+                continue
+            pp_key = f"PPPOE:{clean_u.upper()}"
+            current_pppoe_keys.add(pp_key)
+
+            raw_in = int(p_sess.get("bytes_in", 0) or p_sess.get("rx_bytes", 0) or 0)   # Upload from subscriber
+            raw_out = int(p_sess.get("bytes_out", 0) or p_sess.get("tx_bytes", 0) or 0) # Download to subscriber
+            ip_addr = p_sess.get("address")
+
+            prev = _last_host_traffic_snapshot.get(pp_key)
+            if prev is not None:
+                delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
+                delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+                delta_sec = int(now - prev["timestamp"])
+                if delta_sec > 300:
+                    delta_sec = 60
+            else:
+                delta_up = 0
+                delta_down = 0
+                delta_sec = 0
+
+            _last_host_traffic_snapshot[pp_key] = {
+                "bytes_in": raw_in,
+                "bytes_out": raw_out,
+                "timestamp": now,
+                "ip": ip_addr
+            }
+
+            database.record_device_traffic_delta(
+                mac_address=pp_key,
+                download_bytes=delta_down,
+                upload_bytes=delta_up,
+                active_seconds=delta_sec,
+                ip_address=ip_addr,
+                device_name=f"PPPoE Router [{clean_u}]"
+            )
+    except Exception as p_err:
+        logger.debug(f"PPPoE traffic poller error: {p_err}")
+
+    # Disconnected hotspot devices (exclude PPPOE keys)
+    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if not k.startswith("PPPOE:")}
+    disconnected_macs = prev_hotspot_keys - current_macs
     for d_mac in disconnected_macs:
         database.close_device_session(d_mac)
         _last_host_traffic_snapshot.pop(d_mac, None)
+
+    # Disconnected PPPoE sessions
+    prev_pppoe_keys = {k for k in _last_host_traffic_snapshot.keys() if k.startswith("PPPOE:")}
+    disconnected_pppoe = prev_pppoe_keys - current_pppoe_keys
+    for d_key in disconnected_pppoe:
+        database.close_device_session(d_key)
+        _last_host_traffic_snapshot.pop(d_key, None)
 
     # Daily prune (> 90 days)
     if (now - _last_daily_prune_time) > 86400:
@@ -1829,9 +1882,12 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
     """
     if pppoe_map is None:
         try:
-            pppoe_map = router_client.get_pppoe_sessions_map()
+            pppoe_map = mikrotik_client.broadcast_get_active_pppoe_sessions()
         except Exception:
-            pppoe_map = {}
+            try:
+                pppoe_map = router_client.get_pppoe_sessions_map()
+            except Exception:
+                pppoe_map = {}
 
     for cust in customers_list:
         c_type = (cust.get("connection_type") or "hotspot").strip().lower()
@@ -1839,7 +1895,7 @@ def enrich_customer_devices_telemetry(customers_list: list, telemetry_map: dict,
         pp_user = cust.get("pppoe_username") or (cust.get("phone") if has_pppoe else None)
 
         if has_pppoe and pp_user:
-            session = pppoe_map.get(pp_user)
+            session = pppoe_map.get(pp_user) or pppoe_map.get(pp_user.lower()) or pppoe_map.get(pp_user.upper())
             if session:
                 cust["is_pppoe_active"] = True
                 cust["pppoe_session"] = session
@@ -3235,17 +3291,82 @@ async def api_customer_usage(
     summ = analytics.get("summary", {})
     cust = analytics.get("customer", {})
     devs = analytics.get("device_breakdown", [])
-    active_count = len([d for d in devs if d.get("total_bytes", 0) > 0])
+
+    pp_user = (cust.get("pppoe_username") or "").strip()
+    pppoe_sess = None
+    if pp_user:
+        try:
+            pp_map = mikrotik_client.broadcast_get_active_pppoe_sessions()
+            pppoe_sess = pp_map.get(pp_user) or pp_map.get(pp_user.lower()) or pp_map.get(pp_user.upper())
+        except Exception:
+            pppoe_sess = None
+
+    if pppoe_sess:
+        cust["is_pppoe_active"] = True
+        cust["pppoe_session"] = pppoe_sess
+        analytics["pppoe_session"] = pppoe_sess
+        pp_mac = f"PPPOE:{pp_user.upper()}"
+        
+        # Match or inject PPPoE Router in device breakdown
+        pp_dev = next((d for d in devs if d.get("mac_address", "").upper() == pp_mac), None)
+        if pp_dev:
+            pp_dev["is_online"] = True
+            pp_dev["ip_address"] = pppoe_sess.get("address") or pp_dev.get("ip_address")
+            pp_dev["uptime"] = pppoe_sess.get("uptime")
+            pp_dev["interface"] = pppoe_sess.get("interface")
+            pp_dev["router_name"] = pppoe_sess.get("router_name")
+            if pp_dev.get("total_bytes", 0) < pppoe_sess.get("total_bytes", 0):
+                pp_dev["download_bytes"] = pppoe_sess.get("download_bytes", 0)
+                pp_dev["upload_bytes"] = pppoe_sess.get("upload_bytes", 0)
+                pp_dev["total_bytes"] = pppoe_sess.get("total_bytes", 0)
+                pp_dev["formatted_down"] = pppoe_sess.get("download_formatted", "0 B")
+                pp_dev["formatted_up"] = pppoe_sess.get("upload_formatted", "0 B")
+                pp_dev["formatted_total"] = pppoe_sess.get("total_formatted", "0 B")
+                pp_dev["formatted_active_time"] = pppoe_sess.get("uptime", "—")
+        else:
+            devs.insert(0, {
+                "mac_address": pp_mac,
+                "device_id": None,
+                "device_name": f"PPPoE Room Router ({pp_user})",
+                "friendly_name": f"PPPoE Router [{pp_user}]",
+                "ip_address": pppoe_sess.get("address") or cust.get("pppoe_remote_ip") or "—",
+                "download_bytes": pppoe_sess.get("download_bytes", 0),
+                "upload_bytes": pppoe_sess.get("upload_bytes", 0),
+                "total_bytes": pppoe_sess.get("total_bytes", 0),
+                "formatted_down": pppoe_sess.get("download_formatted", "0 B"),
+                "formatted_up": pppoe_sess.get("upload_formatted", "0 B"),
+                "formatted_total": pppoe_sess.get("total_formatted", "0 B"),
+                "active_seconds": 0,
+                "formatted_active_time": pppoe_sess.get("uptime", "—"),
+                "is_online": True,
+                "uptime": pppoe_sess.get("uptime"),
+                "interface": pppoe_sess.get("interface"),
+                "router_name": pppoe_sess.get("router_name"),
+                "share_percent": 100.0
+            })
+
+        # Update summary totals to reflect live PPPoE session bytes if uncommitted
+        if summ.get("total_bytes", 0) < pppoe_sess.get("total_bytes", 0):
+            summ["total_download_bytes"] = pppoe_sess.get("download_bytes", 0)
+            summ["total_upload_bytes"] = pppoe_sess.get("upload_bytes", 0)
+            summ["total_bytes"] = pppoe_sess.get("total_bytes", 0)
+            summ["formatted_down"] = pppoe_sess.get("download_formatted", "0 B")
+            summ["formatted_up"] = pppoe_sess.get("upload_formatted", "0 B")
+            summ["formatted_total"] = pppoe_sess.get("total_formatted", "0 B")
+
+    active_count = len([d for d in devs if d.get("total_bytes", 0) > 0 or d.get("is_online")])
+    is_online = bool(pppoe_sess) or (summ.get("total_active_seconds", 0) > 0)
 
     return {
         "success": True,
         "customer_id": customer_id,
         "customer_name": cust.get("name"),
-        "is_online": (summ.get("total_active_seconds", 0) > 0),
+        "is_online": is_online,
         "active_devices_count": active_count,
         "total_download": summ.get("formatted_down", "0 B"),
         "total_upload": summ.get("formatted_up", "0 B"),
         "total_traffic": summ.get("formatted_total", "0 B"),
+        "pppoe_session": pppoe_sess,
         "devices": devs,
         "analytics": analytics
     }
@@ -3310,6 +3431,20 @@ async def api_customer_usage_whatsapp(
         f"📱 *Account ID:* #{cust.get('id')} | Phone: {cust.get('phone')}",
         f"📅 *Audited Period:* {period_label}",
         f"⚡ *Package:* {cust.get('package_name', 'Active Plan')}",
+    ]
+
+    if cust.get("pppoe_username"):
+        try:
+            pp_map = mikrotik_client.broadcast_get_active_pppoe_sessions()
+            pp_s = pp_map.get(cust.get("pppoe_username")) or pp_map.get(cust.get("pppoe_username").lower()) or pp_map.get(cust.get("pppoe_username").upper())
+            if pp_s:
+                lines.append(f"📡 *PPPoE Router:* Active `{pp_s.get('interface')}` (IP: {pp_s.get('address')}, Uptime: {pp_s.get('uptime')})")
+            else:
+                lines.append(f"📡 *PPPoE Router:* User `{cust.get('pppoe_username')}` (Offline / Standby)")
+        except Exception:
+            pass
+
+    lines.extend([
         "",
         "📊 *Total Data Transferred:*",
         f"  • 📥 Download: {summ.get('formatted_down')}",
@@ -3317,12 +3452,16 @@ async def api_customer_usage_whatsapp(
         f"  • 🌐 Total Consumed: {summ.get('formatted_total')} (Daily Avg: {summ.get('formatted_daily_avg')})",
         f"  • ⏱️ Online Active Time: {summ.get('formatted_active_time')}",
         ""
-    ]
+    ])
 
     if devs:
         lines.append("📱 *Consumption by Authorized Device:*")
         for d in devs[:5]:
-            lines.append(f"  • {d.get('friendly_name')} ({d.get('mac_address')}): {d.get('formatted_total')} ({d.get('share_percent')}%)")
+            d_mac = (d.get("mac_address") or "").upper()
+            d_tot = d.get("formatted_total", "0 B")
+            if d_mac.startswith("PPPOE:") and (d_tot == "0 B" or d.get("total_bytes", 0) == 0) and ('pp_s' in locals() and pp_s):
+                d_tot = f"{pp_s.get('total_formatted')} (Live Session)"
+            lines.append(f"  • {d.get('friendly_name')} ({d.get('mac_address')}): {d_tot} ({d.get('share_percent')}%)")
         lines.append("")
 
     peak_h = summ.get("peak_hour", {})

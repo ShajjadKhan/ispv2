@@ -592,8 +592,8 @@
   .modal-overlay.open { display: flex; }
 
   .modal-box-responsive {
-    background: var(--bg-card, #0f172a);
-    border: 1px solid var(--border-subtle);
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 16px;
     width: 100%;
     max-width: 560px;
@@ -605,8 +605,8 @@
   }
   .modal-header-resp {
     padding: 14px 18px;
-    background: var(--bg-card-header, #131d36);
-    border-bottom: 1px solid var(--border-subtle);
+    background: #131d36;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -682,13 +682,9 @@
     }
     .usage-header-actions .btn-wa-main {
       grid-column: span 2;
-      min-height: 44px !important;
-      padding: 10px !important;
-      font-size: 13px !important;
+      padding: 9px !important;
+      font-size: 12.5px !important;
       font-weight: 700 !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
     }
 
     /* Horizontal scroll track for range pills */
@@ -715,12 +711,9 @@
       display: none;
     }
     .range-btn {
-      padding: 8px 12px;
-      min-height: 40px;
-      font-size: 11.5px;
+      padding: 5px 10px;
+      font-size: 11px;
       flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
     }
 
     .custom-range-form {
@@ -731,15 +724,14 @@
     }
     .range-date-input {
       width: 100%;
-      font-size: 16px !important;
-      padding: 8px 10px;
+      font-size: 11px;
+      padding: 6px 8px;
     }
     .custom-range-form button {
       grid-column: span 2;
-      min-height: 44px !important;
       justify-content: center;
-      padding: 10px !important;
-      font-size: 13px !important;
+      padding: 7px !important;
+      font-size: 12px !important;
       font-weight: 700;
     }
 
@@ -804,20 +796,15 @@
     }
     .modal-footer-resp .btn-wa-send {
       width: 100%;
-      min-height: 44px !important;
       justify-content: center;
       padding: 10px !important;
-      font-size: 13.5px !important;
+      font-size: 13px !important;
       font-weight: 700;
     }
     .modal-footer-resp .btn-cancel {
       width: 100%;
-      min-height: 44px !important;
       text-align: center;
-      padding: 10px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      padding: 8px !important;
     }
   }
 
@@ -978,6 +965,70 @@
     </form>
   </div>
 
+  {% if c.pppoe_username %}
+  <!-- PPPOE HARDWARE LIVE USAGE METER -->
+  <div style="background:var(--bg-card); border:1px solid rgba(56, 189, 248, 0.25); border-radius:14px; padding:14px 18px; box-shadow:0 4px 16px rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">📡</span>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:14px; font-weight:800; color:#ffffff;">PPPoE Router Hardware Meter</span>
+            {% if c.is_pppoe_active or c.pppoe_session %}
+              <span class="badge-status running" style="font-size:10px; padding:2px 8px;"><span class="pulse-dot"></span> LIVE TUNNEL CONNECTED</span>
+            {% else %}
+              <span class="badge-status disabled" style="font-size:10px; padding:2px 8px;">STANDBY / OFFLINE</span>
+            {% endif %}
+          </div>
+          <div class="font-mono" style="font-size:11px; color:var(--text-dim); margin-top:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span>User: <strong class="text-cyan">{{ c.pppoe_username }}</strong></span>
+            <span>&bull;</span>
+            <span>Interface: <strong class="text-white">{{ c.pppoe_session.interface if c.pppoe_session else ('<pppoe-' ~ c.pppoe_username ~ '>') }}</strong></span>
+            <span>&bull;</span>
+            <span>IP: <strong class="text-white">{{ (c.pppoe_session.address if c.pppoe_session else c.pppoe_remote_ip) or 'Dynamic' }}</strong></span>
+            <span>&bull;</span>
+            <span>Gateway: <strong class="text-white">{{ c.pppoe_session.router_name if c.pppoe_session else (c.active_router_short_name or 'Fleet') }}</strong></span>
+            {% if c.pppoe_session and c.pppoe_session.uptime %}
+              <span>&bull;</span>
+              <span>Uptime: <strong class="text-white">⏱️ {{ c.pppoe_session.uptime }}</strong></span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div style="font-size:10.5px; color:var(--text-dim); background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); padding:4px 10px; border-radius:6px;">
+        ⚡ Direct MikroTik Interface Query
+      </div>
+    </div>
+
+    <!-- Live PPPoE Wire Traffic Counters -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+      <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Live Download (Tx)</div>
+        <div class="font-mono" style="font-size:18px; font-weight:800; color:#38bdf8; margin-top:2px;">
+          ↓ {{ c.pppoe_session.download_formatted if c.pppoe_session else '0 B' }}
+        </div>
+        <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">Transmitted to subscriber router</div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Live Upload (Rx)</div>
+        <div class="font-mono" style="font-size:18px; font-weight:800; color:#34d399; margin-top:2px;">
+          ↑ {{ c.pppoe_session.upload_formatted if c.pppoe_session else '0 B' }}
+        </div>
+        <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">Received from subscriber router</div>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(56,189,248,0.2); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Live Session Total</div>
+        <div class="font-mono text-cyan" style="font-size:18px; font-weight:800; margin-top:2px;">
+          🌐 {{ c.pppoe_session.total_formatted if c.pppoe_session else '0 B' }}
+        </div>
+        <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">Active hardware interface wire bytes</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- KPI SUMMARY CARDS (COMPACT 2x2 ON MOBILE, 4-COL ON DESKTOP) -->
   <div class="usage-kpi-grid">
     <div class="kpi-card c-total">
@@ -1114,22 +1165,16 @@
       <div class="dev-stat-card">
         <div class="dev-stat-header">
           <div class="dev-stat-title">
-            <span style="font-size:18px; flex-shrink:0;">📱</span>
+            {% if d.mac_address.startswith('PPPOE:') %}
+              <span style="font-size:18px; flex-shrink:0;">📡</span>
+            {% else %}
+              <span style="font-size:18px; flex-shrink:0;">📱</span>
+            {% endif %}
             <div style="min-width:0;">
-              <div class="dev-stat-name" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <span>{{ d.friendly_name }}</span>
-                {% if d.is_online %}
-                <span class="badge-status running" style="font-size:9.5px; padding:1px 6px;">ONLINE</span>
-                {% else %}
-                <span class="badge-status" style="font-size:9.5px; padding:1px 6px; background:rgba(148,163,184,0.1); color:#94a3b8; border:1px solid rgba(148,163,184,0.2);">OFFLINE</span>
-                {% endif %}
-              </div>
+              <div class="dev-stat-name">{{ d.friendly_name }}</div>
               <div class="dev-stat-mac" onclick="copyMac('{{ d.mac_address }}', event)" title="Click to copy MAC" style="cursor:pointer;">
                 {{ d.mac_address }} 📋
               </div>
-              {% if d.ip_address and d.ip_address != '—' %}
-              <div style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">IP: <span class="font-mono text-cyan">{{ d.ip_address }}</span></div>
-              {% endif %}
             </div>
           </div>
           <div style="text-align:right; flex-shrink:0;">

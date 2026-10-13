@@ -2419,6 +2419,25 @@ def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
         return [dict(r) for r in cursor.execute(query).fetchall()]
 
 
+def get_customer_by_pppoe_username(username: str) -> Optional[Dict[str, Any]]:
+    """Retrieves customer record matching a PPPoE username (case-insensitive)."""
+    clean_u = (username or "").strip()
+    if not clean_u:
+        return None
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, name, phone, package_name, monthly_fee, speed_limit, billing_type,
+                   status, due_date, expiry_date, max_devices, join_date, billing_start_date,
+                   connection_type, pppoe_username, pppoe_password, pppoe_profile, pppoe_remote_ip
+            FROM customers
+            WHERE LOWER(pppoe_username) = LOWER(?)
+            LIMIT 1
+        """, (clean_u,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
 
 def resolve_collector_name(collector: Optional[str]) -> str:
     """Resolves collector identifier (username, name, or alias) to canonical staff Full Name."""
@@ -5588,10 +5607,12 @@ def record_device_traffic_delta(
     download_bytes: int,
     upload_bytes: int,
     active_seconds: int = 60,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    customer_id: Optional[int] = None,
+    device_name: Optional[str] = None
 ) -> bool:
     """
-    Persistently records incremental traffic delta for a client MAC address.
+    Persistently records incremental traffic delta for a client MAC address or PPPoE tunnel.
     Updates customer_traffic_hourly, customer_traffic_daily, and active connection sessions.
     """
     if not mac_address:
@@ -5607,38 +5628,51 @@ def record_device_traffic_delta(
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # Find customer & device mapping
-        cursor.execute("""
-            SELECT id, customer_id, device_name 
-            FROM customer_devices 
-            WHERE UPPER(mac_address) = ? AND status = 'approved'
-            LIMIT 1
-        """, (mac_clean,))
-        dev_row = cursor.fetchone()
-
-        customer_id = None
         device_id = None
-        device_name = "Client Device"
+        if not customer_id:
+            if mac_clean.startswith("PPPOE:"):
+                uname = mac_clean.split(":", 1)[1]
+                cursor.execute("""
+                    SELECT id, name FROM customers 
+                    WHERE UPPER(pppoe_username) = ? 
+                    LIMIT 1
+                """, (uname,))
+                crow = cursor.fetchone()
+                if crow:
+                    customer_id = crow["id"]
+                    device_name = device_name or f"PPPoE Router [{uname}]"
+            else:
+                # Find customer & device mapping
+                cursor.execute("""
+                    SELECT id, customer_id, device_name 
+                    FROM customer_devices 
+                    WHERE UPPER(mac_address) = ? AND status = 'approved'
+                    LIMIT 1
+                """, (mac_clean,))
+                dev_row = cursor.fetchone()
 
-        if dev_row:
-            device_id = dev_row["id"]
-            customer_id = dev_row["customer_id"]
-            device_name = dev_row["device_name"] or "Client Device"
-        else:
-            # Check connection requests if linked to a customer
-            cursor.execute("""
-                SELECT customer_id, device_model 
-                FROM connection_requests 
-                WHERE UPPER(mac_address) = ? AND customer_id IS NOT NULL
-                LIMIT 1
-            """, (mac_clean,))
-            req_row = cursor.fetchone()
-            if req_row and req_row["customer_id"]:
-                customer_id = req_row["customer_id"]
-                device_name = req_row["device_model"] or "Client Device"
+                if dev_row:
+                    device_id = dev_row["id"]
+                    customer_id = dev_row["customer_id"]
+                    device_name = dev_row["device_name"] or "Client Device"
+                else:
+                    # Check connection requests if linked to a customer
+                    cursor.execute("""
+                        SELECT customer_id, device_model 
+                        FROM connection_requests 
+                        WHERE UPPER(mac_address) = ? AND customer_id IS NOT NULL
+                        LIMIT 1
+                    """, (mac_clean,))
+                    req_row = cursor.fetchone()
+                    if req_row and req_row["customer_id"]:
+                        customer_id = req_row["customer_id"]
+                        device_name = req_row["device_model"] or "Client Device"
 
         if not customer_id:
             return False
+
+        if not device_name:
+            device_name = f"PPPoE Router [{mac_clean[6:]}]" if mac_clean.startswith("PPPOE:") else "Client Device"
 
         # 1. Upsert Hourly Table
         cursor.execute("""
@@ -5774,7 +5808,9 @@ def get_customer_usage_analytics(
 
         # Customer basic profile
         cursor.execute("""
-            SELECT id, name, phone, package_name, monthly_fee, speed_limit, billing_type, status, due_date, expiry_date, max_devices, join_date, billing_start_date
+            SELECT id, name, phone, package_name, monthly_fee, speed_limit, billing_type, status,
+                   due_date, expiry_date, max_devices, join_date, billing_start_date,
+                   connection_type, pppoe_username, pppoe_password, pppoe_profile, pppoe_remote_ip
             FROM customers WHERE id = ?
         """, (customer_id,))
         cust_row = cursor.fetchone()
@@ -5958,15 +5994,20 @@ def get_customer_usage_analytics(
             d_tot = r["total"]
             share_pct = round((d_tot / total_bytes * 100), 1) if total_bytes > 0 else 0.0
 
-            raw_name = meta.get("device_name") or "Client Device"
-            friendly = clean_device_friendly_name(raw_name)
+            if mac.startswith("PPPOE:"):
+                p_user = mac.split(":", 1)[1]
+                raw_name = f"PPPoE Room Router ({p_user})"
+                friendly = f"PPPoE Router [{p_user}]"
+            else:
+                raw_name = meta.get("device_name") or "Client Device"
+                friendly = clean_device_friendly_name(raw_name)
 
             device_breakdown.append({
                 "mac_address": mac,
                 "device_id": meta.get("id"),
                 "device_name": raw_name,
                 "friendly_name": friendly,
-                "ip_address": meta.get("ip_address") or "—",
+                "ip_address": meta.get("ip_address") or (customer.get("pppoe_remote_ip") if mac.startswith("PPPOE:") else "—") or "—",
                 "download_bytes": r["down"],
                 "upload_bytes": r["up"],
                 "total_bytes": d_tot,
@@ -5999,6 +6040,26 @@ def get_customer_usage_analytics(
                     "share_percent": 0.0
                 })
 
+        # Ensure PPPoE router appears if customer has PPPoE username and no traffic was recorded yet
+        pp_user = (customer.get("pppoe_username") or "").strip().upper()
+        if pp_user and f"PPPOE:{pp_user}" not in seen_macs:
+            device_breakdown.append({
+                "mac_address": f"PPPOE:{pp_user}",
+                "device_id": None,
+                "device_name": f"PPPoE Room Router ({pp_user})",
+                "friendly_name": f"PPPoE Router [{pp_user}]",
+                "ip_address": customer.get("pppoe_remote_ip") or "—",
+                "download_bytes": 0,
+                "upload_bytes": 0,
+                "total_bytes": 0,
+                "formatted_down": "0 B",
+                "formatted_up": "0 B",
+                "formatted_total": "0 B",
+                "active_seconds": 0,
+                "formatted_active_time": "0m",
+                "share_percent": 0.0
+            })
+
         # 5. Recent Sessions (last 30)
         cursor.execute("""
             SELECT id, mac_address, device_name, ip_address, started_at, last_seen_at, closed_at,
@@ -6016,7 +6077,11 @@ def get_customer_usage_analytics(
             item["formatted_up"] = format_bytes_display(item["upload_bytes"])
             item["formatted_total"] = format_bytes_display(item["total_bytes"])
             item["formatted_duration"] = format_seconds_display(item["duration_seconds"])
-            item["friendly_name"] = clean_device_friendly_name(item.get("device_name"))
+            s_mac = (item.get("mac_address") or "").upper()
+            if s_mac.startswith("PPPOE:"):
+                item["friendly_name"] = f"PPPoE Router [{s_mac[6:]}]"
+            else:
+                item["friendly_name"] = clean_device_friendly_name(item.get("device_name"))
             session_logs.append(item)
 
         return {
