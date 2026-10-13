@@ -86,166 +86,72 @@ router_client = RouterClient(
 )
 
 # Background Traffic Accounting & 90-Day Delta Collector
-# Key format: f"{router_id}:{mac}" -> {"bytes_in": int, "bytes_out": int, "timestamp": float, "ip": str, "router_name": str}
 _last_host_traffic_snapshot: Dict[str, Dict[str, Any]] = {}
-_device_miss_counts: Dict[str, int] = {}
 _last_daily_prune_time: float = 0.0
-_is_first_traffic_sweep: bool = True
 
 def collect_router_traffic_snapshot():
-    """
-    Fleet-wide 24/7 background traffic accounting collector:
-    1. Concurrently polls all active routers (Router-20, Router-30, Router-10) via ThreadPoolExecutor.
-    2. Isolates snapshots per (router_id, mac) to prevent roam/cross-router delta corruption.
-    3. Accurately seeds opening counters for zero-history devices without double-counting on server restart.
-    4. Applies a 2-cycle grace period to avoid flapping on transient WiFi blips or phone sleep states.
-    5. Writes incremental deltas and session updates in a single atomic database transaction.
-    """
-    global _last_host_traffic_snapshot, _device_miss_counts, _last_daily_prune_time, _is_first_traffic_sweep
+    """Polls live hotspot hosts from MikroTik, computes delta traffic, and writes to database."""
+    global _last_host_traffic_snapshot, _last_daily_prune_time
     now = time.time()
     try:
-        fleet_results = mikrotik_client.broadcast_get_hotspot_hosts_raw(timeout=6.0)
+        hosts = router_client.get_hotspot_hosts_raw()
     except Exception as e:
-        logger.error(f"Traffic collector broadcast read error: {e}")
+        logger.debug(f"Traffic collector read error: {e}")
         return
 
-    if not fleet_results:
-        logger.debug("Traffic collector: no router results received.")
-        return
+    current_macs = set()
+    for h in hosts:
+        mac = (h.get("mac-address") or "").strip().upper()
+        if not mac:
+            continue
+        current_macs.add(mac)
 
-    # Check which MACs currently have lifetime history in the database (for initial seed protection)
-    incoming_macs = set()
-    for router_dict, hosts in fleet_results:
-        for h in hosts:
-            mac = (h.get("mac-address") or "").strip().upper()
-            if mac:
-                incoming_macs.add(mac)
+        raw_in = int(h.get("bytes-in", 0) or 0)   # Upload from client
+        raw_out = int(h.get("bytes-out", 0) or 0) # Download to client
+        ip_addr = h.get("address")
 
-    macs_with_history = database.get_macs_with_traffic_history(list(incoming_macs))
+        prev = _last_host_traffic_snapshot.get(mac)
+        if prev is not None:
+            delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
+            delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+            delta_sec = int(now - prev["timestamp"])
+            if delta_sec > 300:
+                delta_sec = 60
+        else:
+            delta_up = 0
+            delta_down = 0
+            delta_sec = 0
 
-    deltas_to_record = []
-    active_network_macs = set()
+        _last_host_traffic_snapshot[mac] = {
+            "bytes_in": raw_in,
+            "bytes_out": raw_out,
+            "timestamp": now,
+            "ip": ip_addr
+        }
 
-    for router_dict, hosts in fleet_results:
-        r_id = router_dict.get("id") or router_dict.get("host")
-        r_name = router_dict.get("name", f"Router-{r_id}")
+        database.record_device_traffic_delta(
+            mac_address=mac,
+            download_bytes=delta_down,
+            upload_bytes=delta_up,
+            active_seconds=delta_sec,
+            ip_address=ip_addr
+        )
 
-        for h in hosts:
-            mac = (h.get("mac-address") or "").strip().upper()
-            if not mac:
-                continue
+    # Disconnected devices
+    disconnected_macs = set(_last_host_traffic_snapshot.keys()) - current_macs
+    for d_mac in disconnected_macs:
+        database.close_device_session(d_mac)
+        _last_host_traffic_snapshot.pop(d_mac, None)
 
-            snap_key = f"{r_id}:{mac}"
-            active_network_macs.add(mac)
-
-            raw_in = int(h.get("bytes-in", 0) or 0)    # Client upload
-            raw_out = int(h.get("bytes-out", 0) or 0)  # Client download
-            ip_addr = h.get("address")
-
-            prev = _last_host_traffic_snapshot.get(snap_key)
-            if prev is not None:
-                # Monotonic delta calculation with counter-reset protection
-                delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
-                delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
-                delta_sec = int(now - prev["timestamp"])
-                if delta_sec > 300:
-                    delta_sec = 60
-                elif delta_sec < 0:
-                    delta_sec = 0
-            else:
-                # First observation of this host on this router
-                if mac not in macs_with_history:
-                    # Device has never had ANY recorded traffic in the DB (e.g. Router-30 / Router-10 hosts)
-                    # Seed its existing router traffic as opening baseline
-                    delta_up = raw_in
-                    delta_down = raw_out
-                    delta_sec = 60
-                elif not _is_first_traffic_sweep:
-                    # Device already has history, and this is NOT a server boot sweep:
-                    # Host newly reconnected to this router with fresh host counters
-                    delta_up = raw_in
-                    delta_down = raw_out
-                    delta_sec = 60
-                else:
-                    # Server just started up and device already has history:
-                    # Record 0 delta to avoid double counting opening bytes
-                    delta_up = 0
-                    delta_down = 0
-                    delta_sec = 0
-
-            _last_host_traffic_snapshot[snap_key] = {
-                "bytes_in": raw_in,
-                "bytes_out": raw_out,
-                "timestamp": now,
-                "ip": ip_addr,
-                "router_id": r_id,
-                "router_name": r_name
-            }
-
-            # Reset miss count if device was previously marked missing
-            _device_miss_counts.pop(mac, None)
-
-            if delta_up > 0 or delta_down > 0 or delta_sec > 0:
-                deltas_to_record.append({
-                    "mac_address": mac,
-                    "download_bytes": delta_down,
-                    "upload_bytes": delta_up,
-                    "active_seconds": delta_sec,
-                    "ip_address": ip_addr,
-                    "router_name": r_name
-                })
-
-    _is_first_traffic_sweep = False
-
-    # Batch write deltas to database in a single atomic transaction
-    if deltas_to_record:
-        try:
-            recorded_count = database.record_devices_traffic_batch(deltas_to_record)
-            logger.debug(f"Recorded fleet traffic batch: {recorded_count} devices updated.")
-        except Exception as e:
-            logger.error(f"Failed to batch record fleet traffic deltas: {e}")
-
-    # Handle disconnected devices with 2-cycle grace period (~2 minutes)
-    known_macs = {k.split(":", 1)[1] for k in _last_host_traffic_snapshot.keys() if ":" in k}
-    missing_macs = known_macs - active_network_macs
-
-    macs_to_close = []
-    for m in missing_macs:
-        count = _device_miss_counts.get(m, 0) + 1
-        _device_miss_counts[m] = count
-        if count >= 2:
-            macs_to_close.append(m)
-
-    if macs_to_close:
-        try:
-            database.close_device_sessions_batch(macs_to_close)
-        except Exception as e:
-            logger.error(f"Failed to close device sessions batch: {e}")
-
-        for m in macs_to_close:
-            _device_miss_counts.pop(m, None)
-            keys_to_remove = [k for k in _last_host_traffic_snapshot if k.endswith(f":{m}")]
-            for k in keys_to_remove:
-                _last_host_traffic_snapshot.pop(k, None)
-
-    # Daily prune (> 90 days retention)
+    # Daily prune (> 90 days)
     if (now - _last_daily_prune_time) > 86400:
-        try:
-            database.purge_old_traffic_logs(days_to_keep=90)
-            _last_daily_prune_time = now
-        except Exception as e:
-            logger.error(f"Error purging old traffic logs: {e}")
+        database.purge_old_traffic_logs(days_to_keep=90)
+        _last_daily_prune_time = now
 
 
 async def traffic_collector_loop():
-    """Background worker that continuously tracks internet traffic every 60 seconds across all active routers."""
-    logger.info("Background 90-Day Fleet Traffic Accounting Collector initialized.")
-    # Run immediate first snapshot so router-fleet traffic is captured without 60s delay on startup
-    try:
-        await asyncio.to_thread(collect_router_traffic_snapshot)
-    except Exception as e:
-        logger.warning(f"Initial fleet traffic snapshot sweep warning: {e}")
-
+    """Background worker that continuously tracks internet traffic every 60 seconds."""
+    logger.info("Background 90-Day Traffic Accounting Collector initialized.")
     while True:
         try:
             await asyncio.sleep(60)
@@ -291,6 +197,13 @@ async def expiration_enforcement_loop():
                             logger.info(f"[Expiration Enforcer] Disabled PPPoE secret for '{pp_user}' (customer #{cid}).")
                         except Exception as pp_err:
                             logger.error(f"Error disabling expired PPPoE for customer #{cid}: {pp_err}")
+
+                    # Automatically notify expired subscriber with payment accounts so they can settle and restore
+                    if cust.get("reminders_enabled", 1):
+                        try:
+                            dispatch_suspension_notice_whatsapp(cid)
+                        except Exception as we:
+                            logger.warning(f"Could not dispatch expiry WhatsApp to customer #{cid}: {we}")
 
             # Audit and kick expired temporary guest passes
             expired_guests = await asyncio.to_thread(database.check_and_enforce_guest_expirations)
@@ -413,7 +326,8 @@ async def whatsapp_auto_dispatch_loop():
                     expiry_date=c.get("expiry_date", ""),
                     support_phone=wa_settings.get("support_phone", "0597595059"),
                     movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
-                    football_server=wa_settings.get("football_server", "http://10.12.14.16:8080")
+                    football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
+                    payment_accounts=wa_settings.get("payment_accounts", "")
                 )
 
                 clean_p = whatsapp_service.format_phone(c["phone"])
@@ -465,6 +379,26 @@ async def olt_telemetry_poller_loop():
         await asyncio.sleep(60)
 
 
+async def wallet_accrual_sync_loop():
+    """
+    Automated background worker that updates customers.credit_balance day-by-day.
+    Runs once on startup, then runs hourly so midnight roll-overs tick day by day
+    matching the billing_reminder accounting rules.
+    """
+    await asyncio.sleep(5)  # brief startup delay
+    while True:
+        try:
+            logger.info("Running automated wallet accrual sync...")
+            with get_db() as conn:
+                updated = database.sync_all_customer_realtime_balances(conn)
+            logger.info(f"Wallet accrual sync complete: {updated} customer records updated.")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in wallet_accrual_sync_loop: {e}")
+        await asyncio.sleep(3600)  # repeat every hour
+
+
 @app.on_event("startup")
 async def startup_event():
     # Real live data from MikroTik traffic collector only
@@ -475,6 +409,8 @@ async def startup_event():
     asyncio.create_task(whatsapp_auto_dispatch_loop())
     # Live Physical OLT Hardware Telemetry Background Poller
     asyncio.create_task(olt_telemetry_poller_loop())
+    # Automated Wallet Daily Accrual Synchronizer
+    asyncio.create_task(wallet_accrual_sync_loop())
 
 
 # =========================================================
@@ -675,6 +611,93 @@ def dispatch_welcome_notice_whatsapp(
     except Exception as e:
         logger.exception(f"Error dispatching WhatsApp welcome notice: {e}")
         return {"sent": False, "status": "error", "error": str(e)}
+
+
+def dispatch_suspension_notice_whatsapp(
+    customer_id: int,
+    custom_message: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Formats and dispatches an official service suspension / expiry cutoff notice,
+    including due balance and explicit payment account details (IBAN / STC Pay / Alinma)
+    so the subscriber can immediately settle and restore service.
+    """
+    try:
+        cust = database.get_customer_profile(customer_id)
+        if not cust or not cust.get("phone"):
+            c_raw = database.get_customer_by_id(customer_id)
+            if not c_raw or not c_raw.get("phone"):
+                return {"sent": False, "status": "no_phone", "error": "Customer phone number not found"}
+            cust = c_raw
+
+        phone = cust.get("phone")
+        clean_phone = whatsapp_service.format_phone(phone)
+        if not clean_phone:
+            return {"sent": False, "status": "invalid_phone", "error": f"Invalid phone format: {phone}"}
+
+        wa_settings = database.get_whatsapp_settings()
+        template_str = custom_message or wa_settings.get("template_expiry") or (
+            "⚠️ *CyberNet Service Alert / إشعار انقطاع الخدمة*\n\n"
+            "Dear *[NAME]*,\n"
+            "Your internet subscription expired on *[EXPIRY_DATE]*.\n"
+            "Service has been suspended. To restore your high-speed access immediately, please settle your account:\n\n"
+            "💳 *Due Amount:* *[DUE_BALANCE] SAR*\n\n"
+            "[PAYMENT_ACCOUNTS]\n\n"
+            "After payment, please send screenshot or transaction ID to support.\n"
+            "📞 Support (24/7): [HELPLINE]"
+        )
+
+        # Calculate accurate due balance from ledger
+        due_val = 0.0
+        try:
+            hist = database.get_balance_customer_history(customer_id=customer_id)
+            metrics = hist.get("metrics", {})
+            cur_bal = float(metrics.get("balance", 0.0))
+            due_val = abs(cur_bal) if cur_bal < -0.01 else float(cust.get("monthly_fee") or 30.0)
+        except Exception:
+            due_val = float(cust.get("monthly_fee") or 30.0)
+
+        msg = whatsapp_service.render_message_template(
+            template_str=template_str,
+            customer_name=cust.get("name", ""),
+            phone=phone,
+            package_name=cust.get("package_name") or "High-Speed Internet",
+            due_balance=due_val,
+            expiry_date=cust.get("expiry_date") or cust.get("due_date") or "Expired",
+            support_phone=wa_settings.get("support_phone", "0597595059"),
+            movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
+            football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
+            payment_accounts=wa_settings.get("payment_accounts", "")
+        )
+
+        ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
+        if not ok and "SANDBOX SHIELD" in str(err):
+            status_str = "blocked_sandbox"
+        else:
+            status_str = "sent" if ok else "failed"
+
+        database.log_whatsapp_message(
+            phone=clean_phone,
+            message_body=msg,
+            message_type="expiry",
+            status=status_str,
+            error_message=err,
+            customer_id=customer_id,
+            customer_name=cust.get("name"),
+            sent_by="system_suspension"
+        )
+
+        return {
+            "sent": ok,
+            "status": status_str,
+            "error": err,
+            "message_text": msg,
+            "phone": clean_phone
+        }
+    except Exception as e:
+        logger.exception(f"Error dispatching WhatsApp suspension notice for customer #{customer_id}: {e}")
+        return {"sent": False, "status": "error", "error": str(e)}
+
 
 
 
@@ -1005,6 +1028,7 @@ class WhatsAppSettingsRequest(BaseModel):
     template_expiry: Optional[str] = None
     template_welcome: Optional[str] = None
     template_maintenance: Optional[str] = None
+    payment_accounts: Optional[str] = None
     sandbox_mode: Optional[str] = None
 
 
@@ -1108,7 +1132,8 @@ PUBLIC_EXACT_PATHS = {
     "/favicon.ico",
     "/portal",
     "/hotspot",
-    "/hotspot/login"
+    "/hotspot/login",
+    "/get_unpaid.php"
 }
 
 PUBLIC_PREFIXES = (
@@ -1163,42 +1188,6 @@ async def auth_middleware(request: Request, call_next):
 
     request.state.user = user_session
     return await call_next(request)
-
-
-# =========================================================
-# RBAC Security Guardrails & Rate-Limiting Helpers
-# =========================================================
-
-def require_admin_or_superadmin(request: Request) -> Dict[str, Any]:
-    """Ensures the authenticated user has 'admin' or 'superadmin' role."""
-    user = getattr(request.state, "user", None)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-    if user.get("role") not in ("admin", "superadmin"):
-        raise HTTPException(status_code=403, detail="Forbidden: Admin privileges required.")
-    return user
-
-def require_superadmin(request: Request) -> Dict[str, Any]:
-    """Ensures the authenticated user has 'superadmin' role."""
-    user = getattr(request.state, "user", None)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required.")
-    if user.get("role") != "superadmin":
-        raise HTTPException(status_code=403, detail="Forbidden: Superadmin privileges required.")
-    return user
-
-_LOOKUP_RATE_LIMITS: Dict[str, List[float]] = {}
-MAX_LOOKUPS_PER_MINUTE = 15
-
-def is_lookup_rate_limited(ip: str) -> bool:
-    """Sliding-window IP rate limiter for public customer lookup endpoint."""
-    now = time.time()
-    timestamps = _LOOKUP_RATE_LIMITS.setdefault(ip, [])
-    _LOOKUP_RATE_LIMITS[ip] = [t for t in timestamps if now - t < 60]
-    if len(_LOOKUP_RATE_LIMITS[ip]) >= MAX_LOOKUPS_PER_MINUTE:
-        return True
-    _LOOKUP_RATE_LIMITS[ip].append(now)
-    return False
 
 
 # =========================================================
@@ -1973,28 +1962,6 @@ async def customers_view(request: Request):
             "router": live_status,
             "active_page": "customers",
             "customers": customers,
-            "packages": packages,
-            "resellers": resellers
-        }
-    )
-
-
-@app.api_route("/customers/add", methods=["GET", "HEAD"], response_class=HTMLResponse)
-@app.api_route("/customers/new", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def customer_add_view(request: Request):
-    """
-    Dedicated Full-Page Add Customer & Subscriber Onboarding View.
-    """
-    live_status = router_client.get_live_status()
-    packages = database.get_packages()
-    resellers = auth_service.get_resellers_list()
-
-    return templates.TemplateResponse(
-        request=request,
-        name="customer_add.html",
-        context={
-            "router": live_status,
-            "active_page": "customers",
             "packages": packages,
             "resellers": resellers
         }
@@ -2858,16 +2825,8 @@ async def detect_mac_endpoint(mac: str):
 
 
 @app.get("/api/customer/lookup")
-async def api_customer_lookup(phone: str, request: Request):
+async def api_customer_lookup(phone: str):
     """Allows subscriber to look up their current account plan and expiry status in captive portal."""
-    client_ip = get_client_ip(request)
-    if is_lookup_rate_limited(client_ip):
-        return JSONResponse(
-            status_code=429,
-            content={"found": False, "message": "Too many lookup attempts. Please wait a minute."},
-            headers={"Access-Control-Allow-Origin": "*"}
-        )
-
     clean_phone = phone.strip()
     cust = database.get_customer_by_phone(clean_phone)
     if not cust:
@@ -2875,19 +2834,10 @@ async def api_customer_lookup(phone: str, request: Request):
             content={"found": False, "message": "No subscriber account found with this mobile number."},
             headers={"Access-Control-Allow-Origin": "*"}
         )
-
-    # Privacy masking for unauthenticated public portal lookup
-    raw_name = cust.get("name", "Subscriber").strip()
-    parts = raw_name.split()
-    if len(parts) > 1:
-        masked_name = f"{parts[0]} " + " ".join(f"{p[0]}." for p in parts[1:])
-    else:
-        masked_name = raw_name
-
     return JSONResponse(
         content={
             "found": True,
-            "name": masked_name,
+            "name": cust.get("name", "Subscriber"),
             "package": cust.get("package_name", "Standard"),
             "expiry_date": cust.get("due_date") or cust.get("expiry_date") or "Active",
             "zone": cust.get("zone", ""),
@@ -3281,21 +3231,18 @@ async def api_customer_usage(
     cust = analytics.get("customer", {})
     devs = analytics.get("device_breakdown", [])
     active_count = len([d for d in devs if d.get("total_bytes", 0) > 0])
-    online_count = len([d for d in devs if d.get("is_online", False)])
 
     return {
         "success": True,
         "customer_id": customer_id,
         "customer_name": cust.get("name"),
-        "is_online": (online_count > 0),
-        "online_devices_count": online_count,
+        "is_online": (summ.get("total_active_seconds", 0) > 0),
         "active_devices_count": active_count,
         "total_download": summ.get("formatted_down", "0 B"),
         "total_upload": summ.get("formatted_up", "0 B"),
         "total_traffic": summ.get("formatted_total", "0 B"),
         "devices": devs,
-        "analytics": analytics,
-        "queried_at": now.strftime("%Y-%m-%d %H:%M:%S")
+        "analytics": analytics
     }
 
 
@@ -3453,8 +3400,7 @@ async def create_new_customer(payload: CreateCustomerPayload):
         effective_rate = payload.speed_limit if (payload.speed_limit and payload.speed_limit.strip()) else default_rate
         notes_str = f" [{cust['notes'].strip()}]" if cust.get("notes") and cust["notes"].strip() else ""
 
-        is_pppoe_enabled = (cust.get("connection_type") in ("pppoe", "both")) or (payload.connection_type and payload.connection_type.lower() in ("pppoe", "both")) or bool(payload.pppoe_username and payload.pppoe_username.strip())
-        if is_pppoe_enabled:
+        if cust.get("connection_type") == "pppoe" or (payload.connection_type and payload.connection_type.lower() == "pppoe"):
             pp_user = cust.get("pppoe_username") or payload.pppoe_username or cust.get("phone")
             pp_pass = cust.get("pppoe_password") or payload.pppoe_password or "cyber123"
             pp_prof = cust.get("pppoe_profile") or payload.pppoe_profile or "pppoe-profile-ether4"
@@ -3470,15 +3416,13 @@ async def create_new_customer(payload: CreateCustomerPayload):
                 comment=pp_comm
             )
             mt_ok = any(pp_res.values()) if pp_res else False
-
-        if (payload.connection_type != "pppoe" or payload.mac_address) and payload.mac_address and payload.mac_address.strip():
+        elif payload.mac_address and payload.mac_address.strip():
             comment = f"CyberNet: {cust['phone']} - {cust['name']}{notes_str} ({cust['billing_type'].upper()})"
-            dev_res = mikrotik_client.broadcast_bind_device(
+            mt_ok = router_client.bind_device(
                 mac_address=payload.mac_address,
                 comment=comment,
                 rate_limit=effective_rate
             )
-            mt_ok = any(dev_res.values()) if dev_res else mt_ok
 
         return {
             "success": True,
@@ -3492,13 +3436,12 @@ async def create_new_customer(payload: CreateCustomerPayload):
 
 
 @app.post("/api/customers/{customer_id}/edit")
-async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, request: Request):
+async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
     """
     Manually edits customer parameters from Customer Directory:
     Monthly fee, payment due date, custom speed limit, speed package, billing type, device limit, reseller.
     Immediately synchronizes the new speed limit to MikroTik for all the customer's active devices!
     """
-    require_admin_or_superadmin(request)
     logger.info(f"Admin editing customer #{customer_id} with payload: {payload}")
     try:
         updated = database.update_customer_details(
@@ -3535,11 +3478,9 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
         comment_str = f"CyberNet: {updated['phone']} - {updated['name']}{notes_str} ({updated['billing_type']})"
 
         fleet_res = {}
-        # 1. Sync PPPoE secret across fleet if PPPoE is enabled
-        is_pppoe_enabled = (updated.get("connection_type") in ("pppoe", "both")) or bool(updated.get("pppoe_username") and updated["pppoe_username"].strip())
-        if is_pppoe_enabled:
+        if updated.get("connection_type") == "pppoe":
             pp_comm = f"CyberNet PPPoE: {updated['phone']} - {updated['name']}{notes_str}"
-            pp_res = mikrotik_client.broadcast_sync_pppoe_secret(
+            fleet_res = mikrotik_client.broadcast_sync_pppoe_secret(
                 username=updated.get("pppoe_username") or updated.get("phone"),
                 password=updated.get("pppoe_password") or "cyber123",
                 profile=updated.get("pppoe_profile") or "pppoe-profile-ether4",
@@ -3548,16 +3489,12 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
                 disabled=(updated.get("status") == "suspended"),
                 comment=pp_comm
             )
-            fleet_res.update(pp_res or {})
-
-        # 2. Sync Hotspot devices speed if devices exist or Hotspot mode active
-        if updated.get("connection_type") != "pppoe" or devices:
-            dev_res = mikrotik_client.broadcast_sync_customer_devices_speed(
+        else:
+            fleet_res = mikrotik_client.broadcast_sync_customer_devices_speed(
                 devices=devices,
                 rate_limit=effective_speed,
                 comment=comment_str
             )
-            fleet_res.update(dev_res or {})
         mt_ok = any(fleet_res.values()) if fleet_res else False
 
         return {
@@ -3579,7 +3516,7 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload, 
 async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspendDatePayload):
     """
     Lightweight, fast endpoint to set/update a customer's service suspend & expiry date.
-    Recalculates expiry and days remaining. Restores service on MikroTik fleet if extended into the future.
+    Recalculates expiry and days remaining.
     """
     new_date = payload.suspend_date.strip()
     if not new_date or len(new_date) < 10:
@@ -3588,35 +3525,6 @@ async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspe
         updated = database.update_customer_details(customer_id=customer_id, due_date=new_date, suspend_date=new_date)
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "error": "Customer not found."})
-
-        # Check if extended to future / today
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        if new_date >= today_str:
-            cust = database.get_customer_profile(customer_id)
-            if cust and cust.get("status") == "suspended":
-                database.activate_customer(customer_id)
-                updated["status"] = "active"
-
-            if cust:
-                # Re-enable PPPoE if assigned
-                pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
-                if pp_user:
-                    mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
-
-                # Re-bind hotspot devices
-                cust_devices = cust.get("devices", [])
-                if cust_devices:
-                    btype_label = (cust.get("billing_type") or "PREPAID").upper()
-                    notes_str = f" [{cust.get('notes', '').strip()}]" if cust.get('notes') and cust.get('notes').strip() else ""
-                    for d in cust_devices:
-                        if d.get("status") == "approved":
-                            mikrotik_client.broadcast_bind_device(
-                                mac_address=d["mac_address"],
-                                ip_address=d.get("ip_address"),
-                                comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} ({btype_label})",
-                                rate_limit=cust.get("effective_speed")
-                            )
-
         return {
             "success": True,
             "message": f"Suspend date updated to {new_date}",
@@ -3641,17 +3549,25 @@ async def toggle_customer_status(customer_id: int):
         new_status, macs = database.toggle_customer_status(customer_id)
         cust = database.get_customer_profile(customer_id)
 
-        # 1. PPPoE secret toggle
-        pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
-        if pp_user:
-            mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=(new_status == "suspended"))
-            logger.info(f"Customer #{customer_id} PPPoE secret '{pp_user}' toggled to disabled={new_status == 'suspended'}.")
-
-        # 2. Hotspot MAC bindings toggle
-        if new_status == "suspended":
+        if cust and cust.get("connection_type") == "pppoe":
+            pp_user = cust.get("pppoe_username") or cust.get("phone")
+            if pp_user:
+                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=(new_status == "suspended"))
+                logger.info(f"Customer #{customer_id} PPPoE secret '{pp_user}' toggled to disabled={new_status == 'suspended'}.")
+            if new_status == "suspended" and cust and cust.get("reminders_enabled", 1):
+                try:
+                    dispatch_suspension_notice_whatsapp(customer_id)
+                except Exception as we:
+                    logger.warning(f"Could not dispatch suspension WhatsApp to PPPoE customer #{customer_id}: {we}")
+        elif new_status == "suspended":
             for mac in macs:
                 mikrotik_client.broadcast_unbind_device(mac)
             logger.info(f"Customer #{customer_id} suspended. Unbound {len(macs)} MACs from MikroTik fleet.")
+            if cust and cust.get("reminders_enabled", 1):
+                try:
+                    dispatch_suspension_notice_whatsapp(customer_id)
+                except Exception as we:
+                    logger.warning(f"Could not dispatch suspension WhatsApp to customer #{customer_id}: {we}")
         else:
             pkg_name = cust.get("package_name") if cust else ""
             packages = database.get_packages()
@@ -3680,6 +3596,16 @@ async def toggle_customer_status(customer_id: int):
     except Exception as e:
         logger.exception(f"Error toggling customer #{customer_id} status: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/customers/{customer_id}/send-suspension-notice")
+async def api_send_suspension_notice(customer_id: int):
+    """
+    Explicitly triggers WhatsApp suspension / cutoff notice with payment account details,
+    allowing manual 1-click dispatch from customer profile or operations desk.
+    """
+    res = dispatch_suspension_notice_whatsapp(customer_id)
+    return JSONResponse(res)
 
 
 @app.post("/api/customers/enforce-expirations")
@@ -3793,12 +3719,11 @@ async def remove_device(customer_id: int, device_id: int):
 
 @app.delete("/api/customers/{customer_id}")
 @app.post("/api/customers/{customer_id}/delete")
-async def delete_customer_endpoint(customer_id: int, request: Request):
+async def delete_customer_endpoint(customer_id: int):
     """
     Permanently deletes a customer, wipes their devices and collections,
     and removes all associated bindings, queues, and active sessions from MikroTik fleet.
     """
-    require_admin_or_superadmin(request)
     logger.warning(f"Initiating permanent deletion for customer #{customer_id}")
     try:
         success, macs, name, phone, pppoe_username = database.delete_customer_permanently(customer_id)
@@ -3853,24 +3778,18 @@ async def record_payment(customer_id: int, payload: RecordPaymentPayload, reques
             collector=collector
         )
 
-        # Ensure devices & PPPoE secrets are active on MikroTik with appropriate speed limit & updated billing type in comment
+        # Ensure devices are active on MikroTik with appropriate speed limit & updated billing type in comment
         cust = database.get_customer_profile(customer_id)
-        if cust:
-            pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
-            if pp_user:
-                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
-
-            if cust.get("devices"):
-                btype_label = (cust.get("billing_type") or "PREPAID").upper()
-                notes_str = f" [{cust.get('notes', '').strip()}]" if cust.get('notes') and cust.get('notes').strip() else ""
-                for d in cust["devices"]:
-                    if d.get("status") == "approved":
-                        mikrotik_client.broadcast_bind_device(
-                            mac_address=d["mac_address"],
-                            ip_address=d.get("ip_address"),
-                            comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} ({btype_label})",
-                            rate_limit=cust.get("effective_speed")
-                        )
+        if cust and cust.get("devices"):
+            btype_label = (cust.get("billing_type") or "PREPAID").upper()
+            for d in cust["devices"]:
+                if d.get("status") == "approved":
+                    mikrotik_client.broadcast_bind_device(
+                        mac_address=d["mac_address"],
+                        ip_address=d.get("ip_address"),
+                        comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')} ({btype_label})",
+                        rate_limit=cust.get("effective_speed")
+                    )
 
         switch_msg = ""
         if result.get("switched"):
@@ -3920,23 +3839,17 @@ async def apply_credit(customer_id: int, payload: ApplyCreditPayload):
             extend_days=payload.extend_days
         )
 
-        # Ensure devices & PPPoE secrets are active on MikroTik
+        # Ensure devices are active on MikroTik
         cust = database.get_customer_profile(customer_id)
-        if cust:
-            pp_user = cust.get("pppoe_username") or (cust.get("phone") if cust.get("connection_type") == "pppoe" else None)
-            if pp_user:
-                mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
-
-            if cust.get("devices"):
-                notes_str = f" [{cust.get('notes', '').strip()}]" if cust.get('notes') and cust.get('notes').strip() else ""
-                for d in cust["devices"]:
-                    if d.get("status") == "approved":
-                        mikrotik_client.broadcast_bind_device(
-                            mac_address=d["mac_address"],
-                            ip_address=d.get("ip_address"),
-                            comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')}{notes_str} (PREPAID)",
-                            rate_limit=cust.get("effective_speed")
-                        )
+        if cust and cust.get("devices"):
+            for d in cust["devices"]:
+                if d.get("status") == "approved":
+                    mikrotik_client.broadcast_bind_device(
+                        mac_address=d["mac_address"],
+                        ip_address=d.get("ip_address"),
+                        comment=f"CyberNet: {cust.get('phone')} - {cust.get('name')} (PREPAID)",
+                        rate_limit=cust.get("effective_speed")
+                    )
 
         return {
             "success": True,
@@ -4321,6 +4234,23 @@ async def api_balance_reconciliation(month: Optional[str] = None):
         return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
 
 
+@app.post("/api/wallet/sync")
+async def api_wallet_sync_endpoint():
+    """Triggers an immediate recalculation and SQLite sync of all subscriber wallets."""
+    try:
+        with get_db() as conn:
+            updated = database.sync_all_customer_realtime_balances(conn)
+        return {
+            "success": True,
+            "updated_count": updated,
+            "message": f"Successfully synchronized {updated} subscriber wallets."
+        }
+    except Exception as e:
+        logger.exception(f"Error executing manual wallet sync: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+
 @app.get("/balance/report", response_class=HTMLResponse)
 @app.get("/billing/report", response_class=HTMLResponse)
 async def balance_printable_report_view(
@@ -4376,12 +4306,8 @@ async def get_customer_unpaid_endpoint(customer_id: int):
 
 
 @app.get("/get_unpaid.php")
-async def get_unpaid_php_endpoint(request: Request, cid: int = Query(...), token: Optional[str] = Query(None)):
+async def get_unpaid_php_endpoint(cid: int = Query(...)):
     """PHP-compatible endpoint matching billing_reminder get_unpaid.php?cid=..."""
-    user = getattr(request.state, "user", None)
-    expected_token = os.getenv("LEGACY_BILLING_TOKEN", "")
-    if not user and (not expected_token or token != expected_token):
-        raise HTTPException(status_code=401, detail="Unauthorized: Authentication or valid access token required.")
     try:
         data = database.get_customer_unpaid_months(cid)
         return JSONResponse(content=data)
@@ -4534,9 +4460,8 @@ async def get_package_details(pkg_id: int):
 
 
 @app.post("/api/packages")
-async def create_new_package(payload: PackagePayload, request: Request):
+async def create_new_package(payload: PackagePayload):
     """Creates a new speed package and optionally provisions it on MikroTik."""
-    require_admin_or_superadmin(request)
     logger.info(f"Creating package: {payload.name}, Rate: {payload.rate_limit}, Price: {payload.price}")
     try:
         pkg = database.create_package(
@@ -4554,13 +4479,12 @@ async def create_new_package(payload: PackagePayload, request: Request):
 
         mt_ok = False
         if payload.sync_router:
-            res = mikrotik_client.broadcast_sync_package_profile(
+            mt_ok = router_client.sync_package_profile(
                 profile_name=pkg["mikrotik_profile"],
                 rate_limit=pkg["rate_limit"],
                 shared_users=pkg["shared_users"],
                 package_type=pkg["type"]
             )
-            mt_ok = any(res.values()) if res else False
 
         return {
             "success": True,
@@ -4574,9 +4498,8 @@ async def create_new_package(payload: PackagePayload, request: Request):
 
 
 @app.put("/api/packages/{pkg_id}")
-async def update_existing_package(pkg_id: int, payload: PackagePayload, request: Request):
-    """Updates an existing speed package and updates its MikroTik profile across the router fleet."""
-    require_admin_or_superadmin(request)
+async def update_existing_package(pkg_id: int, payload: PackagePayload):
+    """Updates an existing speed package and updates its MikroTik profile."""
     logger.info(f"Updating package #{pkg_id}: {payload.name}, Rate: {payload.rate_limit}")
     try:
         pkg = database.update_package(
@@ -4597,13 +4520,12 @@ async def update_existing_package(pkg_id: int, payload: PackagePayload, request:
 
         mt_ok = False
         if payload.sync_router:
-            res = mikrotik_client.broadcast_sync_package_profile(
+            mt_ok = router_client.sync_package_profile(
                 profile_name=pkg["mikrotik_profile"],
                 rate_limit=pkg["rate_limit"],
                 shared_users=pkg["shared_users"],
                 package_type=pkg["type"]
             )
-            mt_ok = any(res.values()) if res else False
 
         return {
             "success": True,
@@ -4617,18 +4539,17 @@ async def update_existing_package(pkg_id: int, payload: PackagePayload, request:
 
 
 @app.delete("/api/packages/{pkg_id}")
-async def delete_existing_package(pkg_id: int, request: Request):
+async def delete_existing_package(pkg_id: int):
     """Deletes package if no active subscribers are using it."""
-    require_admin_or_superadmin(request)
     logger.info(f"Attempting to delete package #{pkg_id}")
     try:
         success, msg, pkg = database.delete_package(pkg_id)
         if not success:
             return JSONResponse(status_code=400, content={"success": False, "message": msg})
 
-        # Remove profile from all active MikroTik routers if present
+        # Remove profile from MikroTik if present
         if pkg and pkg.get("mikrotik_profile"):
-            mikrotik_client.broadcast_delete_package_profile(
+            router_client.delete_package_profile(
                 profile_name=pkg["mikrotik_profile"],
                 package_type=pkg.get("type", "hotspot")
             )
@@ -4641,23 +4562,22 @@ async def delete_existing_package(pkg_id: int, request: Request):
 
 @app.post("/api/packages/{pkg_id}/sync-router")
 async def sync_package_to_router(pkg_id: int):
-    """Pushes and provisions package profile directly to all active MikroTik routers."""
+    """Pushes and provisions package profile directly to the active MikroTik router."""
     pkg = database.get_package_by_id(pkg_id)
     if not pkg:
         raise HTTPException(status_code=404, detail="Package not found")
 
-    res = mikrotik_client.broadcast_sync_package_profile(
+    mt_ok = router_client.sync_package_profile(
         profile_name=pkg["mikrotik_profile"],
         rate_limit=pkg["rate_limit"],
         shared_users=pkg["shared_users"],
         package_type=pkg["type"]
     )
-    mt_ok = any(res.values()) if res else False
 
     if mt_ok:
-        return {"success": True, "message": f"Profile '{pkg['mikrotik_profile']}' successfully synced to MikroTik routers ({list(res.keys())})."}
+        return {"success": True, "message": f"Profile '{pkg['mikrotik_profile']}' successfully synced to MikroTik."}
     else:
-        return JSONResponse(status_code=500, content={"success": False, "message": "Failed to sync profile to MikroTik routers."})
+        return JSONResponse(status_code=500, content={"success": False, "message": "Failed to sync profile to MikroTik."})
 
 
 @app.post("/api/packages/{pkg_id}/toggle-active")
@@ -4990,9 +4910,8 @@ async def api_whatsapp_session_restart():
 
 
 @app.post("/api/whatsapp/session/reset")
-async def api_whatsapp_session_reset(request: Request):
+async def api_whatsapp_session_reset():
     """Purges current WhatsApp session and creates a fresh session for pairing a new phone."""
-    require_admin_or_superadmin(request)
     res = whatsapp_service.reset_and_relink_whatsapp_session()
     return JSONResponse(res)
 
@@ -5149,9 +5068,8 @@ async def api_get_routers(active_only: bool = False):
 
 
 @app.post("/api/routers")
-async def api_create_router(payload: CreateRouterPayload, request: Request):
+async def api_create_router(payload: CreateRouterPayload):
     """Adds a new MikroTik hardware router to the fleet one-by-one."""
-    require_admin_or_superadmin(request)
     logger.info(f"Adding new MikroTik router to fleet: {payload.name} ({payload.host}:{payload.port})")
     try:
         r = database.create_router(
@@ -5217,9 +5135,8 @@ async def api_get_router(router_id: int):
 
 
 @app.put("/api/routers/{router_id}")
-async def api_update_router(router_id: int, payload: UpdateRouterPayload, request: Request):
+async def api_update_router(router_id: int, payload: UpdateRouterPayload):
     """Updates router configuration and credentials."""
-    require_admin_or_superadmin(request)
     logger.info(f"Updating router #{router_id}: {payload.name}")
     try:
         updated = database.update_router(
@@ -5242,9 +5159,8 @@ async def api_update_router(router_id: int, payload: UpdateRouterPayload, reques
 
 
 @app.delete("/api/routers/{router_id}")
-async def api_delete_router(router_id: int, request: Request):
+async def api_delete_router(router_id: int):
     """Deletes a router from the fleet."""
-    require_admin_or_superadmin(request)
     ok = database.delete_router(router_id)
     return {"success": ok}
 
@@ -5342,41 +5258,24 @@ async def download_audit_md():
     )
 
 
-ALLOWED_PUBLIC_DOWNLOAD_EXTENSIONS = {".pdf", ".md", ".txt"}
-FORBIDDEN_DOWNLOAD_EXTENSIONS = {".db", ".py", ".env", ".key", ".sh", ".json", ".sqlite", ".bak", ".log"}
-
 @app.get("/downloads/{filename}")
 async def download_any_file(filename: str):
-    """Secure file download endpoint with path traversal & extension protection."""
-    safe_name = os.path.basename(filename)
-    if not safe_name or safe_name != filename or safe_name.startswith("."):
-        raise HTTPException(status_code=400, detail="Invalid filename format.")
-
-    ext = os.path.splitext(safe_name)[1].lower()
-    if ext in FORBIDDEN_DOWNLOAD_EXTENSIONS or ext not in ALLOWED_PUBLIC_DOWNLOAD_EXTENSIONS:
-        logger.warning(f"Blocked unauthorized file download attempt: {filename}")
-        raise HTTPException(status_code=403, detail="Access denied: this file type cannot be downloaded.")
-
-    base_dir = Path("/home/tserver/isp_v2")
-    if not base_dir.exists():
-        base_dir = Path(__file__).resolve().parent
-
-    file_path = base_dir / safe_name
-    if not file_path.exists() or not file_path.is_file():
+    file_path = Path("/home/tserver/isp_v2") / filename
+    if not file_path.exists():
+        file_path = Path(filename)
+    if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
-
     mimetype = "application/octet-stream"
-    if safe_name.endswith(".pdf"):
+    if filename.endswith(".pdf"):
         mimetype = "application/pdf"
-    elif safe_name.endswith(".md"):
+    elif filename.endswith(".md"):
         mimetype = "text/markdown"
-    elif safe_name.endswith(".txt"):
+    elif filename.endswith(".txt"):
         mimetype = "text/plain"
-
     return FileResponse(
         str(file_path),
         media_type=mimetype,
-        filename=safe_name
+        filename=filename
     )
 
 

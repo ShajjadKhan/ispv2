@@ -15,14 +15,9 @@ import re
 import calendar
 from contextlib import contextmanager
 from datetime import datetime, timedelta, date
-from typing import Dict, List, Optional, Tuple, Any, Set
+from typing import Dict, List, Optional, Tuple, Any
 
-DEFAULT_DB_PATH = "/home/tserver/isp_v2/isp_v2.db"
-_local_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isp_v2.db")
-if not os.path.exists(DEFAULT_DB_PATH) and os.path.exists(_local_db):
-    DEFAULT_DB_PATH = _local_db
-
-DB_PATH = os.getenv("DB_PATH", DEFAULT_DB_PATH)
+DB_PATH = os.getenv("DB_PATH", "/home/tserver/isp_v2/isp_v2.db")
 
 def is_randomized_mac(mac: Optional[str]) -> bool:
     """
@@ -70,12 +65,15 @@ def validate_mac_address(mac: Optional[str], allow_random: bool = False) -> Tupl
         return False, f"Randomized MAC address detected ({norm}). Only real physical Device MAC addresses are allowed on this network. Please disable Private Wi-Fi / Randomized MAC in your phone settings.", norm
     return True, "Valid Device MAC address.", norm
 
+def get_raw_connection() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode = WAL")
+    return conn
+
 @contextmanager
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=20.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA busy_timeout = 20000")
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn = get_raw_connection()
     try:
         yield conn
         conn.commit()
@@ -90,7 +88,6 @@ def init_db():
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("PRAGMA journal_mode = WAL")
         
         # 1. Customers Table
         cursor.execute("""
@@ -544,10 +541,10 @@ def init_db():
                 ("support_phone", "0597595059"),
                 ("movie_server", "http://10.12.14.16:8082"),
                 ("football_server", "http://10.12.14.16:8080"),
-                ("template_reminder", "📶 *CYBERNET ACCOUNT STATUS*\nAssalamu Alaikum *[NAME]*!\n\n📦 Plan: *[PACKAGE]*\n📅 Valid Until: *[EXPIRY_DATE]*\n💰 Due Balance: *[DUE_BALANCE] SAR*\n\nPlease recharge on time to prevent service interruption. 🙏\n\n🎬 Free Movies: [MOVIES]\n⚽ Live Football: [FOOTBALL]\n\n📞 Support (24/7): [HELPLINE]"),
+                ("template_reminder", "📶 *CYBERNET ACCOUNT STATUS*\nAssalamu Alaikum *[NAME]*!\n\n📦 Plan: *[PACKAGE]*\n📅 Valid Until: *[EXPIRY_DATE]*\n💰 Due Balance: *[DUE_BALANCE] SAR*\n\nPlease recharge on time to prevent service interruption. 🙏\n\n[PAYMENT_ACCOUNTS]\n\n🎬 Free Movies: [MOVIES]\n⚽ Live Football: [FOOTBALL]\n\n📞 Support (24/7): [HELPLINE]"),
                 ("template_receipt", "✅ *CYBERNET PAYMENT RECEIPT*\n\nCustomer : *[NAME]*\nReceipt #: `[RECEIPT_NO]`\n\n💳 *Payment Details:*\n  • Amount Paid Today : *[AMOUNT] SAR* ([PAYMENT_METHOD])\n  • Plan              : [PACKAGE]\n  • Service Active To : *[EXPIRY_DATE]*\n\n[ACCOUNT_STATUS]\n\n🎁 *Free for our customers:*\n  🎬 Movies: [MOVIES]\n  ⚽ Live Football: [FOOTBALL]\n\n📞 Support (24/7): [HELPLINE]\n\nThank you for your payment! 🙏"),
                 ("template_voucher", "🌐 *CyberNet Internet Voucher*\n\nHello *[NAME]*,\nHere is your internet recharge PIN:\n\n🎟️ *Voucher PIN:* `[PIN]`\n📦 *Package:* [PACKAGE]\n💰 *Amount:* [AMOUNT] SAR\n\nTo activate, enter this PIN on the WiFi popup or visit:\nhttp://10.20.30.1:8088/hotspot/login\n\n🎬 Movies: [MOVIES]\n⚽ Live Football: [FOOTBALL]\n📞 Support: [HELPLINE]"),
-                ("template_expiry", "⚠️ *CyberNet Service Alert*\n\nDear *[NAME]*,\nYour internet subscription expired on *[EXPIRY_DATE]*.\nTo restore your high-speed access immediately, please recharge your plan.\n\n💳 *Due Amount:* [DUE_BALANCE] SAR\n\nContact our team or visit http://10.20.30.1:8088/hotspot/login to recharge via voucher.\nSupport: [HELPLINE]"),
+                ("template_expiry", "⚠️ *CyberNet Service Alert / إشعار انقطاع الخدمة*\n\nDear *[NAME]*,\nYour internet subscription expired on *[EXPIRY_DATE]*.\nService has been suspended. To restore your high-speed access immediately, please settle your account:\n\n💳 *Due Amount:* *[DUE_BALANCE] SAR*\n\n[PAYMENT_ACCOUNTS]\n\nAfter payment, please send screenshot or transaction ID to support.\n📞 Support (24/7): [HELPLINE]"),
                 ("template_maintenance", "🛠️ *CyberNet Maintenance Announcement*\n\nDear Subscribers,\nPlease be informed that scheduled optical network optimization will take place on *[EXPIRY_DATE]* for 30 minutes.\n\nWe apologize for any temporary inconvenience and appreciate your patience!\nSupport: [HELPLINE]")
             ]
             cursor.executemany("INSERT INTO whatsapp_settings (key, value) VALUES (?, ?)", default_wa_settings)
@@ -558,7 +555,8 @@ def init_db():
             ("auto_dispatch_max_per_day", "25"),
             ("auto_dispatch_dedupe_days", "3"),
             ("auto_dispatch_last_run", ""),
-            ("template_welcome", "🌐 *WELCOME TO CYBERNET HIGH-SPEED FIBER*\n\nAssalamu Alaikum *[NAME]*!\n\nYour internet connection is now active and ready to use.\n📦 *Plan:* [PACKAGE]\n📅 *Expiry / Renewal:* [EXPIRY_DATE]\n\n🎁 *Complimentary Local Portals:*\n  🎬 Free Movies: [MOVIES]\n  ⚽ Live Football: [FOOTBALL]\n\n📞 *Support (24/7):* [HELPLINE]\n\nWelcome to the CyberNet family! 🙏")
+            ("template_welcome", "🌐 *WELCOME TO CYBERNET HIGH-SPEED FIBER*\n\nAssalamu Alaikum *[NAME]*!\n\nYour internet connection is now active and ready to use.\n📦 *Plan:* [PACKAGE]\n📅 *Expiry / Renewal:* [EXPIRY_DATE]\n\n🎁 *Complimentary Local Portals:*\n  🎬 Free Movies: [MOVIES]\n  ⚽ Live Football: [FOOTBALL]\n\n📞 *Support (24/7):* [HELPLINE]\n\nWelcome to the CyberNet family! 🙏"),
+            ("payment_accounts", "💳 *Payment Accounts / طرق الدفع:*\n\n1️⃣ *Shajjad Khan:*\n📱 +966597595059 (STC Pay, Barq, AlinmaPay)\n🏦 Alinma Bank IBAN:\n`SA3305000068206538133000`\n\n2️⃣ *Riyad Hossain:*\n📱 +966552036454 (STC Pay, Barq)\n🏦 Alinma Bank IBAN:\n`SA5805000068207720354000`")
         ]
         for k, v in extra_settings_defaults:
             cursor.execute("INSERT OR IGNORE INTO whatsapp_settings (key, value) VALUES (?, ?)", (k, v))
@@ -698,10 +696,6 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_customer_devices_mac ON customer_devices(mac_address)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_collections_cust_id ON collections(customer_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_conn_requests_mac ON connection_requests(mac_address)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_conn_requests_status ON connection_requests(status)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_reseller_ledger_reseller ON reseller_wallet_ledger(reseller_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_collections_cust_month ON collections(customer_id, month_year)")
 
         conn.commit()
 
@@ -2275,34 +2269,6 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
         return (new_status, macs)
 
 
-def activate_customer(customer_id: int) -> Tuple[bool, List[str]]:
-    """
-    Explicitly ensures customer status is 'active', all associated devices are 'approved',
-    and any open suspension records are closed.
-    Returns (True, list_of_approved_mac_addresses).
-    """
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT status FROM customers WHERE id = ?", (customer_id,))
-        row = cursor.fetchone()
-        if not row:
-            return (False, [])
-
-        cursor.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer_id))
-        cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
-        cursor.execute("""
-            UPDATE customer_suspensions
-            SET resumed_at = ?
-            WHERE customer_id = ? AND resumed_at IS NULL
-        """, (now_str, customer_id))
-
-        cursor.execute("SELECT mac_address FROM customer_devices WHERE customer_id = ?", (customer_id,))
-        macs = [r["mac_address"].upper() for r in cursor.fetchall()]
-        conn.commit()
-        return (True, macs)
-
-
 def add_customer_device(
     customer_id: int,
     mac_address: str,
@@ -2441,10 +2407,10 @@ def delete_customer_permanently(customer_id: int) -> Tuple[bool, List[str], str,
 
 
 def get_all_pppoe_customers(active_only: bool = False) -> List[Dict[str, Any]]:
-    """Returns all customers configured with connection_type in ('pppoe', 'both') or with pppoe_username configured."""
+    """Returns all customers configured with connection_type == 'pppoe'."""
     with get_db() as conn:
         cursor = conn.cursor()
-        query = "SELECT * FROM customers WHERE (connection_type IN ('pppoe', 'both') OR (pppoe_username IS NOT NULL AND TRIM(pppoe_username) != ''))"
+        query = "SELECT * FROM customers WHERE connection_type = 'pppoe'"
         if active_only:
             query += " AND status = 'active'"
         query += " ORDER BY id ASC"
@@ -2586,13 +2552,8 @@ def record_customer_payment(
             WHERE id = ?
         """, (new_expiry, new_expiry, new_due_day, new_credit, new_billing_type, now_str, customer_id))
 
-        # Unblock any suspended customer devices & close open suspensions
+        # Unblock any suspended customer devices
         cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
-        cursor.execute("""
-            UPDATE customer_suspensions
-            SET resumed_at = ?
-            WHERE customer_id = ? AND resumed_at IS NULL
-        """, (now_str, customer_id))
 
         conn.commit()
         return {
@@ -2666,13 +2627,8 @@ def apply_customer_credit(
             WHERE id = ?
         """, (new_credit, new_expiry, new_expiry, new_due_day, new_billing_type, now_str, customer_id))
 
-        # 2. Unblock customer devices if suspended & close open suspensions
+        # 2. Unblock customer devices if suspended
         cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
-        cursor.execute("""
-            UPDATE customer_suspensions
-            SET resumed_at = ?
-            WHERE customer_id = ? AND resumed_at IS NULL
-        """, (now_str, customer_id))
 
         # 3. Log to collections ledger
         cursor.execute("""
@@ -3556,7 +3512,6 @@ def get_dashboard_metrics(
             "in_3d": 0,
             "in_7d": 0,
             "in_15d": 0,
-            "in_7_15d": 0,
             "upcoming_renewals": 0
         }
 
@@ -3733,8 +3688,7 @@ def get_dashboard_metrics(
                 pass
 
         tier_counts["today_overdue"] = tier_counts["overdue"] + tier_counts["today"]
-        tier_counts["in_7_15d"] = tier_counts["in_7d"] + tier_counts["in_15d"]
-        tier_counts["upcoming_renewals"] = tier_counts["in_3d"] + tier_counts["in_7_15d"]
+        tier_counts["upcoming_renewals"] = tier_counts["in_3d"] + tier_counts["in_7d"] + tier_counts["in_15d"]
         tier_counts["total_queue"] = tier_counts["will_suspend"] + tier_counts["upcoming_renewals"]
         # 'total' for the Will Suspend KPI card strictly shows the accounts that will be cut!
         tier_counts["total"] = tier_counts["will_suspend"]
@@ -4668,6 +4622,18 @@ def get_whatsapp_settings() -> Dict[str, str]:
             )
         if "sandbox_mode" not in res:
             res["sandbox_mode"] = "1"
+        if not res.get("payment_accounts"):
+            res["payment_accounts"] = (
+                "💳 *Payment Accounts / طرق الدفع:*\n\n"
+                "1️⃣ *Shajjad Khan:*\n"
+                "📱 +966597595059 (STC Pay, Barq, AlinmaPay)\n"
+                "🏦 Alinma Bank IBAN:\n"
+                "`SA3305000068206538133000`\n\n"
+                "2️⃣ *Riyad Hossain:*\n"
+                "📱 +966552036454 (STC Pay, Barq)\n"
+                "🏦 Alinma Bank IBAN:\n"
+                "`SA5805000068207720354000`"
+            )
         return res
 
 
@@ -5762,238 +5728,6 @@ def close_device_session(mac_address: str) -> bool:
         return cursor.rowcount > 0
 
 
-def close_device_sessions_batch(mac_addresses: List[str]) -> int:
-    """Closes active connection sessions for devices that disconnected across the network."""
-    if not mac_addresses:
-        return 0
-    clean_macs = list({m.strip().upper() for m in mac_addresses if m and m.strip()})
-    if not clean_macs:
-        return 0
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with get_db() as conn:
-        cursor = conn.cursor()
-        total_closed = 0
-        for i in range(0, len(clean_macs), 500):
-            chunk = clean_macs[i:i+500]
-            placeholders = ",".join("?" for _ in chunk)
-            cursor.execute(f"""
-                UPDATE customer_connection_sessions
-                SET is_active = 0, closed_at = COALESCE(last_seen_at, ?)
-                WHERE is_active = 1 AND UPPER(mac_address) IN ({placeholders})
-            """, [now_str] + chunk)
-            total_closed += cursor.rowcount
-        conn.commit()
-        return total_closed
-
-
-def get_macs_with_traffic_history(mac_addresses: List[str]) -> Set[str]:
-    """Returns set of uppercase MAC addresses that have at least one record in customer_traffic_daily."""
-    if not mac_addresses:
-        return set()
-    clean_macs = list({m.strip().upper() for m in mac_addresses if m and m.strip()})
-    if not clean_macs:
-        return set()
-    with get_db() as conn:
-        cursor = conn.cursor()
-        found = set()
-        for i in range(0, len(clean_macs), 500):
-            chunk = clean_macs[i:i+500]
-            placeholders = ",".join("?" for _ in chunk)
-            cursor.execute(f"""
-                SELECT DISTINCT UPPER(mac_address) as mac 
-                FROM customer_traffic_daily 
-                WHERE UPPER(mac_address) IN ({placeholders})
-            """, chunk)
-            for r in cursor.fetchall():
-                found.add(r["mac"].upper())
-        return found
-
-
-def record_devices_traffic_batch(deltas: List[Dict[str, Any]]) -> int:
-    """
-    Persistently records incremental traffic deltas for multiple client devices in a single atomic transaction.
-    Batch upserts customer_traffic_hourly, customer_traffic_daily, and updates customer_connection_sessions.
-    Returns the number of successfully recorded devices.
-    """
-    if not deltas:
-        return 0
-
-    valid_deltas = []
-    mac_set = set()
-    for d in deltas:
-        mac = (d.get("mac_address") or "").strip().upper()
-        if not mac:
-            continue
-        valid_deltas.append({
-            "mac": mac,
-            "down": max(0, int(d.get("download_bytes", 0) or 0)),
-            "up": max(0, int(d.get("upload_bytes", 0) or 0)),
-            "sec": max(0, int(d.get("active_seconds", 0) or 0)),
-            "ip": d.get("ip_address"),
-            "router_name": d.get("router_name")
-        })
-        mac_set.add(mac)
-
-    if not valid_deltas:
-        return 0
-
-    now = datetime.now()
-    date_str = now.strftime("%Y-%m-%d")
-    hour_int = now.hour
-    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-
-    clean_macs = list(mac_set)
-
-    with get_db() as conn:
-        cursor = conn.cursor()
-
-        # 1. Batch look up customer & device mappings
-        cust_mapping: Dict[str, Dict[str, Any]] = {}
-        for i in range(0, len(clean_macs), 500):
-            chunk = clean_macs[i:i+500]
-            placeholders = ",".join("?" for _ in chunk)
-            cursor.execute(f"""
-                SELECT id, customer_id, device_name, UPPER(mac_address) as mac
-                FROM customer_devices
-                WHERE UPPER(mac_address) IN ({placeholders}) AND status = 'approved'
-            """, chunk)
-            for r in cursor.fetchall():
-                cust_mapping[r["mac"]] = {
-                    "device_id": r["id"],
-                    "customer_id": r["customer_id"],
-                    "device_name": r["device_name"] or "Client Device"
-                }
-
-        # For MACs not in approved customer_devices, check connection_requests
-        missing_macs = [m for m in clean_macs if m not in cust_mapping]
-        if missing_macs:
-            for i in range(0, len(missing_macs), 500):
-                chunk = missing_macs[i:i+500]
-                placeholders = ",".join("?" for _ in chunk)
-                cursor.execute(f"""
-                    SELECT customer_id, device_model, UPPER(mac_address) as mac
-                    FROM connection_requests
-                    WHERE UPPER(mac_address) IN ({placeholders}) AND customer_id IS NOT NULL
-                """, chunk)
-                for r in cursor.fetchall():
-                    if r["customer_id"] and r["mac"] not in cust_mapping:
-                        cust_mapping[r["mac"]] = {
-                            "device_id": None,
-                            "customer_id": r["customer_id"],
-                            "device_name": r["device_model"] or "Client Device"
-                        }
-
-        # 2. Check active sessions for all clean_macs in batch
-        active_sessions: Dict[str, Dict[str, Any]] = {}
-        for i in range(0, len(clean_macs), 500):
-            chunk = clean_macs[i:i+500]
-            placeholders = ",".join("?" for _ in chunk)
-            cursor.execute(f"""
-                SELECT id, UPPER(mac_address) as mac, duration_seconds
-                FROM customer_connection_sessions
-                WHERE UPPER(mac_address) IN ({placeholders}) AND is_active = 1
-                ORDER BY id DESC
-            """, chunk)
-            for r in cursor.fetchall():
-                m = r["mac"]
-                if m not in active_sessions:
-                    active_sessions[m] = {"id": r["id"], "duration_seconds": r["duration_seconds"]}
-
-        recorded_count = 0
-        for item in valid_deltas:
-            mac = item["mac"]
-            mapping = cust_mapping.get(mac)
-            if not mapping or not mapping.get("customer_id"):
-                continue
-
-            customer_id = mapping["customer_id"]
-            device_id = mapping.get("device_id")
-            device_name = mapping.get("device_name") or "Client Device"
-            down_bytes = item["down"]
-            up_bytes = item["up"]
-            total_bytes = down_bytes + up_bytes
-            active_sec = item["sec"]
-            ip_addr = item["ip"]
-
-            # Hourly upsert
-            cursor.execute("""
-                INSERT INTO customer_traffic_hourly
-                (customer_id, mac_address, device_id, date_str, hour_int, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(mac_address, date_str, hour_int) DO UPDATE SET
-                    download_bytes = download_bytes + excluded.download_bytes,
-                    upload_bytes = upload_bytes + excluded.upload_bytes,
-                    total_bytes = total_bytes + excluded.total_bytes,
-                    active_seconds = active_seconds + excluded.active_seconds,
-                    updated_at = excluded.updated_at
-            """, (
-                customer_id, mac, device_id, date_str, hour_int,
-                down_bytes, up_bytes, total_bytes,
-                active_sec, now_str
-            ))
-
-            # Daily upsert
-            cursor.execute("""
-                INSERT INTO customer_traffic_daily
-                (customer_id, mac_address, device_id, date_str, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(mac_address, date_str) DO UPDATE SET
-                    download_bytes = download_bytes + excluded.download_bytes,
-                    upload_bytes = upload_bytes + excluded.upload_bytes,
-                    total_bytes = total_bytes + excluded.total_bytes,
-                    active_seconds = active_seconds + excluded.active_seconds,
-                    updated_at = excluded.updated_at
-            """, (
-                customer_id, mac, device_id, date_str,
-                down_bytes, up_bytes, total_bytes,
-                active_sec, now_str
-            ))
-
-            # Connection session tracking
-            sess = active_sessions.get(mac)
-            if sess:
-                cursor.execute("""
-                    UPDATE customer_connection_sessions
-                    SET last_seen_at = ?,
-                        duration_seconds = duration_seconds + ?,
-                        download_bytes = download_bytes + ?,
-                        upload_bytes = upload_bytes + ?,
-                        total_bytes = total_bytes + ?,
-                        ip_address = COALESCE(?, ip_address)
-                    WHERE id = ?
-                """, (
-                    now_str, active_sec, down_bytes, up_bytes,
-                    total_bytes, ip_addr, sess["id"]
-                ))
-            else:
-                cursor.execute("""
-                    INSERT INTO customer_connection_sessions
-                    (customer_id, mac_address, device_name, ip_address, started_at, last_seen_at, duration_seconds, download_bytes, upload_bytes, total_bytes, is_active)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-                """, (
-                    customer_id, mac, device_name, ip_addr,
-                    now_str, now_str, active_sec,
-                    down_bytes, up_bytes, total_bytes
-                ))
-                new_sess_id = cursor.lastrowid
-                active_sessions[mac] = {"id": new_sess_id, "duration_seconds": active_sec}
-
-            # Keep device IP address synchronized with live network subnet
-            if ip_addr and str(ip_addr).strip() and str(ip_addr).strip() != "0.0.0.0" and device_id:
-                clean_ip = str(ip_addr).strip()
-                cursor.execute("""
-                    UPDATE customer_devices
-                    SET ip_address = ?
-                    WHERE id = ? AND (ip_address IS NULL OR ip_address != ?)
-                """, (clean_ip, device_id, clean_ip))
-
-            recorded_count += 1
-
-        conn.commit()
-        return recorded_count
-
-
-
 def purge_old_traffic_logs(days_to_keep: int = 90) -> int:
     """Purges historical traffic logs and closed sessions older than days_to_keep."""
     cutoff_date = (datetime.now().date() - timedelta(days=days_to_keep)).strftime("%Y-%m-%d")
@@ -6215,24 +5949,6 @@ def get_customer_usage_analytics(
 
         dev_meta_map = {d["mac_address"].upper(): d for d in approved_devices}
 
-        # Check currently active sessions and latest session metadata for customer devices
-        cursor.execute("""
-            SELECT DISTINCT UPPER(mac_address) as mac 
-            FROM customer_connection_sessions 
-            WHERE customer_id = ? AND is_active = 1
-        """, (customer_id,))
-        active_sess_macs = {r["mac"].upper() for r in cursor.fetchall()}
-
-        cursor.execute("""
-            SELECT UPPER(mac_address) as mac, ip_address, last_seen_at, duration_seconds, is_active
-            FROM customer_connection_sessions
-            WHERE customer_id = ?
-            ORDER BY id ASC
-        """, (customer_id,))
-        sess_by_mac: Dict[str, Any] = {}
-        for s in cursor.fetchall():
-            sess_by_mac[s["mac"].upper()] = dict(s)
-
         device_breakdown = []
         for r in dev_usage_rows:
             mac = r["mac_address"].upper()
@@ -6242,37 +5958,21 @@ def get_customer_usage_analytics(
 
             raw_name = meta.get("device_name") or "Client Device"
             friendly = clean_device_friendly_name(raw_name)
-            s_info = sess_by_mac.get(mac, {})
-            last_ip = s_info.get("ip_address") or meta.get("ip_address") or "—"
-            last_seen = s_info.get("last_seen_at") or "—"
-            uptime_str = format_seconds_display(s_info.get("duration_seconds", 0)) if s_info.get("is_active") else "—"
-
-            fmt_down = format_bytes_display(r["down"])
-            fmt_up = format_bytes_display(r["up"])
-            fmt_total = format_bytes_display(d_tot)
-            fmt_sec = format_seconds_display(r["sec"])
 
             device_breakdown.append({
                 "mac_address": mac,
                 "device_id": meta.get("id"),
                 "device_name": raw_name,
                 "friendly_name": friendly,
-                "host_name": friendly,
-                "ip_address": last_ip,
-                "is_online": (mac in active_sess_macs),
-                "last_seen": last_seen,
-                "uptime": uptime_str,
+                "ip_address": meta.get("ip_address") or "—",
                 "download_bytes": r["down"],
                 "upload_bytes": r["up"],
                 "total_bytes": d_tot,
-                "formatted_down": fmt_down,
-                "formatted_up": fmt_up,
-                "formatted_total": fmt_total,
-                "download_formatted": fmt_down,
-                "upload_formatted": fmt_up,
-                "total_formatted": fmt_total,
+                "formatted_down": format_bytes_display(r["down"]),
+                "formatted_up": format_bytes_display(r["up"]),
+                "formatted_total": format_bytes_display(d_tot),
                 "active_seconds": r["sec"],
-                "formatted_active_time": fmt_sec,
+                "formatted_active_time": format_seconds_display(r["sec"]),
                 "share_percent": share_pct
             })
 
@@ -6280,30 +5980,18 @@ def get_customer_usage_analytics(
         for d in approved_devices:
             m = d["mac_address"].upper()
             if m not in seen_macs:
-                s_info = sess_by_mac.get(m, {})
-                last_ip = s_info.get("ip_address") or d.get("ip_address") or "—"
-                last_seen = s_info.get("last_seen_at") or "—"
-                uptime_str = format_seconds_display(s_info.get("duration_seconds", 0)) if s_info.get("is_active") else "—"
-
                 device_breakdown.append({
                     "mac_address": m,
                     "device_id": d["id"],
                     "device_name": d.get("device_name") or "Client Device",
                     "friendly_name": clean_device_friendly_name(d.get("device_name")),
-                    "host_name": clean_device_friendly_name(d.get("device_name")),
-                    "ip_address": last_ip,
-                    "is_online": (m in active_sess_macs),
-                    "last_seen": last_seen,
-                    "uptime": uptime_str,
+                    "ip_address": d.get("ip_address") or "—",
                     "download_bytes": 0,
                     "upload_bytes": 0,
                     "total_bytes": 0,
                     "formatted_down": "0 B",
                     "formatted_up": "0 B",
                     "formatted_total": "0 B",
-                    "download_formatted": "0 B",
-                    "upload_formatted": "0 B",
-                    "total_formatted": "0 B",
                     "active_seconds": 0,
                     "formatted_active_time": "0m",
                     "share_percent": 0.0
@@ -6428,127 +6116,33 @@ def calculate_customer_realtime_balance(
     - Deducts active suspension / vacation hold periods.
     - Returns billable_days, total_owed, total_paid, balance, status, and current_daily_rate.
     """
+    close_conn = False
     if conn is None:
-        with get_db() as db_conn:
-            return calculate_customer_realtime_balance(cust_id, conn=db_conn)
+        conn = get_raw_connection()
+        conn.row_factory = sqlite3.Row
+        close_conn = True
 
-    cur = conn.cursor()
-    c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE id = ?", (cust_id,)).fetchone()
-    if not c:
-        return {
-            "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
-            "balance": 0.0, "status": "SETTLED", "daily_rate": 0.0
-        }
-
-    raw_fee = c["monthly_fee"]
-    fee = float(raw_fee) if raw_fee is not None else 30.0
-
-    today = date.today()
-    yesterday = today - timedelta(days=1)
-    cur_dim = calendar.monthrange(today.year, today.month)[1]
-    daily_rate = round(fee / float(cur_dim), 2) if fee > 0 else 0.0
-
-    start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
     try:
-        start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
-    except Exception:
-        start_d = today
+        cur = conn.cursor()
+        c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE id = ?", (cust_id,)).fetchone()
+        if not c:
+            return {
+                "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
+                "balance": 0.0, "status": "SETTLED", "daily_rate": 0.0
+            }
 
-    # Fetch suspensions
-    susp_rows = cur.execute("SELECT suspended_at, resumed_at FROM customer_suspensions WHERE customer_id = ? ORDER BY id ASC", (cust_id,)).fetchall()
-    cust_susp = []
-    for s in susp_rows:
-        try:
-            s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
-            r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
-            cust_susp.append((s_d, r_d))
-        except Exception:
-            pass
-
-    if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
-        cust_susp.append((today, None))
-
-    total_owed = 0.0
-    billable = 0
-    cur_d = start_d
-    while cur_d <= yesterday:
-        in_susp = False
-        for s_start, s_end in cust_susp:
-            if s_end is None:
-                if cur_d >= s_start:
-                    in_susp = True
-                    break
-            else:
-                if s_start <= cur_d <= s_end:
-                    in_susp = True
-                    break
-        if not in_susp and fee > 0:
-            dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
-            total_owed += (fee / float(dim))
-            billable += 1
-        cur_d += timedelta(days=1)
-
-    owed = round(total_owed, 2) if fee > 0 else 0.0
-
-    # Fetch paid amount
-    paid_row = cur.execute("""
-        SELECT COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0)
-        FROM collections
-        WHERE customer_id = ? AND (amount > 0 OR waived_amount > 0)
-    """, (cust_id,)).fetchone()
-    paid = round(float(paid_row[0] or 0.0), 2) if paid_row else 0.0
-
-    bal = round(paid - owed, 2)
-    st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
-
-    return {
-        "billable_days": billable,
-        "total_owed": owed,
-        "total_paid": paid,
-        "balance": bal,
-        "status": st,
-        "daily_rate": daily_rate
-    }
-
-
-def sync_all_customer_realtime_balances(conn=None) -> int:
-    """
-    Synchronizes customers.credit_balance across all subscribers in real-time
-    using the exact month-aware daily calculation.
-    """
-    if conn is None:
-        with get_db() as db_conn:
-            return sync_all_customer_realtime_balances(conn=db_conn)
-
-    cur = conn.cursor()
-    today = date.today()
-    yesterday = today - timedelta(days=1)
-
-    col_rows = cur.execute("""
-        SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total
-        FROM collections
-        WHERE (amount > 0 OR waived_amount > 0)
-        GROUP BY customer_id
-    """).fetchall()
-    colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
-
-    susp_rows = cur.execute("SELECT customer_id, suspended_at, resumed_at FROM customer_suspensions ORDER BY id ASC").fetchall()
-    susp_by_cid = {}
-    for s in susp_rows:
-        scid = int(s["customer_id"])
-        try:
-            s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
-            r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
-            susp_by_cid.setdefault(scid, []).append((s_d, r_d))
-        except Exception:
-            pass
-
-    custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
-    updates = []
-    for c in custs:
-        cid = int(c["id"])
         raw_fee = c["monthly_fee"]
         fee = float(raw_fee) if raw_fee is not None else 30.0
+
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        daily_rate = round(fee / 30.0, 4) if fee > 0 else 0.0
+
+        if fee <= 0.0:
+            return {
+                "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
+                "balance": 0.0, "status": "SETTLED", "daily_rate": 0.0
+            }
 
         start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
         try:
@@ -6556,39 +6150,153 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
         except Exception:
             start_d = today
 
-        cust_susp = list(susp_by_cid.get(cid, []))
+        # Fetch suspensions
+        susp_rows = cur.execute("SELECT suspended_at, resumed_at FROM customer_suspensions WHERE customer_id = ? ORDER BY id ASC", (cust_id,)).fetchall()
+        cust_susp = []
+        for s in susp_rows:
+            try:
+                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+                cust_susp.append((s_d, r_d))
+            except Exception:
+                pass
+
         if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
             cust_susp.append((today, None))
 
-        total_owed = 0.0
-        cur_d = start_d
-        while cur_d <= yesterday:
-            in_susp = False
-            for s_start, s_end in cust_susp:
-                if s_end is None:
-                    if cur_d >= s_start:
-                        in_susp = True
-                        break
-                else:
-                    if s_start <= cur_d <= s_end:
-                        in_susp = True
-                        break
-            if not in_susp and fee > 0:
-                dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
-                total_owed += (fee / float(dim))
-            cur_d += timedelta(days=1)
+        billable = 0
+        if start_d <= yesterday:
+            cur_d = start_d
+            while cur_d <= yesterday:
+                in_susp = False
+                for s_start, s_end in cust_susp:
+                    if s_end is None:
+                        if cur_d >= s_start:
+                            in_susp = True
+                            break
+                    else:
+                        if s_start <= cur_d <= s_end:
+                            in_susp = True
+                            break
+                if not in_susp and fee > 0:
+                    billable += 1
+                cur_d += timedelta(days=1)
 
-        owed = round(total_owed, 2) if fee > 0 else 0.0
-        paid = round(colls_by_cid.get(cid, 0.0), 2)
+        owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
+
+        # Fetch paid amount
+        paid_row = cur.execute("""
+            SELECT COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0)
+            FROM collections
+            WHERE customer_id = ? AND (amount > 0 OR waived_amount > 0)
+        """, (cust_id,)).fetchone()
+        paid = round(float(paid_row[0] or 0.0), 2) if paid_row else 0.0
+
         bal = round(paid - owed, 2)
-        curr_cb = round(float(c["credit_balance"] or 0.0), 2)
-        if abs(bal - curr_cb) > 0.01:
-            updates.append((bal, cid))
+        st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
 
-    if updates:
-        cur.executemany("UPDATE customers SET credit_balance = ? WHERE id = ?", updates)
-        conn.commit()
-    return len(updates)
+        return {
+            "billable_days": billable,
+            "total_owed": owed,
+            "total_paid": paid,
+            "balance": bal,
+            "status": st,
+            "daily_rate": daily_rate
+        }
+    finally:
+        if close_conn:
+            conn.close()
+
+
+def sync_all_customer_realtime_balances(conn=None) -> int:
+    """
+    Synchronizes customers.credit_balance across all subscribers in real-time
+    using the exact billing_reminder (daily_rate = monthly_fee / 30) accounting calculation.
+    """
+    close_conn = False
+    if conn is None:
+        conn = get_raw_connection()
+        conn.row_factory = sqlite3.Row
+        close_conn = True
+
+    try:
+        cur = conn.cursor()
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        col_rows = cur.execute("""
+            SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total
+            FROM collections
+            WHERE (amount > 0 OR waived_amount > 0)
+            GROUP BY customer_id
+        """).fetchall()
+        colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
+
+        susp_rows = cur.execute("SELECT customer_id, suspended_at, resumed_at FROM customer_suspensions ORDER BY id ASC").fetchall()
+        susp_by_cid = {}
+        for s in susp_rows:
+            scid = int(s["customer_id"])
+            try:
+                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+                susp_by_cid.setdefault(scid, []).append((s_d, r_d))
+            except Exception:
+                pass
+
+        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
+        updates = []
+        for c in custs:
+            cid = int(c["id"])
+            raw_fee = c["monthly_fee"]
+            fee = float(raw_fee) if raw_fee is not None else 30.0
+
+            if fee <= 0.0:
+                bal = 0.0
+            else:
+                daily_rate = round(fee / 30.0, 4)
+                start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
+                try:
+                    start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+                except Exception:
+                    start_d = today
+
+                billable = 0
+                if start_d <= yesterday:
+                    cust_susp = list(susp_by_cid.get(cid, []))
+                    if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
+                        cust_susp.append((today, None))
+
+                    cur_d = start_d
+                    while cur_d <= yesterday:
+                        in_susp = False
+                        for s_start, s_end in cust_susp:
+                            if s_end is None:
+                                if cur_d >= s_start:
+                                    in_susp = True
+                                    break
+                            else:
+                                if s_start <= cur_d <= s_end:
+                                    in_susp = True
+                                    break
+                        if not in_susp:
+                            billable += 1
+                        cur_d += timedelta(days=1)
+
+                owed = round(billable * daily_rate, 2)
+                paid = round(colls_by_cid.get(cid, 0.0), 2)
+                bal = round(paid - owed, 2)
+
+            curr_cb = round(float(c["credit_balance"] or 0.0), 2)
+            if abs(bal - curr_cb) > 0.01:
+                updates.append((bal, cid))
+
+        if updates:
+            cur.executemany("UPDATE customers SET credit_balance = ? WHERE id = ?", updates)
+            conn.commit()
+        return len(updates)
+    finally:
+        if close_conn:
+            conn.close()
 
 
 def get_balance_sheet_data(
@@ -6659,45 +6367,51 @@ def get_balance_sheet_data(
             cid = int(c["id"])
             raw_fee = c["monthly_fee"]
             fee = float(raw_fee) if raw_fee is not None else 30.0
-            daily_rate = round(fee / 30.0, 4) if fee > 0 else 0.0
 
-            start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
-            try:
-                start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
-            except Exception:
-                start_d = today
+            if fee <= 0.0:
+                daily_rate = 0.0
+                billable = 0
+                owed = 0.0
+                paid = 0.0
+                bal = 0.0
+                st = "SETTLED"
+                start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
+                is_currently_suspended = False
+            else:
+                daily_rate = round(fee / 30.0, 4)
+                start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
+                try:
+                    start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+                except Exception:
+                    start_d = today
 
-            cust_susp = list(susp_by_cid.get(cid, []))
-            is_currently_suspended = (str(c["status"]).strip().lower() == "suspended")
-            if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
-                cust_susp.append((today, None))
+                cust_susp = list(susp_by_cid.get(cid, []))
+                is_currently_suspended = (str(c["status"]).strip().lower() == "suspended")
+                if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
+                    cust_susp.append((today, None))
 
-            total_owed_exact = 0.0
-            billable = 0
-            cur_d = start_d
-            while cur_d <= yesterday:
-                in_susp = False
-                for s_start, s_end in cust_susp:
-                    if s_end is None:
-                        if cur_d >= s_start:
-                            in_susp = True
-                            break
-                    else:
-                        if s_start <= cur_d <= s_end:
-                            in_susp = True
-                            break
-                if not in_susp and fee > 0:
-                    dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
-                    total_owed_exact += (fee / float(dim))
-                    billable += 1
-                cur_d += timedelta(days=1)
+                billable = 0
+                if start_d <= yesterday:
+                    cur_d = start_d
+                    while cur_d <= yesterday:
+                        in_susp = False
+                        for s_start, s_end in cust_susp:
+                            if s_end is None:
+                                if cur_d >= s_start:
+                                    in_susp = True
+                                    break
+                            else:
+                                if s_start <= cur_d <= s_end:
+                                    in_susp = True
+                                    break
+                        if not in_susp:
+                            billable += 1
+                        cur_d += timedelta(days=1)
 
-            owed = round(total_owed_exact, 2) if fee > 0 else 0.0
-            cur_dim = calendar.monthrange(today.year, today.month)[1]
-            daily_rate = round(fee / float(cur_dim), 2) if fee > 0 else 0.0
-            paid = round(colls_by_cid.get(cid, 0.0), 2)
-            bal = round(paid - owed, 2)
-            st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+                owed = round(billable * daily_rate, 2)
+                paid = round(colls_by_cid.get(cid, 0.0), 2)
+                bal = round(paid - owed, 2)
+                st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
 
             phone_str = str(c["phone"] or "").strip()
             norm_mob = normalize_saudi_phone_number(phone_str)
