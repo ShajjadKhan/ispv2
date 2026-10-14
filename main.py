@@ -26,6 +26,7 @@ from fastapi.templating import Jinja2Templates
 import uvicorn
 import qrcode
 import urllib.parse
+import concurrent.futures
 
 import mikrotik_client
 from mikrotik_client import RouterClient, format_bytes, clean_device_friendly_name
@@ -387,7 +388,7 @@ async def whatsapp_auto_dispatch_loop():
                 if not clean_p:
                     continue
 
-                ok, err = whatsapp_service.send_whatsapp_raw(clean_p, msg)
+                ok, err = await asyncio.to_thread(whatsapp_service.send_whatsapp_raw, clean_p, msg)
                 if not ok and "SANDBOX SHIELD" in str(err):
                     status_str = "blocked_sandbox"
                     blocked_count += 1
@@ -424,7 +425,7 @@ async def olt_telemetry_poller_loop():
     while True:
         try:
             import olt_service
-            olt_service.poll_olt_hardware(olt_id=1)
+            await asyncio.to_thread(olt_service.poll_olt_hardware, olt_id=1)
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -1186,7 +1187,6 @@ PUBLIC_EXACT_PATHS = {
     "/portal",
     "/hotspot",
     "/hotspot/login",
-    "/get_unpaid.php",
     "/downloads/audit-pdf",
     "/downloads/audit-md"
 }
@@ -1227,12 +1227,20 @@ async def auth_middleware(request: Request, call_next):
 
     user_session = auth_service.validate_session(session_id) if session_id else None
 
+    # Support legacy billing token for /get_unpaid.php
+    if not user_session and path == "/get_unpaid.php":
+        token_param = request.query_params.get("token")
+        legacy_token = os.getenv("LEGACY_BILLING_TOKEN")
+        if legacy_token and token_param == legacy_token:
+            request.state.user = {"id": 0, "username": "legacy_billing", "role": "admin"}
+            return await call_next(request)
+
     if not user_session:
-        # If calling an API route, return 401 Unauthorized
-        if path.startswith("/api/"):
+        # If calling an API route or /get_unpaid.php, return 401 Unauthorized
+        if path.startswith("/api/") or path == "/get_unpaid.php":
             return JSONResponse(
                 status_code=401,
-                content={"error": "Unauthorized", "message": "Authentication required. Please sign in."}
+                content={"error": "Unauthorized", "message": "Authentication required. Please sign in or provide a valid token."}
             )
         # For browser UI pages, redirect to /login with next target
         next_target = path
@@ -1743,10 +1751,35 @@ async def gateway_view(request: Request, router_id: Optional[int] = None):
             r["last_status"] = "online" if selected_live_status.get("connected") else "offline"
             r["identity"] = selected_live_status.get("identity", r.get("identity"))
             r["model"] = selected_live_status.get("model", r.get("model"))
-        elif r.get("is_active"):
+
+    # Concurrently poll remaining active fleet routers
+    active_other_routers = [
+        r for r in fleet_list
+        if r.get("is_active") and (not selected_router_record or r["id"] != selected_router_record["id"])
+    ]
+    if active_other_routers:
+        def _poll_single_router(r_entry):
             try:
-                r_client = mikrotik_client.get_client_for_router(r)
-                r_status = r_client.get_live_status(max_cache_age_sec=5.0)
+                r_client = mikrotik_client.get_client_for_router(r_entry)
+                return r_entry["id"], r_client.get_live_status(max_cache_age_sec=5.0)
+            except Exception as exc:
+                logger.warning(f"Could not poll fleet router #{r_entry.get('id')} ({r_entry.get('name')}): {exc}")
+                return r_entry["id"], None
+
+        results = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(active_other_routers), 4)) as executor:
+            future_to_r = {executor.submit(_poll_single_router, r): r for r in active_other_routers}
+            for future in concurrent.futures.as_completed(future_to_r, timeout=6.0):
+                try:
+                    rid, r_status = future.result()
+                    if r_status:
+                        results[rid] = r_status
+                except Exception:
+                    pass
+
+        for r in fleet_list:
+            if r["id"] in results:
+                r_status = results[r["id"]]
                 database.update_router_telemetry(
                     router_id=r["id"],
                     identity=r_status.get("identity"),
@@ -1762,8 +1795,6 @@ async def gateway_view(request: Request, router_id: Optional[int] = None):
                 r["last_status"] = "online" if r_status.get("connected") else "offline"
                 r["identity"] = r_status.get("identity")
                 r["model"] = r_status.get("model")
-            except Exception as e:
-                logger.warning(f"Could not poll fleet router #{r.get('id')} ({r.get('name')}): {e}")
     pending_requests = database.get_pending_requests()
 
     return templates.TemplateResponse(
@@ -2933,9 +2964,9 @@ async def api_customer_lookup(phone: str):
     )
 
 
-@app.get("/portal", response_class=HTMLResponse)
-@app.get("/hotspot", response_class=HTMLResponse)
-@app.get("/hotspot/login", response_class=HTMLResponse)
+@app.api_route("/portal", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/hotspot", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/hotspot/login", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def captive_portal_page(
     request: Request,
     mac: Optional[str] = "",
@@ -4944,7 +4975,7 @@ async def api_trigger_olt_sync(olt_id: int):
         # 1. Directly query the live OLT hardware via olt_service
         try:
             import olt_service
-            sync_res = olt_service.poll_olt_hardware(olt_id=olt_id)
+            sync_res = await asyncio.to_thread(olt_service.poll_olt_hardware, olt_id=olt_id)
             if not sync_res.get("success"):
                 logger.warning(f"Live OLT poll warning: {sync_res.get('error')}")
         except Exception as pe:
