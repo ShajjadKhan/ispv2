@@ -900,7 +900,7 @@
         </div>
         <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
           Testing mode strictly intercepts all dispatches. Outgoing messages can <strong>only</strong> be sent to authorized developer phone:
-          <strong style="color: var(--text-main, #ffffff); font-family: var(--font-mono); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">0597595059</strong>. Client numbers are 100% blocked.
+          <strong style="color: #ffffff; font-family: var(--font-mono); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">0597595059</strong>. Client numbers are 100% blocked.
         </div>
       </div>
     </div>
@@ -1013,7 +1013,7 @@
     <div class="section-card-header" style="flex-wrap: wrap; gap: 10px;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #fbbf24;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        <span style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff);">Subscribers Awaiting Bill Notice (Review &amp; Dispatch Queue)</span>
+        <span style="font-size: 14px; font-weight: 700; color: #ffffff;">Subscribers Awaiting Bill Notice (Review &amp; Dispatch Queue)</span>
       </div>
       <div style="display: flex; align-items: center; gap: 10px; font-size: 12px;">
         <span class="font-mono text-dim">Total: {{ due_customers | length }} Eligible</span>
@@ -1141,7 +1141,7 @@
               </td>
               <td class="col-name" data-label="Subscriber">
                 <label for="chk-due-{{ c.id }}" style="cursor: pointer; display: inline-flex; align-items: center; margin: 0;">
-                  <strong style="color: var(--text-main, #ffffff);">{{ c.name }}</strong>
+                  <strong style="color: #ffffff;">{{ c.name }}</strong>
                 </label>
                 <span id="mute-badge-{{ c.id }}" class="badge-status" style="display: {{ 'none' if c.reminders_enabled else 'inline-block' }}; font-size: 9.5px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-left: 5px;">🔕 Muted</span>
               </td>
@@ -1211,7 +1211,7 @@
       <!-- COMPOSER COLUMN -->
       <div class="section-card">
         <div class="section-card-header">
-          <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
             <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             <span>Direct Message Composer</span>
           </div>
@@ -1342,7 +1342,7 @@
       <!-- PREVIEW COLUMN: REALISTIC WHATSAPP PHONE BUBBLE -->
       <div class="section-card" style="display: flex; flex-direction: column;">
         <div class="section-card-header">
-          <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
             <svg style="width: 16px; height: 16px; fill: #38bdf8;" viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
             <span>Live Subscriber Phone Preview</span>
           </div>
@@ -1415,7 +1415,7 @@
 
   <div class="section-card">
     <div class="section-card-header">
-      <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #25d366;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
         <span>Message Delivery &amp; Audit Ledger</span>
       </div>
@@ -1649,6 +1649,13 @@
               <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 2px;">Tag: <code>[FOOTBALL]</code></div>
             </div>
           </div>
+
+          <!-- PAYMENT ACCOUNTS CONFIGURATION -->
+          <div style="margin-top: 14px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+            <label class="form-label" for="set_payment_accounts" style="color:#38bdf8; font-weight:700;">💳 Payment Accounts / طرق الدفع (Dispatched in Due Reminders &amp; Service Suspensions)</label>
+            <textarea id="set_payment_accounts" class="form-control font-mono" rows="7" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.payment_accounts }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Dynamic tag: <code>[PAYMENT_ACCOUNTS]</code> &bull; Subscribers receive these bank IBAN / STC Pay instructions so they can pay immediately.</div>
+          </div>
         </div>
       </div>
 
@@ -1682,14 +1689,14 @@
           <div id="tabPane_tpl_reminder" class="settings-tpl-pane" style="display:none;">
             <label class="form-label" for="set_tpl_reminder">2. Due &amp; Account Status Reminder Template</label>
             <textarea id="set_tpl_reminder" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_reminder }}</textarea>
-            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[PAYMENT_ACCOUNTS]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
           </div>
 
           <!-- TAB 3: SERVICE EXPIRY -->
           <div id="tabPane_tpl_expiry" class="settings-tpl-pane" style="display:none;">
             <label class="form-label" for="set_tpl_expiry">3. Expiry &amp; Service Cutoff Alert Template</label>
             <textarea id="set_tpl_expiry" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_expiry }}</textarea>
-            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code></div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[PAYMENT_ACCOUNTS]</code>, <code>[HELPLINE]</code></div>
           </div>
 
           <!-- TAB 4: NEW SUBSCRIBER WELCOME -->
@@ -1803,7 +1810,7 @@
 
       <!-- PAIRING INSTRUCTIONS (Shown when QR is needed) -->
       <p id="qrInstructionText" style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
-        Open WhatsApp on test phone <strong style="color:#ffffff;">0597595059</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Linked Devices</strong> &rarr; <strong>Link a Device</strong> &rarr; Scan this QR:
+        Open WhatsApp on your phone &rarr; <strong>Settings</strong> &rarr; <strong>Linked Devices</strong> &rarr; <strong>Link a Device</strong> &rarr; Scan this QR:
       </p>
       
       <!-- QR CONTAINER -->
@@ -2811,17 +2818,17 @@
 
     if (activeBanner) activeBanner.style.display = 'none';
     if (qrContainer) qrContainer.style.display = 'inline-block';
-    loading.innerHTML = '<div style="font-size:24px; margin-bottom:8px;">⏳</div>Restarting session engine...';
+    loading.innerHTML = '<div style="font-size:24px; margin-bottom:8px;">⏳</div>Purging previous session and generating fresh QR code...';
     loading.style.display = 'flex';
     img.style.display = 'none';
 
     try {
-      const res = await fetch('/api/whatsapp/session/restart', { method: 'POST' });
+      const res = await fetch('/api/whatsapp/session/reset', { method: 'POST' });
       const data = await res.json();
-      cyberToast('Session restarted. Fetching fresh QR code...');
-      setTimeout(fetchLiveQr, 2000);
+      cyberToast(data.message || 'Previous session purged. Fetching fresh QR code...');
+      setTimeout(fetchLiveQr, 3000);
     } catch (e) {
-      cyberToast('Error restarting session: ' + e.message);
+      cyberToast('Error resetting session: ' + e.message);
     }
   }
 
@@ -3001,6 +3008,7 @@
       support_phone: document.getElementById('set_support_phone').value.trim(),
       movie_server: document.getElementById('set_movie_server').value.trim(),
       football_server: document.getElementById('set_football_server') ? document.getElementById('set_football_server').value.trim() : '',
+      payment_accounts: document.getElementById('set_payment_accounts') ? document.getElementById('set_payment_accounts').value.trim() : '',
       template_receipt: document.getElementById('set_tpl_receipt').value.trim(),
       template_reminder: document.getElementById('set_tpl_reminder').value.trim(),
       template_expiry: document.getElementById('set_tpl_expiry') ? document.getElementById('set_tpl_expiry').value.trim() : '',

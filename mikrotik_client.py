@@ -1768,18 +1768,31 @@ def test_router_connection(
                 pass
 
 
+_client_instances: Dict[Tuple[Any, ...], RouterClient] = {}
+
+
 def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
-    """Instantiates a RouterClient from a router record dictionary."""
+    """Instantiates or reuses a cached RouterClient from a router record dictionary."""
+    rid = r_dict.get("id")
+    host = r_dict.get("host")
     port = r_dict.get("port", 8728)
+    user = r_dict.get("username")
+    pwd = r_dict.get("password")
     use_ssl = (port == 8729 or bool(r_dict.get("use_ssl", False)))
-    return RouterClient(
-        host=r_dict["host"],
-        username=r_dict["username"],
-        password=r_dict["password"],
-        port=port,
-        use_ssl=use_ssl,
-        router_id=r_dict.get("id")
-    )
+
+    cache_key = (rid, host, port, user, pwd, use_ssl)
+    client = _client_instances.get(cache_key)
+    if client is None:
+        client = RouterClient(
+            host=host,
+            username=user,
+            password=pwd,
+            port=port,
+            use_ssl=use_ssl,
+            router_id=rid
+        )
+        _client_instances[cache_key] = client
+    return client
 
 
 _fleet_telemetry_cache: Optional[Dict[str, Dict[str, Any]]] = None

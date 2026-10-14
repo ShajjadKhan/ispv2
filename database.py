@@ -17,7 +17,8 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Tuple, Any
 
-DB_PATH = os.getenv("DB_PATH", "/home/tserver/isp_v2/isp_v2.db")
+DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isp_v2.db")
+DB_PATH = os.getenv("DB_PATH", DEFAULT_DB_PATH)
 
 def is_randomized_mac(mac: Optional[str]) -> bool:
     """
@@ -66,9 +67,10 @@ def validate_mac_address(mac: Optional[str], allow_random: bool = False) -> Tupl
     return True, "Valid Device MAC address.", norm
 
 def get_raw_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH, timeout=20.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 20000;")
+    conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 @contextmanager
@@ -88,6 +90,7 @@ def init_db():
     os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     with get_db() as conn:
         cursor = conn.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL;")
         
         # 1. Customers Table
         cursor.execute("""

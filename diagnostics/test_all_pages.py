@@ -2,7 +2,7 @@ import sqlite3
 import requests
 import time
 
-conn = sqlite3.connect('/home/tserver/isp_v2/isp_v2.db')
+conn = sqlite3.connect('/home/sk/isp_v2/isp_v2.db')
 c = conn.cursor()
 c.execute('SELECT session_id FROM admin_sessions WHERE is_active = 1 AND user_id = 1 ORDER BY last_activity DESC LIMIT 1')
 row = c.fetchone()
@@ -16,6 +16,7 @@ print('Using session:', session_id[:8] + '...')
 pages = [
     '/',
     '/customers',
+    '/customers/add',
     '/balance',
     '/balance/report',
     '/approvals',

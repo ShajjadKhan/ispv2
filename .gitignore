@@ -24,3 +24,11 @@ diagnostics/antigravity_*/
 diagnostics/backups_*/
 whatsapp_data/
 *.trigger
+*.db.backup*
+*.snapshot
+*.transfer_snapshot
+*.bak
+scratch_*.html
+whatsapp.html
+sync_billing_reminder_dates.py
+

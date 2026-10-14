@@ -2,7 +2,7 @@
 import subprocess
 import os
 
-SSH_KEY = "/home/tserver/.ssh/id_hetzner_tunnel"
+SSH_KEY = "/home/sk/.ssh/id_hetzner_tunnel"
 REMOTE = "shajjad@135.181.39.96"
 
 def check_and_clean():

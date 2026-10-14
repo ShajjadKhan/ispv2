@@ -1,0 +1,305 @@
+{
+  "profiles": [
+    {
+      "id": "*0",
+      "name": "default",
+      "hotspot-address": "0.0.0.0",
+      "dns-name": "",
+      "html-directory": "hotspot",
+      "html-directory-override": "",
+      "install-hotspot-queue": "false",
+      "http-proxy": "0.0.0.0:0",
+      "smtp-server": "0.0.0.0",
+      "login-by": "cookie,http-chap",
+      "http-cookie-lifetime": "3d",
+      "split-user-domain": "false",
+      "use-radius": "false",
+      "default": "true"
+    },
+    {
+      "id": "*1",
+      "name": "hsprof-ether4",
+      "hotspot-address": "10.40.0.1",
+      "dns-name": "login.cybernet.local",
+      "html-directory": "hotspot",
+      "html-directory-override": "",
+      "install-hotspot-queue": "false",
+      "http-proxy": "0.0.0.0:0",
+      "smtp-server": "0.0.0.0",
+      "login-by": "cookie,http-chap,http-pap,mac-cookie",
+      "http-cookie-lifetime": "3d",
+      "split-user-domain": "false",
+      "use-radius": "false"
+    },
+    {
+      "id": "*2",
+      "name": "hsprof-sfp1",
+      "hotspot-address": "10.50.0.1",
+      "dns-name": "sfp.cybernet.local",
+      "html-directory": "hotspot",
+      "html-directory-override": "",
+      "install-hotspot-queue": "false",
+      "http-proxy": "0.0.0.0:0",
+      "smtp-server": "0.0.0.0",
+      "login-by": "cookie,http-chap,http-pap,mac-cookie",
+      "http-cookie-lifetime": "3d",
+      "split-user-domain": "false",
+      "use-radius": "false"
+    }
+  ],
+  "servers": [
+    {
+      "id": "*1",
+      "name": "hotspot-ether4",
+      "interface": "ether4",
+      "address-pool": "pool-hotspot-ether4",
+      "profile": "hsprof-ether4",
+      "idle-timeout": "5m",
+      "keepalive-timeout": "none",
+      "login-timeout": "none",
+      "addresses-per-mac": "1",
+      "ip-of-dns-name": "10.40.0.1",
+      "proxy-status": "running",
+      "invalid": "false",
+      "HTTPS": "false",
+      "disabled": "false"
+    },
+    {
+      "id": "*2",
+      "name": "hotspot-sfp1",
+      "interface": "sfp1",
+      "address-pool": "pool-hotspot-sfp1",
+      "profile": "hsprof-sfp1",
+      "idle-timeout": "5m",
+      "keepalive-timeout": "none",
+      "login-timeout": "none",
+      "addresses-per-mac": "1",
+      "ip-of-dns-name": "10.50.0.1",
+      "proxy-status": "running",
+      "invalid": "false",
+      "HTTPS": "false",
+      "disabled": "false"
+    }
+  ],
+  "walled_garden": [
+    {
+      "id": "*E",
+      "dst-address": "10.20.30.40",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Allow TServer / Billing Portal"
+    },
+    {
+      "id": "*F",
+      "dst-address": "10.12.14.16",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Allow TServer LAN IP"
+    },
+    {
+      "id": "*10",
+      "dst-address": "10.20.30.1",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Allow Router Gateway"
+    },
+    {
+      "id": "*11",
+      "dst-address": "192.168.200.0/24",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Allow OLT Subnet Dst"
+    },
+    {
+      "id": "*12",
+      "src-address": "192.168.200.0/24",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Allow OLT Subnet Src"
+    },
+    {
+      "id": "*13",
+      "dst-address": "10.44.0.0/24",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Bypass Hotspot for PPPoE Ether4"
+    },
+    {
+      "id": "*14",
+      "dst-address": "10.55.0.0/24",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "true",
+      "disabled": "false",
+      "comment": "Bypass Hotspot for PPPoE SFP1"
+    },
+    {
+      "id": "*5",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "false",
+      "disabled": "true",
+      "comment": "place hotspot rules here"
+    },
+    {
+      "id": "*1",
+      "dst-host": "10.20.30.40",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "false",
+      "disabled": "false"
+    },
+    {
+      "id": "*2",
+      "dst-host": "10.12.14.16",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "false",
+      "disabled": "false"
+    },
+    {
+      "id": "*3",
+      "dst-host": "login.cybernet.local",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "false",
+      "disabled": "false"
+    },
+    {
+      "id": "*4",
+      "dst-host": "sfp.cybernet.local",
+      "action": "allow",
+      "hits": "0",
+      "dynamic": "false",
+      "disabled": "false"
+    }
+  ],
+  "walled_garden_ip": [
+    {
+      "id": "*1",
+      "dst-address": "10.20.30.40",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Allow TServer / Billing Portal"
+    },
+    {
+      "id": "*2",
+      "dst-address": "10.12.14.16",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Allow TServer LAN IP"
+    },
+    {
+      "id": "*3",
+      "dst-address": "10.20.30.1",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Allow Router Gateway"
+    },
+    {
+      "id": "*4",
+      "dst-address": "192.168.200.0/24",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Allow OLT Subnet Dst"
+    },
+    {
+      "id": "*5",
+      "src-address": "192.168.200.0/24",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Allow OLT Subnet Src"
+    },
+    {
+      "id": "*6",
+      "dst-address": "10.44.0.0/24",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Bypass Hotspot for PPPoE Ether4"
+    },
+    {
+      "id": "*7",
+      "dst-address": "10.55.0.0/24",
+      "action": "accept",
+      "invalid": "false",
+      "disabled": "false",
+      "comment": "Bypass Hotspot for PPPoE SFP1"
+    }
+  ],
+  "dhcp_networks": [
+    {
+      "id": "*1",
+      "address": "10.30.30.0/24",
+      "gateway": "10.30.30.1",
+      "dns-server": "10.30.30.1,8.8.8.8",
+      "wins-server": "",
+      "ntp-server": "",
+      "caps-manager": "",
+      "domain": "CyberNet-PC",
+      "dhcp-option": "",
+      "dynamic": "false"
+    },
+    {
+      "id": "*2",
+      "address": "10.40.0.0/22",
+      "gateway": "10.40.0.1",
+      "dns-server": "10.40.0.1,8.8.8.8",
+      "wins-server": "",
+      "ntp-server": "",
+      "caps-manager": "",
+      "domain": "CyberNet-AP",
+      "dhcp-option": "",
+      "dynamic": "false"
+    },
+    {
+      "id": "*3",
+      "address": "10.50.0.0/22",
+      "gateway": "10.50.0.1",
+      "dns-server": "10.50.0.1,8.8.8.8",
+      "wins-server": "",
+      "ntp-server": "",
+      "caps-manager": "",
+      "domain": "CyberNet-SFP",
+      "dhcp-option": "",
+      "dynamic": "false"
+    }
+  ],
+  "dns_static": [
+    {
+      "id": "*3",
+      "name": "sfp.cybernet.local",
+      "type": "A",
+      "address": "10.50.0.1",
+      "ttl": "5m",
+      "dynamic": "true",
+      "disabled": "false"
+    },
+    {
+      "id": "*4",
+      "name": "login.cybernet.local",
+      "type": "A",
+      "address": "10.40.0.1",
+      "ttl": "5m",
+      "dynamic": "true",
+      "disabled": "false"
+    }
+  ]
+}

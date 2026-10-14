@@ -442,7 +442,7 @@ async def wallet_accrual_sync_loop():
     while True:
         try:
             logger.info("Running automated wallet accrual sync...")
-            with get_db() as conn:
+            with database.get_db() as conn:
                 updated = database.sync_all_customer_realtime_balances(conn)
             logger.info(f"Wallet accrual sync complete: {updated} customer records updated.")
         except asyncio.CancelledError:
@@ -1186,7 +1186,9 @@ PUBLIC_EXACT_PATHS = {
     "/portal",
     "/hotspot",
     "/hotspot/login",
-    "/get_unpaid.php"
+    "/get_unpaid.php",
+    "/downloads/audit-pdf",
+    "/downloads/audit-md"
 }
 
 PUBLIC_PREFIXES = (
@@ -1198,7 +1200,6 @@ PUBLIC_PREFIXES = (
     "/api/hotspot/validate-mac",
     "/api/customer/lookup",
     "/api/olt/sync-telemetry",
-    "/downloads/",
     "/portal",
     "/hotspot"
 )
@@ -2023,6 +2024,28 @@ async def customers_view(request: Request):
             "router": live_status,
             "active_page": "customers",
             "customers": customers,
+            "packages": packages,
+            "resellers": resellers
+        }
+    )
+
+
+@app.api_route("/customers/add", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/customers/new", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def customer_add_view(request: Request):
+    """
+    Dedicated Full-Page Add Customer & Subscriber Onboarding View.
+    """
+    live_status = router_client.get_live_status()
+    packages = database.get_packages()
+    resellers = auth_service.get_resellers_list()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="customer_add.html",
+        context={
+            "router": live_status,
+            "active_page": "customers",
             "packages": packages,
             "resellers": resellers
         }
@@ -4406,7 +4429,7 @@ async def api_balance_reconciliation(month: Optional[str] = None):
 async def api_wallet_sync_endpoint():
     """Triggers an immediate recalculation and SQLite sync of all subscriber wallets."""
     try:
-        with get_db() as conn:
+        with database.get_db() as conn:
             updated = database.sync_all_customer_realtime_balances(conn)
         return {
             "success": True,
@@ -5398,11 +5421,13 @@ async def health():
     return {"status": "ok", "service": "CyberNet OS v2", "port": 9911}
 
 
+ALLOWED_DOWNLOAD_EXTENSIONS = {".pdf", ".md", ".txt"}
+FORBIDDEN_DOWNLOAD_FILES = {".env", "uvicorn_9911.log", "isp_v2.db", "isp_v2.db-wal", "isp_v2.db-shm"}
+
+
 @app.get("/downloads/audit-pdf")
 async def download_audit_pdf():
-    pdf_path = Path("/home/tserver/isp_v2/UI_UX_ACCESSIBILITY_AUDIT_REPORT.pdf")
-    if not pdf_path.exists():
-        pdf_path = Path("UI_UX_ACCESSIBILITY_AUDIT_REPORT.pdf")
+    pdf_path = BASE_DIR / "UI_UX_ACCESSIBILITY_AUDIT_REPORT.pdf"
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="Audit PDF not found")
     return FileResponse(
@@ -5414,9 +5439,7 @@ async def download_audit_pdf():
 
 @app.get("/downloads/audit-md")
 async def download_audit_md():
-    md_path = Path("/home/tserver/isp_v2/UI_UX_ACCESSIBILITY_AUDIT_REPORT.md")
-    if not md_path.exists():
-        md_path = Path("UI_UX_ACCESSIBILITY_AUDIT_REPORT.md")
+    md_path = BASE_DIR / "UI_UX_ACCESSIBILITY_AUDIT_REPORT.md"
     if not md_path.exists():
         raise HTTPException(status_code=404, detail="Audit MD not found")
     return FileResponse(
@@ -5427,23 +5450,35 @@ async def download_audit_md():
 
 
 @app.get("/downloads/{filename}")
-async def download_any_file(filename: str):
-    file_path = Path("/home/tserver/isp_v2") / filename
-    if not file_path.exists():
-        file_path = Path(filename)
-    if not file_path.exists():
+async def download_any_file(filename: str, request: Request):
+    # Require active admin authentication for arbitrary file downloads
+    if not getattr(request.state, "user", None):
+        raise HTTPException(status_code=401, detail="Authentication required to download files.")
+
+    clean_name = os.path.basename(filename)
+    if clean_name in FORBIDDEN_DOWNLOAD_FILES or clean_name.startswith("."):
+        raise HTTPException(status_code=403, detail="Access denied to requested file.")
+
+    ext = os.path.splitext(clean_name)[1].lower()
+    if ext not in ALLOWED_DOWNLOAD_EXTENSIONS:
+        raise HTTPException(status_code=403, detail="File extension not permitted for download.")
+
+    file_path = BASE_DIR / clean_name
+    if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
+
     mimetype = "application/octet-stream"
-    if filename.endswith(".pdf"):
+    if ext == ".pdf":
         mimetype = "application/pdf"
-    elif filename.endswith(".md"):
+    elif ext == ".md":
         mimetype = "text/markdown"
-    elif filename.endswith(".txt"):
+    elif ext == ".txt":
         mimetype = "text/plain"
+
     return FileResponse(
         str(file_path),
         media_type=mimetype,
-        filename=filename
+        filename=clean_name
     )
 
 
