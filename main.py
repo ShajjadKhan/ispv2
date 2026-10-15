@@ -88,55 +88,110 @@ router_client = RouterClient(
 
 # Background Traffic Accounting & 90-Day Delta Collector
 _last_host_traffic_snapshot: Dict[str, Dict[str, Any]] = {}
+_live_device_speeds: Dict[str, Dict[str, Any]] = {}
 _last_daily_prune_time: float = 0.0
 
+def format_speed_bps(bps: Union[int, float]) -> str:
+    """Formats raw bit rate (bps) into standard Mbps, Kbps, or bps."""
+    try:
+        b = float(bps or 0)
+        if b >= 1_000_000:
+            return f"{b / 1_000_000:.2f} Mbps"
+        elif b >= 1_000:
+            return f"{b / 1_000:.0f} Kbps"
+        elif b > 0:
+            return f"{int(b)} bps"
+        return "0 bps"
+    except Exception:
+        return "0 bps"
+
+
 def collect_router_traffic_snapshot():
-    """Polls live hotspot hosts and PPPoE sessions from MikroTik, computes delta traffic, and writes to database."""
-    global _last_host_traffic_snapshot, _last_daily_prune_time
+    """Polls live hotspot hosts and PPPoE sessions across all fleet routers, computes delta traffic per router, tracks real-time speed, and writes to database."""
+    global _last_host_traffic_snapshot, _live_device_speeds, _last_daily_prune_time
     now = time.time()
     try:
-        hosts = router_client.get_hotspot_hosts_raw()
+        hosts = mikrotik_client.broadcast_get_hotspot_hosts_raw()
     except Exception as e:
         logger.debug(f"Traffic collector hotspot read error: {e}")
-        hosts = []
+        try:
+            hosts = router_client.get_hotspot_hosts_raw()
+        except Exception:
+            hosts = []
 
-    current_macs = set()
+    current_host_keys = set()
     for h in hosts:
         mac = (h.get("mac-address") or "").strip().upper()
         if not mac:
             continue
-        current_macs.add(mac)
+        router_name = h.get("router_name", "Router-20")
+        host_key = f"{router_name}:{mac}"
+        current_host_keys.add(host_key)
 
         raw_in = int(h.get("bytes-in", 0) or 0)   # Upload from client
         raw_out = int(h.get("bytes-out", 0) or 0) # Download to client
         ip_addr = h.get("address")
 
-        prev = _last_host_traffic_snapshot.get(mac)
+        prev = _last_host_traffic_snapshot.get(host_key)
         if prev is not None:
-            delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
-            delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+            # Monotonic delta calculation: ignore if counter wrapped/reconnected
+            if raw_out >= prev["bytes_out"]:
+                delta_down = raw_out - prev["bytes_out"]
+            else:
+                delta_down = 0
+
+            if raw_in >= prev["bytes_in"]:
+                delta_up = raw_in - prev["bytes_in"]
+            else:
+                delta_up = 0
+
             delta_sec = int(now - prev["timestamp"])
             if delta_sec > 300:
                 delta_sec = 60
         else:
+            # First observation of this host on this router: baseline only
             delta_up = 0
             delta_down = 0
             delta_sec = 0
 
-        _last_host_traffic_snapshot[mac] = {
+        # Physical link sanity guard (max 100 Mbps WAN link = ~750 MB per 60s)
+        # Prevents rogue counters or reboot spikes from corrupting accounting
+        if delta_down > 500 * 1024 * 1024:
+            logger.warning(f"[Traffic Collector] Suppressed rogue delta_down ({delta_down} bytes) on {host_key}")
+            delta_down = 0
+        if delta_up > 200 * 1024 * 1024:
+            delta_up = 0
+
+        _last_host_traffic_snapshot[host_key] = {
             "bytes_in": raw_in,
             "bytes_out": raw_out,
             "timestamp": now,
-            "ip": ip_addr
+            "ip": ip_addr,
+            "router_name": router_name
         }
 
-        database.record_device_traffic_delta(
-            mac_address=mac,
-            download_bytes=delta_down,
-            upload_bytes=delta_up,
-            active_seconds=delta_sec,
-            ip_address=ip_addr
-        )
+        # Calculate live instantaneous wire speed
+        calc_sec = max(1, delta_sec)
+        speed_down_bps = int((delta_down * 8) / calc_sec) if delta_sec > 0 else 0
+        speed_up_bps = int((delta_up * 8) / calc_sec) if delta_sec > 0 else 0
+        
+        # Keep latest live wire speed per MAC
+        _live_device_speeds[mac] = {
+            "speed_down_bps": speed_down_bps,
+            "speed_up_bps": speed_up_bps,
+            "router_name": router_name,
+            "ip": ip_addr,
+            "timestamp": now
+        }
+
+        if delta_down > 0 or delta_up > 0:
+            database.record_device_traffic_delta(
+                mac_address=mac,
+                download_bytes=delta_down,
+                upload_bytes=delta_up,
+                active_seconds=delta_sec,
+                ip_address=ip_addr
+            )
 
     # Poll fleet-wide active PPPoE sessions
     current_pppoe_keys = set()
@@ -147,16 +202,26 @@ def collect_router_traffic_snapshot():
             if not clean_u:
                 continue
             pp_key = f"PPPOE:{clean_u.upper()}"
-            current_pppoe_keys.add(pp_key)
+            r_name = p_sess.get("router_name", "Router-20")
+            host_key = f"{r_name}:{pp_key}"
+            current_pppoe_keys.add(host_key)
 
             raw_in = int(p_sess.get("bytes_in", 0) or p_sess.get("rx_bytes", 0) or 0)   # Upload from subscriber
             raw_out = int(p_sess.get("bytes_out", 0) or p_sess.get("tx_bytes", 0) or 0) # Download to subscriber
             ip_addr = p_sess.get("address")
 
-            prev = _last_host_traffic_snapshot.get(pp_key)
+            prev = _last_host_traffic_snapshot.get(host_key)
             if prev is not None:
-                delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
-                delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+                if raw_out >= prev["bytes_out"]:
+                    delta_down = raw_out - prev["bytes_out"]
+                else:
+                    delta_down = 0
+
+                if raw_in >= prev["bytes_in"]:
+                    delta_up = raw_in - prev["bytes_in"]
+                else:
+                    delta_up = 0
+
                 delta_sec = int(now - prev["timestamp"])
                 if delta_sec > 300:
                     delta_sec = 60
@@ -165,42 +230,63 @@ def collect_router_traffic_snapshot():
                 delta_down = 0
                 delta_sec = 0
 
-            _last_host_traffic_snapshot[pp_key] = {
+            if delta_down > 500 * 1024 * 1024:
+                delta_down = 0
+            if delta_up > 200 * 1024 * 1024:
+                delta_up = 0
+
+            _last_host_traffic_snapshot[host_key] = {
                 "bytes_in": raw_in,
                 "bytes_out": raw_out,
                 "timestamp": now,
-                "ip": ip_addr
+                "ip": ip_addr,
+                "router_name": r_name
             }
 
-            database.record_device_traffic_delta(
-                mac_address=pp_key,
-                download_bytes=delta_down,
-                upload_bytes=delta_up,
-                active_seconds=delta_sec,
-                ip_address=ip_addr,
-                device_name=f"PPPoE Router [{clean_u}]"
-            )
+            calc_sec = max(1, delta_sec)
+            speed_down_bps = int((delta_down * 8) / calc_sec) if delta_sec > 0 else 0
+            speed_up_bps = int((delta_up * 8) / calc_sec) if delta_sec > 0 else 0
+            _live_device_speeds[pp_key] = {
+                "speed_down_bps": speed_down_bps,
+                "speed_up_bps": speed_up_bps,
+                "router_name": r_name,
+                "ip": ip_addr,
+                "timestamp": now
+            }
+
+            if delta_down > 0 or delta_up > 0:
+                database.record_device_traffic_delta(
+                    mac_address=pp_key,
+                    download_bytes=delta_down,
+                    upload_bytes=delta_up,
+                    active_seconds=delta_sec,
+                    ip_address=ip_addr,
+                    device_name=f"PPPoE Router [{clean_u}]"
+                )
     except Exception as p_err:
         logger.debug(f"PPPoE traffic poller error: {p_err}")
 
-    # Disconnected hotspot devices (exclude PPPOE keys)
-    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if not k.startswith("PPPOE:")}
-    disconnected_macs = prev_hotspot_keys - current_macs
-    for d_mac in disconnected_macs:
+    # Disconnected hotspot devices (keyed by router_name:mac)
+    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" not in k}
+    disconnected_keys = prev_hotspot_keys - current_host_keys
+    for d_key in disconnected_keys:
+        d_mac = d_key.split(":", 1)[1] if ":" in d_key else d_key
         database.close_device_session(d_mac)
-        _last_host_traffic_snapshot.pop(d_mac, None)
+        _last_host_traffic_snapshot.pop(d_key, None)
 
     # Disconnected PPPoE sessions
-    prev_pppoe_keys = {k for k in _last_host_traffic_snapshot.keys() if k.startswith("PPPOE:")}
+    prev_pppoe_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" in k}
     disconnected_pppoe = prev_pppoe_keys - current_pppoe_keys
     for d_key in disconnected_pppoe:
-        database.close_device_session(d_key)
+        d_uname = d_key.split(":", 1)[1] if ":" in d_key else d_key
+        database.close_device_session(d_uname)
         _last_host_traffic_snapshot.pop(d_key, None)
 
     # Daily prune (> 90 days)
     if (now - _last_daily_prune_time) > 86400:
         database.purge_old_traffic_logs(days_to_keep=90)
         _last_daily_prune_time = now
+
 
 
 async def traffic_collector_loop():
@@ -214,7 +300,88 @@ async def traffic_collector_loop():
             break
         except Exception as e:
             logger.error(f"Traffic collector worker loop error: {e}")
-            await asyncio.sleep(15)
+def get_live_top_bandwidth_consumers(limit: int = 50, window_hours: int = 1, sort_by: str = "speed", building_filter: str = "all") -> Dict[str, Any]:
+    """
+    Enriches database historical traffic analytics with real-time in-memory wire speeds.
+    Ranks consumers by instantaneous speed or last-hour consumption.
+    """
+    global _live_device_speeds
+    data = database.get_bandwidth_consumer_analytics(window_hours=window_hours, limit=100)
+    raw_consumers = data.get("consumers", [])
+    now = time.time()
+
+    enriched = []
+    for c in raw_consumers:
+        if building_filter and building_filter.lower() != "all":
+            if building_filter.lower() not in c.get("building", "").lower():
+                continue
+
+        # Look up MACs and PPPoE keys
+        keys_to_check = [m.upper() for m in c.get("mac_addresses", [])]
+        if c.get("pppoe_username"):
+            keys_to_check.append(f"PPPOE:{c['pppoe_username'].strip().upper()}")
+
+        c_speed_down = 0
+        c_speed_up = 0
+        c_router = "—"
+        c_ip = c.get("ip_address") or "—"
+        is_online = False
+
+        for k in keys_to_check:
+            spd = _live_device_speeds.get(k)
+            if spd and (now - spd.get("timestamp", 0)) < 300: # Active within last 5m
+                is_online = True
+                c_speed_down += spd.get("speed_down_bps", 0)
+                c_speed_up += spd.get("speed_up_bps", 0)
+                if spd.get("router_name") and c_router == "—":
+                    c_router = spd["router_name"]
+                if spd.get("ip") and c_ip in ("—", "", None):
+                    c_ip = spd["ip"]
+
+        # Fallback router detection
+        if c_router == "—":
+            bld = c.get("building", "")
+            c_router = "Router-30" if "Building 2" in bld else "Router-20"
+
+        c["is_online"] = is_online
+        c["live_speed_down_bps"] = c_speed_down
+        c["live_speed_up_bps"] = c_speed_up
+        c["live_speed_mbps"] = round(c_speed_down / 1_000_000, 2)
+        c["live_speed_formatted"] = format_speed_bps(c_speed_down)
+        c["live_speed_up_formatted"] = format_speed_bps(c_speed_up)
+        c["router_name"] = c_router
+        c["active_ip"] = c_ip
+        c["is_streaming"] = c_speed_down >= 500_000
+
+        enriched.append(c)
+
+    # Sorting
+    if sort_by == "speed":
+        # Sort by live speed first; if equal/zero, sort by window download bytes
+        enriched.sort(key=lambda x: (x["live_speed_down_bps"], x["window_download_bytes"]), reverse=True)
+    elif sort_by == "today":
+        enriched.sort(key=lambda x: x["today_download_bytes"], reverse=True)
+    else: # "hour" / "window"
+        enriched.sort(key=lambda x: x["window_download_bytes"], reverse=True)
+
+    # Re-assign ranks
+    for idx, item in enumerate(enriched[:limit], start=1):
+        item["rank"] = idx
+
+    peak_user = enriched[0] if enriched else None
+    streaming_count = sum(1 for x in enriched if x.get("is_streaming"))
+
+    return {
+        "window_hours": window_hours,
+        "window_cutoff": data.get("window_cutoff"),
+        "generated_at": data.get("generated_at"),
+        "total_fleet_window_download": data.get("total_fleet_window_download"),
+        "total_fleet_window_upload": data.get("total_fleet_window_upload"),
+        "total_fleet_window_bytes": data.get("total_fleet_window_bytes"),
+        "streaming_count": streaming_count,
+        "peak_consumer": peak_user,
+        "consumers": enriched[:limit]
+    }
 
 
 async def expiration_enforcement_loop():
@@ -1688,6 +1855,7 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     pending_requests = database.get_pending_requests()
     packages = database.get_packages()
+    top_bandwidth = await asyncio.to_thread(get_live_top_bandwidth_consumers, 5, 1, "speed")
 
     return templates.TemplateResponse(
         request=request,
@@ -1698,7 +1866,10 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
             "metrics": metrics,
             "pending_requests": pending_requests,
             "pending_count": len(pending_requests),
-            "packages": packages
+            "packages": packages,
+            "top_speed_consumers": top_bandwidth.get("consumers", []),
+            "top_speed_peak": top_bandwidth.get("peak_consumer"),
+            "top_speed_count": len(top_bandwidth.get("consumers", []))
         }
     )
 
@@ -2255,6 +2426,43 @@ async def balance_sheet_view(
         }
     )
 
+
+@app.api_route("/bandwidth", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/traffic", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def bandwidth_monitor_view(
+    request: Request,
+    window: Optional[int] = 1,
+    sort: Optional[str] = "speed",
+    building: Optional[str] = "all"
+):
+    """
+    Dedicated High-Speed Bandwidth & Peak Consumer Monitoring Desk.
+    Ranks subscribers by instantaneous wire speed and last 1-hour consumption.
+    """
+    live_status = router_client.get_live_status()
+    top_data = get_live_top_bandwidth_consumers(
+        limit=50,
+        window_hours=window or 1,
+        sort_by=sort or "speed",
+        building_filter=building or "all"
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="bandwidth.html",
+        context={
+            "router": live_status,
+            "active_page": "bandwidth",
+            "window_hours": window or 1,
+            "sort_by": sort or "speed",
+            "building_filter": building or "all",
+            "data": top_data,
+            "consumers": top_data.get("consumers", []),
+            "peak_consumer": top_data.get("peak_consumer"),
+            "streaming_count": top_data.get("streaming_count", 0),
+            "generated_at": top_data.get("generated_at")
+        }
+    )
 
 
 @app.api_route("/packages", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -4106,6 +4314,29 @@ async def api_dashboard_metrics(month: Optional[str] = None):
         "metrics": metrics,
         "router_connected": live_status.get("connected", False)
     })
+
+
+@app.get("/api/bandwidth/top-consumers")
+async def api_bandwidth_top_consumers(
+    limit: int = 50,
+    window: int = 1,
+    sort_by: str = "speed",
+    building: str = "all"
+):
+    """
+    Returns real-time top bandwidth consumers with live wire speed and last 1-hour traffic.
+    """
+    try:
+        data = await asyncio.to_thread(
+            get_live_top_bandwidth_consumers,
+            limit,
+            window,
+            sort_by,
+            building
+        )
+        return JSONResponse({"success": True, "data": data})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e), "data": {}}, status_code=500)
 
 
 @app.get("/api/reports/collections")

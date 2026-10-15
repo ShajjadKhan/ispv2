@@ -5750,6 +5750,22 @@ def format_bytes_display(b: Any) -> str:
         return "0 B"
 
 
+def format_speed_display(bps: Any) -> str:
+    """Formats raw bit rate (bps) into human-readable Mbps, Kbps, or bps."""
+    try:
+        b = float(bps or 0)
+        if b >= 1_000_000:
+            return f"{b / 1_000_000:.2f} Mbps"
+        elif b >= 1_000:
+            return f"{b / 1_000:.0f} Kbps"
+        elif b > 0:
+            return f"{int(b)} bps"
+        return "0 bps"
+    except Exception:
+        return "0 bps"
+
+
+
 def format_seconds_display(sec: Any) -> str:
     try:
         s = int(sec or 0)
@@ -6314,6 +6330,149 @@ def get_customer_usage_analytics(
             "daily_records": daily_records,
             "device_breakdown": device_breakdown,
             "recent_sessions": session_logs
+        }
+
+
+def get_bandwidth_consumer_analytics(window_hours: int = 1, limit: int = 50) -> Dict[str, Any]:
+    """
+    Returns top bandwidth consumers in the sliding window (e.g. last 1 hour) up to the present moment,
+    plus full-day usage for today, aggregated per customer.
+    """
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    window_cutoff = (now - timedelta(hours=window_hours)).strftime("%Y-%m-%d %H:%M:%S")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        # 1. Top consumers in the requested window (last window_hours)
+        cursor.execute("""
+            SELECT 
+                c.id, c.name, c.phone, c.notes, c.connection_type, c.pppoe_username,
+                c.status, c.monthly_fee,
+                COALESCE(SUM(h.download_bytes), 0) AS window_down,
+                COALESCE(SUM(h.upload_bytes), 0) AS window_up,
+                COALESCE(SUM(h.total_bytes), 0) AS window_total,
+                COALESCE(SUM(h.active_seconds), 0) AS window_seconds,
+                MAX(h.updated_at) AS last_seen
+            FROM customer_traffic_hourly h
+            JOIN customers c ON h.customer_id = c.id
+            WHERE h.updated_at >= ?
+            GROUP BY c.id
+            ORDER BY window_down DESC
+            LIMIT ?
+        """, (window_cutoff, limit))
+        window_rows = cursor.fetchall()
+
+        # 2. Get today's total download/upload for all customers
+        cursor.execute("""
+            SELECT 
+                customer_id,
+                COALESCE(SUM(download_bytes), 0) AS today_down,
+                COALESCE(SUM(upload_bytes), 0) AS today_up,
+                COALESCE(SUM(total_bytes), 0) AS today_total
+            FROM customer_traffic_hourly
+            WHERE date_str = ?
+            GROUP BY customer_id
+        """, (today_str,))
+        today_map = {r["customer_id"]: dict(r) for r in cursor.fetchall()}
+
+        # 3. Get customer approved devices & IPs
+        cursor.execute("""
+            SELECT customer_id, mac_address, device_name, ip_address, status
+            FROM customer_devices
+            WHERE status = 'approved'
+        """)
+        dev_rows = cursor.fetchall()
+        cust_devices = {}
+        for d in dev_rows:
+            cid = d["customer_id"]
+            if cid not in cust_devices:
+                cust_devices[cid] = []
+            cust_devices[cid].append(dict(d))
+
+        consumers = []
+        total_fleet_window_down = 0
+        total_fleet_window_up = 0
+
+        for idx, row in enumerate(window_rows, start=1):
+            cid = row["id"]
+            w_down = int(row["window_down"] or 0)
+            w_up = int(row["window_up"] or 0)
+            w_total = int(row["window_total"] or 0)
+            w_sec = int(row["window_seconds"] or 0)
+
+            total_fleet_window_down += w_down
+            total_fleet_window_up += w_up
+
+            t_data = today_map.get(cid, {})
+            t_down = int(t_data.get("today_down", w_down))
+            t_up = int(t_data.get("today_up", w_up))
+            t_total = int(t_data.get("today_total", w_total))
+
+            # Extract building and clean room
+            notes = (row["notes"] or "").strip()
+            building = "Building 1"
+            if any(k in notes.upper() for k in ["B2", "BUILDING 2", "BUILDING-2", "BLDG 2", "BLDG-2"]):
+                building = "Building 2"
+            elif any(k in notes.upper() for k in ["B1", "BUILDING 1", "BUILDING-1", "BLDG 1", "BLDG-1"]):
+                building = "Building 1"
+
+            room = notes if notes else "—"
+
+            calc_seconds = max(60, min(w_sec, window_hours * 3600)) if w_sec > 0 else (window_hours * 3600)
+            avg_speed_bps = int((w_down * 8) / calc_seconds) if calc_seconds > 0 else 0
+
+            devs = cust_devices.get(cid, [])
+            ips = [d.get("ip_address") for d in devs if d.get("ip_address") and d.get("ip_address") != "—"]
+            macs = [d.get("mac_address") for d in devs if d.get("mac_address")]
+
+            consumers.append({
+                "rank": idx,
+                "customer_id": cid,
+                "name": row["name"],
+                "phone": row["phone"] or "—",
+                "notes": notes,
+                "room": room,
+                "building": building,
+                "connection_type": row["connection_type"] or "hotspot",
+                "pppoe_username": row["pppoe_username"] or "",
+                "status": row["status"] or "active",
+                "last_seen": row["last_seen"] or "—",
+
+                # Window data (last 1 hour)
+                "window_download_bytes": w_down,
+                "window_upload_bytes": w_up,
+                "window_total_bytes": w_total,
+                "window_download_formatted": format_bytes_display(w_down),
+                "window_upload_formatted": format_bytes_display(w_up),
+                "window_total_formatted": format_bytes_display(w_total),
+                "avg_speed_bps": avg_speed_bps,
+                "avg_speed_mbps": round(avg_speed_bps / 1_000_000, 2),
+                "avg_speed_formatted": format_speed_display(avg_speed_bps),
+
+                # Today's data
+                "today_download_bytes": t_down,
+                "today_upload_bytes": t_up,
+                "today_total_bytes": t_total,
+                "today_download_formatted": format_bytes_display(t_down),
+                "today_upload_formatted": format_bytes_display(t_up),
+                "today_total_formatted": format_bytes_display(t_total),
+
+                # Device and network metadata
+                "ip_address": ips[0] if ips else ("10.44.0.254" if row["connection_type"] == "pppoe" else "—"),
+                "mac_addresses": macs,
+                "devices_count": len(devs)
+            })
+
+        return {
+            "window_hours": window_hours,
+            "window_cutoff": window_cutoff,
+            "generated_at": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_fleet_window_download": format_bytes_display(total_fleet_window_down),
+            "total_fleet_window_upload": format_bytes_display(total_fleet_window_up),
+            "total_fleet_window_bytes": format_bytes_display(total_fleet_window_down + total_fleet_window_up),
+            "consumers": consumers
         }
 
 

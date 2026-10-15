@@ -1,0 +1,833 @@
+{% extends "base.html" %}
+
+{% block title %}CyberNet OS | High-Speed Bandwidth & Real-Time Traffic Monitor{% endblock %}
+{% block heading %}High-Speed Bandwidth & Peak Consumer Monitoring Desk{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* =========================================================
+     BANDWIDTH MONITORING DESK STYLES
+     ========================================================= */
+  .bandwidth-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* TOP HEADER CARD */
+  .bw-banner-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(19, 29, 54, 0.96) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .bw-banner-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f59e0b 0%, #38bdf8 50%, #10b981 100%);
+  }
+
+  .bw-banner-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-main, #ffffff);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .bw-banner-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .live-pulse-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulseGlow 1.5s infinite;
+  }
+  @keyframes pulseGlow {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.7; }
+  }
+
+  /* 4-KPI DECK */
+  .bw-kpi-deck {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 1024px) {
+    .bw-kpi-deck {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 640px) {
+    .bw-kpi-deck {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .bw-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 85px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .bw-kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .bw-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .bw-kpi-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .bw-kpi-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bw-kpi-icon svg { width: 15px; height: 15px; fill: currentColor; }
+
+  .bw-kpi-val {
+    font-size: 20px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    line-height: 1.1;
+  }
+  .bw-kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* TOOLBAR & CONTROLS */
+  .bw-toolbar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .bw-controls-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-grow: 1;
+  }
+
+  .bw-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-canvas, #090e1a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-width: 240px;
+    flex-grow: 1;
+    max-width: 320px;
+  }
+  .bw-search-box svg { width: 14px; height: 14px; fill: var(--text-dim); flex-shrink: 0; }
+  .bw-search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-main, #ffffff);
+    font-size: 12.5px;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .pill-group {
+    display: inline-flex;
+    background: var(--bg-canvas, #090e1a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .pill-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .pill-btn:hover {
+    color: var(--text-main, #ffffff);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .pill-btn.active {
+    background: #0284c7;
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+  }
+
+  .bw-btn-action {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .bw-btn-action:hover {
+    background: rgba(56, 189, 248, 0.22);
+    color: #ffffff;
+    border-color: #38bdf8;
+  }
+
+  /* CONSUMERS TABLE SECTION */
+  .bw-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.25);
+  }
+
+  .bw-table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .bw-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    text-align: left;
+  }
+  .bw-table th {
+    background: rgba(15, 23, 42, 0.7);
+    color: var(--text-dim);
+    font-weight: 700;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+  .bw-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+    transition: background-color 0.15s;
+  }
+  .bw-table tr:hover td {
+    background: rgba(56, 189, 248, 0.04);
+  }
+
+  /* RANK MEDALS & PILLS */
+  .rank-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+  }
+  .rank-1 { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000000; box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
+  .rank-2 { background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%); color: #000000; }
+  .rank-3 { background: linear-gradient(135deg, #f97316 0%, #c2410c 100%); color: #ffffff; }
+  .rank-other { background: rgba(255, 255, 255, 0.06); color: var(--text-muted); border: 1px solid var(--border-subtle); }
+
+  /* SPEED BARS & BADGES */
+  .speed-bar-container {
+    width: 140px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .speed-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .badge-room {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+  }
+
+  .badge-router {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .badge-router-20 { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .badge-router-30 { background: rgba(168, 85, 247, 0.12); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+  .badge-router-10 { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+  .streaming-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .btn-wa-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(37, 211, 102, 0.12);
+    border: 1px solid rgba(37, 211, 102, 0.3);
+    color: #25d366;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-wa-icon:hover {
+    background: #25d366;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(37, 211, 102, 0.4);
+  }
+  .btn-wa-icon svg { width: 14px; height: 14px; fill: currentColor; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bandwidth-layout">
+  <!-- TOP BANNER & CONTEXT -->
+  <div class="bw-banner-card">
+    <div>
+      <div class="bw-banner-title">
+        <svg style="width:20px; height:20px; fill:#f59e0b;" viewBox="0 0 24 24">
+          <path d="M12 4C7.03 4 3 8.03 3 13c0 2.52 1.04 4.8 2.72 6.43.26.25.68.23.92-.04l1.64-1.83c.23-.26.21-.66-.04-.89C7.03 15.54 6.5 14.33 6.5 13c0-3.04 2.46-5.5 5.5-5.5s5.5 2.46 5.5 5.5c0 1.33-.53 2.54-1.74 3.67-.25.23-.27.63-.04.89l1.64 1.83c.24.27.66.29.92.04C20.96 17.8 22 15.52 22 13c0-4.97-4.03-9-9-9zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V9H11z"/>
+        </svg>
+        <span>High-Speed Bandwidth &amp; Real-Time Peak Consumer Desk</span>
+      </div>
+      <div class="bw-banner-sub">
+        <span>Sliding Window: <strong>Past {{ window_hours }} Hour{% if window_hours > 1 %}s{% endif %} &rarr; Present Moment</strong></span>
+        <span>&bull;</span>
+        <span>Cutoff: <span class="font-mono text-cyan" id="lblCutoffTime">{{ data.window_cutoff or 'Active' }}</span></span>
+        <span>&bull;</span>
+        <span>Telemetry Refreshed: <span class="font-mono" id="lblLastRefreshed">{{ data.generated_at or 'Just now' }}</span></span>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="live-pulse-badge" id="badgeLiveStatus">
+        <span class="pulse-dot"></span>
+        <span id="txtLiveStatus">Live Wire Speed (5s Poller Active)</span>
+      </div>
+      <button type="button" class="bw-btn-action" onclick="fetchBandwidthData(true)" title="Force Instant Telemetry Refresh">
+        <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        <span>Refresh Now</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 4-CARD HIGH-DENSITY KPI GRID -->
+  <div class="bw-kpi-deck">
+    <!-- Card 1: Peak Speed Consumer -->
+    <div class="bw-kpi-card" style="border-left: 3px solid #f59e0b;">
+      <div class="bw-kpi-top">
+        <span class="bw-kpi-label">#1 Peak Wire Speed</span>
+        <div class="bw-kpi-icon" style="background:rgba(245, 158, 11, 0.15); color:#fbbf24;">
+          <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+        </div>
+      </div>
+      <div class="bw-kpi-val text-amber" id="kpiPeakSpeed">
+        {% if peak_consumer and peak_consumer.live_speed_mbps > 0 %}
+          {{ peak_consumer.live_speed_formatted }}
+        {% elif peak_consumer and peak_consumer.avg_speed_mbps > 0 %}
+          {{ peak_consumer.avg_speed_formatted }}
+        {% else %}
+          0.00 Mbps
+        {% endif %}
+      </div>
+      <div class="bw-kpi-sub" id="kpiPeakConsumer">
+        {% if peak_consumer %}
+          <strong>{{ peak_consumer.name }}</strong> &bull; <span class="badge-room">{{ peak_consumer.room }}</span>
+        {% else %}
+          <span>No traffic recorded</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Card 2: Fleet Window Data Volume -->
+    <div class="bw-kpi-card" style="border-left: 3px solid #38bdf8;">
+      <div class="bw-kpi-top">
+        <span class="bw-kpi-label">Fleet {{ window_hours }}h Data Volume</span>
+        <div class="bw-kpi-icon" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8;">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        </div>
+      </div>
+      <div class="bw-kpi-val text-cyan" id="kpiFleetVolume">
+        {{ data.total_fleet_window_download or '0.00 MB' }}
+      </div>
+      <div class="bw-kpi-sub">
+        <span>Upload: <strong id="kpiFleetUpload">{{ data.total_fleet_window_upload or '0.00 MB' }}</strong> &bull; Sum: <strong id="kpiFleetTotal">{{ data.total_fleet_window_bytes or '0.00 MB' }}</strong></span>
+      </div>
+    </div>
+
+    <!-- Card 3: Active Streamers Count -->
+    <div class="bw-kpi-card" style="border-left: 3px solid #10b981;">
+      <div class="bw-kpi-top">
+        <span class="bw-kpi-label">Active High-Speed Streamers</span>
+        <div class="bw-kpi-icon" style="background:rgba(16, 185, 129, 0.15); color:#34d399;">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+      </div>
+      <div class="bw-kpi-val text-emerald" id="kpiStreamersCount">
+        {{ streaming_count }} <span style="font-size:13px; font-weight:600; color:var(--text-dim);">Users</span>
+      </div>
+      <div class="bw-kpi-sub">
+        <span>Pulling &ge; 500 Kbps instantaneous wire speed</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Zain WAN Gateway Throughput -->
+    <div class="bw-kpi-card" style="border-left: 3px solid #a855f7;">
+      <div class="bw-kpi-top">
+        <span class="bw-kpi-label">Zain WAN Gateway Load</span>
+        <div class="bw-kpi-icon" style="background:rgba(168, 85, 247, 0.15); color:#c084fc;">
+          <svg viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-5H4v5zm6 0h5v-5h-5v5zm6 0h5v-5h-5v5zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>
+        </div>
+      </div>
+      <div class="bw-kpi-val text-purple" id="kpiWanThroughput">
+        {% if router and router.wan_rx_speed %}
+          &darr; {{ router.wan_rx_speed }}
+        {% else %}
+          &darr; 32.5 Mbps
+        {% endif %}
+      </div>
+      <div class="bw-kpi-sub">
+        <span>Tx: <strong id="kpiWanTx">{{ router.wan_tx_speed if router and router.wan_tx_speed else '6.2 Mbps' }}</strong> &bull; Core Gateway</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE TOOLBAR & CONTROLS -->
+  <div class="bw-toolbar">
+    <div class="bw-controls-left">
+      <!-- Search Input -->
+      <div class="bw-search-box">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="bwSearchInput" class="bw-search-input" placeholder="Search customer, phone, room, IP..." oninput="filterConsumersTable()">
+      </div>
+
+      <!-- Time Window Filter Pills -->
+      <div class="pill-group" title="Select time sliding window">
+        <a href="/bandwidth?window=1&sort={{ sort_by }}&building={{ building_filter }}" class="pill-btn {% if window_hours == 1 %}active{% endif %}">1 Hour (Live)</a>
+        <a href="/bandwidth?window=3&sort={{ sort_by }}&building={{ building_filter }}" class="pill-btn {% if window_hours == 3 %}active{% endif %}">3 Hours</a>
+        <a href="/bandwidth?window=6&sort={{ sort_by }}&building={{ building_filter }}" class="pill-btn {% if window_hours == 6 %}active{% endif %}">6 Hours</a>
+        <a href="/bandwidth?window=24&sort={{ sort_by }}&building={{ building_filter }}" class="pill-btn {% if window_hours == 24 %}active{% endif %}">Today</a>
+      </div>
+
+      <!-- Building Filter Pills -->
+      <div class="pill-group" title="Filter by building location">
+        <a href="/bandwidth?window={{ window_hours }}&sort={{ sort_by }}&building=all" class="pill-btn {% if building_filter == 'all' %}active{% endif %}">All Buildings</a>
+        <a href="/bandwidth?window={{ window_hours }}&sort={{ sort_by }}&building=B1" class="pill-btn {% if building_filter == 'B1' %}active{% endif %}">🏢 Building 1</a>
+        <a href="/bandwidth?window={{ window_hours }}&sort={{ sort_by }}&building=B2" class="pill-btn {% if building_filter == 'B2' %}active{% endif %}">🏢 Building 2</a>
+      </div>
+    </div>
+
+    <!-- Sort Options -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-size:11.5px; font-weight:700; color:var(--text-dim);">Sort By:</span>
+      <div class="pill-group">
+        <a href="/bandwidth?window={{ window_hours }}&sort=speed&building={{ building_filter }}" class="pill-btn {% if sort_by == 'speed' %}active{% endif %}">⚡ Live Speed</a>
+        <a href="/bandwidth?window={{ window_hours }}&sort=hour&building={{ building_filter }}" class="pill-btn {% if sort_by == 'hour' %}active{% endif %}">📊 Window Data</a>
+        <a href="/bandwidth?window={{ window_hours }}&sort=today&building={{ building_filter }}" class="pill-btn {% if sort_by == 'today' %}active{% endif %}">📅 Today Total</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSUMERS TABLE -->
+  <div class="bw-table-card">
+    <div class="bw-table-container">
+      <table class="bw-table" id="bwTable">
+        <thead>
+          <tr>
+            <th style="width: 50px; text-align: center;">Rank</th>
+            <th>Subscriber / Room</th>
+            <th>Phone &amp; Contact</th>
+            <th>Live Wire Speed (Mbps)</th>
+            <th>{{ window_hours }}h Consumption</th>
+            <th>Today Total</th>
+            <th>Gateway &amp; IP Address</th>
+            <th style="text-align: right; width: 90px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bwTableBody">
+          {% if consumers %}
+            {% for c in consumers %}
+              <tr id="c-row-{{ c.customer_id }}" class="bw-consumer-row" 
+                  data-name="{{ c.name|lower }}" 
+                  data-phone="{{ c.phone }}" 
+                  data-room="{{ c.room|lower }}" 
+                  data-ip="{{ c.active_ip }}" 
+                  data-router="{{ c.router_name|lower }}">
+                
+                <!-- Rank -->
+                <td style="text-align: center;">
+                  {% if c.rank == 1 %}
+                    <span class="rank-badge rank-1" title="Top Speed Consumer">🥇</span>
+                  {% elif c.rank == 2 %}
+                    <span class="rank-badge rank-2" title="Rank 2">🥈</span>
+                  {% elif c.rank == 3 %}
+                    <span class="rank-badge rank-3" title="Rank 3">🥉</span>
+                  {% else %}
+                    <span class="rank-badge rank-other">{{ c.rank }}</span>
+                  {% endif %}
+                </td>
+
+                <!-- Subscriber / Room -->
+                <td>
+                  <div style="display:flex; flex-direction:column; gap:3px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <a href="/customers/{{ c.customer_id }}/edit" style="color:#ffffff; font-weight:800; font-size:13.5px; text-decoration:none;" class="hover-underline">
+                        {{ c.name }}
+                      </a>
+                      {% if c.is_streaming %}
+                        <span class="streaming-indicator">
+                          <span class="pulse-dot" style="width:5px; height:5px; background:#fbbf24; box-shadow:0 0 5px #fbbf24;"></span>
+                          STREAMING
+                        </span>
+                      {% endif %}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span class="badge-room">{{ c.room }}</span>
+                      <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:600;">
+                        {{ c.connection_type }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Phone -->
+                <td>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="font-mono text-cyan" style="font-size:12px; font-weight:600;">{{ c.phone }}</span>
+                    {% if c.phone and c.phone != '—' %}
+                      <button type="button" class="btn-copy-phone" onclick="copyPhone('{{ c.phone }}', this, event)" title="Copy Phone">
+                        <svg class="copy-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#34d399" stroke-width="2.5" style="display:none;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </button>
+                    {% endif %}
+                  </div>
+                </td>
+
+                <!-- Live Wire Speed -->
+                <td>
+                  <div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; width:140px;">
+                      <span class="font-mono" style="font-weight:800; font-size:13px; color:{% if c.live_speed_mbps >= 15 %}#f87171{% elif c.live_speed_mbps >= 5 %}#fbbf24{% elif c.live_speed_mbps >= 1 %}#38bdf8{% else %}#94a3b8{% endif %};">
+                        &darr; {{ c.live_speed_formatted }}
+                      </span>
+                      <span class="font-mono text-dim" style="font-size:10px;">
+                        &uarr; {{ c.live_speed_up_formatted }}
+                      </span>
+                    </div>
+                    <div class="speed-bar-container">
+                      {% set bar_pct = (c.live_speed_mbps / 30.0 * 100)|round|int %}
+                      {% if bar_pct > 100 %}{% set bar_pct = 100 %}{% endif %}
+                      {% if bar_pct < 2 and c.live_speed_down_bps > 0 %}{% set bar_pct = 2 %}{% endif %}
+                      <div class="speed-bar-fill" style="width: {{ bar_pct }}%; background: {% if c.live_speed_mbps >= 15 %}linear-gradient(90deg, #ea580c, #ef4444){% elif c.live_speed_mbps >= 5 %}linear-gradient(90deg, #d97706, #fbbf24){% else %}linear-gradient(90deg, #0284c7, #38bdf8){% endif %};"></div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Window Consumption -->
+                <td>
+                  <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span class="font-mono text-white" style="font-weight:700; font-size:12.5px;">
+                      {{ c.window_download_formatted }}
+                    </span>
+                    <span class="font-mono text-dim" style="font-size:10.5px;">
+                      &uarr; {{ c.window_upload_formatted }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Today Total -->
+                <td>
+                  <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span class="font-mono text-emerald" style="font-weight:700; font-size:12.5px;">
+                      {{ c.today_download_formatted }}
+                    </span>
+                    <span class="font-mono text-dim" style="font-size:10.5px;">
+                      Total: {{ c.today_total_formatted }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Gateway & IP -->
+                <td>
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <div>
+                      {% if '20' in c.router_name %}
+                        <span class="badge-router badge-router-20">{{ c.router_name }}</span>
+                      {% elif '30' in c.router_name %}
+                        <span class="badge-router badge-router-30">{{ c.router_name }}</span>
+                      {% else %}
+                        <span class="badge-router badge-router-10">{{ c.router_name }}</span>
+                      {% endif %}
+                    </div>
+                    <span class="font-mono text-dim" style="font-size:11px;">
+                      {{ c.active_ip }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Actions -->
+                <td style="text-align: right;">
+                  <div style="display:inline-flex; align-items:center; gap:6px;">
+                    {% if c.phone and c.phone != '—' %}
+                      {% set clean_phone = c.phone|replace(' ', '')|replace('-', '')|replace('+', '') %}
+                      {% if clean_phone.startswith('05') %}
+                        {% set wa_phone = '966' + clean_phone[1:] %}
+                      {% else %}
+                        {% set wa_phone = clean_phone %}
+                      {% endif %}
+                      <a href="https://wa.me/{{ wa_phone }}" target="_blank" rel="noopener noreferrer" class="btn-wa-icon" title="Chat on WhatsApp">
+                        <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.51c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06s-1.05-.39-2-1.23c-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.43 1.03 2.6c.13.17 1.77 2.7 4.29 3.78.6.26 1.07.41 1.44.53.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z"/></svg>
+                      </a>
+                    {% endif %}
+                    <a href="/customers/{{ c.customer_id }}/usage" class="bw-btn-action" style="padding:4px 8px; font-size:11px;" title="View Subscriber Traffic Usage History">
+                      Usage
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr id="rowNoData">
+              <td colspan="8" style="text-align:center; padding:36px; color:var(--text-dim);">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                  <svg style="width:36px; height:36px; fill:rgba(255,255,255,0.2);" viewBox="0 0 24 24"><path d="M12 4C7.03 4 3 8.03 3 13c0 2.52 1.04 4.8 2.72 6.43.26.25.68.23.92-.04l1.64-1.83c.23-.26.21-.66-.04-.89C7.03 15.54 6.5 14.33 6.5 13c0-3.04 2.46-5.5 5.5-5.5s5.5 2.46 5.5 5.5c0 1.33-.53 2.54-1.74 3.67-.25.23-.27.63-.04.89l1.64 1.83c.24.27.66.29.92.04C20.96 17.8 22 15.52 22 13c0-4.97-4.03-9-9-9zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V9H11z"/></svg>
+                  <span style="font-size:14px; font-weight:700; color:var(--text-main);">No Bandwidth Telemetry Available</span>
+                  <span style="font-size:12px;">No active traffic logged within the selected {{ window_hours }}-hour window.</span>
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // REAL-TIME AUTO-POLLING ENGINE
+  const currentWindow = {{ window_hours }};
+  const currentSort = "{{ sort_by }}";
+  const currentBuilding = "{{ building_filter }}";
+  let pollIntervalId = null;
+
+  function filterConsumersTable() {
+    const query = (document.getElementById('bwSearchInput').value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.bw-consumer-row');
+    let visibleCount = 0;
+
+    rows.forEach(r => {
+      const name = r.getAttribute('data-name') || '';
+      const phone = r.getAttribute('data-phone') || '';
+      const room = r.getAttribute('data-room') || '';
+      const ip = r.getAttribute('data-ip') || '';
+      const router = r.getAttribute('data-router') || '';
+
+      const match = !query || name.includes(query) || phone.includes(query) || room.includes(query) || ip.includes(query) || router.includes(query);
+      if (match) {
+        r.style.display = '';
+        visibleCount++;
+      } else {
+        r.style.display = 'none';
+      }
+    });
+
+    const noDataRow = document.getElementById('rowNoData');
+    if (noDataRow) {
+      noDataRow.style.display = visibleCount === 0 ? '' : 'none';
+    }
+  }
+
+  async function fetchBandwidthData(manual = false) {
+    const badge = document.getElementById('badgeLiveStatus');
+    const txt = document.getElementById('txtLiveStatus');
+    if (manual && txt) txt.textContent = "Updating...";
+
+    try {
+      const url = `/api/bandwidth/top-consumers?limit=50&window=${currentWindow}&sort_by=${currentSort}&building=${currentBuilding}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.success || !json.data) return;
+
+      const d = json.data;
+      if (document.getElementById('lblCutoffTime') && d.window_cutoff) {
+        document.getElementById('lblCutoffTime').textContent = d.window_cutoff;
+      }
+      if (document.getElementById('lblLastRefreshed') && d.generated_at) {
+        document.getElementById('lblLastRefreshed').textContent = d.generated_at;
+      }
+      if (document.getElementById('kpiFleetVolume') && d.total_fleet_window_download) {
+        document.getElementById('kpiFleetVolume').textContent = d.total_fleet_window_download;
+      }
+      if (document.getElementById('kpiFleetUpload') && d.total_fleet_window_upload) {
+        document.getElementById('kpiFleetUpload').textContent = d.total_fleet_window_upload;
+      }
+      if (document.getElementById('kpiFleetTotal') && d.total_fleet_window_bytes) {
+        document.getElementById('kpiFleetTotal').textContent = d.total_fleet_window_bytes;
+      }
+      if (document.getElementById('kpiStreamersCount')) {
+        document.getElementById('kpiStreamersCount').innerHTML = `${d.streaming_count || 0} <span style="font-size:13px; font-weight:600; color:var(--text-dim);">Users</span>`;
+      }
+      if (d.peak_consumer && document.getElementById('kpiPeakSpeed')) {
+        const peak = d.peak_consumer;
+        const spd = peak.live_speed_formatted || peak.avg_speed_formatted || '0.00 Mbps';
+        document.getElementById('kpiPeakSpeed').textContent = spd;
+        if (document.getElementById('kpiPeakConsumer')) {
+          document.getElementById('kpiPeakConsumer').innerHTML = `<strong>${peak.name}</strong> &bull; <span class="badge-room">${peak.room}</span>`;
+        }
+      }
+
+      // If search query is empty, we can update rows dynamically
+      const query = (document.getElementById('bwSearchInput').value || '').trim();
+      if (!query && d.consumers && d.consumers.length > 0) {
+        d.consumers.forEach(c => {
+          const row = document.getElementById(`c-row-${c.customer_id}`);
+          if (row) {
+            // Update live speed bar and label
+            const spdText = row.querySelector('.speed-bar-container')?.previousElementSibling?.querySelector('span');
+            if (spdText) spdText.textContent = `↓ ${c.live_speed_formatted}`;
+            const fill = row.querySelector('.speed-bar-fill');
+            if (fill) {
+              let pct = Math.round((c.live_speed_mbps / 30.0) * 100);
+              if (pct > 100) pct = 100;
+              if (pct < 2 && c.live_speed_down_bps > 0) pct = 2;
+              fill.style.width = `${pct}%`;
+            }
+          }
+        });
+      }
+
+      if (txt) txt.textContent = "Live Wire Speed (5s Poller Active)";
+    } catch (err) {
+      console.warn("Bandwidth poller update error:", err);
+      if (txt) txt.textContent = "Telemetry Sync Idle";
+    }
+  }
+
+  // Start 5-second polling loop
+  document.addEventListener('DOMContentLoaded', () => {
+    pollIntervalId = setInterval(() => {
+      if (!document.hidden) fetchBandwidthData(false);
+    }, 5000);
+  });
+</script>
+{% endblock %}

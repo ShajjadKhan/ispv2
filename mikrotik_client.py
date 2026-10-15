@@ -1768,31 +1768,18 @@ def test_router_connection(
                 pass
 
 
-_client_instances: Dict[Tuple[Any, ...], RouterClient] = {}
-
-
 def get_client_for_router(r_dict: Dict[str, Any]) -> RouterClient:
-    """Instantiates or reuses a cached RouterClient from a router record dictionary."""
-    rid = r_dict.get("id")
-    host = r_dict.get("host")
+    """Instantiates a RouterClient from a router record dictionary."""
     port = r_dict.get("port", 8728)
-    user = r_dict.get("username")
-    pwd = r_dict.get("password")
     use_ssl = (port == 8729 or bool(r_dict.get("use_ssl", False)))
-
-    cache_key = (rid, host, port, user, pwd, use_ssl)
-    client = _client_instances.get(cache_key)
-    if client is None:
-        client = RouterClient(
-            host=host,
-            username=user,
-            password=pwd,
-            port=port,
-            use_ssl=use_ssl,
-            router_id=rid
-        )
-        _client_instances[cache_key] = client
-    return client
+    return RouterClient(
+        host=r_dict["host"],
+        username=r_dict["username"],
+        password=r_dict["password"],
+        port=port,
+        use_ssl=use_ssl,
+        router_id=r_dict.get("id")
+    )
 
 
 _fleet_telemetry_cache: Optional[Dict[str, Dict[str, Any]]] = None
@@ -2187,6 +2174,33 @@ def broadcast_get_active_pppoe_sessions() -> Dict[str, Dict[str, Any]]:
             s_data["router_name"] = r["name"]
             all_sessions[u_name] = s_data
     return all_sessions
+
+
+def broadcast_get_hotspot_hosts_raw() -> List[Dict[str, Any]]:
+    """
+    Aggregates raw /ip/hotspot/host entries across all active fleet routers in parallel.
+    Attaches router_name and router_id to each host.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    all_hosts = []
+
+    def fetch_router_hosts(r_conf):
+        try:
+            client = get_client_for_router(r_conf)
+            hosts = client.get_hotspot_hosts_raw()
+            for h in hosts:
+                h["router_name"] = r_conf.get("name", "Router")
+                h["router_id"] = r_conf.get("id")
+            return hosts
+        except Exception:
+            return []
+
+    with ThreadPoolExecutor(max_workers=max(1, len(routers))) as executor:
+        for host_list in executor.map(fetch_router_hosts, routers):
+            all_hosts.extend(host_list)
+
+    return all_hosts
 
 
 def broadcast_disconnect_pppoe_session(username: str) -> Dict[str, bool]:
