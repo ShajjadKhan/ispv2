@@ -884,6 +884,69 @@
     background: rgba(239, 68, 68, 0.25);
     color: #ffffff;
   }
+
+  /* Customer Autocomplete Suggestions Box */
+  .coll-suggestions-box {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #080e1b;
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    border-radius: 8px;
+    box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.85), 0 0 18px rgba(56, 189, 248, 0.15);
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1050;
+  }
+  .coll-sug-item {
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .coll-sug-item:last-child {
+    border-bottom: none;
+  }
+  .coll-sug-item:hover, .coll-sug-item.selected {
+    background: rgba(56, 189, 248, 0.15);
+  }
+  .coll-sug-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .coll-sug-sub {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .coll-sug-badge {
+    font-size: 11px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .coll-sug-badge.due {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #f87171;
+  }
+  .coll-sug-badge.credit {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+  }
+  .coll-sug-badge.settled {
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #94a3b8;
+  }
 </style>
 {% endblock %}
 
@@ -1216,17 +1279,19 @@
     <form id="balanceCollectForm" onsubmit="handleBalanceCollectSubmit(event)" class="bal-modal-body">
       <input type="hidden" id="collCustId" name="customer_id" value="">
 
-      <!-- Customer Selector Dropdown (Shown when collecting from header) -->
-      <div id="collCustSelectWrap">
-        <label style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:6px;">Select Subscriber</label>
-        <select id="collCustSelect" class="bal-search-input" style="padding-left:12px; font-size:13.5px; font-weight:600;" onchange="onModalCustomerSelectChange(this.value)">
-          <option value="">— Choose a Subscriber to Collect —</option>
-          {% for r in rows %}
-          <option value="{{ r.id }}">
-            {{ r.name }}{% if r.room %} [📍 {{ r.room }}]{% endif %} — {% if r.balance < 0 %}⚠️ Due: {{ "%.2f"|format(r.balance) }} SAR{% elif r.balance > 0 %}★ Credit: +{{ "%.2f"|format(r.balance) }} SAR{% else %}✓ Settled (0.00 SAR){% endif %}
-          </option>
-          {% endfor %}
-        </select>
+      <!-- Customer Autocomplete Search Input -->
+      <div id="collCustSelectWrap" style="position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <label style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0;">Subscriber Account</label>
+          <span style="font-size:11px; color:#38bdf8;" id="collCustSearchHint">Search by name, room, or mobile</span>
+        </div>
+        <div style="position:relative; display:flex; align-items:center;">
+          <span style="position:absolute; left:12px; color:var(--text-dim); font-size:14px; pointer-events:none;">🔍</span>
+          <input type="text" id="collCustSearchInput" autocomplete="off" class="bal-search-input" style="padding-left:36px; padding-right:32px; font-size:13.5px; font-weight:600;" placeholder="Start typing subscriber name, room, or mobile…" oninput="handleModalCustSearch(this.value)" onfocus="handleModalCustSearchFocus()" onkeydown="handleModalCustKeydown(event)">
+          <button type="button" id="collCustSearchClearBtn" onclick="clearModalCustSearch()" style="position:absolute; right:10px; background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:16px; display:none; padding:4px;" title="Clear">&times;</button>
+        </div>
+        <!-- Floating Autocomplete Suggestion Dropdown List -->
+        <div id="collCustSuggestions" class="coll-suggestions-box" style="display:none;"></div>
       </div>
 
       <!-- Customer Summary Card -->
@@ -1758,61 +1823,211 @@ const balanceRowsData = {
 };
 
 let currentModalSelectedBalance = 0;
+let modalActiveSugIndex = -1;
+
+function renderSugBadge(balance) {
+  const b = parseFloat(balance) || 0;
+  if (b < 0) {
+    return `<span class="coll-sug-badge due">⚠️ Due: ${b.toFixed(2)} SAR</span>`;
+  } else if (b > 0) {
+    return `<span class="coll-sug-badge credit">★ Credit: +${b.toFixed(2)} SAR</span>`;
+  }
+  return `<span class="coll-sug-badge settled">✓ Settled</span>`;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function highlightSug(text, query) {
+  if (!query) return escapeHtml(text);
+  const escapedText = escapeHtml(text);
+  const escapedQuery = escapeHtml(query);
+  const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return escapedText.replace(regex, '<span style="color:#38bdf8; font-weight:800; text-decoration:underline;">$1</span>');
+}
+
+function handleModalCustSearch(query) {
+  const box = document.getElementById('collCustSuggestions');
+  const clearBtn = document.getElementById('collCustSearchClearBtn');
+  const q = (query || '').trim().toLowerCase();
+  
+  if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+  modalActiveSugIndex = -1;
+
+  if (!box) return;
+
+  let matches = [];
+  const allRows = Object.values(balanceRowsData);
+
+  if (!q) {
+    // If empty query, show top owing subscribers first
+    matches = allRows.filter(r => r.balance < 0).slice(0, 10);
+    if (!matches.length) matches = allRows.slice(0, 10);
+  } else {
+    // Filter matching subscribers across name, mobile, room, or ID
+    matches = allRows.filter(r => {
+      const name = (r.name || '').toLowerCase();
+      const mobile = (r.mobile || '').toLowerCase();
+      const room = (r.room || '').toLowerCase();
+      const idStr = String(r.id);
+      return name.includes(q) || mobile.includes(q) || room.includes(q) || idStr === q;
+    }).slice(0, 15);
+  }
+
+  if (!matches.length) {
+    box.innerHTML = '<div style="padding:14px; text-align:center; color:var(--text-dim); font-size:12px;">No matching subscriber found</div>';
+    box.style.display = 'block';
+    return;
+  }
+
+  box.innerHTML = matches.map((r, idx) => `
+    <div class="coll-sug-item" data-id="${r.id}" data-index="${idx}" onclick="selectModalCustomer(${r.id})">
+      <div>
+        <div class="coll-sug-name">${highlightSug(r.name, q)}</div>
+        <div class="coll-sug-sub">${r.room ? '📍 ' + highlightSug(r.room, q) + ' · ' : ''}${r.mobile ? '📱 ' + highlightSug(r.mobile, q) : ''}</div>
+      </div>
+      <div>
+        ${renderSugBadge(r.balance)}
+      </div>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function handleModalCustSearchFocus() {
+  const input = document.getElementById('collCustSearchInput');
+  handleModalCustSearch(input ? input.value : '');
+}
+
+function handleModalCustKeydown(e) {
+  const box = document.getElementById('collCustSuggestions');
+  if (!box || box.style.display === 'none') return;
+
+  const items = box.querySelectorAll('.coll-sug-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    modalActiveSugIndex = (modalActiveSugIndex + 1) % items.length;
+    updateSugHighlight(items);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    modalActiveSugIndex = (modalActiveSugIndex - 1 + items.length) % items.length;
+    updateSugHighlight(items);
+  } else if (e.key === 'Enter') {
+    if (modalActiveSugIndex >= 0 && modalActiveSugIndex < items.length) {
+      e.preventDefault();
+      const selectedId = items[modalActiveSugIndex].getAttribute('data-id');
+      if (selectedId) selectModalCustomer(parseInt(selectedId));
+    }
+  } else if (e.key === 'Escape') {
+    box.style.display = 'none';
+  }
+}
+
+function updateSugHighlight(items) {
+  items.forEach((item, idx) => {
+    if (idx === modalActiveSugIndex) {
+      item.classList.add('selected');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+function selectModalCustomer(cid) {
+  const custIdInput = document.getElementById('collCustId');
+  const searchInput = document.getElementById('collCustSearchInput');
+  const box = document.getElementById('collCustSuggestions');
+  const clearBtn = document.getElementById('collCustSearchClearBtn');
+
+  const d = balanceRowsData[cid];
+  if (!d) return;
+
+  if (custIdInput) custIdInput.value = cid;
+  if (searchInput) searchInput.value = d.name + (d.room ? ` (📍 ${d.room})` : '');
+  if (clearBtn) clearBtn.style.display = 'block';
+  if (box) box.style.display = 'none';
+
+  updateModalCustomerDisplay(d);
+
+  // Focus amount input for rapid entry
+  setTimeout(() => {
+    const amtInp = document.getElementById('collAmountInput');
+    if (amtInp) {
+      amtInp.focus();
+      amtInp.select();
+    }
+  }, 100);
+}
+
+function clearModalCustSearch() {
+  const custIdInput = document.getElementById('collCustId');
+  const searchInput = document.getElementById('collCustSearchInput');
+  const clearBtn = document.getElementById('collCustSearchClearBtn');
+
+  if (custIdInput) custIdInput.value = '';
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.focus();
+  }
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  document.getElementById('collCustNameLabel').textContent = '— Please search & select a subscriber —';
+  document.getElementById('collCustPhoneRoom').textContent = 'Type name, room, or mobile above';
+  document.getElementById('collCurrentBalLabel').innerHTML = '—';
+
+  handleModalCustSearch('');
+}
 
 // Quick Collect Modal
 function openBalanceCollectModal(cid, name, balance) {
-  const custSelect = document.getElementById('collCustSelect');
-  const custSelectWrap = document.getElementById('collCustSelectWrap');
   const custIdInput = document.getElementById('collCustId');
-  const amountInput = document.getElementById('collAmountInput');
+  const searchInput = document.getElementById('collCustSearchInput');
+  const clearBtn = document.getElementById('collCustSearchClearBtn');
+  const box = document.getElementById('collCustSuggestions');
+
+  if (box) box.style.display = 'none';
 
   if (cid) {
-    if (custSelectWrap) custSelectWrap.style.display = 'none';
     custIdInput.value = cid;
-    if (custSelect) custSelect.value = cid;
     let rowData = balanceRowsData[cid] || { id: cid, name: name || ('Subscriber #' + cid), balance: (balance !== undefined ? balance : 0), room: '', mobile: '', fee: 30 };
+    if (searchInput) searchInput.value = rowData.name + (rowData.room ? ` (📍 ${rowData.room})` : '');
+    if (clearBtn) clearBtn.style.display = 'block';
     updateModalCustomerDisplay(rowData);
-  } else {
-    if (custSelectWrap) custSelectWrap.style.display = 'block';
-    if (custSelect) {
-      if (!custSelect.value) {
-        let firstOwing = null;
-        for (let k in balanceRowsData) {
-          if (balanceRowsData[k].balance < 0) {
-            firstOwing = balanceRowsData[k];
-            break;
-          }
-        }
-        if (firstOwing) {
-          custSelect.value = firstOwing.id;
-          custIdInput.value = firstOwing.id;
-          updateModalCustomerDisplay(firstOwing);
-        } else if (custSelect.options.length > 1) {
-          custSelect.selectedIndex = 1;
-          onModalCustomerSelectChange(custSelect.value);
-        }
-      } else {
-        onModalCustomerSelectChange(custSelect.value);
+    setTimeout(() => {
+      const amtInp = document.getElementById('collAmountInput');
+      if (amtInp) {
+        amtInp.focus();
+        amtInp.select();
       }
-    }
+    }, 150);
+  } else {
+    custIdInput.value = '';
+    if (searchInput) searchInput.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    document.getElementById('collCustNameLabel').textContent = '— Please search & select a subscriber —';
+    document.getElementById('collCustPhoneRoom').textContent = 'Type name, room, or mobile above';
+    document.getElementById('collCurrentBalLabel').innerHTML = '—';
+    document.getElementById('collAmountInput').value = '';
+    setTimeout(() => {
+      if (searchInput) {
+        searchInput.focus();
+        handleModalCustSearchFocus();
+      }
+    }, 150);
   }
 
   const modal = document.getElementById('balanceCollectModal');
   if (modal) modal.classList.add('open');
-}
-
-function onModalCustomerSelectChange(cid) {
-  const custIdInput = document.getElementById('collCustId');
-  if (!cid) {
-    custIdInput.value = '';
-    document.getElementById('collCustNameLabel').textContent = '— Please select a subscriber —';
-    document.getElementById('collCustPhoneRoom').textContent = '—';
-    document.getElementById('collCurrentBalLabel').innerHTML = '0.00 SAR';
-    return;
-  }
-  custIdInput.value = cid;
-  const d = balanceRowsData[cid];
-  if (d) updateModalCustomerDisplay(d);
 }
 
 function updateModalCustomerDisplay(d) {
@@ -1884,6 +2099,17 @@ async function handleBalanceCollectSubmit(e) {
   btn.innerHTML = '<span>Recording…</span>';
 
   const cid = parseInt(document.getElementById('collCustId').value);
+  if (!cid || isNaN(cid)) {
+    alert('Please search and select a subscriber first.');
+    const searchInp = document.getElementById('collCustSearchInput');
+    if (searchInp) {
+      searchInp.focus();
+      handleModalCustSearchFocus();
+    }
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+    return;
+  }
   const amount = parseFloat(document.getElementById('collAmountInput').value);
   const paymentType = document.getElementById('collPaymentType').value;
   const collector = document.getElementById('collCollectorInput').value;
@@ -2106,6 +2332,15 @@ async function switchReconMonth(monthVal) {
     alert('Error loading reconciliation for month: ' + err.message);
   }
 }
+
+// Close autocomplete suggestions when clicking outside
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('collCustSelectWrap');
+  const box = document.getElementById('collCustSuggestions');
+  if (wrap && box && !wrap.contains(e.target)) {
+    box.style.display = 'none';
+  }
+});
 
 </script>
 {% endblock %}
