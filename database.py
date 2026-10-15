@@ -2553,7 +2553,18 @@ def record_customer_payment(
             VALUES (?, ?, 'recharge', ?, ?, ?)
         """, (customer_id, clean_amt, rec_note, now_str, clean_collector))
 
-        # 2. Update customer expiry / due date & credit_balance & billing_type
+        # Close open suspensions if active
+        cursor.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
+
+        # 2. Compute exact real-time balance after collection and resumed suspension
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        new_credit = rt_bal["balance"]
+
+        # 3. Update customer expiry / due date & credit_balance & billing_type
         current_exp = cust["expiry_date"] or cust["due_date"]
         try:
             base_dt = datetime.strptime(current_exp, "%Y-%m-%d")
@@ -2570,11 +2581,21 @@ def record_customer_payment(
         except Exception:
             new_due_day = 1
 
-        cursor.execute("""
-            UPDATE customers
-            SET expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?, billing_type = ?, status = 'active', updated_at = ?
-            WHERE id = ?
-        """, (new_expiry, new_expiry, new_due_day, new_credit, new_billing_type, now_str, customer_id))
+        if clean_amt > 0:
+            cursor.execute("""
+                UPDATE customers
+                SET expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?,
+                    collected_today = COALESCE(collected_today, 0.0) + ?,
+                    billing_type = ?, status = 'active', updated_at = ?
+                WHERE id = ?
+            """, (new_expiry, new_expiry, new_due_day, new_credit, clean_amt, new_billing_type, now_str, customer_id))
+        else:
+            cursor.execute("""
+                UPDATE customers
+                SET expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?,
+                    billing_type = ?, status = 'active', updated_at = ?
+                WHERE id = ?
+            """, (new_expiry, new_expiry, new_due_day, new_credit, new_billing_type, now_str, customer_id))
 
         # Unblock any suspended customer devices
         cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
@@ -3025,6 +3046,12 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
             "id": promise_data.get("id") if promise_data else None
         }
 
+    try:
+        rt_bal = calculate_customer_realtime_balance(customer_id)
+        live_credit = rt_bal["balance"]
+    except Exception:
+        live_credit = round(float(cust.get("credit_balance") or 0.0), 2)
+
     return {
         "customer_id": customer_id,
         "customer_name": cust["name"],
@@ -3033,7 +3060,7 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         "daily_rate": round(daily_rate, 2),
         "join_date": cust.get("join_date") or start_str,
         "billing_start_date": start_str,
-        "credit_balance": round(float(cust.get("credit_balance") or 0.0), 2),
+        "credit_balance": live_credit,
         "total_due": round(total_owed, 2),
         "total_paid_lifetime": round(total_cash_collected, 2),
         "has_active_promise": has_active_promise,
@@ -3218,6 +3245,26 @@ def settle_customer_cycles(
             # Unblock customer devices
             cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
 
+        # Recalculate real-time customer balance and synchronize customers.credit_balance
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        new_credit = rt_bal["balance"]
+
+        if total_collected > 0:
+            cursor.execute("""
+                UPDATE customers
+                SET credit_balance = ?,
+                    collected_today = COALESCE(collected_today, 0.0) + ?,
+                    updated_at = ?
+                WHERE id = ?
+            """, (new_credit, total_collected, now_str, customer_id))
+        else:
+            cursor.execute("""
+                UPDATE customers
+                SET credit_balance = ?,
+                    updated_at = ?
+                WHERE id = ?
+            """, (new_credit, now_str, customer_id))
+
         conn.commit()
 
     return {
@@ -3226,7 +3273,8 @@ def settle_customer_cycles(
         "total_collected": round(total_collected, 2),
         "total_waived": round(total_waived, 2),
         "settled_months": settled_months_list,
-        "records": recorded_records
+        "records": recorded_records,
+        "new_credit_balance": new_credit
     }
 
 
@@ -5446,6 +5494,16 @@ def reseller_recharge_customer(
             operator_username or reseller.get("username") or "Reseller"
         ))
 
+        # Recalculate real-time customer balance and synchronize customers.credit_balance
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        cursor.execute("""
+            UPDATE customers
+            SET credit_balance = ?,
+                collected_today = COALESCE(collected_today, 0.0) + ?,
+                updated_at = ?
+            WHERE id = ?
+        """, (rt_bal["balance"], gross_amount, now_str, customer_id))
+
         conn.commit()
 
         return True, f"Recharge confirmed! Line active until {new_expiry}. Deducted {net_deduction:.2f} SAR.", {
@@ -6191,6 +6249,8 @@ def calculate_customer_realtime_balance(
         conn = get_raw_connection()
         conn.row_factory = sqlite3.Row
         close_conn = True
+    else:
+        conn.row_factory = sqlite3.Row
 
     try:
         cur = conn.cursor()
@@ -6288,6 +6348,8 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
         conn = get_raw_connection()
         conn.row_factory = sqlite3.Row
         close_conn = True
+    else:
+        conn.row_factory = sqlite3.Row
 
     try:
         cur = conn.cursor()
@@ -6762,15 +6824,17 @@ def record_balance_collection(
                 new_due_day = 1
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?, updated_at = ?
+                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?,
+                    collected_today = COALESCE(collected_today, 0.0) + ?, updated_at = ?
                 WHERE id = ?
-            """, (new_exp, new_exp, new_due_day, new_credit, now_str, customer_id))
+            """, (new_exp, new_exp, new_due_day, new_credit, clean_amt, now_str, customer_id))
         else:
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', credit_balance = ?, updated_at = ?
+                SET status = 'active', credit_balance = ?,
+                    collected_today = COALESCE(collected_today, 0.0) + ?, updated_at = ?
                 WHERE id = ?
-            """, (new_credit, now_str, customer_id))
+            """, (new_credit, clean_amt, now_str, customer_id))
 
         conn.commit()
 
