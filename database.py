@@ -1758,12 +1758,13 @@ def get_all_customer_realtime_balances(conn=None) -> Dict[int, Dict[str, Any]]:
             except Exception:
                 pass
 
-        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
+        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance, billing_type FROM customers WHERE status != 'deleted'").fetchall()
         result: Dict[int, Dict[str, Any]] = {}
         for c in custs:
             cid = int(c["id"])
             raw_fee = c["monthly_fee"]
             fee = float(raw_fee) if raw_fee is not None else 30.0
+            c_type = (c["billing_type"] or "postpaid").strip().lower()
 
             if fee <= 0.0:
                 bal = 0.0
@@ -1804,6 +1805,8 @@ def get_all_customer_realtime_balances(conn=None) -> Dict[int, Dict[str, Any]]:
                 owed = round(billable * daily_rate, 2)
                 paid = round(colls_by_cid.get(cid, 0.0), 2)
                 bal = round(paid - owed, 2)
+                if c_type == "prepaid":
+                    bal = max(0.0, bal)
 
             st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
             result[cid] = {
@@ -2632,21 +2635,13 @@ def record_customer_payment(
         credit_inc = 0.0
         actual_days = int(extend_days or 30)
 
-        # Dynamic Lifecycle Auto-Switching between Prepaid and Postpaid:
-        # 1. Zero payment with day extension -> auto-switches to POSTPAID (deferred billing)
-        # 2. Paid money -> pre-funded service, auto-switches to PREPAID
+        # Preserve customer's configured billing_type
         new_billing_type = current_billing_type
         if clean_amt == 0.0:
-            new_billing_type = "postpaid"
             actual_days = int(extend_days or 30)
-            if current_billing_type != "postpaid":
-                rec_note = (notes or "Service Validity Extension") + " [Zero payment: Auto-switched to POSTPAID]"
-            else:
-                rec_note = (notes or "Service Validity Extension") + " [Extended on credit (Postpaid)]"
+            rec_note = (notes or "Service Validity Extension") + " [Extended on credit (Postpaid)]"
             new_credit = current_credit
         else:
-            new_billing_type = "prepaid"
-            switch_tag = " [Auto-switched to PREPAID]" if current_billing_type != "prepaid" else ""
             if monthly_fee > 0:
                 if clean_amt >= monthly_fee:
                     covered_months = int(clean_amt // monthly_fee)
@@ -2654,34 +2649,34 @@ def record_customer_payment(
                     actual_days = covered_months * 30
                     new_credit = round(current_credit + surplus, 2)
                     if covered_months > 1:
-                        rec_note = (notes or "Advance Payment") + f" [Advance: {covered_months} months (+{actual_days} days), +{surplus:.2f} SAR surplus credited]{switch_tag}"
+                        rec_note = (notes or "Advance Payment") + f" [Advance: {covered_months} months (+{actual_days} days), +{surplus:.2f} SAR surplus credited]"
                     elif surplus > 0:
-                        rec_note = (notes or "Advance Payment") + f" [1 month (+30 days), +{surplus:.2f} SAR surplus credited]{switch_tag}"
+                        rec_note = (notes or "Advance Payment") + f" [1 month (+30 days), +{surplus:.2f} SAR surplus credited]"
                     else:
-                        rec_note = (notes or "Full Cycle Payment") + switch_tag
+                        rec_note = (notes or "Full Cycle Payment")
                 else:
-                    # clean_amt < monthly_fee: check if combined with existing credit covers 1+ cycles
                     comb_total = round(current_credit + clean_amt, 2)
                     if comb_total >= monthly_fee:
                         covered_months = int(comb_total // monthly_fee)
                         actual_days = covered_months * 30
                         new_credit = round(comb_total - (covered_months * monthly_fee), 2)
-                        rec_note = (notes or "Payment + Credit Settlement") + f" [Auto-settled: {covered_months} month(s) (+{actual_days} days), {new_credit:.2f} SAR remaining credit]{switch_tag}"
+                        rec_note = (notes or "Payment + Credit Settlement") + f" [Auto-settled: {covered_months} month(s) (+{actual_days} days), {new_credit:.2f} SAR remaining credit]"
                     else:
                         actual_days = 0
                         new_credit = comb_total
-                        rec_note = (notes or "Credit Deposit") + f" [+{clean_amt:.2f} SAR added to Credit Balance. Balance: {new_credit:.2f}/{monthly_fee:.2f} SAR]{switch_tag}"
+                        rec_note = (notes or "Credit Deposit") + f" [+{clean_amt:.2f} SAR added to Credit Balance. Balance: {new_credit:.2f}/{monthly_fee:.2f} SAR]"
             else:
                 actual_days = int(extend_days or 30)
                 new_credit = current_credit
-                rec_note = (notes or "Cash Payment") + switch_tag
+                rec_note = (notes or "Cash Payment")
 
-        # 1. Insert collection
+        # 1. Insert collection with explicit month_year attribution
         clean_collector = resolve_collector_name(collector)
+        target_month = now_str[:7]
         cursor.execute("""
-            INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
-            VALUES (?, ?, 'recharge', ?, ?, ?)
-        """, (customer_id, clean_amt, rec_note, now_str, clean_collector))
+            INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+            VALUES (?, ?, 'recharge', ?, ?, ?, ?, 1, 0.0)
+        """, (customer_id, clean_amt, rec_note, now_str, clean_collector, target_month))
 
         # Close open suspensions if active
         cursor.execute("""
@@ -2692,13 +2687,23 @@ def record_customer_payment(
 
         # 2. Compute exact real-time balance after collection and resumed suspension
         rt_bal = calculate_customer_realtime_balance(customer_id, conn)
-        new_credit = rt_bal["balance"]
+        if new_billing_type == "prepaid":
+            new_credit = max(0.0, rt_bal["balance"])
+        else:
+            new_credit = rt_bal["balance"]
 
         # 3. Update customer expiry / due date & credit_balance & billing_type
         current_exp = cust["expiry_date"] or cust["due_date"]
         try:
             base_dt = datetime.strptime(current_exp, "%Y-%m-%d")
-            calc_base = max(base_dt, now)
+            # If previous expiry is already in future and user is just paying regular bill, do not stack 60+ days
+            if base_dt.date() > (now.date() + timedelta(days=35)) and clean_amt <= monthly_fee:
+                calc_base = base_dt
+                actual_days = 0
+            elif base_dt.date() < now.date():
+                calc_base = now
+            else:
+                calc_base = base_dt
         except Exception:
             calc_base = now
 
@@ -3845,9 +3850,9 @@ def get_dashboard_metrics(
             has_debt = (wallet_credit < 0)
             c["has_debt_arrears"] = has_debt
 
-            # An account is due if their renewal is soon (<= 3d), suspended, on grace, OR has past-due arrears debt
+            # An account is due if their renewal is soon (<= 3d), suspended, on grace, OR has past-due arrears debt within near cycle
             fee = float(c.get("monthly_fee") or 0.0)
-            if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace") or has_debt:
+            if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace") or (has_debt and (days_rem is None or days_rem <= 7)):
                 is_due = True
                 if (days_rem is not None and days_rem <= 3) or (c.get("status") == "suspended") or (tier == "grace"):
                     net_needed = max(0.0, round(fee - wallet_credit, 2))
@@ -3886,7 +3891,7 @@ def get_dashboard_metrics(
                 elif tier == "in_15d":
                     tier_counts["in_15d"] += 1
                     priority_queue.append(c)
-                elif tier == "grace" or has_debt:
+                elif tier == "grace" or (has_debt and (days_rem is None or days_rem <= 7)):
                     priority_queue.append(c)
             elif c.get("status") == "suspended":
                 # Already suspended accounts are kept intact and dedicated to the Suspended list
@@ -5218,7 +5223,7 @@ def get_collections_hub_data(
             is_grace = bool(c.get("is_grace_held"))
             wallet_credit = float(c.get("credit_balance") or 0.0)
             has_debt = (wallet_credit < 0)
-            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace or has_debt
+            is_due = (days_rem is not None and days_rem <= 3) or (status == "suspended") or is_grace or (has_debt and (days_rem is None or days_rem <= 7))
             if is_due:
                 fee = float(c.get("monthly_fee") or 0.0)
                 # If cycle is due (days_rem <= 3, suspended, or grace), net_needed is monthly fee minus wallet credit
@@ -6381,7 +6386,7 @@ def calculate_customer_realtime_balance(
 
     try:
         cur = conn.cursor()
-        c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE id = ?", (cust_id,)).fetchone()
+        c = cur.execute("SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance, billing_type FROM customers WHERE id = ?", (cust_id,)).fetchone()
         if not c:
             return {
                 "billable_days": 0, "total_owed": 0.0, "total_paid": 0.0,
@@ -6450,6 +6455,9 @@ def calculate_customer_realtime_balance(
         paid = round(float(paid_row[0] or 0.0), 2) if paid_row else 0.0
 
         bal = round(paid - owed, 2)
+        c_type = (c["billing_type"] or "prepaid").strip().lower()
+        if c_type == "prepaid":
+            bal = max(0.0, bal)
         st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
 
         return {
@@ -6502,7 +6510,7 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
             except Exception:
                 pass
 
-        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
+        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance, billing_type FROM customers WHERE status != 'deleted'").fetchall()
         updates = []
         for c in custs:
             cid = int(c["id"])
@@ -6544,6 +6552,9 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
                 owed = round(billable * daily_rate, 2)
                 paid = round(colls_by_cid.get(cid, 0.0), 2)
                 bal = round(paid - owed, 2)
+                c_type = (c["billing_type"] or "prepaid").strip().lower()
+                if c_type == "prepaid":
+                    bal = max(0.0, bal)
 
             curr_cb = round(float(c["credit_balance"] or 0.0), 2)
             if abs(bal - curr_cb) > 0.01:
@@ -6616,7 +6627,7 @@ def get_balance_sheet_data(
                 pass
 
         custs = cur.execute("""
-            SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance, due_day
+            SELECT id, name, phone, notes, monthly_fee, billing_start_date, join_date, status, credit_balance, due_day, billing_type
             FROM customers
             WHERE status != 'deleted'
             ORDER BY id ASC
@@ -6670,6 +6681,9 @@ def get_balance_sheet_data(
                 owed = round(billable * daily_rate, 2)
                 paid = round(colls_by_cid.get(cid, 0.0), 2)
                 bal = round(paid - owed, 2)
+                c_type = (c["billing_type"] or "prepaid").strip().lower()
+                if c_type == "prepaid":
+                    bal = max(0.0, bal)
                 st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
 
             phone_str = str(c["phone"] or "").strip()
