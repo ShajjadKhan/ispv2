@@ -1450,6 +1450,10 @@ def approve_connection(
                 WHERE id = ?
             """, (customer_id, (notes.strip() if notes else None), now_str, req_id))
 
+            # Real-time balance synchronization
+            rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+            cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], customer_id))
+
             conn.commit()
 
             cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
@@ -1582,6 +1586,10 @@ def approve_connection(
                 WHERE id = ?
             """, (customer_id, final_notes, now_str, req_id))
 
+            # Real-time balance synchronization
+            rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+            cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], customer_id))
+
             conn.commit()
 
             cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
@@ -1704,8 +1712,114 @@ def revoke_customer_device(mac: str) -> Optional[Dict[str, Any]]:
 
 
 # =========================================================
-# Step 3: Customer Directory Operations
+# Step 3: Customer Directory Operations & Real-Time Balances
 # =========================================================
+
+def get_all_customer_realtime_balances(conn=None) -> Dict[int, Dict[str, Any]]:
+    """
+    Computes exact real-time month-aware balances for ALL subscribers in a single high-speed pass.
+    Matches the billing_reminder accounting model:
+    - daily_rate = monthly_fee / 30.0
+    - owed = billable_days_from_start_to_yesterday * daily_rate
+    - paid = sum(collections.amount + collections.waived_amount)
+    - balance = round(paid - owed, 2)
+    - status = CREDIT (> 0), SETTLED (== 0), OWING (< 0)
+    Returns {customer_id: {balance, total_owed, total_paid, billable_days, daily_rate, status}}
+    """
+    close_conn = False
+    if conn is None:
+        conn = get_raw_connection()
+        conn.row_factory = sqlite3.Row
+        close_conn = True
+    else:
+        conn.row_factory = sqlite3.Row
+
+    try:
+        cur = conn.cursor()
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+
+        col_rows = cur.execute("""
+            SELECT customer_id, COALESCE(SUM(amount + COALESCE(waived_amount, 0.0)), 0.0) as total
+            FROM collections
+            WHERE (amount > 0 OR waived_amount > 0)
+            GROUP BY customer_id
+        """).fetchall()
+        colls_by_cid = {int(r["customer_id"]): float(r["total"] or 0.0) for r in col_rows}
+
+        susp_rows = cur.execute("SELECT customer_id, suspended_at, resumed_at FROM customer_suspensions ORDER BY id ASC").fetchall()
+        susp_by_cid: Dict[int, List[Tuple[date, Optional[date]]]] = {}
+        for s in susp_rows:
+            scid = int(s["customer_id"])
+            try:
+                s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+                r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+                susp_by_cid.setdefault(scid, []).append((s_d, r_d))
+            except Exception:
+                pass
+
+        custs = cur.execute("SELECT id, monthly_fee, billing_start_date, join_date, status, credit_balance FROM customers WHERE status != 'deleted'").fetchall()
+        result: Dict[int, Dict[str, Any]] = {}
+        for c in custs:
+            cid = int(c["id"])
+            raw_fee = c["monthly_fee"]
+            fee = float(raw_fee) if raw_fee is not None else 30.0
+
+            if fee <= 0.0:
+                bal = 0.0
+                owed = 0.0
+                paid = round(colls_by_cid.get(cid, 0.0), 2)
+                billable = 0
+                daily_rate = 0.0
+            else:
+                daily_rate = round(fee / 30.0, 4)
+                start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
+                try:
+                    start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
+                except Exception:
+                    start_d = today
+
+                billable = 0
+                if start_d <= yesterday:
+                    cust_susp = list(susp_by_cid.get(cid, []))
+                    if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
+                        cust_susp.append((today, None))
+
+                    cur_d = start_d
+                    while cur_d <= yesterday:
+                        in_susp = False
+                        for s_start, s_end in cust_susp:
+                            if s_end is None:
+                                if cur_d >= s_start:
+                                    in_susp = True
+                                    break
+                            else:
+                                if s_start <= cur_d <= s_end:
+                                    in_susp = True
+                                    break
+                        if not in_susp:
+                            billable += 1
+                        cur_d += timedelta(days=1)
+
+                owed = round(billable * daily_rate, 2)
+                paid = round(colls_by_cid.get(cid, 0.0), 2)
+                bal = round(paid - owed, 2)
+
+            st = "CREDIT" if bal > 0 else ("SETTLED" if bal == 0 else "OWING")
+            result[cid] = {
+                "balance": bal,
+                "total_owed": owed,
+                "total_paid": paid,
+                "billable_days": billable,
+                "daily_rate": daily_rate,
+                "status": st
+            }
+
+        return result
+    finally:
+        if close_conn:
+            conn.close()
+
 
 def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]:
     """
@@ -1718,6 +1832,9 @@ def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]
 
     with get_db() as conn:
         cursor = conn.cursor()
+
+        # Precompute real-time balances for all customers to eliminate any caching delay or desynchronization
+        rt_balances = get_all_customer_realtime_balances(conn)
 
         where_sql = ""
         params = []
@@ -1788,7 +1905,16 @@ def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]
             item["package_rate_limit"] = pkg_info.get("rate_limit")
             item["effective_speed"] = item.get("speed_limit") or pkg_info.get("rate_limit") or "Unlimited"
             item["is_speed_custom"] = bool(item.get("speed_limit"))
-            item["credit_balance"] = round(float(item.get("credit_balance") or 0.0), 2)
+
+            # Dynamic Real-time Balance Resolution (Permanent Anti-Glitch Lock)
+            cid = item["id"]
+            rt = rt_balances.get(cid)
+            if rt:
+                item["credit_balance"] = rt["balance"]
+                item["total_owed"] = rt["total_owed"]
+                item["balance_status"] = rt["status"]
+            else:
+                item["credit_balance"] = round(float(item.get("credit_balance") or 0.0), 2)
 
             # Grace hold / suspension hold check
             susp_until = item.get("suspension_held_until")
@@ -2045,6 +2171,10 @@ def create_customer(
                 INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by)
                 VALUES (?, ?, ?, ?, ?, 'Admin')
             """, (customer_id, clean_payment, final_billing_type, col_notes or f"Initial registration payment for {package_name}", now_str))
+
+        # Real-time balance synchronization
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], customer_id))
 
         conn.commit()
 
@@ -3516,6 +3646,7 @@ def get_dashboard_metrics(
         # 2. Customers and Devices Analysis
         cursor.execute("SELECT * FROM customers ORDER BY id DESC")
         all_custs = [dict(r) for r in cursor.fetchall()]
+        rt_balances = get_all_customer_realtime_balances(conn)
 
         cursor.execute("SELECT * FROM customer_devices WHERE status = 'approved'")
         all_devices = [dict(r) for r in cursor.fetchall()]
@@ -3599,7 +3730,9 @@ def get_dashboard_metrics(
             c["primary_mac"] = c["devices"][0]["mac_address"] if c["devices"] else None
             c["primary_mac_is_random"] = is_randomized_mac(c["primary_mac"]) if c["primary_mac"] else False
             c["is_online"] = (cid in online_customer_ids)
-            c["credit_balance"] = round(float(c.get("credit_balance") or 0.0), 2)
+            rt = rt_balances.get(cid, {})
+            c["credit_balance"] = rt.get("balance", round(float(c.get("credit_balance") or 0.0), 2))
+            c["total_owed"] = rt.get("total_owed", 0.0)
             c["monthly_fee"] = round(float(c.get("monthly_fee") or 0.0), 2)
             c["is_sharing_hotspot"] = any(d.get("is_sharing_hotspot") for d in c_devs)
             c["sharing_detail"] = next((d.get("sharing_detail") for d in c_devs if d.get("is_sharing_hotspot")), None)
@@ -5071,19 +5204,13 @@ def get_collections_hub_data(
         month_collected = round(float(month_row["total"] or 0.0), 2)
         month_tx_count = int(month_row["tx_count"] or 0)
 
-        # 3. Customer Credit Liabilities (Total positive advance credit held across customer wallets)
-        cursor.execute("""
-            SELECT COALESCE(SUM(CASE WHEN credit_balance > 0 THEN credit_balance ELSE 0.0 END), 0.0) as total_credit,
-                   COUNT(CASE WHEN credit_balance > 0 THEN 1 END) as credit_holders_count
-            FROM customers
-            WHERE status != 'deleted'
-        """)
-        credit_row = cursor.fetchone()
-        total_credit_held = round(float(credit_row["total_credit"] or 0.0), 2)
-        credit_holders_count = int(credit_row["credit_holders_count"] or 0)
-
-        # 4. Due Customers & Accounts Receivable
+        # 4. Due Customers & Accounts Receivable (Dynamically resolved from real-time engine)
         all_customers = get_all_customers()
+
+        # 3. Customer Credit Liabilities (Total positive advance credit held across customer wallets)
+        total_credit_held = round(sum(float(c.get("credit_balance") or 0.0) for c in all_customers if float(c.get("credit_balance") or 0.0) > 0), 2)
+        credit_holders_count = sum(1 for c in all_customers if float(c.get("credit_balance") or 0.0) > 0)
+
         due_customers_queue = []
         for c in all_customers:
             days_rem = c.get("days_remaining")

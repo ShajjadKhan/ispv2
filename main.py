@@ -435,22 +435,22 @@ async def olt_telemetry_poller_loop():
 
 async def wallet_accrual_sync_loop():
     """
-    Automated background worker that updates customers.credit_balance day-by-day.
-    Runs once on startup, then runs hourly so midnight roll-overs tick day by day
-    matching the billing_reminder accounting rules.
+    Automated continuous 60-second background watchdog and self-healing engine.
+    Audits and updates customers.credit_balance to ensure absolute mathematical synchronization
+    between the payment ledger (collections table) and customer wallet state.
     """
     await asyncio.sleep(5)  # brief startup delay
     while True:
         try:
-            logger.info("Running automated wallet accrual sync...")
             with database.get_db() as conn:
                 updated = database.sync_all_customer_realtime_balances(conn)
-            logger.info(f"Wallet accrual sync complete: {updated} customer records updated.")
+            if updated > 0:
+                logger.info(f"Self-healing watchdog: healed {updated} customer wallet balances.")
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Error in wallet_accrual_sync_loop: {e}")
-        await asyncio.sleep(3600)  # repeat every hour
+            logger.error(f"Error in wallet_accrual_sync_loop watchdog: {e}")
+        await asyncio.sleep(60)  # Continuous 60-second self-healing audit
 
 
 @app.on_event("startup")
