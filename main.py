@@ -1035,8 +1035,19 @@ class SettleCycleItem(BaseModel):
     settle: bool = True
 
 
+class SmartCollectPayload(BaseModel):
+    customer_id: Optional[int] = None
+    amount: float
+    payment_type: Optional[str] = "cash"
+    collector: Optional[str] = None
+    notes: Optional[str] = ""
+    send_whatsapp: Optional[bool] = True
+
+
 class SettleCyclesPayload(BaseModel):
-    items: List[SettleCycleItem]
+    items: Optional[List[SettleCycleItem]] = None
+    amount: Optional[float] = None
+    payment_type: Optional[str] = "cash"
     notes: Optional[str] = ""
     send_whatsapp: Optional[bool] = False
 
@@ -4837,6 +4848,79 @@ async def cancel_customer_promise_endpoint(customer_id: int):
         return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
 
 
+@app.post("/api/customers/{customer_id}/smart-collect")
+@app.post("/api/customers/{customer_id}/collect")
+async def api_customer_smart_collect(customer_id: int, payload: SmartCollectPayload, request: Request):
+    """
+    Intelligent simplified collection endpoint:
+    Authority enters only the amount collected. The system automatically calculates
+    cycle settlements, advances expiry/due dates, retains credit balance,
+    reactivates subscriber and devices on MikroTik fleet, and dispatches WhatsApp receipt.
+    """
+    collector = get_request_collector_name(request)
+    if collector == "admin" and payload.collector and payload.collector.strip().lower() not in ("admin", "system administrator"):
+        collector = normalize_collector_id(payload.collector)
+    elif payload.collector and payload.collector.strip():
+        collector = payload.collector.strip()
+
+    try:
+        res = database.smart_collect_customer_payment(
+            customer_id=customer_id,
+            amount=payload.amount,
+            payment_type=payload.payment_type or "cash",
+            collector=collector,
+            notes=payload.notes or ""
+        )
+
+        # Restore/ensure active bindings and PPPoE secret on MikroTik fleet
+        try:
+            cust_profile = database.get_customer_profile(customer_id)
+            if cust_profile and cust_profile.get("status") == "active":
+                conn_type = (cust_profile.get("connection_type") or "hotspot").strip().lower()
+                has_pppoe = (conn_type in ("pppoe", "both")) or bool(cust_profile.get("pppoe_username"))
+                has_hotspot = (conn_type in ("hotspot", "both")) or not cust_profile.get("pppoe_username")
+
+                if has_pppoe:
+                    pp_user = cust_profile.get("pppoe_username") or cust_profile.get("phone")
+                    if pp_user:
+                        mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
+                        logger.info(f"Re-enabled PPPoE secret for '{pp_user}' after smart collection.")
+
+                if has_hotspot:
+                    for dev in cust_profile.get("devices", []):
+                        if dev.get("status") == "approved":
+                            mikrotik_client.broadcast_bind_device(
+                                mac_address=dev["mac_address"],
+                                ip_address=dev.get("ip_address"),
+                                comment=f"CyberNet: {cust_profile.get('phone')} - {cust_profile.get('name')} [{cust_profile.get('notes') or ''}]",
+                                rate_limit=cust_profile.get("effective_speed")
+                            )
+        except Exception as me:
+            logger.warning(f"Could not restore access after smart collection for #{customer_id}: {me}")
+
+        # Dispatch WhatsApp receipt if requested
+        wa_receipt_res = None
+        if payload.send_whatsapp:
+            wa_receipt_res = dispatch_payment_receipt_whatsapp(
+                customer_id=customer_id,
+                amount_paid=payload.amount,
+                receipt_no=f"COL-{res.get('collection_id', datetime.now().strftime('%Y%m%d%H%M'))}",
+                collector=collector,
+                payment_type=payload.payment_type or "cash",
+                notes=payload.notes or "Smart Collection"
+            )
+            res["whatsapp_receipt"] = wa_receipt_res
+
+        return JSONResponse(content={
+            "success": True,
+            "message": res["message"],
+            "data": res
+        })
+    except Exception as e:
+        logger.exception(f"Error in api_customer_smart_collect for #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e), "error": str(e)})
+
+
 @app.post("/api/customers/{customer_id}/settle-cycles")
 async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCyclesPayload, request: Request):
     """
@@ -4846,7 +4930,21 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
     """
     try:
         session_user = get_request_collector_name(request)
-        items_dicts = [item.dict() for item in payload.items]
+        if not payload.items and payload.amount and payload.amount > 0:
+            return await api_customer_smart_collect(
+                customer_id=customer_id,
+                payload=SmartCollectPayload(
+                    customer_id=customer_id,
+                    amount=payload.amount,
+                    payment_type=payload.payment_type or "cash",
+                    collector=session_user,
+                    notes=payload.notes or "",
+                    send_whatsapp=payload.send_whatsapp
+                ),
+                request=request
+            )
+
+        items_dicts = [item.dict() for item in payload.items] if payload.items else []
 
         res = database.settle_customer_cycles(
             customer_id=customer_id,

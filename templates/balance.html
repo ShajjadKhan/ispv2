@@ -2340,7 +2340,8 @@ document.addEventListener('click', function(e) {
   if (wrap && box && !wrap.contains(e.target)) {
     box.style.display = 'none';
   }
-});
-
+// Global compatibility aliases
+window.openCollectModal = openBalanceCollectModal;
+window.closeCollectModal = closeBalanceCollectModal;
 </script>
 {% endblock %}

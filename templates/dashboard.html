@@ -3231,59 +3231,132 @@
 
 <!-- COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder) -->
 <div class="modal-overlay" id="collectModal">
-  <div class="modal-container" style="max-width: 680px; width: 95%;">
-    <div class="modal-header">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-        <h3 style="margin:0;">Collect Payment &amp; Settle</h3>
+  <div class="modal-container" style="max-width: 540px; width: 95%; background: var(--bg-card, #0f172a); border: 1px solid var(--border-accent, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.65); overflow:hidden; padding:0;">
+    
+    <!-- Modal Header -->
+    <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(15,23,42,0.6) 100%);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:#34d399; font-size:16px;">
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        </div>
+        <div>
+          <h3 style="margin:0; font-size:15px; font-weight:800; color:var(--text-main, #ffffff);">Collect Payment</h3>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">Fast subscriber collection &amp; auto-settlement</div>
+        </div>
       </div>
-      <button type="button" class="btn-modal-close" onclick="closeCollectModal()">&times;</button>
+      <button type="button" class="btn-modal-close" onclick="closeCollectModal()" style="font-size:20px;">&times;</button>
     </div>
-    <form id="collectForm" onsubmit="event.preventDefault(); submitCollectForm();">
-      <div class="modal-body" style="gap:14px; padding: 20px;">
+
+    <!-- Modal Body -->
+    <form id="collectForm" onsubmit="event.preventDefault(); submitSmartCollectForm();">
+      <div class="modal-body" style="padding: 20px; gap:0;">
         <input type="hidden" id="coll_cid">
 
-        <!-- Customer Summary Header Banner -->
-        <div class="coll-cust-banner" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-size: 14.5px; font-weight: 800; color: #ffffff;" id="coll_name">Loading customer…</div>
-            <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 2px;">
-              <span style="color:#38bdf8; font-weight:700;">Left Checkbox [✓]</span> = Settle &amp; Close month (waives any discount). <span style="color:#fbbf24; font-weight:700;">Unchecked [ ]</span> = Partial payment (remains pending).
-            </div>
-          </div>
-          <div style="text-align: right;" id="coll_badges"></div>
+        <!-- Loading Spinner State -->
+        <div id="collLoadingState" style="display:none; padding:35px 20px; text-align:center; color:var(--text-dim);">
+          <svg style="width:28px; height:28px; animation:spin 1s linear infinite; fill:#38bdf8; margin-bottom:12px;" viewBox="0 0 24 24"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c-4.41 0-8-3.59-8-8H2c0 5.52 4.48 10 10 10v-2z"/></svg>
+          <div style="font-size:13.5px; font-weight:600; color:var(--text-main, #ffffff);">Loading subscriber wallet details…</div>
         </div>
 
-        <!-- Unpaid Bills Month-by-Month List -->
-        <div id="unpaidList"></div>
-
-        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin: 6px 0;">
-
-        <!-- Total Calculation & Summary Bar -->
-        <div class="collect-summary-bar" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <svg style="width:22px; height:22px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <!-- Content Area -->
+        <div id="collContentArea">
+          <!-- Customer Profile Summary Header -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
             <div>
-              <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700; letter-spacing:0.5px;">Total to Collect</div>
-              <div style="font-size:22px; color:#34d399; font-weight:900; font-family:monospace;"><span id="totalAmt">0.00</span> <span style="font-size:13px; color:#ffffff;">SAR</span></div>
+              <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-dim); letter-spacing:0.5px;">Subscriber</div>
+              <div id="collCustName" style="font-size:16px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12px; color:var(--text-dim); flex-wrap:wrap;">
+                <span id="collCustPhone" class="mono font-mono" style="color:#93c5fd;">—</span>
+                <span id="collCustRoom" style="background:rgba(56,189,248,0.12); color:#38bdf8; padding:1px 6px; border-radius:4px; font-weight:600; display:none;">—</span>
+                <span id="collCustPkg" style="color:var(--text-dim);">—</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span id="collCustStatusBadge" class="badge-tier active" style="font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;">ACTIVE</span>
+              <div id="collCustExpiryInfo" style="font-size:11px; color:var(--text-dim); margin-top:5px;">—</div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:11.5px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:5px 10px; border-radius:8px;">
-              ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
-            </div>
-            <div id="collPendingNote" style="display:none; color:#38bdf8; font-size:11.5px; font-weight:700; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:5px 10px; border-radius:8px;">
-              ⏱ <span id="collPendingVal">0.00</span> SAR Remains Pending
-            </div>
-          </div>
-        </div>
 
-        <!-- Action Buttons -->
-        <div class="collect-modal-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
-          <button type="button" class="btn-table-manage" onclick="closeCollectModal()" style="padding:10px 18px; font-size:13px;">Cancel</button>
-          <button type="submit" id="btnRecordPayment" class="btn-quick-collect" style="padding:10px 24px; font-size:13.5px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
-            <span>Record Payment</span>
-          </button>
+          <!-- Prominent Wallet Status Card -->
+          <div id="collWalletStatusCard" style="border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">
+            <div>
+              <div id="collWalletTitle" style="font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; color:#f87171;">WALLET STATUS: OVERDUE DEBT</div>
+              <div id="collWalletAmount" class="font-mono" style="font-size:24px; font-weight:900; color:#ef4444; margin-top:2px;">-30.00 SAR</div>
+              <div id="collWalletSubtext" style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">1 cycle unpaid</div>
+            </div>
+            <div id="collWalletIcon" style="width:42px; height:42px; border-radius:10px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; font-size:18px; color:#ef4444;">
+              <svg style="width:22px; height:22px; fill:#ef4444;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            </div>
+          </div>
+
+          <!-- Single Amount Input Box -->
+          <div style="margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="collAmount" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin:0;">
+                Collection Amount (SAR) <span style="color:#ef4444;">*</span>
+              </label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:600;">Authority Input Only</span>
+            </div>
+            <div style="position:relative;">
+              <input type="number" id="collAmount" name="amount" step="0.5" min="1" required class="form-input font-mono" style="width:100%; height:46px; font-size:22px; font-weight:900; color:#34d399; background:rgba(9,14,26,0.9); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:6px 14px 6px 50px; text-align:right;" placeholder="0.00" oninput="updateLiveCalculationPreview()">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:800; color:var(--text-dim); pointer-events:none;">SAR</span>
+            </div>
+
+            <!-- Quick 1-Click Preset Buttons -->
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+              <button type="button" id="btnPresetExact" class="btn-preset-chip" onclick="applySmartPreset('exact')" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;">Exact Due</button>
+              <button type="button" id="btnPreset1Mo" class="btn-preset-chip" onclick="applySmartPreset(30)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">30 SAR (1 Mo)</button>
+              <button type="button" id="btnPreset2Mo" class="btn-preset-chip" onclick="applySmartPreset(60)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">60 SAR (2 Mo)</button>
+              <button type="button" id="btnPreset3Mo" class="btn-preset-chip" onclick="applySmartPreset(90)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">90 SAR (3 Mo)</button>
+              <button type="button" id="btnPresetClear" class="btn-preset-chip" onclick="applySmartPreset('clear')" style="background:none; border:none; color:var(--text-dim); font-size:11px; cursor:pointer; padding:4px 6px;">Clear</button>
+            </div>
+          </div>
+
+          <!-- Live Auto-Calculation Preview Alert -->
+          <div id="collLiveCalcPreview" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:8px;">
+            <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M7.5 5.6L5 7l1.4-2.5L5 2l2.5 1.4L10 2 8.6 4.5 10 7 7.5 5.6zm12 9.8L22 14l-1.4 2.5L22 19l-2.5-1.4L17 19l1.4-2.5L17 14l2.5 1.4zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5L22 2zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35zm-1.03 5.49l-2.12-2.12 2.44-2.44 2.12 2.12-2.44 2.44z"/></svg>
+            <div id="collLiveCalcText" style="flex:1;">System will calculate cycle allocation automatically upon payment.</div>
+          </div>
+
+          <!-- Payment Method & Notes Grid -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <label for="collPaymentType" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Payment Method</label>
+              <select id="collPaymentType" class="form-input" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 8px; color:var(--text-main, #ffffff);">
+                <option value="cash">💵 Cash Payment</option>
+                <option value="stc_pay">📱 STC Pay / Barq</option>
+                <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
+                <option value="pos_card">💳 POS / Card</option>
+                <option value="other">📝 Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="collNotes" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Notes (Optional)</label>
+              <input type="text" id="collNotes" placeholder="e.g. Paid in full / STC Ref" class="form-input" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 10px; color:var(--text-main, #ffffff);">
+            </div>
+          </div>
+
+          <!-- WhatsApp Instant Receipt Dispatch Toggle -->
+          <div style="padding:10px 14px; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.25); border-radius:8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <label for="collSendWa" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:12px; font-weight:700; color:#4ade80;">
+              <input type="checkbox" id="collSendWa" checked style="accent-color:#25d366; width:16px; height:16px; cursor:pointer;">
+              <span>📱 Send WhatsApp Receipt to Subscriber</span>
+            </label>
+            <span style="font-size:11px; color:#94a3b8;" class="font-mono">Instant Push</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08));">
+            <div style="font-size:11.5px; color:var(--text-dim);">
+              Collector: <strong id="collCollectorLabel" style="color:var(--text-main, #ffffff);">{{ (request.state.user.full_name or request.state.user.username) if (request.state and request.state.user) else 'Shajjad Khan' }}</strong>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button type="button" class="btn-table-manage" onclick="closeCollectModal()" style="padding:9px 18px; font-size:12.5px;">Cancel</button>
+              <button type="submit" id="btnRecordPayment" class="btn-quick-collect" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 22px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer;">
+                <span>Confirm &amp; Record Payment</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </form>
@@ -4105,76 +4178,191 @@
   // Month-by-Month Collect & Settle Controller (Matching Billing Reminder)
   let activeCollCustId = null;
 
-  function openCollectModal(cid, name) {
+  // =========================================================
+  // UNIFIED SMART COLLECT PAYMENT CONTROLLER
+  // =========================================================
+  let activeCollCustId = null;
+  let activeCollBreakdown = null;
+
+  async function openCollectModal(cid, name) {
     activeCollCustId = cid;
+    activeCollBreakdown = null;
+
     const modal = document.getElementById('collectModal');
     if (modal) modal.classList.add('open');
     document.body.style.overflow = 'hidden';
 
     document.getElementById('coll_cid').value = cid;
-    document.getElementById('coll_name').textContent = 'Customer: ' + (name || 'ID #' + cid);
-    document.getElementById('unpaidList').innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;"><svg style="width:18px; height:18px; animation:spin 1s linear infinite; vertical-align:middle; margin-right:6px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.41 3.59-8 8-8zm0 14c-4.41 0-8-3.59-8-8H2c0 5.52 4.48 10 10 10v-2z"/></svg> Loading unpaid cycles…</div>';
+    const loadingState = document.getElementById('collLoadingState');
+    const contentArea = document.getElementById('collContentArea');
+    if (loadingState) loadingState.style.display = 'block';
+    if (contentArea) contentArea.style.display = 'none';
 
-    fetch('/api/customers/' + cid + '/unpaid')
-      .then(r => {
-        if (!r.ok) {
-          return fetch('/get_unpaid.php?cid=' + cid).then(r2 => r2.json());
+    try {
+      const resp = await fetch('/api/customers/' + cid + '/billing-breakdown');
+      const data = await resp.json();
+      const b = data.breakdown || data;
+      activeCollBreakdown = b;
+
+      // Populate subscriber details
+      const custName = b.customer_name || name || ('Subscriber #' + cid);
+      document.getElementById('collCustName').textContent = custName;
+      document.getElementById('collCustPhone').textContent = b.phone || '—';
+
+      const roomEl = document.getElementById('collCustRoom');
+      if (roomEl) {
+        if (b.room) {
+          roomEl.textContent = '📍 ' + b.room;
+          roomEl.style.display = 'inline-block';
+        } else {
+          roomEl.style.display = 'none';
         }
-        return r.json();
-      })
-      .then(data => {
-        if (!data || !data.length) {
-          document.getElementById('unpaidList').innerHTML = '<div style="padding:14px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:#34d399; font-weight:700;"><svg style="width:16px; height:16px; vertical-align:text-bottom; margin-right:6px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> All bills are paid for this customer!</div>';
-          document.getElementById('totalAmt').textContent = '0.00';
-          const waivedNote = document.getElementById('collWaivedNote');
-          if (waivedNote) waivedNote.style.display = 'none';
-          const pendingNote = document.getElementById('collPendingNote');
-          if (pendingNote) pendingNote.style.display = 'none';
-          const btnRec = document.getElementById('btnRecordPayment');
-          if (btnRec) btnRec.style.display = 'none';
-          return;
+      }
+
+      const pkgEl = document.getElementById('collCustPkg');
+      if (pkgEl) {
+        const monthlyRate = parseFloat(b.monthly_fee || 30.0).toFixed(2);
+        pkgEl.textContent = (b.package_name ? b.package_name + ' · ' : '') + monthlyRate + ' SAR/mo';
+      }
+
+      const statusBadge = document.getElementById('collCustStatusBadge');
+      if (statusBadge) {
+        const st = (b.status || 'active').toUpperCase();
+        statusBadge.textContent = st;
+        if (st === 'ACTIVE') {
+          statusBadge.className = 'badge-tier active';
+        } else {
+          statusBadge.className = 'badge-tier overdue';
         }
+      }
 
-        const btnRec = document.getElementById('btnRecordPayment');
-        if (btnRec) btnRec.style.display = 'inline-flex';
+      const expEl = document.getElementById('collCustExpiryInfo');
+      if (expEl) {
+        if (b.expiry_date) {
+          expEl.textContent = 'Due / Expiry: ' + b.expiry_date;
+        } else {
+          expEl.textContent = '';
+        }
+      }
 
-        let html = '<div class="table-wrap"><table class="collect-table" style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:160px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
+      // Configure Wallet Status Card
+      const bal = parseFloat(b.credit_balance || 0.0);
+      const totalDue = parseFloat(b.total_due || 0.0);
+      const unpaidCount = (b.unpaid_cycles || []).length;
+      const walletCard = document.getElementById('collWalletStatusCard');
+      const walletTitle = document.getElementById('collWalletTitle');
+      const walletAmount = document.getElementById('collWalletAmount');
+      const walletSubtext = document.getElementById('collWalletSubtext');
+      const walletIcon = document.getElementById('collWalletIcon');
 
-        data.forEach((m) => {
-          const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
-          const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
-          const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
+      if (bal < -0.01 || totalDue > 0.01) {
+        // Debt State
+        const dueShow = totalDue > 0 ? totalDue : Math.abs(bal);
+        if (walletCard) {
+          walletCard.style.background = 'rgba(239,68,68,0.08)';
+          walletCard.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: OVERDUE DEBT';
+          walletTitle.style.color = '#f87171';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '-' + dueShow.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#ef4444';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = unpaidCount > 0 ? `${unpaidCount} unpaid cycle(s) pending` : 'Accrued calendar balance';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(239,68,68,0.15)';
+          walletIcon.innerHTML = '<svg style="width:22px; height:22px; fill:#ef4444;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>';
+        }
+      } else if (bal > 0.01) {
+        // Credit State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(16,185,129,0.08)';
+          walletCard.style.borderColor = 'rgba(16,185,129,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: CREDIT BALANCE';
+          walletTitle.style.color = '#34d399';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '+' + bal.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#10b981';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'Advance surplus in subscriber wallet';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(16,185,129,0.15)';
+          walletIcon.innerHTML = '<svg style="width:22px; height:22px; fill:#10b981;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+        }
+      } else {
+        // Settled State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(56,189,248,0.08)';
+          walletCard.style.borderColor = 'rgba(56,189,248,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: SETTLED & PAID';
+          walletTitle.style.color = '#38bdf8';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '0.00 SAR';
+          walletAmount.style.color = '#38bdf8';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'No outstanding debts · Ready for renewal';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(56,189,248,0.15)';
+          walletIcon.innerHTML = '<svg style="width:22px; height:22px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>';
+        }
+      }
 
-          html += `<tr class="collect-month-row" style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
-            <td class="col-cb" style="padding:10px 8px; text-align:center;">
-              <label class="mob-cb-wrap" style="cursor:pointer;">
-                <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
-                <span class="mob-cb-label">Settle &amp; Close Month</span>
-              </label>
-            </td>
-            <td class="col-month" style="padding:10px 8px;">
-              <div style="font-weight:700; color:#ffffff;">${mLabel}${graceBadge}</div>
-              ${paidBadge}
-              <div class="row-status-note" id="dashNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
-            </td>
-            <td class="col-due" style="padding:10px 8px;">
-              <span class="badge-tier overdue font-mono" style="font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
-            </td>
-            <td class="col-amt" style="padding:10px 8px; text-align:right;">
-              <div class="amt-input-wrap">
-                <span class="mob-field-label">Amount to Collect:</span>
-                <input type="number" name="amounts[]" inputmode="decimal" class="form-input amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; height:36px; font-weight:800; font-size:13.5px; color:#38bdf8; text-align:right; padding:5px 8px;" oninput="updateTotal()">
-              </div>
-            </td>
-          </tr>`;
-        });
-        html += '</tbody></table></div>';
-        document.getElementById('unpaidList').innerHTML = html;
-        updateTotal();
-      })
-      .catch(err => {
-        document.getElementById('unpaidList').innerHTML = `<div style="padding:12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:8px;">Error loading bills: ${err.message}</div>`;
-      });
+      // Pre-fill amount
+      const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+      let defaultAmt = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      const amtInput = document.getElementById('collAmount');
+      if (amtInput) {
+        amtInput.value = defaultAmt.toFixed(2);
+      }
+
+      // Update preset chips
+      const exactBtn = document.getElementById('btnPresetExact');
+      if (exactBtn) {
+        if (totalDue > 0 || bal < -0.01) {
+          const exactOwed = (totalDue > 0 ? totalDue : Math.abs(bal)).toFixed(2);
+          exactBtn.textContent = `Exact Due (${exactOwed} SAR)`;
+          exactBtn.style.display = 'inline-block';
+        } else {
+          exactBtn.style.display = 'none';
+        }
+      }
+
+      const p1Btn = document.getElementById('btnPreset1Mo');
+      if (p1Btn) p1Btn.textContent = `${monthlyFee.toFixed(0)} SAR (1 Mo)`;
+      const p2Btn = document.getElementById('btnPreset2Mo');
+      if (p2Btn) p2Btn.textContent = `${(monthlyFee * 2).toFixed(0)} SAR (2 Mo)`;
+      const p3Btn = document.getElementById('btnPreset3Mo');
+      if (p3Btn) p3Btn.textContent = `${(monthlyFee * 3).toFixed(0)} SAR (3 Mo)`;
+
+      // Show content and calculate preview
+      if (loadingState) loadingState.style.display = 'none';
+      if (contentArea) contentArea.style.display = 'block';
+      updateLiveCalculationPreview();
+
+      if (amtInput) {
+        setTimeout(() => amtInput.focus(), 150);
+      }
+    } catch (err) {
+      if (loadingState) {
+        loadingState.innerHTML = `<div style="padding:14px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:10px;">
+          Failed to load subscriber details: ${err.message}
+        </div>`;
+      }
+    }
   }
 
   function closeCollectModal() {
@@ -4182,140 +4370,148 @@
     if (modal) modal.classList.remove('open');
     document.body.style.overflow = '';
     activeCollCustId = null;
+    activeCollBreakdown = null;
   }
 
-  function updateTotal() {
-    let total = 0.0;
-    let totalWaived = 0.0;
-    let totalPending = 0.0;
+  function applySmartPreset(val) {
+    const amtInput = document.getElementById('collAmount');
+    if (!amtInput) return;
+    const b = activeCollBreakdown;
+    const monthlyFee = parseFloat((b && b.monthly_fee) || 30.0);
+    const totalDue = parseFloat((b && b.total_due) || 0.0);
+    const bal = parseFloat((b && b.credit_balance) || 0.0);
 
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const due = parseFloat(inp.getAttribute('data-due') || 0.0);
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-      const noteEl = document.getElementById('dashNote-' + month);
-
-      // Always sum collected amounts
-      total += amt;
-
-      if (isChecked) {
-        if (amt < due - 0.01) {
-          const waived = due - amt;
-          totalWaived += waived;
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#fbbf24;">✓ Settle Checked: ${waived.toFixed(2)} SAR will be waived as discount (month solved)</span>`;
-          }
-        } else if (amt > due + 0.01) {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle with surplus (+${(amt - due).toFixed(2)} SAR)</span>`;
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle (month solved)</span>`;
-          }
-        }
-      } else {
-        // Settle UNCHECKED
-        if (amt < due - 0.01) {
-          const rem = due - amt;
-          totalPending += rem;
-          if (noteEl) {
-            if (amt === 0) {
-              noteEl.innerHTML = `<span style="color:var(--text-dim);">— Untouched (0 SAR collected, full ${due.toFixed(2)} SAR remains pending)</span>`;
-            } else {
-              noteEl.innerHTML = `<span style="color:#38bdf8;">⏱ Settle Unchecked: Partial payment (${rem.toFixed(2)} SAR remains pending and collectable)</span>`;
-            }
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full payment (${amt.toFixed(2)} SAR paid)</span>`;
-          }
-        }
-      }
-    });
-
-    const totEl = document.getElementById('totalAmt');
-    if (totEl) totEl.textContent = total.toFixed(2);
-
-    const waivedBox = document.getElementById('collWaivedNote');
-    const waivedVal = document.getElementById('collWaivedVal');
-    if (waivedBox && waivedVal) {
-      if (totalWaived > 0.05) {
-        waivedBox.style.display = 'inline-block';
-        waivedVal.textContent = totalWaived.toFixed(2);
-      } else {
-        waivedBox.style.display = 'none';
-      }
+    if (val === 'exact') {
+      const exactVal = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      amtInput.value = exactVal.toFixed(2);
+    } else if (val === 'clear') {
+      amtInput.value = '';
+      amtInput.focus();
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) amtInput.value = num.toFixed(2);
     }
-
-    const pendingBox = document.getElementById('collPendingNote');
-    const pendingVal = document.getElementById('collPendingVal');
-    if (pendingBox && pendingVal) {
-      if (totalPending > 0.05) {
-        pendingBox.style.display = 'inline-block';
-        pendingVal.textContent = totalPending.toFixed(2);
-      } else {
-        pendingBox.style.display = 'none';
-      }
-    }
+    updateLiveCalculationPreview();
   }
 
-  async function submitCollectForm() {
-    const cid = document.getElementById('coll_cid')?.value;
-    if (!cid) return;
+  function updateLiveCalculationPreview() {
+    const amtInput = document.getElementById('collAmount');
+    const previewText = document.getElementById('collLiveCalcText');
+    if (!amtInput || !previewText) return;
 
-    const items = [];
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-
-      items.push({
-        month: month,
-        amount: amt,
-        settle: isChecked
-      });
-    });
-
-    if (items.length === 0) {
-      cyberToast('No cycles to collect.');
+    const amt = parseFloat(amtInput.value) || 0.0;
+    const b = activeCollBreakdown;
+    if (!b) {
+      previewText.innerHTML = 'System will calculate cycle allocation automatically upon payment.';
       return;
     }
 
+    const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+    const unpaid = b.unpaid_cycles || [];
+    let rem = amt;
+
+    if (amt <= 0) {
+      previewText.innerHTML = '<span style="color:var(--text-dim);">Enter collection amount to preview auto-settlement.</span>';
+      return;
+    }
+
+    let settled = [];
+    let partial = null;
+
+    for (let c of unpaid) {
+      const due = parseFloat(c.rem_due || monthlyFee);
+      if (rem <= 0) break;
+      if (rem >= (due - 0.05)) {
+        settled.push(c.month);
+        rem -= due;
+      } else {
+        partial = { month: c.month, paid: rem, rem_due: (due - rem) };
+        rem = 0;
+        break;
+      }
+    }
+
+    let msgs = [];
+    if (settled.length > 0) {
+      msgs.push(`<strong style="color:#34d399;">✓ Settle &amp; close ${settled.length} cycle(s)</strong> (${settled.join(', ')})`);
+    }
+    if (partial) {
+      msgs.push(`<span style="color:#38bdf8;">⏱ Partial payment on ${partial.month} (${partial.paid.toFixed(2)} SAR paid, ${partial.rem_due.toFixed(2)} SAR remains due)</span>`);
+    }
+
+    if (rem > 0.05) {
+      const advMo = Math.floor(rem / monthlyFee);
+      const leftover = rem - (advMo * monthlyFee);
+      if (advMo > 0) {
+        msgs.push(`<strong style="color:#10b981;">🚀 Advance renewal: +${advMo} month(s)</strong>`);
+      }
+      if (leftover > 0.05) {
+        msgs.push(`<span style="color:#a7f3d0;">+${leftover.toFixed(2)} SAR wallet credit surplus</span>`);
+      }
+    }
+
+    if (msgs.length === 0) {
+      previewText.innerHTML = `Will credit <strong style="color:#34d399;">${amt.toFixed(2)} SAR</strong> to subscriber account and unblock active devices.`;
+    } else {
+      previewText.innerHTML = msgs.join(' · ');
+    }
+  }
+
+  async function submitSmartCollectForm() {
+    const cid = document.getElementById('coll_cid')?.value;
+    if (!cid) return;
+
+    const amtInput = document.getElementById('collAmount');
+    const amt = parseFloat(amtInput?.value || 0.0);
+    if (!amt || amt <= 0) {
+      alert('Please enter a valid collection amount.');
+      if (amtInput) amtInput.focus();
+      return;
+    }
+
+    const pType = document.getElementById('collPaymentType')?.value || 'cash';
+    const notes = document.getElementById('collNotes')?.value || '';
+    const sendWa = document.getElementById('collSendWa') ? document.getElementById('collSendWa').checked : true;
+
     const btn = document.getElementById('btnRecordPayment');
+    const origHtml = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span>Processing...</span>';
+      btn.innerHTML = '<span>Processing…</span>';
     }
 
     try {
-      const resp = await fetch(`/api/customers/${cid}/settle-cycles`, {
+      const resp = await fetch(`/api/customers/${cid}/smart-collect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, notes: 'Direct Collection & Settlement', send_whatsapp: true })
+        body: JSON.stringify({
+          amount: amt,
+          payment_type: pType,
+          notes: notes,
+          send_whatsapp: sendWa
+        })
       });
       const res = await resp.json();
       if (res.success) {
-        cyberToast(res.message || 'Payment recorded successfully!');
+        let msg = res.message || 'Payment collected successfully!';
+        if (res.data?.whatsapp_receipt?.sent) {
+          msg += '\n\n📱 WhatsApp digital receipt dispatched to subscriber!';
+        }
+        cyberToast(msg);
         closeCollectModal();
-        setTimeout(() => window.location.reload(), 1000);
+        setTimeout(() => window.location.reload(), 900);
       } else {
-        cyberToast('Payment failed: ' + (res.message || res.error || 'Server error'));
+        alert('Payment recording failed: ' + (res.message || res.error || 'Server error'));
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span>Record Payment</span>';
+          btn.innerHTML = origHtml;
         }
       }
     } catch (e) {
-      cyberToast('Error: ' + e.message);
+      alert('Error recording payment: ' + e.message);
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<span>Record Payment</span>';
+        btn.innerHTML = origHtml;
       }
     }
   }
@@ -4323,8 +4519,10 @@
   // Global exports & backwards compatibility aliases
   window.openCollectModal = openCollectModal;
   window.closeCollectModal = closeCollectModal;
-  window.updateTotal = updateTotal;
-  window.submitCollectForm = submitCollectForm;
+  window.applySmartPreset = applySmartPreset;
+  window.updateLiveCalculationPreview = updateLiveCalculationPreview;
+  window.submitSmartCollectForm = submitSmartCollectForm;
+  window.submitCollectForm = submitSmartCollectForm;
   window.openQuickCollectModal = openCollectModal;
   window.closeQuickCollectModal = closeCollectModal;
   function openQuickCollectModal(id, name) {

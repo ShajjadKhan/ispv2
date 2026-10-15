@@ -2956,7 +2956,7 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, name, phone, billing_type, package_name, monthly_fee, due_day, due_date,
+            SELECT id, name, phone, notes, billing_type, package_name, monthly_fee, due_day, due_date,
                    expiry_date, status, credit_balance, created_at,
                    join_date, billing_start_date, suspension_held_until, suspension_hold_reason
             FROM customers WHERE id = ?
@@ -3191,6 +3191,11 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         "customer_id": customer_id,
         "customer_name": cust["name"],
         "phone": cust["phone"],
+        "room": cust.get("notes") or "",
+        "status": cust.get("status") or "active",
+        "expiry_date": cust.get("expiry_date") or cust.get("due_date") or "",
+        "due_date": cust.get("due_date") or cust.get("expiry_date") or "",
+        "package_name": cust.get("package_name") or "",
         "monthly_fee": monthly_fee,
         "daily_rate": round(daily_rate, 2),
         "join_date": cust.get("join_date") or start_str,
@@ -7049,20 +7054,21 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
         }
 
 
-def record_balance_collection(
+def smart_collect_customer_payment(
     customer_id: int,
     amount: float,
-    source: Optional[str] = None,
     payment_type: str = "cash",
     collector: str = "Shajjad Khan",
-    notes: str = "",
-    month_year: Optional[str] = None
+    notes: str = ""
 ) -> Dict[str, Any]:
     """
-    Records collection payment directly into CyberNet OS ledger.
-    - Adds record to collections table
-    - Restores customer status to active and marks devices approved
-    - Updates expiry/due date if monthly fee is covered
+    Intelligently collects payment for a subscriber without requiring manual monthly segregation:
+    1. Examines customer's unpaid monthly cycles chronologically.
+    2. Sequentially allocates collected amount to settle unpaid cycles (is_settled=1).
+    3. If payment covers/exceeds unpaid cycles, covers advance months and extends expiry_date / due_date.
+    4. Any surplus fractional amount remains as positive wallet credit balance.
+    5. Fulfills pending promises, closes suspensions, unblocks devices, and reactivates customer.
+    6. Synchronously recalculates live real-time wallet balance and updates collected_today.
     """
     clean_amt = round(float(amount or 0.0), 2)
     if clean_amt <= 0:
@@ -7070,46 +7076,142 @@ def record_balance_collection(
 
     now = datetime.now()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    month_str = month_year or now.strftime("%Y-%m")
+    clean_collector = resolve_collector_name(collector)
+
+    # 1. Fetch breakdown and customer details
+    breakdown = get_customer_billing_breakdown(customer_id)
+    cust_name = breakdown.get("customer_name") or f"Subscriber #{customer_id}"
+    monthly_fee = float(breakdown.get("monthly_fee") or 30.0)
+    if monthly_fee <= 0:
+        monthly_fee = 30.0
+
+    unpaid_cycles = breakdown.get("unpaid_cycles", [])
+    rem_cash = clean_amt
+
+    settled_cycles: List[str] = []
+    partial_cycles: List[Dict[str, Any]] = []
+    collection_ids: List[int] = []
 
     with get_db() as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        cur.execute("SELECT id, name, phone, notes, monthly_fee, expiry_date, due_date, status FROM customers WHERE id = ?", (customer_id,))
+        cur.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
         cust_row = cur.fetchone()
         if not cust_row:
-            raise ValueError(f"Customer #{customer_id} not found in database.")
-
+            raise ValueError(f"Customer #{customer_id} not found.")
         cust = dict(cust_row)
-        cust_name = cust.get("name") or f"Subscriber #{customer_id}"
 
-        # 1. Insert collection record
-        col_notes = notes.strip() if notes and notes.strip() else f"Balance Sheet Collection ({payment_type})"
-        clean_col = resolve_collector_name(collector)
-        cur.execute("""
-            INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
-        """, (customer_id, clean_amt, payment_type or "cash", col_notes, now_str, clean_col, month_str))
-        col_id = cur.lastrowid
+        # 2. Sequentially allocate collected amount to unpaid cycles
+        for cycle in unpaid_cycles:
+            m = cycle["month"]
+            m_due = float(cycle.get("rem_due") or 0.0)
+            if rem_cash <= 0:
+                break
+            if rem_cash >= (m_due - 0.05):
+                # Settle this cycle completely
+                allocated = m_due
+                rem_cash = round(rem_cash - m_due, 2)
+                col_note = f"Smart Collection - Settle {m}"
+                if notes and notes.strip():
+                    col_note += f" ({notes.strip()})"
+                cur.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0.0)
+                """, (customer_id, allocated, payment_type or "cash", col_note, now_str, clean_collector, m))
+                collection_ids.append(cur.lastrowid)
+                settled_cycles.append(m)
+            else:
+                # Partial payment towards this cycle
+                allocated = rem_cash
+                rem_due_after = round(m_due - allocated, 2)
+                rem_cash = 0.0
+                col_note = f"Smart Collection - Partial {m} ({rem_due_after:.2f} SAR remains due)"
+                if notes and notes.strip():
+                    col_note += f" ({notes.strip()})"
+                cur.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
+                """, (customer_id, allocated, payment_type or "cash", col_note, now_str, clean_collector, m))
+                collection_ids.append(cur.lastrowid)
+                partial_cycles.append({"month": m, "amount": allocated, "rem_due": rem_due_after})
 
-        # 2. Reactivate customer and devices if previously suspended / blocked
-        cur.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+        # 3. If cash remains, allocate to advance cycles or credit surplus
+        if rem_cash > 0:
+            adv_months_covered = int(rem_cash // monthly_fee)
+            leftover_surplus = round(rem_cash - (adv_months_covered * monthly_fee), 2)
 
-        # Close open suspension for this customer if reactivated
-        cur.execute("""
-            UPDATE customer_suspensions
-            SET resumed_at = ?
-            WHERE customer_id = ? AND resumed_at IS NULL
-        """, (now_str, customer_id))
+            # Determine base starting month for advance
+            if settled_cycles:
+                base_m = sorted(settled_cycles)[-1]
+            else:
+                current_exp = cust.get("expiry_date") or cust.get("due_date")
+                if current_exp:
+                    base_m = str(current_exp)[:7]
+                else:
+                    base_m = now.strftime("%Y-%m")
 
-        # 3. Compute exact real-time balance after collection and resumed suspension
-        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
-        new_credit = rt_bal["balance"]
+            try:
+                cur_y, cur_m = int(base_m[:4]), int(base_m[5:7])
+            except Exception:
+                cur_y, cur_m = now.year, now.month
 
-        # Advance expiry/due date if payment covers monthly cycle & update customer credit_balance
-        monthly_fee = float(cust.get("monthly_fee") or 30.0)
-        if monthly_fee > 0 and clean_amt >= monthly_fee:
+            for _ in range(adv_months_covered):
+                cur_m += 1
+                if cur_m > 12:
+                    cur_m = 1
+                    cur_y += 1
+                target_month = f"{cur_y:04d}-{cur_m:02d}"
+                col_note = f"Smart Collection - Advance {target_month}"
+                if notes and notes.strip():
+                    col_note += f" ({notes.strip()})"
+                cur.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0.0)
+                """, (customer_id, monthly_fee, payment_type or "cash", col_note, now_str, clean_collector, target_month))
+                collection_ids.append(cur.lastrowid)
+                settled_cycles.append(target_month)
+
+            if leftover_surplus > 0:
+                col_note = f"Smart Collection - Wallet Credit (+{leftover_surplus:.2f} SAR)"
+                if notes and notes.strip():
+                    col_note += f" ({notes.strip()})"
+                cur.execute("""
+                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
+                """, (customer_id, leftover_surplus, payment_type or "cash", col_note, now_str, clean_collector, now.strftime("%Y-%m")))
+                collection_ids.append(cur.lastrowid)
+
+        # 4. Compute new expiry/due date
+        new_exp = None
+        new_due_day = None
+        if settled_cycles:
+            last_settled = sorted(settled_cycles)[-1]
+            try:
+                ly, lm = int(last_settled[:4]), int(last_settled[5:7])
+                nm = lm + 1
+                ny = ly
+                if nm > 12:
+                    nm = 1
+                    ny += 1
+                dim = calendar.monthrange(ny, nm)[1]
+
+                old_due_date = cust.get("due_date") or cust.get("expiry_date")
+                if old_due_date:
+                    orig_day = int(str(old_due_date).split("-")[2])
+                elif cust.get("join_date"):
+                    orig_day = int(str(cust["join_date"]).split("-")[2])
+                elif cust.get("billing_start_date"):
+                    orig_day = int(str(cust["billing_start_date"]).split("-")[2])
+                else:
+                    orig_day = int(cust.get("due_day") or 1)
+
+                new_due_day = min(orig_day, dim)
+                new_exp = f"{ny:04d}-{nm:02d}-{new_due_day:02d}"
+            except Exception:
+                new_exp = (now + timedelta(days=30)).strftime("%Y-%m-%d")
+                new_due_day = 1
+        elif clean_amt >= monthly_fee:
             days_to_add = int(clean_amt // monthly_fee) * 30
             current_exp = cust.get("expiry_date") or cust.get("due_date")
             try:
@@ -7122,32 +7224,104 @@ def record_balance_collection(
                 new_due_day = int(new_exp.split("-")[2])
             except Exception:
                 new_due_day = 1
+
+        # 5. Device unblocking & Suspension clearing
+        cur.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+        cur.execute("""
+            UPDATE customer_promises
+            SET status = 'fulfilled', updated_at = ?
+            WHERE customer_id = ? AND status = 'pending'
+        """, (now_str, customer_id))
+        cur.execute("""
+            UPDATE customer_suspensions
+            SET resumed_at = ?
+            WHERE customer_id = ? AND resumed_at IS NULL
+        """, (now_str, customer_id))
+
+        # 6. Recalculate real-time customer balance and synchronize
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        new_credit = rt_bal["balance"]
+
+        # 7. Update customers table
+        if new_exp:
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?,
-                    collected_today = COALESCE(collected_today, 0.0) + ?, updated_at = ?
+                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?,
+                    credit_balance = ?,
+                    collected_today = COALESCE(collected_today, 0.0) + ?,
+                    suspension_held_until = NULL, suspension_hold_reason = NULL,
+                    updated_at = ?
                 WHERE id = ?
             """, (new_exp, new_exp, new_due_day, new_credit, clean_amt, now_str, customer_id))
         else:
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', credit_balance = ?,
-                    collected_today = COALESCE(collected_today, 0.0) + ?, updated_at = ?
+                SET status = 'active',
+                    credit_balance = ?,
+                    collected_today = COALESCE(collected_today, 0.0) + ?,
+                    suspension_held_until = NULL, suspension_hold_reason = NULL,
+                    updated_at = ?
                 WHERE id = ?
             """, (new_credit, clean_amt, now_str, customer_id))
 
         conn.commit()
 
-        return {
-            "success": True,
-            "collection_id": col_id,
-            "customer_id": customer_id,
-            "customer_name": cust_name,
-            "amount": clean_amt,
-            "payment_type": payment_type,
-            "collected_at": now_str,
-            "message": f"Successfully collected {clean_amt:.2f} SAR for {cust_name}!"
-        }
+    # Build human-friendly message
+    summary_parts = []
+    if settled_cycles:
+        summary_parts.append(f"Settled {len(settled_cycles)} cycle(s): {', '.join(settled_cycles)}")
+    if partial_cycles:
+        p = partial_cycles[0]
+        summary_parts.append(f"Partial payment on {p['month']} ({p['amount']:.2f} SAR paid, {p['rem_due']:.2f} SAR remains due)")
+    if new_exp:
+        summary_parts.append(f"Expiry extended to {new_exp}")
+    if new_credit > 0:
+        summary_parts.append(f"Wallet balance: +{new_credit:.2f} SAR (Credit)")
+    elif new_credit < 0:
+        summary_parts.append(f"Remaining debt: {new_credit:.2f} SAR")
+    else:
+        summary_parts.append("Wallet balance: 0.00 SAR (Settled)")
+
+    msg = f"Successfully collected {clean_amt:.2f} SAR for {cust_name}! " + " · ".join(summary_parts)
+
+    return {
+        "success": True,
+        "customer_id": customer_id,
+        "customer_name": cust_name,
+        "amount_collected": clean_amt,
+        "amount": clean_amt,
+        "payment_type": payment_type,
+        "settled_cycles": settled_cycles,
+        "partial_cycles": partial_cycles,
+        "new_credit_balance": new_credit,
+        "new_expiry_date": new_exp or cust.get("expiry_date"),
+        "collection_id": collection_ids[0] if collection_ids else None,
+        "collection_ids": collection_ids,
+        "message": msg
+    }
+
+
+def record_balance_collection(
+    customer_id: int,
+    amount: float,
+    source: Optional[str] = None,
+    payment_type: str = "cash",
+    collector: str = "Shajjad Khan",
+    notes: str = "",
+    month_year: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Records collection payment directly into CyberNet OS ledger.
+    Delegates to smart_collect_customer_payment for automatic cycle settlement and wallet synchronization.
+    """
+    col_notes = notes.strip() if notes and notes.strip() else f"Balance Sheet Collection ({payment_type})"
+    return smart_collect_customer_payment(
+        customer_id=customer_id,
+        amount=amount,
+        payment_type=payment_type,
+        collector=collector,
+        notes=col_notes
+    )
 
 
 def get_monthly_reconciliation(month_str: Optional[str] = None) -> Dict[str, Any]:
