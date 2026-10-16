@@ -1378,9 +1378,20 @@ def approve_connection(
                     SET name = ?, status = 'suspended', max_devices = ?, updated_at = ?
                     WHERE id = ?
                 """, (update_name, new_max_devices, now_str, customer_id))
+                cursor.execute("SELECT id FROM customer_suspensions WHERE customer_id = ? AND resumed_at IS NULL", (customer_id,))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
+                        VALUES (?, ?, 'Approval without payment (expired)', ?)
+                    """, (customer_id, now_str, now_str))
             else:
                 cust_status = "active"
                 dev_status = "approved"
+                cursor.execute("""
+                    UPDATE customer_suspensions
+                    SET resumed_at = ?
+                    WHERE customer_id = ? AND resumed_at IS NULL
+                """, (now_str, customer_id))
                 if clean_collected > 0:
                     existing_credit = float(cust.get("credit_balance") or 0.0)
                     new_credit = round(existing_credit + clean_collected, 2)
@@ -1704,8 +1715,17 @@ def revoke_customer_device(mac: str) -> Optional[Dict[str, Any]]:
         remaining = cursor.fetchone()["count"]
         if remaining == 0:
             cursor.execute("UPDATE customers SET status = 'suspended', updated_at = ? WHERE id = ?", (now_str, info["cust_id"]))
+            cursor.execute("SELECT id FROM customer_suspensions WHERE customer_id = ? AND resumed_at IS NULL", (info["cust_id"],))
+            if not cursor.fetchone():
+                cursor.execute("""
+                    INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
+                    VALUES (?, ?, 'No approved devices remaining', ?)
+                """, (info["cust_id"], now_str, now_str))
         else:
             cursor.execute("UPDATE customers SET updated_at = ? WHERE id = ?", (now_str, info["cust_id"]))
+
+        rt_bal = calculate_customer_realtime_balance(info["cust_id"], conn)
+        cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], info["cust_id"]))
 
         conn.commit()
         return info
@@ -2403,6 +2423,10 @@ def toggle_customer_status(customer_id: int) -> Tuple[str, List[str]]:
         cursor.execute("SELECT mac_address FROM customer_devices WHERE customer_id = ?", (customer_id,))
         macs = [r["mac_address"].upper() for r in cursor.fetchall()]
 
+        # Synchronously recalculate real-time balance upon suspension toggle
+        rt_bal = calculate_customer_realtime_balance(customer_id, conn)
+        cursor.execute("UPDATE customers SET credit_balance = ? WHERE id = ?", (rt_bal["balance"], customer_id))
+
         conn.commit()
         return (new_status, macs)
 
@@ -2985,10 +3009,45 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         """, (customer_id,))
         col_rows = cursor.fetchall()
 
-    monthly_fee = float(cust.get("monthly_fee") or 30.0)
-    if monthly_fee <= 0:
-        monthly_fee = 30.0
-    daily_rate = round(monthly_fee / 30.0, 4)
+        cursor.execute("""
+            SELECT id, suspended_at, resumed_at, reason
+            FROM customer_suspensions
+            WHERE customer_id = ?
+            ORDER BY id ASC
+        """, (customer_id,))
+        susp_rows = cursor.fetchall()
+
+    raw_fee = cust.get("monthly_fee")
+    monthly_fee = float(raw_fee) if raw_fee is not None else 30.0
+    if monthly_fee < 0:
+        monthly_fee = 0.0
+    daily_rate = round(monthly_fee / 30.0, 4) if monthly_fee > 0 else 0.0
+
+    # Parse customer suspensions
+    cust_susp: List[Tuple[date, Optional[date]]] = []
+    for s in susp_rows:
+        try:
+            s_d = datetime.strptime(str(s["suspended_at"])[:10], "%Y-%m-%d").date()
+            r_d = datetime.strptime(str(s["resumed_at"])[:10], "%Y-%m-%d").date() if s["resumed_at"] else None
+            cust_susp.append((s_d, r_d))
+        except Exception:
+            pass
+
+    is_currently_suspended = (str(cust.get("status") or "").strip().lower() == "suspended")
+    if is_currently_suspended and not any(r_d is None for _, r_d in cust_susp):
+        susp_start = today
+        try:
+            if cust.get("updated_at"):
+                u_d = datetime.strptime(str(cust["updated_at"])[:10], "%Y-%m-%d").date()
+                if u_d <= today:
+                    susp_start = u_d
+            elif cust.get("expiry_date"):
+                e_d = datetime.strptime(str(cust["expiry_date"])[:10], "%Y-%m-%d").date()
+                if e_d <= today:
+                    susp_start = e_d
+        except Exception:
+            pass
+        cust_susp.append((susp_start, None))
 
     # Collections map
     colls_by_month: Dict[str, Dict[str, Any]] = {}
@@ -3073,6 +3132,10 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         safe_day = min(billing_day, dim)
         cur_d = date(ny, nm, safe_day)
 
+    start_m = start_date.strftime("%Y-%m")
+    if start_m not in months_seq:
+        months_seq.append(start_m)
+
     # If customer has active suspension hold (grace promise) extending into future months, include it
     if has_active_promise and promise_date_str:
         p_m = promise_date_str[:7]
@@ -3097,29 +3160,63 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
             m_label = m
 
         dim = calendar.monthrange(m_dt.year, m_dt.month)[1]
+        m_start = date(m_dt.year, m_dt.month, 1)
+        m_end = date(m_dt.year, m_dt.month, dim)
         p = colls_by_month.get(m, {"total": 0.0, "settled": 0, "waived": 0.0, "records": []})
         paid = round(p["total"], 2)
         is_settled = (p["settled"] == 1)
 
+        # Active billable window within this month
+        eval_start = max(start_date, m_start)
+        eval_end = m_end
+        if m == current_month_str and is_currently_suspended:
+            eval_end = min(m_end, today)
+
+        active_days = 0
+        suspended_days = 0
+        if eval_start <= eval_end:
+            cur_chk = eval_start
+            while cur_chk <= eval_end:
+                day_in_susp = False
+                for s_start, s_end in cust_susp:
+                    if s_end is None:
+                        if cur_chk >= s_start:
+                            day_in_susp = True
+                            break
+                    else:
+                        if s_start <= cur_chk <= s_end:
+                            day_in_susp = True
+                            break
+                if day_in_susp:
+                    suspended_days += 1
+                else:
+                    active_days += 1
+                cur_chk += timedelta(days=1)
+
         # Expected fee calculation:
         is_grace_month = False
         grace_days = 0
-        expected_fee = monthly_fee
 
-        if has_active_promise and promise_date_str and promise_date_str.startswith(m):
-            # Target promise day in this month
+        if monthly_fee <= 0.0:
+            expected_fee = 0.0
+        elif has_active_promise and promise_date_str and promise_date_str.startswith(m):
             try:
                 p_day = int(promise_date_str.split("-")[2])
-                grace_days = min(p_day, 30)
+                grace_days = min(p_day, active_days if suspended_days > 0 else 30)
                 expected_fee = round(grace_days * daily_rate, 2)
                 is_grace_month = True
             except Exception:
-                expected_fee = monthly_fee
+                expected_fee = round(active_days * daily_rate, 2)
+        elif suspended_days > 0:
+            if active_days == 0:
+                expected_fee = 0.0
+            else:
+                expected_fee = round(active_days * (monthly_fee / float(dim)), 2)
         elif m > current_month_str:
-            # Future month not covered by promise
+            expected_fee = monthly_fee
+        else:
             expected_fee = monthly_fee
 
-        # If already marked settled in ledger, the cycle is solved!
         if is_settled:
             settled_cycles.append({
                 "month": m,
@@ -3132,13 +3229,48 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
                 "is_grace": is_grace_month,
                 "status": "Settled & Closed"
             })
+        elif expected_fee == 0.0 and paid == 0.0:
+            if suspended_days > 0 and active_days == 0:
+                settled_cycles.append({
+                    "month": m,
+                    "label": f"{m_label} (Suspended)",
+                    "expected_fee": 0.0,
+                    "paid": 0.0,
+                    "waived": 0.0,
+                    "rem_due": 0.0,
+                    "is_settled": True,
+                    "is_grace": False,
+                    "status": "Suspended (0.00 SAR)"
+                })
+            else:
+                settled_cycles.append({
+                    "month": m,
+                    "label": m_label,
+                    "expected_fee": 0.0,
+                    "paid": 0.0,
+                    "waived": 0.0,
+                    "rem_due": 0.0,
+                    "is_settled": True,
+                    "is_grace": False,
+                    "status": "Settled (0.00 SAR)"
+                })
         else:
             rem_due = max(0.0, round(expected_fee - paid, 2))
             if rem_due > 0.05:
                 total_owed += rem_due
+                if suspended_days > 0:
+                    st_text = f"Prorated Active ({active_days}d)"
+                    cycle_lbl = f"{m_label} · Active {active_days}d"
+                elif is_grace_month:
+                    st_text = f"Grace ({grace_days}d)"
+                    cycle_lbl = f"{m_label} (Grace)"
+                else:
+                    st_text = "Unpaid" if paid == 0 else "Partially Paid"
+                    cycle_lbl = m_label
+
                 unpaid_cycles.append({
                     "month": m,
-                    "label": m_label,
+                    "label": cycle_lbl,
                     "expected_fee": expected_fee,
                     "paid": paid,
                     "waived": 0.0,
@@ -3146,10 +3278,11 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
                     "is_settled": False,
                     "is_grace": is_grace_month,
                     "grace_days": grace_days,
-                    "status": "Unpaid" if paid == 0 else "Partially Paid"
+                    "active_days": active_days,
+                    "suspended_days": suspended_days,
+                    "status": st_text
                 })
             else:
-                # Paid up in full even without explicit settle flag
                 settled_cycles.append({
                     "month": m,
                     "label": m_label,
@@ -3187,6 +3320,13 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
     except Exception:
         live_credit = round(float(cust.get("credit_balance") or 0.0), 2)
 
+    # Reconcile total_due with real-time balance
+    if live_credit >= 0:
+        clean_total_due = 0.0
+    else:
+        live_debt = round(abs(live_credit), 2)
+        clean_total_due = min(round(total_owed, 2), live_debt) if total_owed > 0 else live_debt
+
     return {
         "customer_id": customer_id,
         "customer_name": cust["name"],
@@ -3201,7 +3341,7 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         "join_date": cust.get("join_date") or start_str,
         "billing_start_date": start_str,
         "credit_balance": live_credit,
-        "total_due": round(total_owed, 2),
+        "total_due": clean_total_due,
         "total_paid_lifetime": round(total_cash_collected, 2),
         "has_active_promise": has_active_promise,
         "promise": promise_info,

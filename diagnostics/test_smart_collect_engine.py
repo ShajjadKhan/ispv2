@@ -27,7 +27,7 @@ def test_smart_collect_engine():
         # Check initial breakdown
         bd_initial = database.get_customer_billing_breakdown(test_cid)
         print(f"Initial: credit_balance={bd_initial['credit_balance']}, total_due={bd_initial['total_due']}, unpaid_cycles={[c['month'] for c in bd_initial['unpaid_cycles']]}")
-        assert bd_initial["total_due"] >= 30.0, "Mock customer should owe at least 30 SAR"
+        assert bd_initial["total_due"] >= 15.0, "Mock customer should owe at least 15 SAR for elapsed days"
 
         # Execute Smart Collection: Collect 30.00 SAR
         res1 = database.smart_collect_customer_payment(
