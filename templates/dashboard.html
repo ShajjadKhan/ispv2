@@ -288,6 +288,21 @@
     gap: 6px;
     flex-wrap: wrap;
   }
+  .tier-filter-deck.active-deck {
+    display: flex !important;
+  }
+  .tier-filter-deck.deck-hidden {
+    display: none !important;
+  }
+
+  .sub-tab-btn *, .tier-pill-btn * {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .cust-hidden, .filtered-out {
+    display: none !important;
+  }
 
   .tier-deck-title {
     font-size: 10.5px;
@@ -1630,7 +1645,7 @@
 
     /* Wrapping Expiration Tier Filter Deck (No Horizontal Scrolling) */
     .tier-filter-deck {
-      display: flex !important;
+      display: none; /* Hidden by default unless priority queue active */
       flex-wrap: wrap !important;
       gap: 6px !important;
       padding: 6px 8px !important;
@@ -1639,6 +1654,17 @@
       width: 100% !important;
       box-sizing: border-box !important;
     }
+    .tier-filter-deck.active-deck,
+    .tier-filter-deck[style*="display: flex"],
+    .tier-filter-deck[style*="display:flex"] {
+      display: flex !important;
+    }
+    .tier-filter-deck.deck-hidden,
+    .tier-filter-deck[style*="display: none"],
+    .tier-filter-deck[style*="display:none"] {
+      display: none !important;
+    }
+
     .tier-deck-title {
       width: 100% !important;
       margin-bottom: 2px !important;
@@ -1692,6 +1718,22 @@
       max-width: 100% !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
+    }
+
+    /* Force Hide Filtered Rows on Mobile Despite Grid !important */
+    #subscribersTable tr.cust-row.cust-hidden,
+    #subscribersTable tr.cust-row[style*="display: none"],
+    #subscribersTable tr.cust-row[style*="display:none"],
+    #subscribersTable tr[style*="display: none"],
+    #subscribersTable tr[style*="display:none"],
+    #subscribersTable tr.filtered-out,
+    #emptyCustRow.cust-hidden,
+    #emptyCustRow[style*="display: none"],
+    #emptyCustRow[style*="display:none"],
+    #emptyCustFilterRow.cust-hidden,
+    #emptyCustFilterRow[style*="display: none"],
+    #emptyCustFilterRow[style*="display:none"] {
+      display: none !important;
     }
 
     #subscribersTable tr.cust-row td {
@@ -1811,10 +1853,16 @@
       white-space: nowrap !important;
     }
 
-    #emptyCustRow, #emptyCustRow td {
-      display: block !important;
+    #emptyCustRow, #emptyCustRow td,
+    #emptyCustFilterRow, #emptyCustFilterRow td {
       width: 100% !important;
       box-sizing: border-box !important;
+    }
+    #emptyCustRow:not(.cust-hidden):not([style*="display: none"]):not([style*="display:none"]),
+    #emptyCustRow:not(.cust-hidden):not([style*="display: none"]):not([style*="display:none"]) td,
+    #emptyCustFilterRow:not(.cust-hidden):not([style*="display: none"]):not([style*="display:none"]),
+    #emptyCustFilterRow:not(.cust-hidden):not([style*="display: none"]):not([style*="display:none"]) td {
+      display: block !important;
     }
 
     /* 3. FINANCIAL AUDIT & STAFF PERFORMANCE DECK RESPONSIVENESS */
@@ -3174,8 +3222,14 @@
                   </button>
                 </div>
               </td>
-            </tr>
             {% endfor %}
+            <tr id="emptyCustFilterRow" class="cust-hidden" style="display: none;">
+              <td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--text-dim); background: rgba(15, 23, 42, 0.4); border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.1);">
+                <div style="font-size: 24px; margin-bottom: 6px;">🔍</div>
+                <div style="font-size: 13.5px; font-weight: 700; color: #ffffff;">No Matching Subscribers Found</div>
+                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 4px;">No subscribers match the current filter or search criteria.</div>
+              </td>
+            </tr>
           {% endif %}
         </tbody>
       </table>
@@ -4165,9 +4219,19 @@
 
     const subTierDeck = document.getElementById('prioritySubTierDeck');
     if (tab === 'priority') {
-      if (subTierDeck) subTierDeck.style.display = 'flex';
+      if (subTierDeck) {
+        subTierDeck.classList.remove('deck-hidden');
+        subTierDeck.classList.add('active-deck');
+        subTierDeck.style.setProperty('display', 'flex', 'important');
+        subTierDeck.style.display = 'flex';
+      }
     } else {
-      if (subTierDeck) subTierDeck.style.display = 'none';
+      if (subTierDeck) {
+        subTierDeck.classList.remove('active-deck');
+        subTierDeck.classList.add('deck-hidden');
+        subTierDeck.style.setProperty('display', 'none', 'important');
+        subTierDeck.style.display = 'none';
+      }
     }
 
     applySubscribersFilter();
@@ -4221,16 +4285,43 @@
       const matchesSearch = (!q || searchText.includes(q));
 
       if (matchesTab && matchesSearch) {
+        r.classList.remove('cust-hidden');
+        r.classList.remove('filtered-out');
+        r.style.setProperty('display', '', '');
         r.style.display = '';
         visibleCount++;
       } else {
+        r.classList.add('cust-hidden');
+        r.classList.add('filtered-out');
+        r.style.setProperty('display', 'none', 'important');
         r.style.display = 'none';
       }
     });
 
     const emptyRow = document.getElementById('emptyCustRow');
     if (emptyRow) {
-      emptyRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+      if (visibleCount === 0 && rows.length > 0) {
+        emptyRow.classList.remove('cust-hidden');
+        emptyRow.style.setProperty('display', '', '');
+        emptyRow.style.display = '';
+      } else {
+        emptyRow.classList.add('cust-hidden');
+        emptyRow.style.setProperty('display', 'none', 'important');
+        emptyRow.style.display = 'none';
+      }
+    }
+
+    const emptyFilterRow = document.getElementById('emptyCustFilterRow');
+    if (emptyFilterRow) {
+      if (visibleCount === 0 && rows.length > 0) {
+        emptyFilterRow.classList.remove('cust-hidden');
+        emptyFilterRow.style.setProperty('display', '', '');
+        emptyFilterRow.style.display = '';
+      } else {
+        emptyFilterRow.classList.add('cust-hidden');
+        emptyFilterRow.style.setProperty('display', 'none', 'important');
+        emptyFilterRow.style.display = 'none';
+      }
     }
   }
 
