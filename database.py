@@ -1793,7 +1793,8 @@ def get_all_customer_realtime_balances(conn=None) -> Dict[int, Dict[str, Any]]:
                 billable = 0
                 daily_rate = 0.0
             else:
-                daily_rate = round(fee / 30.0, 4)
+                cur_dim_today = calendar.monthrange(today.year, today.month)[1]
+                daily_rate = round(fee / float(cur_dim_today), 4)
                 start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
                 try:
                     start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
@@ -1801,6 +1802,9 @@ def get_all_customer_realtime_balances(conn=None) -> Dict[int, Dict[str, Any]]:
                     start_d = today
 
                 billable = 0
+                total_accrued = 0.0
+                cur_m_key = None
+                cur_dim = 30
                 if start_d <= yesterday:
                     cust_susp = list(susp_by_cid.get(cid, []))
                     if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
@@ -1820,9 +1824,14 @@ def get_all_customer_realtime_balances(conn=None) -> Dict[int, Dict[str, Any]]:
                                     break
                         if not in_susp:
                             billable += 1
+                            m_key = (cur_d.year, cur_d.month)
+                            if m_key != cur_m_key:
+                                cur_m_key = m_key
+                                cur_dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                            total_accrued += (fee / float(cur_dim))
                         cur_d += timedelta(days=1)
 
-                owed = round(billable * daily_rate, 2)
+                owed = round(total_accrued, 2)
                 paid = round(colls_by_cid.get(cid, 0.0), 2)
                 bal = round(paid - owed, 2)
                 if c_type == "prepaid":
@@ -3021,7 +3030,8 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
     monthly_fee = float(raw_fee) if raw_fee is not None else 30.0
     if monthly_fee < 0:
         monthly_fee = 0.0
-    daily_rate = round(monthly_fee / 30.0, 4) if monthly_fee > 0 else 0.0
+    cur_dim_today = calendar.monthrange(today.year, today.month)[1]
+    daily_rate = round(monthly_fee / float(cur_dim_today), 4) if monthly_fee > 0 else 0.0
 
     # Parse customer suspensions
     cust_susp: List[Tuple[date, Optional[date]]] = []
@@ -3202,18 +3212,15 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         elif has_active_promise and promise_date_str and promise_date_str.startswith(m):
             try:
                 p_day = int(promise_date_str.split("-")[2])
-                grace_days = min(p_day, active_days if suspended_days > 0 else 30)
-                expected_fee = round(grace_days * daily_rate, 2)
+                grace_days = min(p_day, active_days if suspended_days > 0 else dim)
+                expected_fee = round(grace_days * (monthly_fee / float(dim)), 2)
                 is_grace_month = True
             except Exception:
-                expected_fee = round(active_days * daily_rate, 2)
-        elif suspended_days > 0:
-            if active_days == 0:
-                expected_fee = 0.0
-            else:
                 expected_fee = round(active_days * (monthly_fee / float(dim)), 2)
-        elif m > current_month_str:
-            expected_fee = monthly_fee
+        elif active_days == 0:
+            expected_fee = 0.0
+        elif active_days < dim:
+            expected_fee = round(active_days * (monthly_fee / float(dim)), 2)
         else:
             expected_fee = monthly_fee
 
@@ -3258,7 +3265,7 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
             rem_due = max(0.0, round(expected_fee - paid, 2))
             if rem_due > 0.05:
                 total_owed += rem_due
-                if suspended_days > 0:
+                if suspended_days > 0 or active_days < dim:
                     st_text = f"Prorated Active ({active_days}d)"
                     cycle_lbl = f"{m_label} · Active {active_days}d"
                 elif is_grace_month:
@@ -3394,7 +3401,8 @@ def settle_customer_cycles(
         cust = dict(cust_row)
 
         monthly_fee = float(cust.get("monthly_fee") or 30.0)
-        daily_rate = round(monthly_fee / 30.0, 4)
+        cur_dim_today = calendar.monthrange(now.year, now.month)[1]
+        daily_rate = round(monthly_fee / float(cur_dim_today), 4) if monthly_fee > 0 else 0.0
 
         recorded_records = []
         total_collected = 0.0
@@ -3422,8 +3430,10 @@ def settle_customer_cycles(
             susp_until = cust.get("suspension_held_until")
             if susp_until and susp_until.startswith(month):
                 try:
+                    m_dt = datetime.strptime(month + "-01", "%Y-%m-%d").date()
+                    m_dim = calendar.monthrange(m_dt.year, m_dt.month)[1]
                     p_day = int(susp_until.split("-")[2])
-                    expected_fee = round(min(p_day, 30) * daily_rate, 2)
+                    expected_fee = round(min(p_day, m_dim) * (monthly_fee / float(m_dim)), 2)
                 except Exception:
                     expected_fee = monthly_fee
 
@@ -5380,10 +5390,11 @@ def get_collections_hub_data(
 
                 c_copy = dict(c)
                 if is_grace:
-                    daily_r = round(fee / 30.0, 4)
+                    dim_today = calendar.monthrange(today.year, today.month)[1]
+                    daily_r = round(fee / float(dim_today), 4) if fee > 0 else 0.0
                     try:
                         p_day = int(str(c.get("suspension_held_until", "")).split("-")[2])
-                        accrued_amt = round(min(p_day, 30) * daily_r, 2)
+                        accrued_amt = round(min(p_day, dim_today) * daily_r, 2)
                     except Exception:
                         accrued_amt = fee
                     net_needed = max(0.0, round((fee + accrued_amt) - wallet_credit, 2))
@@ -6702,7 +6713,8 @@ def calculate_customer_realtime_balance(
 
         today = date.today()
         yesterday = today - timedelta(days=1)
-        daily_rate = round(fee / 30.0, 4) if fee > 0 else 0.0
+        cur_dim_today = calendar.monthrange(today.year, today.month)[1]
+        daily_rate = round(fee / float(cur_dim_today), 4) if fee > 0 else 0.0
 
         if fee <= 0.0:
             return {
@@ -6731,6 +6743,9 @@ def calculate_customer_realtime_balance(
             cust_susp.append((today, None))
 
         billable = 0
+        total_accrued = 0.0
+        cur_m_key = None
+        cur_dim = 30
         if start_d <= yesterday:
             cur_d = start_d
             while cur_d <= yesterday:
@@ -6746,9 +6761,14 @@ def calculate_customer_realtime_balance(
                             break
                 if not in_susp and fee > 0:
                     billable += 1
+                    m_key = (cur_d.year, cur_d.month)
+                    if m_key != cur_m_key:
+                        cur_m_key = m_key
+                        cur_dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                    total_accrued += (fee / float(cur_dim))
                 cur_d += timedelta(days=1)
 
-        owed = round(billable * daily_rate, 2) if fee > 0 else 0.0
+        owed = round(total_accrued, 2) if fee > 0 else 0.0
 
         # Fetch paid amount
         paid_row = cur.execute("""
@@ -6824,7 +6844,8 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
             if fee <= 0.0:
                 bal = 0.0
             else:
-                daily_rate = round(fee / 30.0, 4)
+                cur_dim_today = calendar.monthrange(today.year, today.month)[1]
+                daily_rate = round(fee / float(cur_dim_today), 4) if fee > 0 else 0.0
                 start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
                 try:
                     start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
@@ -6832,6 +6853,9 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
                     start_d = today
 
                 billable = 0
+                total_accrued = 0.0
+                cur_m_key = None
+                cur_dim = 30
                 if start_d <= yesterday:
                     cust_susp = list(susp_by_cid.get(cid, []))
                     if str(c["status"]).strip().lower() == "suspended" and not any(r_d is None for _, r_d in cust_susp):
@@ -6851,9 +6875,14 @@ def sync_all_customer_realtime_balances(conn=None) -> int:
                                     break
                         if not in_susp:
                             billable += 1
+                            m_key = (cur_d.year, cur_d.month)
+                            if m_key != cur_m_key:
+                                cur_m_key = m_key
+                                cur_dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                            total_accrued += (fee / float(cur_dim))
                         cur_d += timedelta(days=1)
 
-                owed = round(billable * daily_rate, 2)
+                owed = round(total_accrued, 2)
                 paid = round(colls_by_cid.get(cid, 0.0), 2)
                 bal = round(paid - owed, 2)
                 c_type = (c["billing_type"] or "prepaid").strip().lower()
@@ -6952,7 +6981,8 @@ def get_balance_sheet_data(
                 start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
                 is_currently_suspended = False
             else:
-                daily_rate = round(fee / 30.0, 4)
+                cur_dim_today = calendar.monthrange(today.year, today.month)[1]
+                daily_rate = round(fee / float(cur_dim_today), 4)
                 start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
                 try:
                     start_d = datetime.strptime(str(start_str)[:10], "%Y-%m-%d").date()
@@ -6965,6 +6995,9 @@ def get_balance_sheet_data(
                     cust_susp.append((today, None))
 
                 billable = 0
+                total_accrued = 0.0
+                cur_m_key = None
+                cur_dim = 30
                 if start_d <= yesterday:
                     cur_d = start_d
                     while cur_d <= yesterday:
@@ -6980,9 +7013,14 @@ def get_balance_sheet_data(
                                     break
                         if not in_susp:
                             billable += 1
+                            m_key = (cur_d.year, cur_d.month)
+                            if m_key != cur_m_key:
+                                cur_m_key = m_key
+                                cur_dim = calendar.monthrange(cur_d.year, cur_d.month)[1]
+                            total_accrued += (fee / float(cur_dim))
                         cur_d += timedelta(days=1)
 
-                owed = round(billable * daily_rate, 2)
+                owed = round(total_accrued, 2)
                 paid = round(colls_by_cid.get(cid, 0.0), 2)
                 bal = round(paid - owed, 2)
                 c_type = (c["billing_type"] or "prepaid").strip().lower()
@@ -7105,7 +7143,8 @@ def get_balance_customer_history(customer_id: int, source: Optional[str] = None)
 
         raw_fee = c["monthly_fee"]
         fee = float(raw_fee) if raw_fee is not None else 30.0
-        daily_rate = round(fee / 30.0, 4) if fee > 0 else 0.0
+        cur_dim_today = calendar.monthrange(today.year, today.month)[1]
+        daily_rate = round(fee / float(cur_dim_today), 4) if fee > 0 else 0.0
 
         start_str = c["billing_start_date"] or c["join_date"] or today.strftime("%Y-%m-%d")
         try:
