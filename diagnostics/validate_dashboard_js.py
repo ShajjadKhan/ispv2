@@ -64,6 +64,14 @@ def check_html_js(filepath):
                     paren_level += 1
                 elif ch == ')':
                     paren_level = max(0, paren_level - 1)
+        if brace_level != 0:
+            err = f"SyntaxError in script #{s_idx}: Unclosed brace at EOF (depth {brace_level})"
+            print("ERROR:", err)
+            errors.append(err)
+        if paren_level != 0:
+            err = f"SyntaxError in script #{s_idx}: Unclosed parenthesis at EOF (depth {paren_level})"
+            print("ERROR:", err)
+            errors.append(err)
 
     print(f"Validation complete. Found {len(errors)} error(s).")
     return errors

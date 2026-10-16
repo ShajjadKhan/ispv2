@@ -571,6 +571,10 @@
     background: #10b981;
     color: #ffffff;
   }
+  .btn-tbl-collect *, .btn-bal-collect * {
+    pointer-events: none;
+    user-select: none;
+  }
 
   .bal-metric-label {
     display: none; /* Only shown on responsive card view */
@@ -2361,6 +2365,8 @@ document.addEventListener('click', function(e) {
   if (wrap && box && !wrap.contains(e.target)) {
     box.style.display = 'none';
   }
+});
+
 // Global compatibility aliases
 window.openCollectModal = openBalanceCollectModal;
 window.closeCollectModal = closeBalanceCollectModal;
