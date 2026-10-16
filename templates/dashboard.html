@@ -3150,6 +3150,8 @@
                           {% else %}
                             <span class="badge-online-pill" style="font-size:9.5px; padding:1px 5px;">ONLINE • {{ c.active_router_short_name or 'MK' }}</span>
                           {% endif %}
+                        {% elif c.status == 'suspended' %}
+                          <span style="font-size:9.5px; padding:1px 5px; background:rgba(239,68,68,0.18); color:#f87171; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-weight:700;" title="Saved in software; unbinded on MikroTik fleet until renewed">⛔ CUT ON ROUTER</span>
                         {% endif %}
                       </span>
                     </div>
