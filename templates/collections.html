@@ -1948,7 +1948,7 @@
 <!-- =========================================================
      9. COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder)
      ========================================================= -->
-<div class="modal-overlay" id="collectModal">
+<div class="modal-overlay" id="collectModal" style="z-index: 10005 !important;" onclick="if(event.target===this)closeCollectModal()">
   <div class="modal-box" style="max-width: 540px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-accent, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.65); overflow:hidden;">
     
     <!-- Modal Header -->
@@ -1967,7 +1967,7 @@
 
     <!-- Modal Body -->
     <div class="modal-body-custom" style="padding: 20px;">
-      <form id="collectForm" onsubmit="event.preventDefault(); submitSmartCollectForm();">
+      <form id="collectForm" novalidate onsubmit="event.preventDefault(); submitSmartCollectForm();">
         <input type="hidden" id="coll_cid">
 
         <!-- Loading Spinner State -->
@@ -2016,7 +2016,7 @@
               <span style="font-size:11px; color:#38bdf8; font-weight:600;">Authority Input Only</span>
             </div>
             <div style="position:relative;">
-              <input type="number" id="collAmount" name="amount" step="0.5" min="1" required class="form-control mono" style="width:100%; height:46px; font-size:22px; font-weight:900; color:#34d399; background:rgba(9,14,26,0.9); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:6px 14px 6px 50px; text-align:right;" placeholder="0.00" oninput="updateLiveCalculationPreview()">
+              <input type="number" id="collAmount" name="amount" step="0.01" min="0.01" required class="form-control mono" style="width:100%; height:46px; font-size:22px; font-weight:900; color:#34d399; background:rgba(9,14,26,0.9); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:6px 14px 6px 50px; text-align:right;" placeholder="0.00" oninput="updateLiveCalculationPreview()">
               <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:800; color:var(--text-dim); pointer-events:none;">SAR</span>
             </div>
 

@@ -1267,7 +1267,7 @@
 <!-- =========================================================
      MODAL 2: QUICK COLLECT / RECORD COLLECTION MODAL
      ========================================================= -->
-<div id="balanceCollectModal" class="bal-modal-overlay" onclick="if(event.target===this)closeBalanceCollectModal()">
+<div id="balanceCollectModal" class="bal-modal-overlay" style="z-index: 10005 !important;" onclick="if(event.target===this)closeBalanceCollectModal()">
   <div class="bal-modal-box" style="max-width:520px;">
     <div class="bal-modal-head">
       <h3>
@@ -1276,7 +1276,7 @@
       </h3>
       <button type="button" class="bal-modal-close-btn" onclick="closeBalanceCollectModal()">&times;</button>
     </div>
-    <form id="balanceCollectForm" onsubmit="handleBalanceCollectSubmit(event)" class="bal-modal-body">
+    <form id="balanceCollectForm" novalidate onsubmit="handleBalanceCollectSubmit(event)" class="bal-modal-body">
       <input type="hidden" id="collCustId" name="customer_id" value="">
 
       <!-- Customer Autocomplete Search Input -->
@@ -1315,7 +1315,7 @@
           <label style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-bottom:0;">Collection Amount (SAR)</label>
           <span style="font-size:11px; color:#38bdf8; font-family:var(--font-mono);">SAR Currency</span>
         </div>
-        <input type="number" id="collAmountInput" step="0.5" min="1" required class="bal-search-input font-mono" style="padding-left:12px; font-size:18px; font-weight:800; color:#34d399;" placeholder="0.00">
+        <input type="number" id="collAmountInput" step="0.01" min="0.01" required class="bal-search-input font-mono" style="padding-left:12px; font-size:18px; font-weight:800; color:#34d399;" placeholder="0.00">
         
         <!-- Quick Preset Chips -->
         <div class="amount-presets-bar">
@@ -1999,10 +1999,31 @@ function openBalanceCollectModal(cid, name, balance) {
 
   if (cid) {
     custIdInput.value = cid;
-    let rowData = balanceRowsData[cid] || { id: cid, name: name || ('Subscriber #' + cid), balance: (balance !== undefined ? balance : 0), room: '', mobile: '', fee: 30 };
+    let rowData = balanceRowsData[cid] || balanceRowsData[String(cid)] || { id: cid, name: name || ('Subscriber #' + cid), balance: (balance !== undefined ? balance : 0), room: '', mobile: '', fee: 30 };
+    if (balance !== undefined && balance !== null) {
+      rowData.balance = balance;
+    }
     if (searchInput) searchInput.value = rowData.name + (rowData.room ? ` (📍 ${rowData.room})` : '');
     if (clearBtn) clearBtn.style.display = 'block';
     updateModalCustomerDisplay(rowData);
+
+    // If balance was not explicitly provided and rowData has 0 balance, pull fresh breakdown asynchronously
+    if ((balance === undefined || balance === null) && (!rowData.balance || rowData.balance === 0)) {
+      fetch('/api/customers/' + cid + '/billing-breakdown')
+        .then(r => r.json())
+        .then(d => {
+          const b = d.breakdown || d;
+          if (b && custIdInput.value == cid) {
+            rowData.balance = parseFloat(b.credit_balance || 0);
+            rowData.fee = parseFloat(b.monthly_fee || 30);
+            if (b.customer_name) rowData.name = b.customer_name;
+            if (b.room) rowData.room = b.room;
+            updateModalCustomerDisplay(rowData);
+          }
+        })
+        .catch(() => {});
+    }
+
     setTimeout(() => {
       const amtInp = document.getElementById('collAmountInput');
       if (amtInp) {
