@@ -10,32 +10,39 @@ def check_html_js(filepath):
 
     errors = []
     for s_idx, script in enumerate(scripts):
-        lines = script.split('\n')
-        # Simple lexical tracker
-        # Check braces, parentheses, quotes
+        # Strip Jinja2 expressions and blocks so they don't break JS brace/paren matching
+        clean_script = re.sub(r'\{#.*?#\}', '', script, flags=re.DOTALL)
+        clean_script = re.sub(r'\{\{.*?\}\}', '""', clean_script, flags=re.DOTALL)
+        clean_script = re.sub(r'\{%.*?%\}', '', clean_script, flags=re.DOTALL)
+
+        lines = clean_script.split('\n')
         brace_level = 0
         paren_level = 0
         in_multiline_comment = False
+        in_str = None
         top_scope_declarations = {}
 
         for l_idx, line in enumerate(lines, 1):
             stripped = line.strip()
             
             # Check comments
-            if '/*' in stripped and '*/' not in stripped:
-                in_multiline_comment = True
-                continue
-            if '*/' in stripped:
-                in_multiline_comment = False
-                continue
-            if in_multiline_comment or stripped.startswith('//'):
-                continue
+            if not in_str:
+                if '/*' in stripped and '*/' not in stripped:
+                    in_multiline_comment = True
+                    continue
+                if '*/' in stripped:
+                    in_multiline_comment = False
+                    continue
+                if in_multiline_comment or stripped.startswith('//'):
+                    continue
 
-            # Strip single line comment at end
-            clean = re.sub(r'//.*$', '', line)
+            # Strip single line comment at end (if not inside string)
+            clean = line
+            if not in_str:
+                clean = re.sub(r'//.*$', '', line)
 
             # Check if declaring let/const at top-level
-            if brace_level == 0:
+            if brace_level == 0 and not in_str:
                 m = re.match(r'^\s*(let|const)\s+([a-zA-Z0-9_$]+)', clean)
                 if m:
                     kind = m.group(1)
@@ -47,23 +54,30 @@ def check_html_js(filepath):
                     else:
                         top_scope_declarations[var_name] = f"{kind} at line {l_idx}"
 
-            # Track braces
-            # Quick brace count outside strings
-            in_str = None
-            for ch in clean:
+            # Track braces and strings with escape awareness
+            i = 0
+            n = len(clean)
+            while i < n:
+                ch = clean[i]
                 if in_str:
-                    if ch == in_str:
+                    if ch == '\\':
+                        i += 2  # Skip escaped character
+                        continue
+                    elif ch == in_str:
                         in_str = None
-                elif ch in ("'", '"', '`'):
-                    in_str = ch
-                elif ch == '{':
-                    brace_level += 1
-                elif ch == '}':
-                    brace_level = max(0, brace_level - 1)
-                elif ch == '(':
-                    paren_level += 1
-                elif ch == ')':
-                    paren_level = max(0, paren_level - 1)
+                else:
+                    if ch in ("'", '"', '`'):
+                        in_str = ch
+                    elif ch == '{':
+                        brace_level += 1
+                    elif ch == '}':
+                        brace_level = max(0, brace_level - 1)
+                    elif ch == '(':
+                        paren_level += 1
+                    elif ch == ')':
+                        paren_level = max(0, paren_level - 1)
+                i += 1
+
         if brace_level != 0:
             err = f"SyntaxError in script #{s_idx}: Unclosed brace at EOF (depth {brace_level})"
             print("ERROR:", err)
