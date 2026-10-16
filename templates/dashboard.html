@@ -466,6 +466,10 @@
     align-items: center;
     gap: 6px;
     transition: all 0.15s ease;
+    user-select: none;
+  }
+  .btn-quick-collect * {
+    pointer-events: none;
   }
   .btn-quick-collect:hover {
     background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
@@ -3084,7 +3088,7 @@
               </td>
               <td data-label="Actions" class="sub-actions-cell" style="text-align: right;">
                 <div style="display: inline-flex; align-items: center; gap: 5px;">
-                  <button type="button" class="btn-quick-collect" data-cid="{{ c.id }}" data-cname="{{ c.name|escape }}" onclick="openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'))" title="Collect Payment &amp; Settle Unpaid Month(s)">
+                  <button type="button" class="btn-quick-collect" data-cid="{{ c.id }}" data-cname="{{ c.name|escape }}" onclick="event.stopPropagation(); openCollectModal(this.getAttribute('data-cid'), this.getAttribute('data-cname'))" title="Collect Payment &amp; Settle Unpaid Month(s)">
                     <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
                     <span>Collect</span>
                   </button>
@@ -4174,9 +4178,6 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
-
-  // Month-by-Month Collect & Settle Controller (Matching Billing Reminder)
-  let activeCollCustId = null;
 
   // =========================================================
   // UNIFIED SMART COLLECT PAYMENT CONTROLLER
