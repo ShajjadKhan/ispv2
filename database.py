@@ -937,14 +937,17 @@ def check_and_enforce_customer_expirations() -> List[Dict[str, Any]]:
     return expired_records
 
 
-def get_customer_by_mac(mac: str) -> Optional[Dict[str, Any]]:
+def get_customer_by_mac(mac: str, approved_only: bool = False) -> Optional[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        where_approved = "AND d.status = 'approved'" if approved_only else ""
+        cursor.execute(f"""
             SELECT c.*, d.mac_address, d.status as device_status
             FROM customer_devices d
             JOIN customers c ON d.customer_id = c.id
-            WHERE UPPER(d.mac_address) = UPPER(?) AND d.status = 'approved'
+            WHERE UPPER(d.mac_address) = UPPER(?) {where_approved}
+            ORDER BY CASE WHEN d.status = 'approved' THEN 0 ELSE 1 END, d.id DESC
+            LIMIT 1
         """, (mac,))
         row = cursor.fetchone()
         if not row:
@@ -953,8 +956,8 @@ def get_customer_by_mac(mac: str) -> Optional[Dict[str, Any]]:
         is_exp, reason, exp_date = is_customer_expired(cust)
         cust["is_expired"] = is_exp
         cust["expiry_reason"] = reason
-        if is_exp:
-            cust["status"] = "expired"
+        if is_exp or cust.get("status") == "suspended":
+            cust["status"] = "expired" if is_exp else cust.get("status")
         return cust
 
 
@@ -1896,12 +1899,11 @@ def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]
         cursor.execute("SELECT name, rate_limit, default_price FROM packages")
         pkg_map = {row["name"]: dict(row) for row in cursor.fetchall()}
 
-        # Preload approved devices for customer list
+        # Preload registered devices for customer list (preserved even if customer suspended)
         cursor.execute("""
             SELECT id, customer_id, mac_address, ip_address, device_name, status, approved_at, created_at
             FROM customer_devices
-            WHERE status = 'approved'
-            ORDER BY id ASC
+            ORDER BY CASE WHEN status = 'approved' THEN 0 ELSE 1 END, id ASC
         """)
         dev_rows = cursor.fetchall()
         cust_dev_map: Dict[int, List[Dict[str, Any]]] = {}
@@ -2756,6 +2758,14 @@ def record_customer_payment(
             new_expiry = (calc_base + timedelta(days=actual_days)).strftime("%Y-%m-%d")
         else:
             new_expiry = current_exp or now.strftime("%Y-%m-%d")
+
+        # Invariant: Expiry date must NEVER move backwards! It must remain consistent with admin setting.
+        if clean_amt > 0:
+            existing_admin_date = str(cust.get("expiry_date") or cust.get("due_date") or "")[:10]
+            cur_month_end = f"{now.year:04d}-{now.month:02d}-{calendar.monthrange(now.year, now.month)[1]:02d}"
+            valid_candidates = [d for d in [new_expiry, existing_admin_date, cur_month_end] if d and len(d) == 10 and d[4] == '-' and d[7] == '-']
+            new_expiry = max(valid_candidates) if valid_candidates else cur_month_end
+
         try:
             new_due_day = int(new_expiry.split("-")[2])
         except Exception:
@@ -3837,12 +3847,12 @@ def get_dashboard_metrics(
         all_custs = [dict(r) for r in cursor.fetchall()]
         rt_balances = get_all_customer_realtime_balances(conn)
 
-        cursor.execute("SELECT * FROM customer_devices WHERE status = 'approved'")
+        cursor.execute("SELECT * FROM customer_devices ORDER BY CASE WHEN status = 'approved' THEN 0 ELSE 1 END, id ASC")
         all_devices = [dict(r) for r in cursor.fetchall()]
         for dev in all_devices:
             dev["is_random_mac"] = is_randomized_mac(dev.get("mac_address", ""))
 
-        # Map devices by customer_id
+        # Map devices by customer_id (preserves devices in software even if suspended/blocked)
         cust_devices_map: Dict[int, List[Dict[str, Any]]] = {}
         for dev in all_devices:
             cid = dev["customer_id"]
@@ -3855,7 +3865,8 @@ def get_dashboard_metrics(
         suspended_customers = [c for c in all_custs if c.get("status") == "suspended"]
 
         # Online Device matching & Multi-Router Roaming Attribution
-        total_approved_devices = len(all_devices)
+        approved_devices = [d for d in all_devices if d.get("status") == "approved"]
+        total_approved_devices = len(approved_devices)
         online_approved_devices = 0
         online_customer_ids = set()
         fleet_online_by_router = {"MK10": 0, "MK20": 0, "MK30": 0}
@@ -3880,7 +3891,7 @@ def get_dashboard_metrics(
             dev["sharing_detail"] = telem.get("sharing_detail")
             dev["sharing_timeout"] = telem.get("sharing_timeout")
 
-            if is_online:
+            if is_online and dev.get("status") == "approved":
                 online_approved_devices += 1
                 online_customer_ids.add(dev["customer_id"])
                 r_code = dev.get("router_short_name")
