@@ -1424,12 +1424,16 @@
           </div>
         </div>
 
-        <!-- 4. Submit CTA -->
-        <div>
+        <!-- 4. Submit CTA & WhatsApp Toggle -->
+        <div style="display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
           <button type="submit" class="btn-pos-collect" id="btnPosSubmit">
             <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
             <span>Collect &amp; Extend</span>
           </button>
+          <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:11.5px; font-weight:700; color:#4ade80; margin:0; user-select:none;">
+            <input type="checkbox" id="posSendWhatsApp" checked style="accent-color:#25d366; width:15px; height:15px; cursor:pointer;">
+            <span>📱 Send WhatsApp Receipt</span>
+          </label>
         </div>
       </div>
     </form>
@@ -2386,6 +2390,7 @@
     const custId = document.getElementById('posSelectedCustomerId').value;
     const amt = parseFloat(document.getElementById('posAmountInput').value) || 0;
     const notes = document.getElementById('posNotesInput').value.trim() || 'Cash Payment';
+    const sendWa = document.getElementById('posSendWhatsApp') ? document.getElementById('posSendWhatsApp').checked : true;
 
     if (!custId) {
       cyberToast('Please search and select a subscriber from the suggestions list.', 'warning');
@@ -2401,12 +2406,20 @@
       const resp = await fetch(`/api/customers/${custId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, notes: notes })
+        body: JSON.stringify({ amount: amt, notes: notes, send_whatsapp: sendWa })
       });
       const res = await resp.json();
       if (res.success) {
-        cyberToast(res.message || 'Payment successfully recorded!', 'success');
-        location.reload();
+        let feedback = res.message || 'Payment successfully recorded!';
+        if (res.whatsapp_receipt) {
+          if (res.whatsapp_receipt.sent) {
+            feedback += ' 📱 WhatsApp digital receipt dispatched!';
+          } else if (res.whatsapp_receipt.status === 'blocked_sandbox') {
+            feedback += ' (WhatsApp held: Sandbox shield active)';
+          }
+        }
+        cyberToast(feedback, 'success');
+        setTimeout(() => location.reload(), 1200);
       } else {
         cyberToast('Collection failed: ' + (res.message || res.error), 'error');
         btn.disabled = false;

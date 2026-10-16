@@ -1125,7 +1125,7 @@ class RecordPaymentPayload(BaseModel):
     extend_days: int = 30
     notes: Optional[str] = "Manual Service Renewal"
     advance_mode: Optional[str] = "credit"  # "credit" or "months"
-    send_whatsapp: Optional[bool] = False
+    send_whatsapp: Optional[bool] = True
 
 
 class ApplyCreditPayload(BaseModel):

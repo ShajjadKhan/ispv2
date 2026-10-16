@@ -4100,7 +4100,7 @@
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection' })
+        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection', send_whatsapp: true })
       });
       const res = await resp.json();
       if (res.success) {
@@ -4151,7 +4151,7 @@
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment' })
+        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment', send_whatsapp: true })
       });
       const res = await resp.json();
       if (res.success) {
