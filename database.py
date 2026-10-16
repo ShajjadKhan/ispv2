@@ -814,23 +814,24 @@ def is_customer_expired(cust: Optional[Dict[str, Any]], today_str: Optional[str]
     if susp_until and str(susp_until).strip() >= today_str:
         return (False, f"Protected by active grace hold until {susp_until}", str(susp_until).strip())
 
-    # 2. Expiry / Due date check
-    raw_exp = cust.get("expiry_date") or cust.get("due_date")
-    exp_date_str = None
-    if raw_exp:
-        try:
-            exp_date_str = str(raw_exp).split()[0].strip()
-            if len(exp_date_str) == 10 and exp_date_str[4] == '-' and exp_date_str[7] == '-':
-                if exp_date_str < today_str:
-                    return (True, f"Subscription expired on {exp_date_str}", exp_date_str)
-        except Exception:
-            pass
+    # 2. Expiry / Due date check: check BOTH expiry_date and due_date
+    d_exp = str(cust.get("expiry_date") or "").split()[0].strip() if cust.get("expiry_date") else ""
+    d_due = str(cust.get("due_date") or "").split()[0].strip() if cust.get("due_date") else ""
+    valid_dates = [d for d in [d_exp, d_due] if len(d) == 10 and d[4] == '-' and d[7] == '-']
+    effective_date = max(valid_dates) if valid_dates else None
 
-    # 3. Explicit suspended status check
+    # If subscriber has any valid date in the future or today, they have date and are NOT expired!
+    if effective_date and effective_date >= today_str:
+        return (False, f"Subscription active until {effective_date}", effective_date)
+
+    # 3. Explicit suspended status check (if no future date protects them)
     if cust.get("status") == "suspended":
-        return (True, "Subscription is suspended", exp_date_str or raw_exp)
+        return (True, "Subscription is suspended", effective_date)
 
-    return (False, f"Subscription active until {exp_date_str}" if exp_date_str else "Active", exp_date_str or raw_exp)
+    if effective_date and effective_date < today_str:
+        return (True, f"Subscription expired on {effective_date}", effective_date)
+
+    return (False, "Active", effective_date)
 
 
 def check_and_enforce_guest_expirations() -> List[Dict[str, Any]]:
@@ -2313,6 +2314,16 @@ def update_customer_details(
             else:
                 new_due_day = current.get("due_day") or 1
 
+        today_iso = now_str[:10]
+        # If subscriber has date in the future or today, they must not remain suspended
+        has_future_date = bool(
+            (new_due_date and str(new_due_date)[:10] >= today_iso) or
+            (new_expiry_date and str(new_expiry_date)[:10] >= today_iso)
+        )
+        if has_future_date and (new_status == "suspended" or current.get("status") == "suspended"):
+            # Auto-activate because customer was granted more date!
+            new_status = "active"
+
         cursor.execute("""
             UPDATE customers
             SET name = ?, phone = ?, billing_type = ?, package_name = ?,
@@ -2332,21 +2343,22 @@ def update_customer_details(
             customer_id
         ))
 
-        # Handle suspension lifecycle if status changed
-        if new_status != current.get("status"):
-            if new_status == "suspended":
-                cursor.execute("SELECT id FROM customer_suspensions WHERE customer_id = ? AND resumed_at IS NULL", (customer_id,))
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
-                        VALUES (?, ?, 'Admin profile status update', ?)
-                    """, (customer_id, now_str, now_str))
-            elif new_status == "active":
+        # Handle suspension lifecycle if status changed or activated
+        if new_status == "active":
+            cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
+            cursor.execute("""
+                UPDATE customer_suspensions
+                SET resumed_at = ?
+                WHERE customer_id = ? AND resumed_at IS NULL
+            """, (now_str, customer_id))
+        elif new_status == "suspended" and current.get("status") != "suspended":
+            cursor.execute("UPDATE customer_devices SET status = 'blocked' WHERE customer_id = ?", (customer_id,))
+            cursor.execute("SELECT id FROM customer_suspensions WHERE customer_id = ? AND resumed_at IS NULL", (customer_id,))
+            if not cursor.fetchone():
                 cursor.execute("""
-                    UPDATE customer_suspensions
-                    SET resumed_at = ?
-                    WHERE customer_id = ? AND resumed_at IS NULL
-                """, (now_str, customer_id))
+                    INSERT INTO customer_suspensions (customer_id, suspended_at, reason, created_at)
+                    VALUES (?, ?, 'Admin profile status update', ?)
+                """, (customer_id, now_str, now_str))
 
         conn.commit()
 
@@ -3479,8 +3491,19 @@ def settle_customer_cycles(
 
         # Restore customer status and devices if any payment was collected
         if total_collected > 0:
+            cur_month_end = f"{now.year:04d}-{now.month:02d}-{calendar.monthrange(now.year, now.month)[1]:02d}"
+            existing_due = str(cust.get("due_date") or cust.get("expiry_date") or "")[:10]
+            valid_candidates = [d for d in [existing_due, cur_month_end] if d and len(d) == 10 and d[4] == '-' and d[7] == '-']
+            target_date = max(valid_candidates) if valid_candidates else cur_month_end
+
+            cursor.execute("""
+                UPDATE customers
+                SET status = 'active', due_date = ?, expiry_date = ?,
+                    suspension_held_until = NULL, suspension_hold_reason = NULL,
+                    updated_at = ?
+                WHERE id = ?
+            """, (target_date, target_date, now_str, customer_id))
             cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
-            cursor.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer_id))
             cursor.execute("""
                 UPDATE customer_suspensions
                 SET resumed_at = ?
@@ -3523,6 +3546,12 @@ def settle_customer_cycles(
                 new_due_date = f"{ny:04d}-{nm:02d}-{due_day:02d}"
             except Exception:
                 new_due_date = (now + timedelta(days=30)).strftime("%Y-%m-%d")
+
+            # Invariant: Never push expiry/due date into the past!
+            cur_month_end = f"{now.year:04d}-{now.month:02d}-{calendar.monthrange(now.year, now.month)[1]:02d}"
+            existing_due = str(cust.get("due_date") or cust.get("expiry_date") or "")[:10]
+            valid_candidates = [d for d in [new_due_date, existing_due, cur_month_end] if d and len(d) == 10 and d[4] == '-' and d[7] == '-']
+            new_due_date = max(valid_candidates) if valid_candidates else cur_month_end
 
             cursor.execute("""
                 UPDATE customers
@@ -7399,6 +7428,18 @@ def smart_collect_customer_payment(
             except Exception:
                 calc_base = now
             new_exp = (calc_base + timedelta(days=days_to_add)).strftime("%Y-%m-%d")
+            try:
+                new_due_day = int(new_exp.split("-")[2])
+            except Exception:
+                new_due_day = 1
+
+        # Invariant: Whenever payment is collected, the customer has paid towards their subscription!
+        # The expiry date must NEVER be in the past. It must at minimum cover through the current month.
+        if clean_amt > 0:
+            cur_month_end = f"{now.year:04d}-{now.month:02d}-{calendar.monthrange(now.year, now.month)[1]:02d}"
+            existing_exp = str(cust.get("expiry_date") or cust.get("due_date") or "")[:10]
+            valid_candidates = [d for d in [new_exp, existing_exp, cur_month_end] if d and len(d) == 10 and d[4] == '-' and d[7] == '-']
+            new_exp = max(valid_candidates) if valid_candidates else cur_month_end
             try:
                 new_due_day = int(new_exp.split("-")[2])
             except Exception:

@@ -3295,6 +3295,26 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         effective_rate = effective_speed if (effective_speed and effective_speed.strip()) else default_rate
 
         # 3. Apply to MikroTik fleet
+        # Ensure customer with valid future due/expiry date is active and never erroneously unbound
+        today_str = date.today().strftime("%Y-%m-%d")
+        exp_d = str(customer.get("expiry_date") or "")[:10]
+        due_d = str(customer.get("due_date") or "")[:10]
+        valid_dates = [d for d in [exp_d, due_d] if len(d) == 10 and d[4] == '-' and d[7] == '-']
+        has_future_date = any(d >= today_str for d in valid_dates)
+
+        if has_future_date and customer.get("status") != "active":
+            try:
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                with database.get_db() as conn:
+                    conn.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer["id"]))
+                    conn.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer["id"],))
+                    conn.execute("UPDATE customer_suspensions SET resumed_at = ? WHERE customer_id = ? AND resumed_at IS NULL", (now_str, customer["id"]))
+                    conn.commit()
+                customer["status"] = "active"
+                customer["is_expired"] = False
+            except Exception as e:
+                logger.warning(f"Failed to auto-activate customer {customer.get('id')} in approve_request: {e}")
+
         is_active = (customer.get("status") == "active") and not customer.get("is_expired")
         notes_str = f" [{customer['notes'].strip()}]" if customer.get("notes") and customer["notes"].strip() else ""
 
