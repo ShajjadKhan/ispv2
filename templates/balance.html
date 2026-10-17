@@ -268,7 +268,7 @@
     background: #080e1b;
     border: 1px solid rgba(148, 163, 184, 0.35);
     border-radius: 7px;
-    padding: 7px 10px 7px 32px;
+    padding: 7px 32px 7px 32px;
     font-size: 12.5px;
     color: #f8fafc;
     font-family: var(--font-sans);
@@ -278,6 +278,32 @@
     outline: none;
     border-color: #38bdf8;
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+  }
+  .bal-search-clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    line-height: 1;
+    z-index: 2;
+  }
+  .bal-search-clear-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #ef4444;
   }
 
   .bal-status-pills {
@@ -351,6 +377,10 @@
   }
   table#balanceTable tbody tr:hover {
     background: rgba(56, 189, 248, 0.04) !important;
+  }
+  tr.bal-row-hidden,
+  table#balanceTable tbody tr.bal-row-hidden {
+    display: none !important;
   }
 
   table#balanceTable tbody td {
@@ -631,7 +661,12 @@
       left: -9999px !important;
     }
 
-    .responsive-bal-table tbody tr:not(.table-total-row):not(#balanceNoMatchRow) {
+    tr.bal-row-hidden,
+    .responsive-bal-table tbody tr.bal-row-hidden {
+      display: none !important;
+    }
+
+    .responsive-bal-table tbody tr:not(.table-total-row):not(#balanceNoMatchRow):not(.bal-row-hidden) {
       display: grid !important;
       grid-template-columns: 1fr 1fr 1fr !important;
       gap: 6px !important;
@@ -641,6 +676,20 @@
       border-radius: 12px !important;
       padding: 12px 14px !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      box-sizing: border-box !important;
+    }
+
+    .responsive-bal-table tbody tr#balanceNoMatchRow {
+      display: block !important;
+      margin: 10px !important;
+      background: var(--bg-card) !important;
+      border: 1px dashed var(--border-subtle) !important;
+      border-radius: 12px !important;
+      box-sizing: border-box !important;
+    }
+    .responsive-bal-table tbody tr#balanceNoMatchRow td {
+      display: block !important;
+      width: 100% !important;
       box-sizing: border-box !important;
     }
 
@@ -1252,14 +1301,15 @@
   <div class="bal-toolbar-card">
     <div class="bal-search-box">
       <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="search" id="balanceSearch" class="bal-search-input" placeholder="🔍 Search by name, phone (05x/966x), room, notes…" oninput="filterBalanceTable()" onsearch="filterBalanceTable()">
+      <input type="search" id="balanceSearch" class="bal-search-input" value="{{ search_q or '' }}" placeholder="🔍 Search by name, phone (05x/966x), room, notes…" oninput="filterBalanceTable()" onsearch="filterBalanceTable()" autocomplete="off">
+      <button type="button" id="balanceSearchClearBtn" class="bal-search-clear-btn" style="display:none;" onclick="clearBalanceSearch()" title="Clear search">✕</button>
     </div>
 
     <div class="bal-status-pills">
-      <button type="button" class="filter-pill balance-filter-pill active" onclick="setBalanceFilter('all', this)">All ({{ status_counts.all }})</button>
-      <button type="button" class="filter-pill balance-filter-pill" onclick="setBalanceFilter('owing', this)" style="color:#f87171;">⚠️ Owing ({{ status_counts.owing }})</button>
-      <button type="button" class="filter-pill balance-filter-pill" onclick="setBalanceFilter('settled', this)" style="color:#60a5fa;">✓ Settled ({{ status_counts.settled }})</button>
-      <button type="button" class="filter-pill balance-filter-pill" onclick="setBalanceFilter('credit', this)" style="color:#34d399;">★ Credit ({{ status_counts.credit }})</button>
+      <button type="button" class="filter-pill balance-filter-pill {% if (status_filter or 'all') == 'all' %}active{% endif %}" onclick="setBalanceFilter('all', this)">All ({{ status_counts.all }})</button>
+      <button type="button" class="filter-pill balance-filter-pill {% if status_filter == 'owing' %}active{% endif %}" onclick="setBalanceFilter('owing', this)" style="color:#f87171;">⚠️ Owing ({{ status_counts.owing }})</button>
+      <button type="button" class="filter-pill balance-filter-pill {% if status_filter == 'settled' %}active{% endif %}" onclick="setBalanceFilter('settled', this)" style="color:#60a5fa;">✓ Settled ({{ status_counts.settled }})</button>
+      <button type="button" class="filter-pill balance-filter-pill {% if status_filter == 'credit' %}active{% endif %}" onclick="setBalanceFilter('credit', this)" style="color:#34d399;">★ Credit ({{ status_counts.credit }})</button>
     </div>
   </div>
 
@@ -1282,7 +1332,7 @@
         <tbody>
           {% for r in rows %}
           <tr data-status="{{ r.status|lower }}"
-              data-search="{{ r.name|lower }} {{ r.mobile }} {{ (r.room or '')|lower }} {{ r.id }}"
+              data-search="{{ r.name|lower }} {{ r.mobile }} {{ r.norm_phone or '' }} {{ (r.room or '')|lower }} {{ r.id }} {{ r.status|lower }}"
               style="{% if r.balance < 0 %}background:rgba(239,68,68,0.035);{% elif r.balance > 0 %}background:rgba(16,185,129,0.035);{% endif %}">
             
             <!-- Index / Rank -->
@@ -1794,17 +1844,39 @@
    INTERACTIVE BALANCE SHEET SEARCH, FILTERS & MODALS
    ========================================================= */
 
-let activeStatusFilter = 'all';
+let activeStatusFilter = '{{ status_filter or "all" }}';
 
 function setBalanceFilter(status, btn) {
   activeStatusFilter = status;
   document.querySelectorAll('.balance-filter-pill').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  if (btn) {
+    btn.classList.add('active');
+  } else {
+    const matchingBtn = Array.from(document.querySelectorAll('.balance-filter-pill')).find(b => b.getAttribute('onclick')?.includes(`'${status}'`));
+    if (matchingBtn) matchingBtn.classList.add('active');
+  }
+  filterBalanceTable();
+}
+
+function clearBalanceSearch() {
+  const input = document.getElementById('balanceSearch');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
   filterBalanceTable();
 }
 
 function filterBalanceTable() {
-  const query = (document.getElementById('balanceSearch')?.value || '').toLowerCase().trim();
+  const searchInput = document.getElementById('balanceSearch');
+  const clearBtn = document.getElementById('balanceSearchClearBtn');
+  const rawQuery = (searchInput?.value || '').trim();
+  const query = rawQuery.toLowerCase();
+
+  if (clearBtn) {
+    clearBtn.style.display = rawQuery ? 'inline-flex' : 'none';
+  }
+
   const table = document.getElementById('balanceTable');
   const rows = table ? table.querySelectorAll('tbody tr:not(.table-total-row):not(#balanceNoMatchRow)') : [];
   const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
@@ -1827,34 +1899,64 @@ function filterBalanceTable() {
 
   let visibleCount = 0;
   rows.forEach(r => {
-    const searchData = (r.getAttribute('data-search') || r.textContent).toLowerCase();
+    const searchData = ((r.getAttribute('data-search') || '') + ' ' + (r.textContent || '')).toLowerCase();
     const st = (r.getAttribute('data-status') || '').toLowerCase();
-    if (testMatch(searchData, st)) {
-      r.style.display = '';
+    const match = testMatch(searchData, st);
+    if (match) {
+      r.classList.remove('bal-row-hidden');
+      r.style.setProperty('display', '');
       visibleCount++;
     } else {
-      r.style.display = 'none';
+      r.classList.add('bal-row-hidden');
+      r.style.setProperty('display', 'none', 'important');
     }
   });
 
+  // Toggle Grand Total Row based on search results
+  const totalRow = table ? table.querySelector('tbody tr.table-total-row') : null;
+  if (totalRow) {
+    if (visibleCount === 0 && (tokens.length > 0 || activeStatusFilter !== 'all')) {
+      totalRow.classList.add('bal-row-hidden');
+      totalRow.style.setProperty('display', 'none', 'important');
+    } else {
+      totalRow.classList.remove('bal-row-hidden');
+      totalRow.style.setProperty('display', '');
+    }
+  }
+
   // No-Match Row Handling
   let noRow = document.getElementById('balanceNoMatchRow');
-  if (visibleCount === 0 && (query || activeStatusFilter !== 'all')) {
+  if (visibleCount === 0 && (tokens.length > 0 || activeStatusFilter !== 'all')) {
     if (!noRow && table) {
       const tbody = table.querySelector('tbody');
       if (tbody) {
         noRow = document.createElement('tr');
         noRow.id = 'balanceNoMatchRow';
-        noRow.innerHTML = `<td colspan="8" style="text-align:center; padding:32px; color:var(--text-dim);"><div style="font-size:24px; margin-bottom:8px; opacity:0.5;">🔍</div><strong>No matching subscriber records found</strong><div style="font-size:12px; margin-top:4px;">Try searching with a different name, phone, room, or reset filters.</div></td>`;
-        tbody.insertBefore(noRow, tbody.querySelector('.table-total-row'));
+        const msgText = `No customer matches "${escapeHtml(rawQuery)}"${activeStatusFilter !== 'all' ? ` in ${activeStatusFilter.toUpperCase()} status` : ''}. Try searching by another name, room, or phone number.`;
+        noRow.innerHTML = `<td colspan="8" style="text-align:center; padding:32px 16px; color:var(--text-dim);"><div style="font-size:28px; margin-bottom:8px; opacity:0.6;">🔍</div><strong style="color:#ffffff; font-size:14px;">No matching subscriber records found</strong><div id="balanceNoMatchMsg" style="font-size:12px; margin-top:6px; color:var(--text-dim);">${msgText}</div></td>`;
+        if (totalRow) {
+          tbody.insertBefore(noRow, totalRow);
+        } else {
+          tbody.appendChild(noRow);
+        }
       }
     } else if (noRow) {
-      noRow.style.display = '';
+      noRow.classList.remove('bal-row-hidden');
+      noRow.style.setProperty('display', '');
+      const msg = document.getElementById('balanceNoMatchMsg');
+      if (msg) {
+        msg.textContent = `No customer matches "${rawQuery}"${activeStatusFilter !== 'all' ? ` in ${activeStatusFilter.toUpperCase()} status` : ''}. Try searching by another name, room, or phone number.`;
+      }
     }
   } else if (noRow) {
-    noRow.style.display = 'none';
+    noRow.classList.add('bal-row-hidden');
+    noRow.style.setProperty('display', 'none', 'important');
   }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  filterBalanceTable();
+});
 
 // History Modal
 async function showBalanceHistory(cid, name) {
