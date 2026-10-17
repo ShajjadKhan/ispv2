@@ -74,6 +74,29 @@ STATIC_DIR = BASE_DIR / "static"
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+
+# ---------------------------------------------------------
+# Root Favicon / Apple Touch Icon (browsers request these
+# automatically at the origin root, e.g. /favicon.ico).
+# ---------------------------------------------------------
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico():
+    icon = STATIC_DIR / "favicon.ico"
+    if icon.exists():
+        return FileResponse(str(icon), media_type="image/x-icon",
+                            headers={"Cache-Control": "public, max-age=604800"})
+    raise HTTPException(status_code=404, detail="Not found")
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+async def apple_touch_icon():
+    icon = STATIC_DIR / "apple-touch-icon.png"
+    if icon.exists():
+        return FileResponse(str(icon), media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=604800"})
+    raise HTTPException(status_code=404, detail="Not found")
+
 # Initialize database schema and auth engine
 database.init_db()
 auth_service.init_auth_schema()
@@ -1362,6 +1385,8 @@ PUBLIC_EXACT_PATHS = {
     "/api/auth/login",
     "/api/auth/logout",
     "/favicon.ico",
+    "/apple-touch-icon.png",
+    "/apple-touch-icon-precomposed.png",
     "/portal",
     "/hotspot",
     "/hotspot/login",

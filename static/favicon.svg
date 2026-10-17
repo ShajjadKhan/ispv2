@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CyberNet OS">
+  <defs>
+    <linearGradient id="cn-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="64" y2="64">
+      <stop offset="0" stop-color="#0284c7"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" ry="14" fill="url(#cn-grad)"/>
+  <circle cx="32" cy="32" r="17.5" fill="#ffffff"/>
+  <g fill="none" stroke="url(#cn-grad)" stroke-width="2.6" stroke-linecap="round">
+    <ellipse cx="32" cy="32" rx="7.8" ry="17.5"/>
+    <path d="M14.5 32 h35"/>
+    <path d="M16.7 23.5 h30.6"/>
+    <path d="M16.7 40.5 h30.6"/>
+  </g>
+</svg>
