@@ -16,7 +16,7 @@ import asyncio
 import logging
 import base64
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
@@ -3296,7 +3296,7 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
 
         # 3. Apply to MikroTik fleet
         # Ensure customer with valid future due/expiry date is active and never erroneously unbound
-        today_str = date.today().strftime("%Y-%m-%d")
+        today_str = datetime.now().strftime("%Y-%m-%d")
         exp_d = str(customer.get("expiry_date") or "")[:10]
         due_d = str(customer.get("due_date") or "")[:10]
         valid_dates = [d for d in [exp_d, due_d] if len(d) == 10 and d[4] == '-' and d[7] == '-']
