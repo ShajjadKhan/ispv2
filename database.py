@@ -5377,6 +5377,7 @@ def get_collections_hub_data(
     and filtered collection transactions for the Collections & Ledger Hub.
     """
     now = datetime.now()
+    today = now.date()
     now_str = now.strftime("%Y-%m-%d %H:%M:%S")
     today_str = now.strftime("%Y-%m-%d")
     current_month = now.strftime("%Y-%m")
@@ -5430,7 +5431,7 @@ def get_collections_hub_data(
 
                 c_copy = dict(c)
                 if is_grace:
-                    dim_today = calendar.monthrange(today.year, today.month)[1]
+                    dim_today = calendar.monthrange(now.year, now.month)[1]
                     daily_r = round(fee / float(dim_today), 4) if fee > 0 else 0.0
                     try:
                         p_day = int(str(c.get("suspension_held_until", "")).split("-")[2])
