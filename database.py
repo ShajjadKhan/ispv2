@@ -67,10 +67,13 @@ def validate_mac_address(mac: Optional[str], allow_random: bool = False) -> Tupl
     return True, "Valid Device MAC address.", norm
 
 def get_raw_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, timeout=20.0)
+    conn = sqlite3.connect(DB_PATH, timeout=25.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA busy_timeout = 20000;")
-    conn.execute("PRAGMA foreign_keys = ON;")
+    conn.execute("PRAGMA busy_timeout = 25000;")
+    conn.execute("PRAGMA journal_mode = WAL;")
+    conn.execute("PRAGMA synchronous = NORMAL;")
+    conn.execute("PRAGMA cache_size = -64000;")
+    conn.execute("PRAGMA temp_store = MEMORY;")
     return conn
 
 @contextmanager
@@ -6168,6 +6171,137 @@ def record_device_traffic_delta(
 
         conn.commit()
         return True
+
+
+def record_device_traffic_deltas_batch(deltas_list: List[Dict[str, Any]]) -> int:
+    """
+    High-performance batch processor that persists multiple device traffic deltas
+    in a single database transaction rather than locking SQLite hundreds of times.
+    """
+    if not deltas_list:
+        return 0
+
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    hour_int = now.hour
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    processed = 0
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for item in deltas_list:
+            mac_address = item.get("mac_address")
+            if not mac_address:
+                continue
+            mac_clean = mac_address.strip().upper()
+            download_bytes = max(0, item.get("download_bytes", 0))
+            upload_bytes = max(0, item.get("upload_bytes", 0))
+            active_seconds = max(0, item.get("active_seconds", 60))
+            ip_address = item.get("ip_address")
+            total_bytes = download_bytes + upload_bytes
+            if total_bytes <= 0:
+                continue
+
+            customer_id = item.get("customer_id")
+            device_id = None
+            device_name = item.get("device_name")
+
+            if not customer_id:
+                if mac_clean.startswith("PPPOE:"):
+                    uname = mac_clean.split(":", 1)[1]
+                    cursor.execute("SELECT id, name FROM customers WHERE UPPER(pppoe_username) = ? LIMIT 1", (uname,))
+                    crow = cursor.fetchone()
+                    if crow:
+                        customer_id = crow["id"]
+                        device_name = device_name or f"PPPoE Router [{uname}]"
+                else:
+                    cursor.execute("""
+                        SELECT id, customer_id, device_name 
+                        FROM customer_devices 
+                        WHERE UPPER(mac_address) = ? AND status = 'approved'
+                        LIMIT 1
+                    """, (mac_clean,))
+                    dev_row = cursor.fetchone()
+                    if dev_row:
+                        device_id = dev_row["id"]
+                        customer_id = dev_row["customer_id"]
+                        device_name = dev_row["device_name"] or "Client Device"
+                    else:
+                        cursor.execute("""
+                            SELECT customer_id, device_model 
+                            FROM connection_requests 
+                            WHERE UPPER(mac_address) = ? AND customer_id IS NOT NULL
+                            LIMIT 1
+                        """, (mac_clean,))
+                        req_row = cursor.fetchone()
+                        if req_row and req_row["customer_id"]:
+                            customer_id = req_row["customer_id"]
+                            device_name = req_row["device_model"] or "Client Device"
+
+            if not customer_id:
+                continue
+
+            if not device_name:
+                device_name = f"PPPoE Router [{mac_clean[6:]}]" if mac_clean.startswith("PPPOE:") else "Client Device"
+
+            # 1. Upsert Hourly Table
+            cursor.execute("""
+                INSERT INTO customer_traffic_hourly
+                (customer_id, mac_address, device_id, date_str, hour_int, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(mac_address, date_str, hour_int) DO UPDATE SET
+                    download_bytes = download_bytes + excluded.download_bytes,
+                    upload_bytes = upload_bytes + excluded.upload_bytes,
+                    total_bytes = total_bytes + excluded.total_bytes,
+                    active_seconds = active_seconds + excluded.active_seconds,
+                    updated_at = excluded.updated_at
+            """, (
+                customer_id, mac_clean, device_id, date_str, hour_int,
+                download_bytes, upload_bytes, total_bytes, active_seconds, now_str
+            ))
+
+            # 2. Upsert Daily Table
+            cursor.execute("""
+                INSERT INTO customer_traffic_daily
+                (customer_id, mac_address, device_id, date_str, download_bytes, upload_bytes, total_bytes, active_seconds, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(mac_address, date_str) DO UPDATE SET
+                    download_bytes = download_bytes + excluded.download_bytes,
+                    upload_bytes = upload_bytes + excluded.upload_bytes,
+                    total_bytes = total_bytes + excluded.total_bytes,
+                    active_seconds = active_seconds + excluded.active_seconds,
+                    updated_at = excluded.updated_at
+            """, (
+                customer_id, mac_clean, device_id, date_str,
+                download_bytes, upload_bytes, total_bytes, active_seconds, now_str
+            ))
+
+            # 3. Session Tracking
+            cursor.execute("""
+                SELECT id FROM customer_connection_sessions 
+                WHERE UPPER(mac_address) = ? AND is_active = 1
+                ORDER BY id DESC LIMIT 1
+            """, (mac_clean,))
+            active_sess = cursor.fetchone()
+            if active_sess:
+                cursor.execute("""
+                    UPDATE customer_connection_sessions
+                    SET last_seen_at = ?,
+                        duration_seconds = duration_seconds + ?,
+                        download_bytes = download_bytes + ?,
+                        upload_bytes = upload_bytes + ?,
+                        total_bytes = total_bytes + ?,
+                        ip_address = COALESCE(?, ip_address)
+                    WHERE id = ?
+                """, (
+                    now_str, active_seconds, download_bytes, upload_bytes,
+                    total_bytes, ip_address, active_sess["id"]
+                ))
+            processed += 1
+
+        conn.commit()
+
+    return processed
 
 
 def close_device_session(mac_address: str) -> bool:

@@ -29,6 +29,7 @@ COOKIE_NAME = "cybernet_session"
 # Pre-auth CSRF tokens cache (token -> expiry timestamp)
 _LOGIN_CSRF_TOKENS: Dict[str, float] = {}
 _TOTP_PENDING_LOGINS: Dict[str, Dict[str, Any]] = {}
+_SESSION_LAST_ACTIVITY_CACHE: Dict[str, float] = {}
 
 
 def hash_password(password: str) -> Tuple[str, str]:
@@ -581,9 +582,13 @@ def validate_session(session_id: str) -> Optional[Dict[str, Any]]:
         except Exception:
             return None
 
-        # Update activity timestamp (throttled)
-        cursor.execute("UPDATE admin_sessions SET last_activity = ? WHERE session_id = ?", (now_str, session_id))
-        conn.commit()
+        # Update activity timestamp (throttled to at most once per 60 seconds)
+        now_ts = time.time()
+        last_logged_ts = _SESSION_LAST_ACTIVITY_CACHE.get(session_id, 0.0)
+        if (now_ts - last_logged_ts) >= 60.0:
+            cursor.execute("UPDATE admin_sessions SET last_activity = ? WHERE session_id = ?", (now_str, session_id))
+            conn.commit()
+            _SESSION_LAST_ACTIVITY_CACHE[session_id] = now_ts
 
         return record
 
@@ -592,6 +597,7 @@ def revoke_session(session_id: str) -> bool:
     """Terminates an active session."""
     if not session_id:
         return False
+    _SESSION_LAST_ACTIVITY_CACHE.pop(session_id, None)
     with database.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("UPDATE admin_sessions SET is_active = 0 WHERE session_id = ?", (session_id,))

@@ -177,7 +177,7 @@ class RouterClient:
         except Exception:
             pass
 
-    def get_live_status(self, max_cache_age_sec: float = 5.0) -> Dict[str, Any]:
+    def get_live_status(self, max_cache_age_sec: float = 20.0) -> Dict[str, Any]:
         """
         Connects to MikroTik and fetches live status, resource metrics, and interfaces.
         Returns a structured dictionary with success state, latency, and hardware telemetry.
@@ -1802,7 +1802,7 @@ def get_router_short_code(router_name: Optional[str] = None, router_id: Optional
     return "MK"
 
 
-def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[str, Dict[str, Any]]:
+def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 20.0) -> Dict[str, Dict[str, Any]]:
     """
     Queries ALL active MikroTik routers in the fleet concurrently using ThreadPoolExecutor.
     Intelligently reconciles multi-gateway roaming states:
@@ -1811,7 +1811,7 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
     - If online on multiple routers, selects the router with the lowest idle_time.
     - Accurately attributes active router short code (MK10, MK20, MK30), live IP,
       and roaming indicator (is_roaming=True).
-    Cached in memory for max_cache_age_sec (default 4.0s) to keep CPU low and API sub-millisecond.
+    Cached in memory for max_cache_age_sec (default 20.0s) to keep CPU low and API sub-millisecond.
     """
     global _fleet_telemetry_cache, _fleet_telemetry_cache_time
     now = time.time()
@@ -1831,7 +1831,7 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
     def _fetch_for_router(r):
         try:
             client = get_client_for_router(r)
-            tmap = client.get_devices_telemetry_map(max_cache_age_sec=0)
+            tmap = client.get_devices_telemetry_map(max_cache_age_sec=max_cache_age_sec)
             return r, tmap, None
         except Exception as e:
             logger.debug(f"Fleet telemetry fetch failed for router {r.get('id')} ({r.get('name')}): {e}")

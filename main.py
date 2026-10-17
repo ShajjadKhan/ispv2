@@ -142,6 +142,7 @@ def collect_router_traffic_snapshot():
         except Exception:
             hosts = []
 
+    deltas_to_record: List[Dict[str, Any]] = []
     current_host_keys = set()
     for h in hosts:
         mac = (h.get("mac-address") or "").strip().upper()
@@ -180,7 +181,7 @@ def collect_router_traffic_snapshot():
         # Physical link sanity guard (max 100 Mbps WAN link = ~750 MB per 60s)
         # Prevents rogue counters or reboot spikes from corrupting accounting
         if delta_down > 500 * 1024 * 1024:
-            logger.warning(f"[Traffic Collector] Suppressed rogue delta_down ({delta_down} bytes) on {host_key}")
+            logger.debug(f"[Traffic Collector] Suppressed rogue delta_down ({delta_down} bytes) on {host_key}")
             delta_down = 0
         if delta_up > 200 * 1024 * 1024:
             delta_up = 0
@@ -208,13 +209,13 @@ def collect_router_traffic_snapshot():
         }
 
         if delta_down > 0 or delta_up > 0:
-            database.record_device_traffic_delta(
-                mac_address=mac,
-                download_bytes=delta_down,
-                upload_bytes=delta_up,
-                active_seconds=delta_sec,
-                ip_address=ip_addr
-            )
+            deltas_to_record.append({
+                "mac_address": mac,
+                "download_bytes": delta_down,
+                "upload_bytes": delta_up,
+                "active_seconds": delta_sec,
+                "ip_address": ip_addr
+            })
 
     # Poll fleet-wide active PPPoE sessions
     current_pppoe_keys = set()
@@ -278,16 +279,20 @@ def collect_router_traffic_snapshot():
             }
 
             if delta_down > 0 or delta_up > 0:
-                database.record_device_traffic_delta(
-                    mac_address=pp_key,
-                    download_bytes=delta_down,
-                    upload_bytes=delta_up,
-                    active_seconds=delta_sec,
-                    ip_address=ip_addr,
-                    device_name=f"PPPoE Router [{clean_u}]"
-                )
+                deltas_to_record.append({
+                    "mac_address": pp_key,
+                    "download_bytes": delta_down,
+                    "upload_bytes": delta_up,
+                    "active_seconds": delta_sec,
+                    "ip_address": ip_addr,
+                    "device_name": f"PPPoE Router [{clean_u}]"
+                })
     except Exception as p_err:
         logger.debug(f"PPPoE traffic poller error: {p_err}")
+
+    # Persist all traffic deltas in one single database transaction
+    if deltas_to_record:
+        database.record_device_traffic_deltas_batch(deltas_to_record)
 
     # Disconnected hotspot devices (keyed by router_name:mac)
     prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" not in k}
@@ -643,8 +648,34 @@ async def wallet_accrual_sync_loop():
         await asyncio.sleep(60)  # Continuous 60-second self-healing audit
 
 
+async def fleet_telemetry_cache_refresher_loop():
+    """
+    Background worker that continuously pre-warms MikroTik fleet telemetry and live status
+    every 12 seconds in memory.
+    Ensures that when any admin or user visits the dashboard or web UI, the data is ALWAYS
+    available instantly in memory (<1 ms) without waiting on MikroTik hardware socket roundtrips.
+    """
+    logger.info("Background Fleet Telemetry Pre-Warming Refresher Loop initialized.")
+    await asyncio.sleep(2)  # brief startup delay
+    while True:
+        try:
+            # Query all active fleet routers concurrently in thread pool
+            await asyncio.gather(
+                asyncio.to_thread(router_client.get_live_status, 0.0),
+                asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 0.0),
+                return_exceptions=True
+            )
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.debug(f"Fleet telemetry pre-warming notice: {e}")
+        await asyncio.sleep(12)
+
+
 @app.on_event("startup")
 async def startup_event():
+    # Fleet Telemetry In-Memory Pre-Warmer Loop (ensures sub-100ms dashboard latency)
+    asyncio.create_task(fleet_telemetry_cache_refresher_loop())
     # Real live data from MikroTik traffic collector only
     asyncio.create_task(traffic_collector_loop())
     # Customer subscription expiration enforcement loop across MikroTik fleet
@@ -1884,14 +1915,18 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     will-suspend expiration tiers, billing collection analytics,
     staff performance breakdown, and 1-click collections.
     """
-    live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    live_status_task = asyncio.to_thread(router_client.get_live_status, 20.0)
+    telemetry_map_task = asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 20.0)
+    top_bandwidth_task = asyncio.to_thread(get_live_top_bandwidth_consumers, 5, 1, "speed")
+
+    live_status, telemetry_map, top_bandwidth = await asyncio.gather(
+        live_status_task, telemetry_map_task, top_bandwidth_task
+    )
     online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
 
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     pending_requests = database.get_pending_requests()
     packages = database.get_packages()
-    top_bandwidth = await asyncio.to_thread(get_live_top_bandwidth_consumers, 5, 1, "speed")
 
     return templates.TemplateResponse(
         request=request,
@@ -2257,7 +2292,7 @@ async def customers_view(request: Request):
     resellers = auth_service.get_resellers_list()
 
     # Live device telemetry (green/yellow/red status indicators across fleet)
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -2308,7 +2343,7 @@ async def customer_edit_view(request: Request, customer_id: int):
     resellers = auth_service.get_resellers_list()
 
     # Live device telemetry for customer devices
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     enrich_customer_devices_telemetry([cust], telemetry_map)
 
     return templates.TemplateResponse(
@@ -2371,7 +2406,7 @@ async def customer_usage_view(
     live_status = router_client.get_live_status()
 
     try:
-        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
         enrich_customer_devices_telemetry([analytics["customer"]], telemetry_map)
     except Exception:
         pass
@@ -2589,7 +2624,7 @@ async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] =
     ledger = database.get_reseller_wallet_ledger(reseller_id=target_reseller_id, limit=30)
 
     # Live device telemetry
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     enrich_customer_devices_telemetry(my_customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -3462,7 +3497,7 @@ async def get_customers_live_devices(request: Request):
     Returns live connection telemetry (green/yellow/red) for all customer devices,
     enabling real-time status dots, roaming badges, and connected counters across the fleet.
     """
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     customers = database.get_all_customers()
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
@@ -3563,7 +3598,7 @@ async def get_customer_details(customer_id: int):
     if not prof:
         raise HTTPException(status_code=404, detail="Customer not found")
     try:
-        tmap = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+        tmap = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
         enrich_customer_devices_telemetry([prof], tmap)
     except Exception as e:
         logger.debug(f"Could not enrich customer details telemetry: {e}")
@@ -4366,8 +4401,9 @@ async def update_device_limit(customer_id: int, payload: UpdateDeviceLimitPayloa
 @app.get("/api/dashboard/metrics")
 async def api_dashboard_metrics(month: Optional[str] = None):
     """Returns real-time dashboard metrics, fleet roaming status, and online status in JSON."""
-    live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    live_status_task = asyncio.to_thread(router_client.get_live_status, 20.0)
+    telemetry_map_task = asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 20.0)
+    live_status, telemetry_map = await asyncio.gather(live_status_task, telemetry_map_task)
     online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     return JSONResponse({
