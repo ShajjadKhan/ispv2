@@ -2022,14 +2022,15 @@ async def olt_view(
     request: Request,
     olt_id: Optional[int] = None,
     port: Optional[int] = None,
-    filter: Optional[str] = "all"
+    filter: Optional[str] = "all",
+    limit: Optional[int] = 250
 ):
     """
     Step 5: OLT & Fiber PON Plant Monitoring.
     Clean read-only optical console providing:
     - Details about connected ONUs, their names, and optical signal levels.
     - Optical Link Errors & Diagnostics (Loss of Signal / Fiber Break, Dying Gasp, High Attenuation).
-    - ONU Uptime & Outage History Ledger.
+    - ONU Uptime & Outage History Ledger with optimized pagination limit.
     No setup/settings forms or VLAN assignment.
     """
     live_status = router_client.get_live_status()
@@ -2039,10 +2040,12 @@ async def olt_view(
     if not selected_olt_id and olts:
         selected_olt_id = olts[0]["id"]
 
+    effective_limit = limit if (limit and limit > 0) else 250
     olt_details = database.get_olt_details(selected_olt_id) if selected_olt_id else None
     onus = database.get_onus(olt_id=selected_olt_id, pon_port=port, status_filter=filter) if selected_olt_id else []
     active_errors = database.get_olt_active_errors(olt_id=selected_olt_id) if selected_olt_id else []
-    uptime_ledger = database.get_onu_uptime_ledger(olt_id=selected_olt_id) if selected_olt_id else []
+    uptime_ledger = database.get_onu_uptime_ledger(olt_id=selected_olt_id, limit=effective_limit) if selected_olt_id else []
+    total_ledger_count = database.get_onu_uptime_ledger_count(olt_id=selected_olt_id) if selected_olt_id else len(uptime_ledger)
     kpis = database.get_olt_kpis(olt_id=selected_olt_id) if selected_olt_id else {}
     pending_requests = database.get_pending_requests()
 
@@ -2057,6 +2060,8 @@ async def olt_view(
             "selected_olt_id": selected_olt_id,
             "selected_port": port,
             "current_filter": filter,
+            "current_limit": effective_limit,
+            "total_ledger_count": total_ledger_count,
             "onus": onus,
             "active_errors": active_errors,
             "uptime_ledger": uptime_ledger,

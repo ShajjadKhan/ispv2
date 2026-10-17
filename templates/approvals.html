@@ -1066,24 +1066,39 @@
     }
 
     .billing-type-grid {
+      grid-template-columns: 1fr !important;
       gap: 8px !important;
     }
+    .preset-wrap {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+    }
+    .preset-wrap input {
+      width: 100% !important;
+    }
+    .preset-wrap .btn-preset {
+      flex: 1 1 calc(25% - 6px) !important;
+      min-height: 38px !important;
+      text-align: center !important;
+    }
     .type-option-card {
-      padding: 10px !important;
+      padding: 10px 14px !important;
     }
     .type-option-card .title {
-      font-size: 13px !important;
+      font-size: 13.5px !important;
     }
     .type-option-card .desc {
-      font-size: 10.5px !important;
+      font-size: 11px !important;
     }
 
     .device-summary-pill {
-      padding: 10px 12px !important;
-      gap: 6px !important;
+      grid-template-columns: 1fr !important;
+      padding: 12px 14px !important;
+      gap: 8px !important;
     }
     .device-summary-pill .val {
-      font-size: 12px !important;
+      font-size: 13px !important;
       word-break: break-all !important;
     }
 

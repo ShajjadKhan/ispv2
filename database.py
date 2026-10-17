@@ -4708,7 +4708,7 @@ def update_olt(
         return get_olt_details(olt_id)
 
 
-def get_onu_uptime_ledger(olt_id: Optional[int] = None, onu_id: Optional[int] = None) -> List[Dict[str, Any]]:
+def get_onu_uptime_ledger(olt_id: Optional[int] = None, onu_id: Optional[int] = None, limit: Optional[int] = 250) -> List[Dict[str, Any]]:
     """Returns event history of uptime, outages, loss of signal, and power events."""
     with get_db() as conn:
         cursor = conn.cursor()
@@ -4728,8 +4728,25 @@ def get_onu_uptime_ledger(olt_id: Optional[int] = None, onu_id: Optional[int] = 
             query += " AND l.onu_id = ?"
             params.append(onu_id)
         query += " ORDER BY l.id DESC"
+        if limit and limit > 0:
+            query += " LIMIT ?"
+            params.append(limit)
         cursor.execute(query, tuple(params))
         return [dict(r) for r in cursor.fetchall()]
+
+
+def get_onu_uptime_ledger_count(olt_id: Optional[int] = None) -> int:
+    """Returns total count of uptime ledger events recorded."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        query = "SELECT COUNT(*) FROM onu_uptime_ledger l JOIN onus o ON l.onu_id = o.id WHERE 1=1"
+        params = []
+        if olt_id:
+            query += " AND o.olt_id = ?"
+            params.append(olt_id)
+        cursor.execute(query, tuple(params))
+        row = cursor.fetchone()
+        return row[0] if row else 0
 
 
 def get_olt_active_errors(olt_id: Optional[int] = None) -> List[Dict[str, Any]]:

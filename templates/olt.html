@@ -83,13 +83,13 @@
   .tele-box .value {
     font-size: 13px;
     font-weight: 700;
-    color: var(--text-main, #ffffff);
+    color: #ffffff;
     font-family: var(--font-mono);
   }
 
   /* OPTICAL ERROR DIAGNOSTIC CARD */
   .alarm-center-card {
-    background: var(--bg-card, #0f172a);
+    background: #0f172a;
     border: 1px solid rgba(239, 68, 68, 0.35);
     border-radius: 16px;
     overflow: hidden;
@@ -160,8 +160,8 @@
   }
 
   .pon-card {
-    background: var(--bg-card, #090e1a);
-    border: 1px solid var(--border-subtle);
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 14px;
     display: flex;
@@ -172,11 +172,11 @@
   }
   .pon-card:hover {
     border-color: rgba(56, 189, 248, 0.4);
-    background: var(--bg-card-hover, rgba(56, 189, 248, 0.05));
+    background: #0d1527;
   }
   .pon-card.active-port {
     border-color: #38bdf8;
-    background: var(--accent-subtle, rgba(56, 189, 248, 0.12));
+    background: #0f1c36;
     box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
   }
 
@@ -342,9 +342,9 @@
     gap: 14px;
   }
   .form-input {
-    background: var(--bg-card, #090e1a);
+    background: #090e1a;
     border: 1px solid var(--border-subtle);
-    color: var(--text-main, #ffffff);
+    color: #ffffff;
     padding: 9px 12px;
     border-radius: 8px;
     font-size: 13px;
@@ -390,8 +390,8 @@
     }
     #onuTable tr[data-search],
     .olt-ledger-table tr.ledger-row {
-      background: var(--bg-card, #090e1a);
-      border: 1px solid var(--border-subtle);
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 8px;
@@ -461,20 +461,17 @@
   }
 
   @media (max-width: 640px) {
-    .form-input, #onuSearchInput, select {
+    .form-input, #onuSearchInput {
       font-size: 16px !important;
     }
     .btn-rename {
-      min-height: 44px !important;
-      padding: 8px 14px !important;
-      font-size: 12.5px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      min-height: 38px !important;
+      padding: 6px 12px !important;
+      font-size: 12px !important;
     }
     .pill-btn {
-      min-height: 44px !important;
-      padding: 10px 14px !important;
+      min-height: 38px !important;
+      padding: 8px 12px !important;
     }
   }
 
@@ -482,13 +479,6 @@
     .telemetry-row {
       grid-template-columns: 1fr;
       gap: 6px;
-    }
-    .pon-card {
-      padding: 12px 10px !important;
-    }
-    .filter-bar {
-      padding: 10px 8px !important;
-      gap: 8px !important;
     }
   }
 </style>
@@ -836,12 +826,20 @@
 
   <!-- ONU UPTIME & OUTAGE LEDGER ("onu up time leger") -->
   <div class="section-card">
-    <div class="section-card-header">
+    <div class="section-card-header" style="flex-wrap: wrap; gap: 10px;">
       <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #ffffff); display: flex; align-items: center; gap: 8px;">
         <svg style="width: 16px; height: 16px; fill: #10b981;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
         <span>ONU Uptime &amp; Outage Ledger History</span>
       </div>
-      <span class="font-mono text-dim" style="font-size: 12px;">Historical stability &amp; optical events</span>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <span class="font-mono text-dim" style="font-size: 11.5px;">Showing recent <strong class="text-emerald">{{ uptime_ledger | length }}</strong> of <strong>{{ total_ledger_count }}</strong> events</span>
+        <div style="display: inline-flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 3px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+          <a href="/olt?olt_id={{ selected_olt_id }}&port={{ selected_port or '' }}&filter={{ current_filter }}&limit=100" class="pill-btn {% if current_limit == 100 %}active{% endif %}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; text-decoration: none; color: inherit;">100</a>
+          <a href="/olt?olt_id={{ selected_olt_id }}&port={{ selected_port or '' }}&filter={{ current_filter }}&limit=250" class="pill-btn {% if current_limit == 250 %}active{% endif %}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; text-decoration: none; color: inherit;">250</a>
+          <a href="/olt?olt_id={{ selected_olt_id }}&port={{ selected_port or '' }}&filter={{ current_filter }}&limit=500" class="pill-btn {% if current_limit == 500 %}active{% endif %}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; text-decoration: none; color: inherit;">500</a>
+          <a href="/olt?olt_id={{ selected_olt_id }}&port={{ selected_port or '' }}&filter={{ current_filter }}&limit=1000" class="pill-btn {% if current_limit == 1000 %}active{% endif %}" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; text-decoration: none; color: inherit;">1000</a>
+        </div>
+      </div>
     </div>
 
     <div style="overflow-x: auto;">
