@@ -373,8 +373,19 @@
     .edit-content-grid {
       grid-template-columns: 1fr;
     }
+    .edit-main-card {
+      order: 1 !important;
+    }
     .edit-sidebar-card {
       position: static;
+      order: 2 !important;
+      margin-top: 14px !important;
+    }
+    .mobile-bottom-nav {
+      display: none !important;
+    }
+    .app-main {
+      padding-bottom: 0 !important;
     }
   }
 
@@ -383,10 +394,11 @@
       grid-template-columns: 1fr !important;
     }
     .edit-page-container {
-      padding-bottom: 140px;
+      padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
     }
     .sticky-submit-bar {
-      padding: 10px 14px;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)) 14px !important;
+      z-index: 1080 !important;
     }
     .bar-content-wrap {
       flex-direction: column;
@@ -396,7 +408,7 @@
     .btn-submit-main {
       width: 100%;
       justify-content: center;
-      min-height: 44px;
+      min-height: 48px;
     }
   }
 </style>

@@ -25,10 +25,10 @@ diagnostics/backups_*/
 whatsapp_data/
 *.trigger
 *.db.backup*
+*.backup*
 *.snapshot
 *.transfer_snapshot
 *.bak
 scratch_*.html
 whatsapp.html
 sync_billing_reminder_dates.py
-

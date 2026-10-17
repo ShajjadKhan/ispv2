@@ -2245,6 +2245,34 @@
     border-color: #059669 !important;
     color: #ffffff !important;
   }
+
+  /* Day Mode (Light Theme) Contrast & Visibility Overrides for Mobile Cards */
+  html[data-theme="light"] #subscribersTable tr.cust-row {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  }
+  html[data-theme="light"] #subscribersTable tr.cust-row td.sub-actions-cell,
+  html[data-theme="light"] #subscribersTable tr.cust-row td:last-child {
+    border-top: 1px solid #e2e8f0 !important;
+  }
+  html[data-theme="light"] #pendingTable tr[id^="req-row-"],
+  html[data-theme="light"] .req-table-row {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  }
+  html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-mac,
+  html[data-theme="light"] .req-table-row td.td-mac {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+  html[data-theme="light"] #pendingTable tr[id^="req-row-"] td.td-phone span[style*="color:#ffffff"],
+  html[data-theme="light"] .req-table-row td.td-phone span[style*="color:#ffffff"],
+  html[data-theme="light"] .secondary-cust-desc span[style*="color:#ffffff"],
+  html[data-theme="light"] #secondaryCustName[style*="color:#ffffff"] {
+    color: #0f172a !important;
+  }
 </style>
 {% endblock %}
 

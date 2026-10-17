@@ -735,10 +735,20 @@
       order: 1; /* Form first so mobile users see editable fields immediately */
       width: 100%;
     }
+    .edit-main-card {
+      order: 1 !important;
+    }
     .edit-sidebar-card {
-      order: 2; /* Snapshot below form on mobile */
+      order: 2 !important; /* Snapshot below form on mobile */
       position: static;
       width: 100%;
+      margin-top: 14px !important;
+    }
+    .mobile-bottom-nav {
+      display: none !important;
+    }
+    .app-main {
+      padding-bottom: 0 !important;
     }
   }
 
@@ -773,7 +783,7 @@
 
   @media (max-width: 600px) {
     .edit-page-container {
-      padding-bottom: max(180px, calc(160px + env(safe-area-inset-bottom))) !important;
+      padding-bottom: max(180px, calc(160px + env(safe-area-inset-bottom, 0px))) !important;
     }
     .edit-header-banner {
       padding: 16px;
@@ -800,11 +810,12 @@
     .edit-sticky-footer {
       flex-direction: column-reverse;
       align-items: stretch;
-      padding: 12px;
-      bottom: max(10px, env(safe-area-inset-bottom));
+      padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)) 12px !important;
+      bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
       left: 10px;
       right: 10px;
       width: auto;
+      z-index: 1080 !important;
     }
     .edit-footer-btns {
       display: flex;
@@ -821,7 +832,7 @@
     .edit-sticky-footer .btn-save-master {
       width: 100%;
       justify-content: center;
-      min-height: 44px !important;
+      min-height: 48px !important;
       font-size: 14px !important;
     }
     .btn-delete-perm {
