@@ -2457,6 +2457,7 @@ async def collections_view(
             "ledger": data["ledger"],
             "filtered_total": data["filtered_total"],
             "filtered_tx_count": data["filtered_tx_count"],
+            "collector_breakdown": data.get("collector_breakdown", []),
             "period": period or "month",
             "start_date": start_date or "",
             "end_date": end_date or "",

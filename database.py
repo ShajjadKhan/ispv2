@@ -5386,6 +5386,20 @@ def update_router_telemetry(
         conn.commit()
 
 
+def _get_collector_initials(name: Optional[str]) -> str:
+    """Returns a clean 2-letter uppercase monogram/initials for staff collector avatars."""
+    if not name:
+        return "AD"
+    parts = [p for p in name.strip().split() if p]
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[1][0]).upper()
+    elif len(parts) == 1 and len(parts[0]) >= 2:
+        return parts[0][:2].upper()
+    elif len(parts) == 1:
+        return parts[0][:1].upper()
+    return "AD"
+
+
 def get_collections_hub_data(
     period: str = "month",
     start_date: Optional[str] = None,
@@ -5424,6 +5438,30 @@ def get_collections_hub_data(
         month_row = cursor.fetchone()
         month_collected = round(float(month_row["total"] or 0.0), 2)
         month_tx_count = int(month_row["tx_count"] or 0)
+
+        # 2b. Month-to-Date Staff Collector Breakdown
+        cursor.execute("""
+            SELECT COALESCE(NULLIF(TRIM(collected_by), ''), 'Admin') as collector,
+                   COUNT(*) as tx_count,
+                   COALESCE(SUM(amount), 0.0) as total
+            FROM collections
+            WHERE strftime('%Y-%m', collected_at) = ? AND amount > 0
+            GROUP BY collector
+            ORDER BY total DESC
+        """, (current_month,))
+        month_collectors_rows = cursor.fetchall()
+        month_collectors = []
+        for r in month_collectors_rows:
+            c_name = r["collector"]
+            c_tot = round(float(r["total"] or 0.0), 2)
+            c_cnt = int(r["tx_count"] or 0)
+            month_collectors.append({
+                "collector": c_name,
+                "initials": _get_collector_initials(c_name),
+                "total": c_tot,
+                "count": c_cnt,
+                "percentage": round((c_tot / month_collected * 100), 1) if month_collected > 0 else 0.0
+            })
 
         # 4. Due Customers & Accounts Receivable (Dynamically resolved from real-time engine)
         all_customers = get_all_customers()
@@ -5528,6 +5566,32 @@ def get_collections_hub_data(
         filtered_total = round(sum(float(r.get("amount") or 0.0) for r in ledger_records if float(r.get("amount") or 0.0) > 0), 2)
         filtered_tx_count = len(ledger_records)
 
+        # 6. Staff Collector Breakdown (Who collected how much in this filtered period/search)
+        collectors_map: Dict[str, Dict[str, Any]] = {}
+        for r in ledger_records:
+            amt = float(r.get("amount") or 0.0)
+            if amt <= 0:
+                continue
+            raw_c = (r.get("collected_by") or "").strip()
+            c_name = raw_c if raw_c else "Admin"
+            if c_name not in collectors_map:
+                collectors_map[c_name] = {"collector": c_name, "total": 0.0, "count": 0}
+            collectors_map[c_name]["total"] += amt
+            collectors_map[c_name]["count"] += 1
+
+        collector_breakdown = []
+        for c_name, stats in collectors_map.items():
+            tot = round(stats["total"], 2)
+            pct = round((tot / filtered_total * 100), 1) if filtered_total > 0 else 0.0
+            collector_breakdown.append({
+                "collector": c_name,
+                "initials": _get_collector_initials(c_name),
+                "total": tot,
+                "count": stats["count"],
+                "percentage": pct
+            })
+        collector_breakdown.sort(key=lambda x: x["total"], reverse=True)
+
         # Minimal customer list for the Express Collect search selector
         all_customers_minimal = [
             {
@@ -5552,6 +5616,7 @@ def get_collections_hub_data(
                 "today_tx_count": today_tx_count,
                 "month_collected": month_collected,
                 "month_tx_count": month_tx_count,
+                "month_collectors": month_collectors,
                 "outstanding_receivable": outstanding_receivable,
                 "due_customers_count": due_count,
                 "total_credit_held": total_credit_held,
@@ -5565,6 +5630,7 @@ def get_collections_hub_data(
             "ledger": ledger_records,
             "filtered_total": filtered_total,
             "filtered_tx_count": filtered_tx_count,
+            "collector_breakdown": collector_breakdown,
             "period": period,
             "customers_dropdown": all_customers_minimal
         }
