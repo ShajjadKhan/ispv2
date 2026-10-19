@@ -3171,6 +3171,9 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
     if start_m not in months_seq:
         months_seq.append(start_m)
 
+    if start_date <= today and current_month_str not in months_seq:
+        months_seq.append(current_month_str)
+
     # If customer has active suspension hold (grace promise) extending into future months, include it
     if has_active_promise and promise_date_str:
         p_m = promise_date_str[:7]
@@ -3187,6 +3190,9 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
     settled_cycles = []
     total_owed = 0.0
 
+    # Chronological available funds for FIFO cycle allocation
+    avail_cash = round(total_cash_collected, 2)
+
     for m in months_seq:
         try:
             m_dt = datetime.strptime(m + "-01", "%Y-%m-%d").date()
@@ -3198,8 +3204,8 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         m_start = date(m_dt.year, m_dt.month, 1)
         m_end = date(m_dt.year, m_dt.month, dim)
         p = colls_by_month.get(m, {"total": 0.0, "settled": 0, "waived": 0.0, "records": []})
-        paid = round(p["total"], 2)
-        is_settled = (p["settled"] == 1)
+        is_explicit_settled = (p.get("settled") == 1)
+        waived = round(float(p.get("waived") or 0.0), 2)
 
         # Active billable window within this month
         eval_start = max(start_date, m_start)
@@ -3249,83 +3255,71 @@ def get_customer_billing_breakdown(customer_id: int) -> Dict[str, Any]:
         else:
             expected_fee = monthly_fee
 
+        # Net fee needed after waivers
+        net_fee = max(0.0, round(expected_fee - waived, 2))
+
+        # Chronological available funds allocation:
+        if is_explicit_settled and net_fee <= 0.0:
+            paid = 0.0
+            rem_due = 0.0
+            is_settled = True
+        elif net_fee <= 0.0:
+            paid = 0.0
+            rem_due = 0.0
+            is_settled = True
+        elif avail_cash >= (net_fee - 0.05):
+            paid = net_fee
+            avail_cash = round(avail_cash - net_fee, 2)
+            rem_due = 0.0
+            is_settled = True
+        elif avail_cash > 0:
+            paid = avail_cash
+            rem_due = round(net_fee - avail_cash, 2)
+            avail_cash = 0.0
+            is_settled = False
+        else:
+            paid = 0.0
+            rem_due = net_fee
+            is_settled = False
+
         if is_settled:
             settled_cycles.append({
                 "month": m,
                 "label": m_label,
                 "expected_fee": expected_fee,
                 "paid": paid,
-                "waived": round(p["waived"], 2),
+                "waived": waived,
                 "rem_due": 0.0,
                 "is_settled": True,
                 "is_grace": is_grace_month,
-                "status": "Settled & Closed"
+                "status": "Settled & Closed" if expected_fee > 0 else "Settled (0.00 SAR)"
             })
-        elif expected_fee == 0.0 and paid == 0.0:
-            if suspended_days > 0 and active_days == 0:
-                settled_cycles.append({
-                    "month": m,
-                    "label": f"{m_label} (Suspended)",
-                    "expected_fee": 0.0,
-                    "paid": 0.0,
-                    "waived": 0.0,
-                    "rem_due": 0.0,
-                    "is_settled": True,
-                    "is_grace": False,
-                    "status": "Suspended (0.00 SAR)"
-                })
-            else:
-                settled_cycles.append({
-                    "month": m,
-                    "label": m_label,
-                    "expected_fee": 0.0,
-                    "paid": 0.0,
-                    "waived": 0.0,
-                    "rem_due": 0.0,
-                    "is_settled": True,
-                    "is_grace": False,
-                    "status": "Settled (0.00 SAR)"
-                })
         else:
-            rem_due = max(0.0, round(expected_fee - paid, 2))
-            if rem_due > 0.05:
-                total_owed += rem_due
-                if suspended_days > 0 or active_days < dim:
-                    st_text = f"Prorated Active ({active_days}d)"
-                    cycle_lbl = f"{m_label} · Active {active_days}d"
-                elif is_grace_month:
-                    st_text = f"Grace ({grace_days}d)"
-                    cycle_lbl = f"{m_label} (Grace)"
-                else:
-                    st_text = "Unpaid" if paid == 0 else "Partially Paid"
-                    cycle_lbl = m_label
-
-                unpaid_cycles.append({
-                    "month": m,
-                    "label": cycle_lbl,
-                    "expected_fee": expected_fee,
-                    "paid": paid,
-                    "waived": 0.0,
-                    "rem_due": rem_due,
-                    "is_settled": False,
-                    "is_grace": is_grace_month,
-                    "grace_days": grace_days,
-                    "active_days": active_days,
-                    "suspended_days": suspended_days,
-                    "status": st_text
-                })
+            total_owed += rem_due
+            if suspended_days > 0 or active_days < dim:
+                st_text = f"Prorated Active ({active_days}d)"
+                cycle_lbl = f"{m_label} · Active {active_days}d"
+            elif is_grace_month:
+                st_text = f"Grace ({grace_days}d)"
+                cycle_lbl = f"{m_label} (Grace)"
             else:
-                settled_cycles.append({
-                    "month": m,
-                    "label": m_label,
-                    "expected_fee": expected_fee,
-                    "paid": paid,
-                    "waived": 0.0,
-                    "rem_due": 0.0,
-                    "is_settled": True,
-                    "is_grace": is_grace_month,
-                    "status": "Fully Paid"
-                })
+                st_text = "Unpaid" if paid == 0 else "Partially Paid"
+                cycle_lbl = m_label
+
+            unpaid_cycles.append({
+                "month": m,
+                "label": cycle_lbl,
+                "expected_fee": expected_fee,
+                "paid": paid,
+                "waived": waived,
+                "rem_due": rem_due,
+                "is_settled": False,
+                "is_grace": is_grace_month,
+                "grace_days": grace_days,
+                "active_days": active_days,
+                "suspended_days": suspended_days,
+                "status": st_text
+            })
 
     # Summary Promise object
     promise_info = None
@@ -7539,7 +7533,8 @@ def smart_collect_customer_payment(
             raise ValueError(f"Customer #{customer_id} not found.")
         cust = dict(cust_row)
 
-        # 2. Sequentially allocate collected amount to unpaid cycles
+        # 2. Sequentially evaluate unpaid cycles and advance months
+        leftover_surplus = 0.0
         for cycle in unpaid_cycles:
             m = cycle["month"]
             m_due = float(cycle.get("rem_due") or 0.0)
@@ -7549,28 +7544,12 @@ def smart_collect_customer_payment(
                 # Settle this cycle completely
                 allocated = m_due
                 rem_cash = round(rem_cash - m_due, 2)
-                col_note = f"Smart Collection - Settle {m}"
-                if notes and notes.strip():
-                    col_note += f" ({notes.strip()})"
-                cur.execute("""
-                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0.0)
-                """, (customer_id, allocated, payment_type or "cash", col_note, now_str, clean_collector, m))
-                collection_ids.append(cur.lastrowid)
                 settled_cycles.append(m)
             else:
                 # Partial payment towards this cycle
                 allocated = rem_cash
                 rem_due_after = round(m_due - allocated, 2)
                 rem_cash = 0.0
-                col_note = f"Smart Collection - Partial {m} ({rem_due_after:.2f} SAR remains due)"
-                if notes and notes.strip():
-                    col_note += f" ({notes.strip()})"
-                cur.execute("""
-                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
-                """, (customer_id, allocated, payment_type or "cash", col_note, now_str, clean_collector, m))
-                collection_ids.append(cur.lastrowid)
                 partial_cycles.append({"month": m, "amount": allocated, "rem_due": rem_due_after})
 
         # 3. If cash remains, allocate to advance cycles or credit surplus
@@ -7599,25 +7578,34 @@ def smart_collect_customer_payment(
                     cur_m = 1
                     cur_y += 1
                 target_month = f"{cur_y:04d}-{cur_m:02d}"
-                col_note = f"Smart Collection - Advance {target_month}"
-                if notes and notes.strip():
-                    col_note += f" ({notes.strip()})"
-                cur.execute("""
-                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0.0)
-                """, (customer_id, monthly_fee, payment_type or "cash", col_note, now_str, clean_collector, target_month))
-                collection_ids.append(cur.lastrowid)
                 settled_cycles.append(target_month)
 
-            if leftover_surplus > 0:
-                col_note = f"Smart Collection - Wallet Credit (+{leftover_surplus:.2f} SAR)"
-                if notes and notes.strip():
-                    col_note += f" ({notes.strip()})"
-                cur.execute("""
-                    INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0.0)
-                """, (customer_id, leftover_surplus, payment_type or "cash", col_note, now_str, clean_collector, now.strftime("%Y-%m")))
-                collection_ids.append(cur.lastrowid)
+        # 3b. Build unified human-readable note and record EXACTLY ONE atomic collection record
+        note_parts = []
+        if settled_cycles:
+            note_parts.append(f"Settled {', '.join(settled_cycles)}")
+        if partial_cycles:
+            p_desc = ", ".join(f"Partial {p['month']} ({p['amount']:.2f} SAR paid, {p['rem_due']:.2f} due)" for p in partial_cycles)
+            note_parts.append(p_desc)
+        if leftover_surplus > 0:
+            note_parts.append(f"+{leftover_surplus:.2f} SAR Wallet Credit")
+
+        if note_parts:
+            unified_notes = f"Smart Collection - {'; '.join(note_parts)}"
+        else:
+            unified_notes = f"Smart Collection - {clean_amt:.2f} SAR Subscription Payment"
+
+        if notes and notes.strip():
+            unified_notes += f" ({notes.strip()})"
+
+        is_fully_settled = 1 if len(partial_cycles) == 0 else 0
+
+        cur.execute("""
+            INSERT INTO collections (customer_id, amount, billing_type, notes, collected_at, collected_by, month_year, is_settled, waived_amount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0.0)
+        """, (customer_id, clean_amt, payment_type or "cash", unified_notes, now_str, clean_collector, now.strftime("%Y-%m"), is_fully_settled))
+        single_col_id = cur.lastrowid
+        collection_ids = [single_col_id]
 
         # 4. Compute new expiry/due date
         new_exp = None
