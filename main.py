@@ -984,6 +984,8 @@ class HotspotSubmitRequest(BaseModel):
     mac: str
     ip: Optional[str] = None
     device_model: Optional[str] = None
+    customer_name: Optional[str] = None
+    room_location: Optional[str] = None
 
 
 class UpdateSubscriberDetailsRequest(BaseModel):
@@ -2973,7 +2975,9 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             phone=phone_clean,
             mac=mac_clean,
             ip=payload.ip,
-            device_model=payload.device_model
+            device_model=payload.device_model,
+            customer_name=payload.customer_name,
+            room_location=payload.room_location
         )
     except ValueError as e:
         return JSONResponse(
@@ -3023,7 +3027,8 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             "success": True,
             "status": "pending",
             "request_id": req_dict.get("id"),
-            "customer_name": req_dict.get("customer_name") or "",
+            "customer_name": req_dict.get("customer_name") or (payload.customer_name or "").strip(),
+            "room_location": req_dict.get("notes") or (payload.room_location or "").strip(),
             "phone": phone_clean,
             "mac": mac_clean,
             "is_secondary_device": is_secondary,

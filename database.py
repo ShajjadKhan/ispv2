@@ -965,7 +965,14 @@ def get_customer_by_mac(mac: str, approved_only: bool = False) -> Optional[Dict[
 
 
 
-def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_model: Optional[str]) -> Tuple[Dict[str, Any], bool, bool]:
+def create_or_update_request(
+    phone: str,
+    mac: str,
+    ip: Optional[str],
+    device_model: Optional[str],
+    customer_name: Optional[str] = None,
+    room_location: Optional[str] = None
+) -> Tuple[Dict[str, Any], bool, bool]:
     """
     Processes incoming hotspot submission from phone.
     Returns (request_dict, is_already_approved, is_secondary).
@@ -999,6 +1006,15 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
         is_secondary = 1 if existing_cust else 0
         customer_id = existing_cust["id"] if existing_cust else None
 
+        # Resolve subscriber name & room location
+        final_name = (customer_name or "").strip()
+        if not final_name and existing_cust:
+            final_name = existing_cust.get("name") or ""
+
+        final_room = (room_location or "").strip()
+        if not final_room and existing_cust:
+            final_room = existing_cust.get("notes") or ""
+
         # Filter out router-internal NAT IP
         clean_ip = ip if (ip and not ip.startswith("10.20.30.") and ip != "127.0.0.1") else None
 
@@ -1012,22 +1028,27 @@ def create_or_update_request(phone: str, mac: str, ip: Optional[str], device_mod
             final_model = device_model if device_model else existing_req["device_model"]
             cursor.execute("""
                 UPDATE connection_requests
-                SET phone = ?, ip_address = ?, device_model = ?, customer_id = ?, is_secondary = ?, updated_at = ?
+                SET phone = ?, ip_address = ?, device_model = ?, customer_id = ?, is_secondary = ?,
+                    customer_name = CASE WHEN ? != '' THEN ? ELSE customer_name END,
+                    notes = CASE WHEN ? != '' THEN ? ELSE notes END,
+                    updated_at = ?
                 WHERE id = ?
-            """, (phone_clean, final_ip, final_model, customer_id, is_secondary, now, req_id))
+            """, (phone_clean, final_ip, final_model, customer_id, is_secondary, final_name, final_name, final_room, final_room, now, req_id))
         else:
             cursor.execute("""
-                INSERT INTO connection_requests (phone, mac_address, ip_address, device_model, status, customer_id, is_secondary, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-            """, (phone_clean, mac_upper, clean_ip, device_model, customer_id, is_secondary, now, now))
+                INSERT INTO connection_requests (phone, mac_address, ip_address, device_model, status, customer_id, is_secondary, customer_name, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
+            """, (phone_clean, mac_upper, clean_ip, device_model, customer_id, is_secondary, final_name, final_room, now, now))
             req_id = cursor.lastrowid
 
         conn.commit()
 
         cursor.execute("SELECT * FROM connection_requests WHERE id = ?", (req_id,))
         req = dict(cursor.fetchone())
-        if existing_cust:
-            req["customer_name"] = existing_cust["name"]
+        if not req.get("customer_name") and final_name:
+            req["customer_name"] = final_name
+        if not req.get("notes") and final_room:
+            req["notes"] = final_room
         return (req, False, bool(is_secondary))
 
 

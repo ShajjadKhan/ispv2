@@ -884,7 +884,18 @@
       <form id="hotspotForm" onsubmit="handlePortalSubmit(event)">
         <div class="form-group">
           <label class="form-label" for="phoneInput" data-i18n="phone_label">Mobile Phone Number</label>
-          <input type="tel" id="phoneInput" class="form-input font-mono" inputmode="tel" autocomplete="tel" pattern="[0-9]*" placeholder="e.g. 05XXXXXXXX" required>
+          <input type="tel" id="phoneInput" class="form-input font-mono" inputmode="tel" autocomplete="tel" pattern="[0-9]*" placeholder="e.g. 05XXXXXXXX" required oninput="handlePhoneInputLookup(this.value)">
+          <div id="subscriberLookupHint" style="display:none; font-size:11.5px; font-weight:700; color:#38bdf8; margin-top:6px; padding:6px 10px; background:rgba(56,189,248,0.12); border-radius:8px; border:1px solid rgba(56,189,248,0.3);"></div>
+        </div>
+
+        <div class="form-group" id="formGroupName">
+          <label class="form-label" for="nameInput">Full Name</label>
+          <input type="text" id="nameInput" class="form-input" placeholder="e.g. Naseem Khan" autocomplete="name" required>
+        </div>
+
+        <div class="form-group" id="formGroupRoom">
+          <label class="form-label" for="roomInput">Room / Flat / Building Location</label>
+          <input type="text" id="roomInput" class="form-input" placeholder="e.g. B1 Room 10, B2 Room 5" autocomplete="street-address" required>
         </div>
 
         <button type="submit" id="btnSubmit" class="btn-submit">
@@ -920,6 +931,10 @@
               <tr>
                 <td>Subscriber:</td>
                 <td id="confDispAccount">Standard Device</td>
+              </tr>
+              <tr>
+                <td>Room / Location:</td>
+                <td id="confDispRoom" style="font-weight:700; color:#38bdf8;">—</td>
               </tr>
               <tr>
                 <td>Device MAC:</td>
@@ -1188,10 +1203,45 @@
       }
     }
 
+    let lookupDebounce = null;
+    function handlePhoneInputLookup(val) {
+      const clean = (val || "").replace(/[^0-9]/g, "");
+      const hint = document.getElementById("subscriberLookupHint");
+      if (clean.length < 9) {
+        if (hint) hint.style.display = "none";
+        return;
+      }
+      clearTimeout(lookupDebounce);
+      lookupDebounce = setTimeout(async () => {
+        try {
+          const resp = await fetch("/api/customer/lookup?phone=" + encodeURIComponent(clean));
+          const data = await resp.json();
+          const nameEl = document.getElementById("nameInput");
+          const roomEl = document.getElementById("roomInput");
+          if (data && data.found) {
+            if (nameEl && !nameEl.value.trim()) nameEl.value = data.name || "";
+            if (roomEl && !roomEl.value.trim()) roomEl.value = data.room || data.notes || "";
+            if (hint) {
+              hint.style.display = "block";
+              hint.innerHTML = '⚡ Found Subscriber: <strong style="color:#ffffff;">' + (data.name || "") + '</strong>' + (data.room ? (' <span style="color:#cbd5e1;">(Room ' + data.room + ')</span>') : '');
+            }
+          } else {
+            if (hint) hint.style.display = "none";
+          }
+        } catch (e) {
+          console.debug("Lookup ignored", e);
+        }
+      }, 350);
+    }
+
     async function handlePortalSubmit(e) {
       e.preventDefault();
       const phoneEl = document.getElementById('phoneInput');
       const phone = phoneEl ? phoneEl.value.trim() : "";
+      const nameEl = document.getElementById('nameInput');
+      const customerName = nameEl ? nameEl.value.trim() : "";
+      const roomEl = document.getElementById('roomInput');
+      const roomLocation = roomEl ? roomEl.value.trim() : "";
       const macEl = document.getElementById('macInput');
       const mac = (macEl ? macEl.value.trim() : "") || detectedMac;
       const ipEl = document.getElementById('ipInput');
@@ -1220,6 +1270,8 @@
             phone: phone,
             mac: mac,
             ip: ip,
+            customer_name: customerName,
+            room_location: roomLocation,
             device_model: navigator.userAgent.substring(0, 80)
           })
         });
@@ -1255,6 +1307,8 @@
         console.error('Portal submit error:', err);
         showConfirmation({
           phone: phone,
+          customer_name: customerName,
+          room_location: roomLocation,
           mac: mac,
           request_id: "Queued",
           message: "Request queued. Connecting to gateway..."
@@ -1315,6 +1369,11 @@
 
       const form = document.getElementById("hotspotForm");
       if (form) form.style.display = "block";
+      const btn = document.getElementById('btnSubmit');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span data-i18n="btn_submit">Connect to High-Speed Wi-Fi</span><svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>`;
+      }
       const input = document.getElementById("phoneInput");
       if (input) {
         input.focus();
@@ -1356,18 +1415,28 @@
       const phoneEl = document.getElementById('phoneInput');
       const submittedPhone = (phoneEl ? phoneEl.value.trim() : "") || data.phone || "";
 
+      const nameEl = document.getElementById('nameInput');
+      const submittedName = (nameEl ? nameEl.value.trim() : "") || data.customer_name || "";
+
+      const roomEl = document.getElementById('roomInput');
+      const submittedRoom = (roomEl ? roomEl.value.trim() : "") || data.room_location || "";
+
       const dispPhone = document.getElementById("confDispPhone");
       if (dispPhone) dispPhone.textContent = data.phone || submittedPhone;
 
       const dispMac = document.getElementById("confDispMac");
       if (dispMac) dispMac.textContent = (data.mac || detectedMac).toUpperCase();
 
+      const dispRoom = document.getElementById("confDispRoom");
+      if (dispRoom) dispRoom.textContent = data.room_location || submittedRoom || "—";
+
       const dispAccount = document.getElementById("confDispAccount");
       if (dispAccount) {
-        if (data.is_secondary_device) {
-          dispAccount.innerHTML = (data.customer_name ? (`<strong style="color:#38bdf8;">${data.customer_name}</strong>`) : 'Existing Account') + ' <span style="font-size:10px;color:#f59e0b;font-weight:700;">(Secondary Device)</span>';
-        } else if (data.customer_name) {
-          dispAccount.innerHTML = `<strong style="color:#34d399;">${data.customer_name}</strong>`;
+        const finalName = data.customer_name || submittedName;
+        if (finalName) {
+          dispAccount.innerHTML = `<strong style="color:#38bdf8; font-size:13.5px;">${finalName}</strong>` + (data.is_secondary_device ? ' <span style="font-size:10px;color:#f59e0b;font-weight:700;">(Secondary Device)</span>' : '');
+        } else if (data.is_secondary_device) {
+          dispAccount.innerHTML = 'Existing Account <span style="font-size:10px;color:#f59e0b;font-weight:700;">(Secondary Device)</span>';
         } else {
           dispAccount.textContent = 'New Customer Registration';
         }
@@ -1380,10 +1449,16 @@
 
       const detailsCard = document.getElementById("confCollectDetailsCard");
       if (detailsCard) {
-        if (data.is_secondary_device || data.customer_name) {
+        const finalName = data.customer_name || submittedName;
+        const finalRoom = data.room_location || submittedRoom;
+        if (finalName && finalRoom) {
           detailsCard.style.display = "none";
         } else {
           detailsCard.style.display = "block";
+          const confNameIn = document.getElementById("confInputName");
+          const confRoomIn = document.getElementById("confInputRoom");
+          if (confNameIn && !confNameIn.value) confNameIn.value = finalName;
+          if (confRoomIn && !confRoomIn.value) confRoomIn.value = finalRoom;
         }
       }
 
