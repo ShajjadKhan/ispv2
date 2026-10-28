@@ -405,7 +405,9 @@ def render_message_template(
     pending_debt: float = 0.0,
     previous_debt: float = 0.0,
     credit_balance: float = 0.0,
-    account_status: str = ""
+    account_status: str = "",
+    pay_date: str = "",
+    **kwargs: Any
 ) -> str:
     """
     Replaces standard dynamic tags in WhatsApp message templates, including
@@ -449,6 +451,8 @@ def render_message_template(
         "[AMOUNT]": f"{clean_paid:.2f}" if clean_paid > 0 else f"{due_balance:.2f}",
         "[DUE_BALANCE]": f"{due_balance:.2f}",
         "[EXPIRY_DATE]": str(expiry_date or "End of Month"),
+        "[SUSPENSION_DATE]": str(expiry_date or "End of Month"),
+        "[PAYDAY]": str(pay_date or expiry_date or "Due Date"),
         "[PIN]": pin or "N/A",
         "[RECEIPT_NO]": receipt_no or "REC-" + datetime.now().strftime("%Y%m%d%H%M"),
         "[HELPLINE]": support_phone,

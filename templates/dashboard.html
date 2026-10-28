@@ -875,6 +875,18 @@
   .btn-reject:hover {
     background: rgba(239, 68, 68, 0.25);
   }
+  .btn-reject-confirming {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+    border: 1px solid #f87171 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.6) !important;
+    font-weight: 800 !important;
+    animation: pulse-reject 1.2s infinite ease-in-out !important;
+  }
+  @keyframes pulse-reject {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 0 16px rgba(239, 68, 68, 0.85); }
+  }
   .btn-view-profile {
     background: rgba(56, 189, 248, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -1583,15 +1595,31 @@
     #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject,
     .req-table-row td.td-actions button.btn-reject {
       flex: 1 !important;
-      padding: 9px 10px !important;
-      font-size: 12.5px !important;
-      font-weight: 600 !important;
+      padding: 10px 12px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
       border-radius: 8px !important;
       justify-content: center !important;
-      min-height: 40px !important;
+      min-height: 46px !important;
       display: inline-flex !important;
       align-items: center !important;
       gap: 4px !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+      cursor: pointer !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject:active,
+    .req-table-row td.td-actions button.btn-reject:active {
+      transform: scale(0.96) !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject.btn-reject-confirming,
+    .req-table-row td.td-actions button.btn-reject.btn-reject-confirming {
+      background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+      border-color: #f87171 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.7) !important;
+      font-weight: 800 !important;
+      animation: pulse-reject 1.2s infinite ease-in-out !important;
     }
 
     #emptyPendingRow, 
@@ -1622,37 +1650,46 @@
       padding: 5px 8px !important;
     }
 
-    /* 2x2 Category Tabs Deck (No Horizontal Scrolling) */
+    /* Clean Mobile Touch Swipe Category Tabs Deck */
     .sub-tabs-deck {
-      display: grid !important;
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 6px !important;
-      padding: 6px !important;
-      overflow-x: visible !important;
-      white-space: normal !important;
-      flex-wrap: wrap !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    .sub-tab-btn {
-      width: 100% !important;
-      justify-content: center !important;
-      padding: 7px 6px !important;
-      font-size: 11.5px !important;
-      box-sizing: border-box !important;
-      min-width: 0 !important;
-    }
-
-    /* Wrapping Expiration Tier Filter Deck (No Horizontal Scrolling) */
-    .tier-filter-deck {
-      display: none; /* Hidden by default unless priority queue active */
-      flex-wrap: wrap !important;
+      display: flex !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
       gap: 6px !important;
       padding: 6px 8px !important;
-      overflow-x: visible !important;
-      white-space: normal !important;
+      white-space: nowrap !important;
       width: 100% !important;
       box-sizing: border-box !important;
+    }
+    .sub-tabs-deck::-webkit-scrollbar {
+      display: none !important;
+    }
+    .sub-tab-btn {
+      flex: 0 0 auto !important;
+      justify-content: center !important;
+      padding: 8px 12px !important;
+      min-height: 38px !important;
+      font-size: 12px !important;
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+      border-radius: 8px !important;
+    }
+
+    /* Clean Mobile Touch Swipe Expiration Tier Filter Deck */
+    .tier-filter-deck {
+      display: none; /* Hidden by default unless priority queue active */
+      gap: 6px !important;
+      padding: 6px 8px !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
+      white-space: nowrap !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .tier-filter-deck::-webkit-scrollbar {
+      display: none !important;
     }
     .tier-filter-deck.active-deck,
     .tier-filter-deck[style*="display: flex"],
@@ -1666,17 +1703,21 @@
     }
 
     .tier-deck-title {
-      width: 100% !important;
-      margin-bottom: 2px !important;
-      font-size: 10px !important;
+      flex: 0 0 auto !important;
+      margin-bottom: 0 !important;
+      font-size: 10.5px !important;
+      display: flex !important;
+      align-items: center !important;
     }
     .tier-pill-btn {
-      flex: 1 1 calc(50% - 6px) !important;
+      flex: 0 0 auto !important;
       justify-content: center !important;
-      padding: 6px 6px !important;
-      font-size: 10.5px !important;
+      padding: 7px 12px !important;
+      min-height: 36px !important;
+      font-size: 11.5px !important;
       box-sizing: border-box !important;
       min-width: 0 !important;
+      border-radius: 8px !important;
     }
 
     #subscribersTable,
@@ -1697,22 +1738,23 @@
     #subscribersTable tbody {
       display: flex !important;
       flex-direction: column !important;
-      gap: 6px !important;
-      padding: 2px 0 !important;
+      gap: 8px !important;
+      padding: 4px 0 !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
 
+    /* Native-Quality Ergonomic Mobile Subscriber Card */
     #subscribersTable tr.cust-row {
       display: grid !important;
-      grid-template-columns: 1fr auto !important;
+      grid-template-columns: auto minmax(0, 1fr) auto !important;
       align-items: center !important;
-      gap: 3px 8px !important;
+      gap: 6px 10px !important;
       background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(20, 30, 55, 0.95) 100%) !important;
       border: 1px solid rgba(255, 255, 255, 0.09) !important;
-      border-radius: 10px !important;
-      padding: 8px 12px !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+      border-radius: 12px !important;
+      padding: 10px 12px !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
       margin-bottom: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
@@ -1742,16 +1784,32 @@
       font-size: 12px !important;
       white-space: normal !important;
       min-width: 0 !important;
+      box-sizing: border-box !important;
     }
 
     #subscribersTable tr.cust-row td::before {
       display: none !important;
     }
 
-    /* Line 1: Subscriber Name & Phone */
-    #subscribersTable tr.cust-row td:first-child,
+    /* Line 1 Left: Checkbox */
+    #subscribersTable tr.cust-row td.td-sub-select {
+      grid-column: 1 !important;
+      grid-row: 1 !important;
+      padding: 0 !important;
+      border: none !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 24px !important;
+      min-width: 24px !important;
+      height: 24px !important;
+      z-index: 2 !important;
+    }
+
+    /* Line 1 Center: Subscriber Name & Phone */
     #subscribersTable tr.cust-row td[data-label="Subscriber"] {
-      grid-column: 1;
+      grid-column: 2 !important;
+      grid-row: 1 !important;
       padding: 0 !important;
       border: none !important;
       min-width: 0 !important;
@@ -1759,60 +1817,81 @@
 
     /* Line 1 Right: Status Badge */
     #subscribersTable tr.cust-row td[data-label="Account Status"] {
-      grid-column: 2;
-      justify-self: end;
+      grid-column: 3 !important;
+      grid-row: 1 !important;
+      justify-self: end !important;
       padding: 0 !important;
       border: none !important;
       white-space: nowrap !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
     }
 
     /* Line 2 Left: Package & Speed */
     #subscribersTable tr.cust-row td[data-label="Package & Speed"] {
-      grid-column: 1;
+      grid-column: 1 / 3 !important;
+      grid-row: 2 !important;
       font-size: 11.5px !important;
       padding: 0 !important;
       border: none !important;
       min-width: 0 !important;
     }
 
-    /* Line 2 Right: Due Date */
-    #subscribersTable tr.cust-row td[data-label="Due / Expiry Date"] {
-      grid-column: 2;
-      justify-self: end;
-      text-align: right;
+    /* Line 2 Right: Wallet */
+    #subscribersTable tr.cust-row td[data-label="Wallet"],
+    #subscribersTable tr.cust-row td[data-label="Credit Wallet"] {
+      grid-column: 3 !important;
+      grid-row: 2 !important;
+      justify-self: end !important;
+      text-align: right !important;
       padding: 0 !important;
       border: none !important;
       white-space: nowrap !important;
     }
 
-    /* Line 3 Left: Bound MAC */
+    /* Line 3 Full Width: 📅 Payday vs ✂️ Hard Cutoff Date Bar */
+    #subscribersTable tr.cust-row td[data-label="Due / Expiry Date"] {
+      grid-column: 1 / -1 !important;
+      grid-row: 3 !important;
+      width: 100% !important;
+      background: rgba(15, 23, 42, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 8px !important;
+      padding: 7px 10px !important;
+      box-sizing: border-box !important;
+      margin: 2px 0 !important;
+    }
+    #subscribersTable tr.cust-row td[data-label="Due / Expiry Date"] > div {
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      flex-wrap: wrap !important;
+      gap: 4px 10px !important;
+      width: 100% !important;
+    }
+
+    /* Line 4 Full Width: Bound MAC, Device Model & Connection Status */
     #subscribersTable tr.cust-row td[data-label="Bound MAC"] {
-      grid-column: 1;
+      grid-column: 1 / -1 !important;
+      grid-row: 4 !important;
       font-size: 11px !important;
       padding: 0 !important;
       border: none !important;
       min-width: 0 !important;
+      width: 100% !important;
     }
     #subscribersTable tr.cust-row td[data-label="Bound MAC"] > div {
       min-width: 0 !important;
+      width: 100% !important;
     }
     #subscribersTable tr.cust-row td[data-label="Bound MAC"] > div > div {
       display: flex !important;
       flex-wrap: wrap !important;
       align-items: center !important;
-      gap: 4px !important;
+      gap: 4px 6px !important;
       min-width: 0 !important;
-    }
-
-    /* Line 3 Right: Wallet */
-    #subscribersTable tr.cust-row td[data-label="Wallet"],
-    #subscribersTable tr.cust-row td[data-label="Credit Wallet"] {
-      grid-column: 2;
-      justify-self: end;
-      text-align: right;
-      padding: 0 !important;
-      border: none !important;
-      white-space: nowrap !important;
     }
 
     /* Redundant tag */
@@ -1820,12 +1899,13 @@
       display: none !important;
     }
 
-    /* Line 4: Action Buttons */
+    /* Line 5 Full Width: Action Buttons */
     #subscribersTable tr.cust-row td.sub-actions-cell,
     #subscribersTable tr.cust-row td:last-child {
-      grid-column: 1 / -1;
+      grid-column: 1 / -1 !important;
+      grid-row: 5 !important;
       border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-      padding-top: 6px !important;
+      padding-top: 8px !important;
       margin-top: 4px !important;
       border-bottom: none !important;
       display: block !important;
@@ -1835,24 +1915,34 @@
 
     #subscribersTable tr.cust-row td:last-child > div {
       display: grid !important;
-      grid-template-columns: 1.2fr 1fr 1fr !important;
+      grid-template-columns: repeat(4, 1fr) !important;
       gap: 6px !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
 
     #subscribersTable tr.cust-row td:last-child button {
-      padding: 6px 4px !important;
-      font-size: 11px !important;
+      min-height: 40px !important;
+      padding: 6px 2px !important;
+      font-size: 11.5px !important;
       font-weight: 700 !important;
-      border-radius: 7px !important;
+      border-radius: 8px !important;
       justify-content: center !important;
       width: 100% !important;
       box-sizing: border-box !important;
       min-width: 0 !important;
       white-space: nowrap !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
     }
 
+    @media (max-width: 440px) {
+      #subscribersTable tr.cust-row td:last-child > div {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+      }
+    }
     #emptyCustRow, #emptyCustRow td,
     #emptyCustFilterRow, #emptyCustFilterRow td {
       width: 100% !important;
@@ -2900,7 +2990,7 @@
                       <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
                       <span>Random MAC</span>
                     </button>
-                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})" title="Reject Random MAC request">
+                    <button type="button" class="btn-reject" data-req-id="{{ req.id }}" data-action="reject" onclick="handleRejectClick(this, event, {{ req.id }})" title="Reject Random MAC request">
                       Reject
                     </button>
                   {% elif req.is_secondary %}
@@ -2941,7 +3031,7 @@
                       title="Review Subscriber &amp; Authorize">
                       <span>Review</span>
                     </button>
-                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                    <button type="button" class="btn-reject" data-req-id="{{ req.id }}" data-action="reject" onclick="handleRejectClick(this, event, {{ req.id }})">
                       Reject
                     </button>
                   {% else %}
@@ -2962,7 +3052,7 @@
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
-                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                    <button type="button" class="btn-reject" data-req-id="{{ req.id }}" data-action="reject" onclick="handleRejectClick(this, event, {{ req.id }})">
                       Reject
                     </button>
                   {% endif %}
@@ -3072,6 +3162,9 @@
       <table class="clean-table" id="subscribersTable">
         <thead>
           <tr>
+            <th style="width: 38px; text-align: center;">
+              <input type="checkbox" id="masterSubSelectAll" onchange="toggleSelectAllSubscribers(this)" title="Select All Visible Subscribers" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+            </th>
             <th>Subscriber Details</th>
             <th>Bound Device &amp; MAC</th>
             <th>Type</th>
@@ -3086,7 +3179,7 @@
           {% set cust_list = metrics.all_customers if metrics.all_customers else metrics.priority_queue %}
           {% if not cust_list %}
           <tr id="emptyCustRow">
-            <td colspan="8" style="text-align: center; padding: 36px; color: var(--text-dim);">
+            <td colspan="9" style="text-align: center; padding: 36px; color: var(--text-dim);">
               <svg style="width: 36px; height: 36px; fill: #64748b; margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
               <div style="font-size: 14px; font-weight: 700; color: #ffffff;">No Customers Registered Yet</div>
               <div style="font-size: 12px; margin-top: 4px;">Subscribers will appear here once approved from Wi-Fi Join Requests.</div>
@@ -3102,6 +3195,9 @@
                 data-online="{{ 'true' if c.is_online else 'false' }}"
                 data-sharing="{{ 'true' if c.is_sharing_hotspot else 'false' }}"
                 data-search="{{ c.name | lower }} {{ c.phone }} {{ c.package_name | lower }} {{ c.primary_mac | lower if c.primary_mac else '' }} {{ c.billing_type | lower }} {{ c.status | lower }} {{ (c.notes or '') | lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}">
+              <td class="td-sub-select" style="text-align: center; vertical-align: middle; width: 38px;">
+                <input type="checkbox" class="sub-row-checkbox" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+              </td>
               <td data-label="Subscriber">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span class="pulse-dot" style="{% if c.is_online %}background-color:#10b981; box-shadow:0 0 8px #10b981;{% else %}background-color:#64748b; animation:none;{% endif %}" title="{% if c.is_online %}Device Online on MikroTik Router{% else %}Offline{% endif %}"></span>
@@ -3184,9 +3280,18 @@
                 </div>
               </td>
               <td data-label="Due / Expiry Date">
-                <div class="font-mono" style="font-weight: 600; color: #ffffff;">{{ c.due_date or c.expiry_date or '—' }}</div>
-                <div style="margin-top: 3px;">
-                  <span class="badge-tier {{ c.tier_badge }}">{{ c.tier_label }}</span>
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:10px; color:#38bdf8; font-weight:700;">📅 PAY:</span>
+                    <span class="font-mono text-cyan" style="font-size:11.5px; font-weight:700;">{{ c.pay_date or c.due_date or '—' }}</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:10px; color:#fbbf24; font-weight:700;">✂️ CUT:</span>
+                    <span class="font-mono" style="font-size:11.5px; font-weight:600; color:#fbbf24;">{{ c.expiry_date or c.due_date or '—' }}</span>
+                  </div>
+                  <div style="margin-top: 2px;">
+                    <span class="badge-tier {{ c.tier_badge }}">{{ c.tier_label }}</span>
+                  </div>
                 </div>
               </td>
               <td data-label="Wallet">
@@ -3226,7 +3331,7 @@
               </td>
             {% endfor %}
             <tr id="emptyCustFilterRow" class="cust-hidden" style="display: none;">
-              <td colspan="8" style="text-align: center; padding: 32px 16px; color: var(--text-dim); background: rgba(15, 23, 42, 0.4); border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.1);">
+              <td colspan="9" style="text-align: center; padding: 32px 16px; color: var(--text-dim); background: rgba(15, 23, 42, 0.4); border-radius: 10px; border: 1px dashed rgba(255, 255, 255, 0.1);">
                 <div style="font-size: 24px; margin-bottom: 6px;">🔍</div>
                 <div style="font-size: 13.5px; font-weight: 700; color: #ffffff;">No Matching Subscribers Found</div>
                 <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 4px;">No subscribers match the current filter or search criteria.</div>
@@ -4067,22 +4172,33 @@
             <span>Billing Terms &amp; Renewal</span>
           </div>
 
-          <div class="modal-grid-3">
+          <div class="modal-grid-2" style="gap:10px;">
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustFee">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
+              <label for="editCustCredit">Credit Balance (SAR)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <div class="modal-grid-2" style="gap:10px; margin-top:10px; padding:10px; background:rgba(56,189,248,0.03); border:1px solid rgba(56,189,248,0.15); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <label for="editCustDueDate" style="margin-bottom:0;">Suspend Date <span style="color:#ef4444;">*</span></label>
+                <label for="editCustPayDate" style="margin-bottom:0;">📅 Payday <span style="color:#38bdf8;">*</span></label>
+                <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Follow-up Target</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustPayDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Expected pay day. Reminders trigger 3-5d before. <strong>Internet remains active</strong>.</span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">✂️ Hard Cutoff Date <span style="color:#ef4444;">*</span></label>
                 <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
               </div>
               <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
-              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Account suspends on this day.</span>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustCredit">Credit Balance (SAR)</label>
-              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Internet cuts off on MikroTik on this day if unpaid.</span>
             </div>
           </div>
 
@@ -5417,22 +5533,153 @@
   }
   window.quickApproveSecondary = quickApproveSecondary;
 
-  async function rejectRequest(reqId) {
-    if (!(await cyberConfirm('Reject and delete this connection request?', { title: 'Reject Request', okText: 'Reject Request', danger: true }))) return;
+  // -------------------------------------------------------------
+  // Inline 2-Step Fail-Safe Reject Engine (Mobile & Desktop)
+  // -------------------------------------------------------------
+  function resetRejectButton(btn) {
+    if (!btn) return;
+    if (btn._resetTimer) {
+      clearTimeout(btn._resetTimer);
+      btn._resetTimer = null;
+    }
+    delete btn.dataset.confirming;
+    btn.classList.remove('btn-reject-confirming');
+    btn.innerHTML = btn._origText || 'Reject';
+    btn.style.pointerEvents = '';
+  }
+
+  async function executeReject(btn, reqId) {
+    if (btn) {
+      if (btn._resetTimer) clearTimeout(btn._resetTimer);
+      delete btn.dataset.confirming;
+      btn.classList.remove('btn-reject-confirming');
+      btn.disabled = true;
+      btn.style.opacity = '0.75';
+      btn.style.pointerEvents = 'none';
+      btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px;"><svg style="animation:spin 1s linear infinite; width:13px; height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>Rejecting...</span>`;
+    }
+
     try {
       const resp = await fetch(`/api/hotspot/requests/${reqId}/reject`, { method: 'POST' });
       const res = await resp.json();
       if (res.success) {
+        cyberToast('Join request rejected and removed.', 'info');
         const row = document.getElementById('req-row-' + reqId);
-        if (row) row.remove();
-        refreshPendingRequests();
+        if (row) {
+          row.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+          row.style.opacity = '0';
+          row.style.transform = 'scale(0.92) translateX(30px)';
+          setTimeout(() => {
+            row.remove();
+            const badge = document.getElementById('pendingCountBadge');
+            if (badge) {
+              const cur = parseInt(badge.textContent || '0');
+              const next = Math.max(0, cur - 1);
+              badge.textContent = next;
+              if (next === 0) badge.style.display = 'none';
+            }
+            const statBadge = document.getElementById('statPendingNum');
+            if (statBadge) {
+              const cur = parseInt(statBadge.textContent || '0');
+              statBadge.textContent = Math.max(0, cur - 1);
+            }
+            const tbody = document.getElementById('pendingTableBody');
+            if (tbody && !tbody.querySelector('tr[id^="req-row-"]')) {
+              const emptyRow = document.getElementById('emptyPendingRow');
+              if (emptyRow) emptyRow.style.display = '';
+            }
+            if (typeof refreshPendingRequests === 'function') {
+              refreshPendingRequests();
+            }
+          }, 320);
+        } else {
+          if (typeof refreshPendingRequests === 'function') refreshPendingRequests();
+          else location.reload();
+        }
       } else {
-        cyberToast('Could not reject request: ' + (res.error || 'Server error'));
+        cyberToast('Could not reject request: ' + (res.message || res.error || 'Server error'), 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '';
+          btn.style.pointerEvents = '';
+          btn.innerHTML = btn._origText || 'Reject';
+        }
       }
     } catch (err) {
-      cyberToast('Rejection error: ' + err.message);
+      cyberToast('Rejection error: ' + err.message, 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+        btn.innerHTML = btn._origText || 'Reject';
+      }
     }
   }
+
+  function handleRejectClick(btn, event, reqId) {
+    if (event) {
+      try { event.preventDefault(); } catch(e){}
+      try { event.stopPropagation(); } catch(e){}
+    }
+    if (!reqId) return;
+
+    if (!btn) {
+      btn = document.querySelector(`button.btn-reject[data-req-id="${reqId}"]`) || 
+            document.querySelector(`#req-row-${reqId} .btn-reject`);
+    }
+
+    if (!btn) {
+      executeReject(null, reqId);
+      return;
+    }
+
+    // Step 2: Already in confirming state -> Execute rejection immediately!
+    if (btn.dataset.confirming === '1') {
+      executeReject(btn, reqId);
+      return;
+    }
+
+    // Reset any other button currently in confirming state
+    document.querySelectorAll('.btn-reject[data-confirming="1"]').forEach(b => resetRejectButton(b));
+
+    // Step 1: Transition into confirming state
+    btn._origText = btn.innerHTML;
+    btn.dataset.confirming = '1';
+    btn.classList.add('btn-reject-confirming');
+    btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Tap Again to Reject</span>`;
+    cyberToast('Tap button again within 5s to confirm rejection', 'warning');
+
+    // 5-second auto revert
+    btn._resetTimer = setTimeout(() => {
+      resetRejectButton(btn);
+    }, 5000);
+
+    // Cancel if user taps anywhere else outside
+    const onDocClick = (e) => {
+      if (!btn.contains(e.target)) {
+        resetRejectButton(btn);
+        document.removeEventListener('click', onDocClick, true);
+        document.removeEventListener('touchend', onDocClick, true);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', onDocClick, true);
+      document.addEventListener('touchend', onDocClick, true);
+    }, 60);
+  }
+  window.handleRejectClick = handleRejectClick;
+
+  async function rejectRequest(reqId, force = false) {
+    if (!reqId) return;
+    const btn = document.querySelector(`button.btn-reject[data-req-id="${reqId}"]`) || 
+                document.querySelector(`#req-row-${reqId} .btn-reject`);
+    if (force || !btn) {
+      executeReject(btn, reqId);
+    } else {
+      handleRejectClick(btn, null, reqId);
+    }
+  }
+  window.rejectRequest = rejectRequest;
 
   function formatDeviceModel(raw) {
     if (!raw) return 'Mobile Client';
@@ -5462,9 +5709,10 @@
 
   async function refreshPendingRequests() {
     try {
-      // Guard 1: Do NOT interrupt administrator if approval modal is currently open
+      // Guard 1: Do NOT interrupt administrator if approval modal or confirmation dialog is currently open
       const modal = document.getElementById('approvalModal');
-      if (modal && modal.classList.contains('open')) {
+      const confirmOverlay = document.getElementById('cyberConfirmOverlay');
+      if ((modal && modal.classList.contains('open')) || (confirmOverlay && confirmOverlay.classList.contains('open'))) {
         return;
       }
 
@@ -5583,7 +5831,7 @@
                  <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
                  <span>Random MAC</span>
                </button>
-               <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})" title="Reject Random MAC request">Reject</button>`
+               <button type="button" class="btn-reject" data-req-id="${req.id}" data-action="reject" onclick="handleRejectClick(this, event, ${req.id})" title="Reject Random MAC request">Reject</button>`
             : req.is_secondary
             ? `<button type="button" class="btn-approve"
                  data-req-id="${req.id}"
@@ -5622,7 +5870,7 @@
                  title="Review Subscriber &amp; Authorize">
                  <span>Review</span>
                </button>
-               <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`
+               <button type="button" class="btn-reject" data-req-id="${req.id}" data-action="reject" onclick="handleRejectClick(this, event, ${req.id})">Reject</button>`
             : `<button type="button" class="btn-approve"
                  data-req-id="${req.id}"
                  data-phone="${safePhone}"
@@ -5640,7 +5888,7 @@
                  <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                  <span>Approve</span>
                </button>
-               <button type="button" class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>`;
+               <button type="button" class="btn-reject" data-req-id="${req.id}" data-action="reject" onclick="handleRejectClick(this, event, ${req.id})">Reject</button>`;
 
           const copyBtnSvg = `<svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg class="check-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
@@ -5707,11 +5955,24 @@
     }
   }
 
-  // Fail-safe click delegation listener for pending requests
+  // Fail-safe click & touch delegation listener for pending requests (Approve & Reject)
   document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('pendingTableBody');
     if (tableBody) {
       tableBody.addEventListener('click', (e) => {
+        // Handle Reject delegation
+        const rejectBtn = e.target.closest('.btn-reject');
+        if (rejectBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const rId = rejectBtn.dataset.reqId || rejectBtn.getAttribute('onclick')?.match(/\d+/)?.[0];
+          if (rId) {
+            handleRejectClick(rejectBtn, e, parseInt(rId, 10));
+          }
+          return;
+        }
+
+        // Handle Approve delegation
         const btn = e.target.closest('.btn-approve');
         if (!btn) return;
         if (btn.classList.contains('btn-random-mac') || btn.dataset.randomMac === '1') {
@@ -6076,11 +6337,13 @@
       // Monthly fee
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
-      // Due date
+      // Payday and Hard Suspension dates
       if (window.setPickerDate) {
-        window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
+        window.setPickerDate('editCustPayDate', c.pay_date || c.due_date || '');
+        window.setPickerDate('editCustDueDate', c.expiry_date || c.due_date || '');
       } else {
-        document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+        if (document.getElementById('editCustPayDate')) document.getElementById('editCustPayDate').value = c.pay_date || c.due_date || '';
+        document.getElementById('editCustDueDate').value = c.expiry_date || c.due_date || '';
       }
 
       // Device limit
@@ -6222,6 +6485,7 @@
     const speed = document.getElementById('editCustSpeed').value.trim();
     const fee = parseFloat(document.getElementById('editCustFee').value) || 0.0;
     const dueDate = document.getElementById('editCustDueDate').value;
+    const payDate = document.getElementById('editCustPayDate') ? document.getElementById('editCustPayDate').value : dueDate;
     const maxDev = parseInt(document.getElementById('editCustMaxDevices').value) || 1;
     const credit = parseFloat(document.getElementById('editCustCredit').value) || 0.0;
 
@@ -6237,6 +6501,7 @@
           speed_limit: speed,
           monthly_fee: fee,
           due_date: dueDate,
+          pay_date: payDate,
           suspend_date: dueDate,
           max_devices: maxDev,
           credit_balance: credit
@@ -6274,5 +6539,475 @@
       openEditCustomerModal(parseInt(manageId));
     }
   });
+
+  // =========================================================
+  // CLUSTER / BATCH ACTION ENGINE (CUTOFF DATE UPDATE)
+  // =========================================================
+  let selectedSubscriberIds = new Set();
+
+  function onSubCheckboxChange(cb) {
+    const cid = parseInt(cb.value);
+    if (cb.checked) {
+      selectedSubscriberIds.add(cid);
+      highlightSubRow(cid, true);
+    } else {
+      selectedSubscriberIds.delete(cid);
+      highlightSubRow(cid, false);
+    }
+    updateClusterBarUI();
+  }
+
+  function highlightSubRow(cid, isSelected) {
+    const row = document.getElementById('cust-row-' + cid);
+    if (row) {
+      if (isSelected) {
+        row.classList.add('cluster-selected-row');
+      } else {
+        row.classList.remove('cluster-selected-row');
+      }
+    }
+    const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+    if (card) {
+      if (isSelected) {
+        card.classList.add('cluster-selected-row');
+      } else {
+        card.classList.remove('cluster-selected-row');
+      }
+    }
+  }
+
+  function updateClusterBarUI() {
+    const bar = document.getElementById('clusterActionBar');
+    const countEl = document.getElementById('clusterSelectedCount');
+    const count = selectedSubscriberIds.size;
+
+    if (countEl) countEl.textContent = count;
+
+    const filteredCountEl = document.getElementById('clusterFilteredCount');
+    if (filteredCountEl) {
+      filteredCountEl.textContent = getVisibleSubscribersCount();
+    }
+
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      const totalVisible = getVisibleSubscribersCount();
+      if (count === 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+      } else if (count >= totalVisible && totalVisible > 0) {
+        masterCb.checked = true;
+        masterCb.indeterminate = false;
+      } else {
+        masterCb.indeterminate = true;
+      }
+    }
+
+    if (bar) {
+      bar.style.display = count > 0 ? 'block' : 'none';
+    }
+  }
+
+  function getVisibleSubscribersCount() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row')).filter(r => r.style.display !== 'none' && !r.classList.contains('cust-hidden'));
+    if (visibleRows.length > 0) return visibleRows.length;
+    const visibleCards = Array.from(document.querySelectorAll('.mobile-customer-deck .cust-row')).filter(c => c.style.display !== 'none' && !c.classList.contains('filtered-out'));
+    return visibleCards.length;
+  }
+
+  function toggleSelectAllSubscribers(masterCb) {
+    const shouldSelect = masterCb.checked;
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = shouldSelect;
+        const cid = parseInt(cb.value);
+        if (shouldSelect) {
+          selectedSubscriberIds.add(cid);
+          highlightSubRow(cid, true);
+        } else {
+          selectedSubscriberIds.delete(cid);
+          highlightSubRow(cid, false);
+        }
+      }
+    });
+
+    updateClusterBarUI();
+  }
+
+  function selectAllFilteredSubscribers() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = true;
+        const cid = parseInt(cb.value);
+        selectedSubscriberIds.add(cid);
+        highlightSubRow(cid, true);
+      }
+    });
+
+    updateClusterBarUI();
+    if (typeof cyberToast === 'function') {
+      cyberToast(`Selected all ${visibleRows.length} visible subscriber(s)`, 'success');
+    }
+  }
+
+  function deselectAllSubscribers() {
+    selectedSubscriberIds.clear();
+    document.querySelectorAll('.sub-row-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.cluster-selected-row').forEach(el => el.classList.remove('cluster-selected-row'));
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      masterCb.checked = false;
+      masterCb.indeterminate = false;
+    }
+    updateClusterBarUI();
+  }
+
+  function openClusterSuspendModal() {
+    if (selectedSubscriberIds.size === 0) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Please select at least one subscriber first.', 'warning');
+      }
+      return;
+    }
+    const modal = document.getElementById('clusterSuspendModal');
+    const modalCount = document.getElementById('clusterModalCount');
+    if (modalCount) modalCount.textContent = selectedSubscriberIds.size;
+
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      dateInput.value = today.toISOString().split('T')[0];
+    }
+    if (dateInput && window.flatpickr && !dateInput._flatpickr) {
+      flatpickr(dateInput, { dateFormat: 'Y-m-d', allowInput: true });
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeClusterSuspendModal() {
+    const modal = document.getElementById('clusterSuspendModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function setClusterPresetDate(daysToAdd) {
+    const d = new Date();
+    d.setDate(d.getDate() + daysToAdd);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  function setClusterPresetEndOfMonth() {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  async function submitClusterSuspendDate() {
+    const dateInput = document.getElementById('clusterDateInput');
+    const newDate = dateInput ? dateInput.value.trim() : '';
+    if (!newDate || newDate.length < 10) {
+      alert('Please enter a valid date in YYYY-MM-DD format.');
+      return;
+    }
+
+    const ids = Array.from(selectedSubscriberIds);
+    if (ids.length === 0) return;
+
+    const btn = document.getElementById('btnApplyClusterSuspend');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Applying...</span>';
+    }
+
+    try {
+      const resp = await fetch('/api/customers/batch-set-suspend-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_ids: ids,
+          suspend_date: newDate
+        })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Server error occurred');
+      }
+
+      closeClusterSuspendModal();
+
+      if (typeof cyberToast === 'function') {
+        cyberToast(`?? Cutoff date set to ${newDate} for ${ids.length} subscriber(s). Payday preserved!`, 'success');
+      } else {
+        alert(`Success! Updated ${ids.length} subscribers to cutoff date ${newDate}.`);
+      }
+
+      // Live DOM update for updated IDs
+      ids.forEach(cid => {
+        const row = document.getElementById('cust-row-' + cid);
+        if (row) {
+          const cutCell = row.querySelector('td[data-label="Due / Expiry Date"]');
+          if (cutCell) {
+            const cutVal = cutCell.querySelector('span[style*="#fbbf24"], span.font-mono:not(.text-cyan)');
+            if (cutVal) cutVal.textContent = newDate;
+          }
+        }
+        const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+        if (card) {
+          const cutVal = card.querySelector('div[style*="#fbbf24"] .m-val, span[style*="#fbbf24"]');
+          if (cutVal) cutVal.textContent = newDate;
+        }
+      });
+
+      deselectAllSubscribers();
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err) {
+      console.error('Cluster action error:', err);
+      alert('Failed to apply cluster action: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Apply Cutoff Date</span>';
+      }
+    }
+  }
+
+  window.onSubCheckboxChange = onSubCheckboxChange;
+  window.toggleSelectAllSubscribers = toggleSelectAllSubscribers;
+  window.selectAllFilteredSubscribers = selectAllFilteredSubscribers;
+  window.deselectAllSubscribers = deselectAllSubscribers;
+  window.openClusterSuspendModal = openClusterSuspendModal;
+  window.closeClusterSuspendModal = closeClusterSuspendModal;
+  window.setClusterPresetDate = setClusterPresetDate;
+  window.setClusterPresetEndOfMonth = setClusterPresetEndOfMonth;
+  window.submitClusterSuspendDate = submitClusterSuspendDate;
+
 </script>
+
+<!-- =========================================================
+     CLUSTER ACTION FLOATING BAR & MODAL
+     ========================================================= -->
+<style>
+.cluster-selected-row {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: linear-gradient(135deg, rgba(15, 35, 60, 0.98) 0%, rgba(20, 45, 80, 0.95) 100%) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
+}
+
+.cluster-action-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10500;
+  width: min(640px, calc(100vw - 24px));
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 14px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  animation: slideUpCluster 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpCluster {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.cluster-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cluster-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cluster-badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+.btn-cluster-deselect {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-cluster-deselect:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.btn-cluster-select-filtered {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cluster-select-filtered:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.btn-cluster-action-suspend {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+}
+.btn-cluster-action-suspend:hover {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .cluster-action-bar {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    padding: 10px 12px;
+  }
+  .cluster-bar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cluster-bar-left {
+    justify-content: space-between;
+  }
+  .btn-cluster-action-suspend {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+}
+</style>
+
+<!-- Floating Cluster Action Bar -->
+<div id="clusterActionBar" class="cluster-action-bar" style="display: none;">
+  <div class="cluster-bar-inner">
+    <div class="cluster-bar-left">
+      <div class="cluster-badge">
+        <span id="clusterSelectedCount">0</span> Selected
+      </div>
+      <button type="button" class="btn-cluster-deselect" onclick="deselectAllSubscribers()">
+        Clear
+      </button>
+      <button type="button" class="btn-cluster-select-filtered" onclick="selectAllFilteredSubscribers()">
+        Select All Filtered (<span id="clusterFilteredCount">0</span>)
+      </button>
+    </div>
+    <div class="cluster-bar-actions">
+      <button type="button" class="btn-cluster-action-suspend" onclick="openClusterSuspendModal()">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+        <span>Change Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Cluster Action Suspend Date Modal -->
+<div id="clusterSuspendModal" class="modal-overlay" style="display:none; z-index:12000;">
+  <div class="modal-box" style="max-width:480px; width:100%; border-radius:16px;">
+    <div class="modal-header" style="padding:14px 18px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚡</span>
+        <div>
+          <h3 style="font-size:15px; font-weight:800; color:#ffffff; margin:0;">Cluster Action: Set Hard Cutoff Date</h3>
+          <span style="font-size:11.5px; color:var(--text-dim);">Applying to <strong id="clusterModalCount" style="color:#38bdf8;">0</strong> selected subscriber(s)</span>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeClusterSuspendModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding:16px 18px;">
+      <!-- Payday Guarantee Alert Notice -->
+      <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 12px; margin-bottom:14px; display:flex; gap:10px; align-items:start;">
+        <span style="font-size:18px;">🔒</span>
+        <div style="font-size:12px; line-height:1.45; color:#cbd5e1;">
+          <strong style="color:#38bdf8;">Payday (pay_date) is strictly preserved:</strong> Each subscriber's expected Payday will remain exactly as previously configured. Only the <strong>Hard Suspension Date (Auto-Cutoff)</strong> will be synchronized to the date you choose below.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:#ffffff; display:block; margin-bottom:6px;">New Hard Suspension Date (Internet Cutoff):</label>
+        <input type="text" id="clusterDateInput" class="form-input font-mono cyber-datepicker" placeholder="YYYY-MM-DD" style="font-size:16px; padding:10px 12px; width:100%; font-weight:700; color:#fbbf24;">
+        <span style="font-size:11px; color:var(--text-dim); margin-top:4px; display:block;">Select the day when internet access will automatically suspend across the MikroTik fleet if unpaid.</span>
+      </div>
+
+      <!-- Quick Preset Pills -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(0)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">Today</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(3)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+3 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(5)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+5 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(7)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+7 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetEndOfMonth()" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">End of Month</button>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding:12px 18px; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end; gap:10px; background:var(--bg-card-header);">
+      <button type="button" class="btn-cancel" onclick="closeClusterSuspendModal()" style="padding:9px 16px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button type="button" id="btnApplyClusterSuspend" class="btn-primary" onclick="submitClusterSuspendDate()" style="padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; background:linear-gradient(135deg, #d97706, #f59e0b); border:1px solid rgba(245,158,11,0.5); color:#ffffff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+        <span>Apply Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

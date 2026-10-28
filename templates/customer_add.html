@@ -371,10 +371,18 @@
   /* RESPONSIVE LAYOUTS */
   @media (max-width: 992px) {
     .edit-content-grid {
-      grid-template-columns: 1fr;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 14px !important;
+    }
+    .edit-form-flow {
+      order: 1 !important; /* Form first so mobile users see editable registration fields immediately */
+      width: 100% !important;
     }
     .edit-sidebar-card {
-      position: static;
+      order: 2 !important; /* Live preview snapshot below form on mobile */
+      position: static !important;
+      width: 100% !important;
     }
   }
 
@@ -706,7 +714,7 @@
               <input type="hidden" id="fullBillingType" value="prepaid">
             </div>
 
-            <div class="modal-grid-2">
+            <div class="modal-grid-3">
               <div class="form-group" style="margin-bottom:0;">
                 <label for="addCustFee">Monthly Fee (SAR) <span style="color:#ef4444;">*</span></label>
                 <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateFullAdvance(); updateLivePreview();" style="color:#38bdf8; font-weight:700;">
@@ -714,7 +722,15 @@
 
               <div class="form-group" style="margin-bottom:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                  <label for="addCustDueDate" style="margin-bottom:0;">Service Suspend Date <span style="color:#ef4444;">*</span></label>
+                  <label for="addCustPayDate" style="margin-bottom:0;">📅 Payday <span style="color:#38bdf8;">*</span></label>
+                  <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Follow-up Target</span>
+                </div>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustPayDate" placeholder="YYYY-MM-DD" required autocomplete="off" onchange="updateLivePreview()">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label for="addCustDueDate" style="margin-bottom:0;">✂️ Hard Cutoff Date <span style="color:#ef4444;">*</span></label>
                   <span class="badge" id="badgeAddSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto Cutoff</span>
                 </div>
                 <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off" onchange="updateLivePreview()">
@@ -873,10 +889,12 @@
     const futureStr = window.formatDateISO ? window.formatDateISO(futureDate) : futureDate.toISOString().slice(0, 10);
 
     if (window.setPickerDate) {
+      window.setPickerDate('addCustPayDate', futureStr);
       window.setPickerDate('addCustDueDate', futureStr);
       window.setPickerDate('addCustJoinDate', todayStr);
       window.setPickerDate('addCustBillingStart', todayStr);
     } else {
+      if (document.getElementById('addCustPayDate')) document.getElementById('addCustPayDate').value = futureStr;
       document.getElementById('addCustDueDate').value = futureStr;
       document.getElementById('addCustJoinDate').value = todayStr;
       document.getElementById('addCustBillingStart').value = todayStr;
@@ -1239,6 +1257,7 @@
           speed_limit: speed,
           monthly_fee: fee,
           due_date: dueDate,
+          pay_date: document.getElementById('addCustPayDate')?.value || dueDate,
           max_devices: maxDev,
           mac_address: mac || null,
           initial_payment: initPay,

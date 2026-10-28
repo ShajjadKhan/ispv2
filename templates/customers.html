@@ -1551,6 +1551,9 @@
         <table class="clean-table" id="customersTable">
           <thead>
             <tr>
+              <th style="width:36px; text-align:center;">
+                <input type="checkbox" id="masterSubSelectAll" onchange="toggleSelectAllSubscribers(this)" title="Select All Visible Subscribers" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+              </th>
               <th>Customer</th>
               <th>Phone</th>
               <th>Type</th>
@@ -1566,6 +1569,9 @@
             {% if customers %}
               {% for c in customers %}
               <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+                <td class="td-sub-select" style="text-align:center; vertical-align:middle; width:36px;">
+                  <input type="checkbox" class="sub-row-checkbox" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+                </td>
                 <td>
                   <div class="cust-name-cell">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1633,20 +1639,29 @@
                 </td>
                 <td>
                   <div class="cust-duedate-cell">
-                    <span class="font-mono text-white" style="font-size:12px; white-space:nowrap;">{{ c.due_date or c.expiry_date or '—' }}</span>
-                    {% if c.is_grace_held or c.suspension_held_until %}
-                      <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
-                        🤝 Grace: {{ c.suspension_held_until }}
-                      </span>
-                    {% elif c.days_remaining is not none %}
-                      {% if c.days_remaining < 0 %}
-                        <span class="badge-status disabled" style="font-size:10px; width:fit-content;">EXPIRED</span>
-                      {% elif c.days_remaining <= 3 %}
-                        <span class="badge-status stopped" style="font-size:10px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">{{ c.days_remaining }}d left</span>
-                      {% else %}
-                        <span class="badge-status running" style="font-size:10px; width:fit-content;">{{ c.days_remaining }}d left</span>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:10px; color:#38bdf8; font-weight:700;">📅 PAY:</span>
+                        <span class="font-mono text-cyan" style="font-size:11.5px; font-weight:700; white-space:nowrap;">{{ c.pay_date or c.due_date or '—' }}</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:10px; color:#fbbf24; font-weight:700;">✂️ CUT:</span>
+                        <span class="font-mono" style="font-size:11.5px; font-weight:600; color:#fbbf24; white-space:nowrap;">{{ c.expiry_date or c.due_date or '—' }}</span>
+                      </div>
+                      {% if c.is_grace_held or c.suspension_held_until %}
+                        <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                          🤝 Grace: {{ c.suspension_held_until }}
+                        </span>
+                      {% elif c.days_remaining is not none %}
+                        {% if c.days_remaining < 0 %}
+                          <span class="badge-status disabled" style="font-size:9.5px; width:fit-content;">CUTOFF EXPIRED</span>
+                        {% elif c.days_remaining <= 3 %}
+                          <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">Cut in {{ c.days_remaining }}d</span>
+                        {% else %}
+                          <span class="badge-status running" style="font-size:9.5px; width:fit-content;">Cut in {{ c.days_remaining }}d</span>
+                        {% endif %}
                       {% endif %}
-                    {% endif %}
+                    </div>
                   </div>
                 </td>
                 <td class="cust-devices-cell">
@@ -1749,7 +1764,7 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td colspan="9">
+                <td colspan="10">
                   <div class="empty-state">
                     <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Customers Registered Yet</p>
                     <p style="font-size:12px;">Approve hotspot connection requests or click "Add Customer" above to register accounts.</p>
@@ -1769,6 +1784,7 @@
         <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
+              <input type="checkbox" class="sub-row-checkbox mobile-sub-check" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 19px; height: 19px; accent-color: #38bdf8; margin-right: 6px; flex-shrink: 0;">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
               <div class="mobile-cust-info">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1835,21 +1851,42 @@
               {% endif %}
             </div>
             <div class="mobile-grid-item">
-              <span class="m-lbl">Due / Expiry Date</span>
-              <span class="m-val font-mono" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
-              {% if c.is_grace_held or c.suspension_held_until %}
-                <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700; width:fit-content; margin-top:2px;" title="Suspension hold active until {{ c.suspension_held_until }}">
-                  🤝 Grace: {{ c.suspension_held_until }}
-                </span>
-              {% elif c.days_remaining is not none %}
-                {% if c.days_remaining < 0 %}
-                  <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; margin-top:2px;">EXPIRED</span>
-                {% elif c.days_remaining <= 3 %}
-                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content; margin-top:2px;">{{ c.days_remaining }}d left</span>
+              <span class="m-lbl" style="color:#38bdf8;">📅 Payday (Expected)</span>
+              <span class="m-val font-mono text-cyan" style="font-size:12px; font-weight:700;">{{ c.pay_date or c.due_date or '—' }}</span>
+              {% if c.days_to_payday is not none %}
+                {% if c.days_to_payday < 0 %}
+                  <span class="badge-status stopped" style="font-size:9px; background:rgba(245,158,11,0.15); color:#fbbf24; width:fit-content; margin-top:2px;">{{ c.days_to_payday|abs }}d past payday</span>
+                {% elif c.days_to_payday <= 3 %}
+                  <span class="badge-status stopped" style="font-size:9px; background:rgba(56,189,248,0.18); color:#38bdf8; width:fit-content; margin-top:2px; font-weight:700;">In {{ c.days_to_payday }}d</span>
                 {% else %}
-                  <span class="badge-status running" style="font-size:9.5px; width:fit-content; margin-top:2px;">{{ c.days_remaining }}d left</span>
+                  <span class="badge-status" style="font-size:9px; background:rgba(56,189,248,0.1); color:#38bdf8; width:fit-content; margin-top:2px;">In {{ c.days_to_payday }}d</span>
                 {% endif %}
               {% endif %}
+            </div>
+
+            <!-- Full-Width Hard Suspension Date (Internet Cutoff) -->
+            <div class="mobile-grid-item" style="grid-column: 1 / -1; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.22); border-radius:8px; padding:7px 10px; margin-top:2px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <div>
+                  <span class="m-lbl" style="color:#fbbf24; margin-bottom:1px;">✂️ Hard Suspension (Auto-Cut)</span>
+                  <div class="m-val font-mono" style="font-size:12px; color:#fbbf24; font-weight:700;">{{ c.expiry_date or c.due_date or '—' }}</div>
+                </div>
+                <div>
+                  {% if c.is_grace_held or c.suspension_held_until %}
+                    <span class="badge" style="background:rgba(245,158,11,0.22); color:#f59e0b; border:1px solid rgba(245,158,11,0.45); padding:2px 7px; border-radius:4px; font-size:9.5px; font-weight:700;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                      🤝 Grace: {{ c.suspension_held_until }}
+                    </span>
+                  {% elif c.days_remaining is not none %}
+                    {% if c.days_remaining < 0 %}
+                      <span class="badge-status disabled" style="font-size:9.5px; padding:2px 7px; font-weight:700;">CUT / EXPIRED</span>
+                    {% elif c.days_remaining <= 3 %}
+                      <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.2); font-weight:700; padding:2px 7px;">Cut in {{ c.days_remaining }}d</span>
+                    {% else %}
+                      <span class="badge-status running" style="font-size:9.5px; padding:2px 7px;">Cut in {{ c.days_remaining }}d</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
             </div>
             <div class="mobile-grid-item" style="grid-column: 1 / -1;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
@@ -2759,22 +2796,33 @@
             <span>Billing Terms &amp; Renewal</span>
           </div>
 
-          <div class="modal-grid-3">
+          <div class="modal-grid-2" style="gap:10px;">
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustFee">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
+              <label for="editCustCredit">Credit Balance (SAR)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <div class="modal-grid-2" style="gap:10px; margin-top:10px; padding:10px; background:rgba(56,189,248,0.03); border:1px solid rgba(56,189,248,0.15); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <label for="editCustDueDate" style="margin-bottom:0;">Suspend Date <span style="color:#ef4444;">*</span></label>
+                <label for="editCustPayDate" style="margin-bottom:0;">📅 Payday <span style="color:#38bdf8;">*</span></label>
+                <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Follow-up Target</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustPayDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Expected pay day. Reminders trigger 3-5d before. <strong>Internet remains active</strong>.</span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">✂️ Hard Cutoff Date <span style="color:#ef4444;">*</span></label>
                 <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
               </div>
               <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
-              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Account suspends on this day.</span>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustCredit">Credit Balance (SAR)</label>
-              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Internet cuts off on MikroTik on this day if unpaid.</span>
             </div>
           </div>
 
@@ -4619,11 +4667,13 @@
       // Monthly fee
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
-      // Due date / suspend date
+      // Payday and Hard Suspension dates
       if (window.setPickerDate) {
-        window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
+        window.setPickerDate('editCustPayDate', c.pay_date || c.due_date || '');
+        window.setPickerDate('editCustDueDate', c.expiry_date || c.due_date || '');
       } else {
-        document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+        if (document.getElementById('editCustPayDate')) document.getElementById('editCustPayDate').value = c.pay_date || c.due_date || '';
+        document.getElementById('editCustDueDate').value = c.expiry_date || c.due_date || '';
       }
 
       // Device limit
@@ -4823,6 +4873,7 @@
     const speed = document.getElementById('editCustSpeed').value.trim();
     const fee = parseFloat(document.getElementById('editCustFee').value) || 0.0;
     const dueDate = document.getElementById('editCustDueDate').value;
+    const payDate = document.getElementById('editCustPayDate') ? document.getElementById('editCustPayDate').value : dueDate;
     const maxDev = parseInt(document.getElementById('editCustMaxDevices').value) || 1;
     const credit = parseFloat(document.getElementById('editCustCredit').value) || 0.0;
     const connType = document.getElementById('editCustConnType') ? document.getElementById('editCustConnType').value : 'hotspot';
@@ -4843,6 +4894,7 @@
           speed_limit: speed,
           monthly_fee: fee,
           due_date: dueDate,
+          pay_date: payDate,
           max_devices: maxDev,
           credit_balance: credit,
           notes: notes,
@@ -5620,5 +5672,475 @@
   window.copyCustReminderText = copyCustReminderText;
   window.collectFromCustReminderModal = collectFromCustReminderModal;
   window.sendCustWhatsAppReminderOpenWA = sendCustWhatsAppReminderOpenWA;
+
+  // =========================================================
+  // CLUSTER / BATCH ACTION ENGINE (CUTOFF DATE UPDATE)
+  // =========================================================
+  let selectedSubscriberIds = new Set();
+
+  function onSubCheckboxChange(cb) {
+    const cid = parseInt(cb.value);
+    if (cb.checked) {
+      selectedSubscriberIds.add(cid);
+      highlightSubRow(cid, true);
+    } else {
+      selectedSubscriberIds.delete(cid);
+      highlightSubRow(cid, false);
+    }
+    updateClusterBarUI();
+  }
+
+  function highlightSubRow(cid, isSelected) {
+    const row = document.getElementById('cust-row-' + cid);
+    if (row) {
+      if (isSelected) {
+        row.classList.add('cluster-selected-row');
+      } else {
+        row.classList.remove('cluster-selected-row');
+      }
+    }
+    const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+    if (card) {
+      if (isSelected) {
+        card.classList.add('cluster-selected-row');
+      } else {
+        card.classList.remove('cluster-selected-row');
+      }
+    }
+  }
+
+  function updateClusterBarUI() {
+    const bar = document.getElementById('clusterActionBar');
+    const countEl = document.getElementById('clusterSelectedCount');
+    const count = selectedSubscriberIds.size;
+
+    if (countEl) countEl.textContent = count;
+
+    const filteredCountEl = document.getElementById('clusterFilteredCount');
+    if (filteredCountEl) {
+      filteredCountEl.textContent = getVisibleSubscribersCount();
+    }
+
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      const totalVisible = getVisibleSubscribersCount();
+      if (count === 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+      } else if (count >= totalVisible && totalVisible > 0) {
+        masterCb.checked = true;
+        masterCb.indeterminate = false;
+      } else {
+        masterCb.indeterminate = true;
+      }
+    }
+
+    if (bar) {
+      bar.style.display = count > 0 ? 'block' : 'none';
+    }
+  }
+
+  function getVisibleSubscribersCount() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row')).filter(r => r.style.display !== 'none' && !r.classList.contains('cust-hidden'));
+    if (visibleRows.length > 0) return visibleRows.length;
+    const visibleCards = Array.from(document.querySelectorAll('.mobile-customer-deck .cust-row')).filter(c => c.style.display !== 'none' && !c.classList.contains('filtered-out'));
+    return visibleCards.length;
+  }
+
+  function toggleSelectAllSubscribers(masterCb) {
+    const shouldSelect = masterCb.checked;
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = shouldSelect;
+        const cid = parseInt(cb.value);
+        if (shouldSelect) {
+          selectedSubscriberIds.add(cid);
+          highlightSubRow(cid, true);
+        } else {
+          selectedSubscriberIds.delete(cid);
+          highlightSubRow(cid, false);
+        }
+      }
+    });
+
+    updateClusterBarUI();
+  }
+
+  function selectAllFilteredSubscribers() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = true;
+        const cid = parseInt(cb.value);
+        selectedSubscriberIds.add(cid);
+        highlightSubRow(cid, true);
+      }
+    });
+
+    updateClusterBarUI();
+    if (typeof cyberToast === 'function') {
+      cyberToast(`Selected all ${visibleRows.length} visible subscriber(s)`, 'success');
+    }
+  }
+
+  function deselectAllSubscribers() {
+    selectedSubscriberIds.clear();
+    document.querySelectorAll('.sub-row-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.cluster-selected-row').forEach(el => el.classList.remove('cluster-selected-row'));
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      masterCb.checked = false;
+      masterCb.indeterminate = false;
+    }
+    updateClusterBarUI();
+  }
+
+  function openClusterSuspendModal() {
+    if (selectedSubscriberIds.size === 0) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Please select at least one subscriber first.', 'warning');
+      }
+      return;
+    }
+    const modal = document.getElementById('clusterSuspendModal');
+    const modalCount = document.getElementById('clusterModalCount');
+    if (modalCount) modalCount.textContent = selectedSubscriberIds.size;
+
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      dateInput.value = today.toISOString().split('T')[0];
+    }
+    if (dateInput && window.flatpickr && !dateInput._flatpickr) {
+      flatpickr(dateInput, { dateFormat: 'Y-m-d', allowInput: true });
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeClusterSuspendModal() {
+    const modal = document.getElementById('clusterSuspendModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function setClusterPresetDate(daysToAdd) {
+    const d = new Date();
+    d.setDate(d.getDate() + daysToAdd);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  function setClusterPresetEndOfMonth() {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  async function submitClusterSuspendDate() {
+    const dateInput = document.getElementById('clusterDateInput');
+    const newDate = dateInput ? dateInput.value.trim() : '';
+    if (!newDate || newDate.length < 10) {
+      alert('Please enter a valid date in YYYY-MM-DD format.');
+      return;
+    }
+
+    const ids = Array.from(selectedSubscriberIds);
+    if (ids.length === 0) return;
+
+    const btn = document.getElementById('btnApplyClusterSuspend');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Applying...</span>';
+    }
+
+    try {
+      const resp = await fetch('/api/customers/batch-set-suspend-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_ids: ids,
+          suspend_date: newDate
+        })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Server error occurred');
+      }
+
+      closeClusterSuspendModal();
+
+      if (typeof cyberToast === 'function') {
+        cyberToast(`?? Cutoff date set to ${newDate} for ${ids.length} subscriber(s). Payday preserved!`, 'success');
+      } else {
+        alert(`Success! Updated ${ids.length} subscribers to cutoff date ${newDate}.`);
+      }
+
+      // Live DOM update for updated IDs
+      ids.forEach(cid => {
+        const row = document.getElementById('cust-row-' + cid);
+        if (row) {
+          const cutCell = row.querySelector('td[data-label="Due / Expiry Date"]');
+          if (cutCell) {
+            const cutVal = cutCell.querySelector('span[style*="#fbbf24"], span.font-mono:not(.text-cyan)');
+            if (cutVal) cutVal.textContent = newDate;
+          }
+        }
+        const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+        if (card) {
+          const cutVal = card.querySelector('div[style*="#fbbf24"] .m-val, span[style*="#fbbf24"]');
+          if (cutVal) cutVal.textContent = newDate;
+        }
+      });
+
+      deselectAllSubscribers();
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err) {
+      console.error('Cluster action error:', err);
+      alert('Failed to apply cluster action: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Apply Cutoff Date</span>';
+      }
+    }
+  }
+
+  window.onSubCheckboxChange = onSubCheckboxChange;
+  window.toggleSelectAllSubscribers = toggleSelectAllSubscribers;
+  window.selectAllFilteredSubscribers = selectAllFilteredSubscribers;
+  window.deselectAllSubscribers = deselectAllSubscribers;
+  window.openClusterSuspendModal = openClusterSuspendModal;
+  window.closeClusterSuspendModal = closeClusterSuspendModal;
+  window.setClusterPresetDate = setClusterPresetDate;
+  window.setClusterPresetEndOfMonth = setClusterPresetEndOfMonth;
+  window.submitClusterSuspendDate = submitClusterSuspendDate;
+
 </script>
+
+<!-- =========================================================
+     CLUSTER ACTION FLOATING BAR & MODAL
+     ========================================================= -->
+<style>
+.cluster-selected-row {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: linear-gradient(135deg, rgba(15, 35, 60, 0.98) 0%, rgba(20, 45, 80, 0.95) 100%) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
+}
+
+.cluster-action-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10500;
+  width: min(640px, calc(100vw - 24px));
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 14px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  animation: slideUpCluster 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpCluster {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.cluster-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cluster-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cluster-badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+.btn-cluster-deselect {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-cluster-deselect:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.btn-cluster-select-filtered {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cluster-select-filtered:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.btn-cluster-action-suspend {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+}
+.btn-cluster-action-suspend:hover {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .cluster-action-bar {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    padding: 10px 12px;
+  }
+  .cluster-bar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cluster-bar-left {
+    justify-content: space-between;
+  }
+  .btn-cluster-action-suspend {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+}
+</style>
+
+<!-- Floating Cluster Action Bar -->
+<div id="clusterActionBar" class="cluster-action-bar" style="display: none;">
+  <div class="cluster-bar-inner">
+    <div class="cluster-bar-left">
+      <div class="cluster-badge">
+        <span id="clusterSelectedCount">0</span> Selected
+      </div>
+      <button type="button" class="btn-cluster-deselect" onclick="deselectAllSubscribers()">
+        Clear
+      </button>
+      <button type="button" class="btn-cluster-select-filtered" onclick="selectAllFilteredSubscribers()">
+        Select All Filtered (<span id="clusterFilteredCount">0</span>)
+      </button>
+    </div>
+    <div class="cluster-bar-actions">
+      <button type="button" class="btn-cluster-action-suspend" onclick="openClusterSuspendModal()">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+        <span>Change Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Cluster Action Suspend Date Modal -->
+<div id="clusterSuspendModal" class="modal-overlay" style="display:none; z-index:12000;">
+  <div class="modal-box" style="max-width:480px; width:100%; border-radius:16px;">
+    <div class="modal-header" style="padding:14px 18px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚡</span>
+        <div>
+          <h3 style="font-size:15px; font-weight:800; color:#ffffff; margin:0;">Cluster Action: Set Hard Cutoff Date</h3>
+          <span style="font-size:11.5px; color:var(--text-dim);">Applying to <strong id="clusterModalCount" style="color:#38bdf8;">0</strong> selected subscriber(s)</span>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeClusterSuspendModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding:16px 18px;">
+      <!-- Payday Guarantee Alert Notice -->
+      <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 12px; margin-bottom:14px; display:flex; gap:10px; align-items:start;">
+        <span style="font-size:18px;">🔒</span>
+        <div style="font-size:12px; line-height:1.45; color:#cbd5e1;">
+          <strong style="color:#38bdf8;">Payday (pay_date) is strictly preserved:</strong> Each subscriber's expected Payday will remain exactly as previously configured. Only the <strong>Hard Suspension Date (Auto-Cutoff)</strong> will be synchronized to the date you choose below.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:#ffffff; display:block; margin-bottom:6px;">New Hard Suspension Date (Internet Cutoff):</label>
+        <input type="text" id="clusterDateInput" class="form-input font-mono cyber-datepicker" placeholder="YYYY-MM-DD" style="font-size:16px; padding:10px 12px; width:100%; font-weight:700; color:#fbbf24;">
+        <span style="font-size:11px; color:var(--text-dim); margin-top:4px; display:block;">Select the day when internet access will automatically suspend across the MikroTik fleet if unpaid.</span>
+      </div>
+
+      <!-- Quick Preset Pills -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(0)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">Today</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(3)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+3 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(5)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+5 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(7)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+7 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetEndOfMonth()" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">End of Month</button>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding:12px 18px; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end; gap:10px; background:var(--bg-card-header);">
+      <button type="button" class="btn-cancel" onclick="closeClusterSuspendModal()" style="padding:9px 16px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button type="button" id="btnApplyClusterSuspend" class="btn-primary" onclick="submitClusterSuspendDate()" style="padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; background:linear-gradient(135deg, #d97706, #f59e0b); border:1px solid rgba(245,158,11,0.5); color:#ffffff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+        <span>Apply Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

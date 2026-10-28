@@ -213,6 +213,18 @@
   .btn-reject:hover {
     background: rgba(239, 68, 68, 0.25);
   }
+  .btn-reject-confirming {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+    border: 1px solid #f87171 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.6) !important;
+    font-weight: 800 !important;
+    animation: pulse-reject 1.2s infinite ease-in-out !important;
+  }
+  @keyframes pulse-reject {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 0 16px rgba(239, 68, 68, 0.85); }
+  }
 
   .cust-mac-cell {
     vertical-align: top;
@@ -852,15 +864,31 @@
     #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject,
     .req-table-row td.td-actions button.btn-reject {
       flex: 1 !important;
-      padding: 9px 10px !important;
-      font-size: 12.5px !important;
-      font-weight: 600 !important;
+      padding: 10px 12px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
       border-radius: 8px !important;
       justify-content: center !important;
-      min-height: 40px !important;
+      min-height: 46px !important;
       display: inline-flex !important;
       align-items: center !important;
       gap: 4px !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent !important;
+      cursor: pointer !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject:active,
+    .req-table-row td.td-actions button.btn-reject:active {
+      transform: scale(0.96) !important;
+    }
+    #pendingTable tr[id^="req-row-"] td.td-actions button.btn-reject.btn-reject-confirming,
+    .req-table-row td.td-actions button.btn-reject.btn-reject-confirming {
+      background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+      border-color: #f87171 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.7) !important;
+      font-weight: 800 !important;
+      animation: pulse-reject 1.2s infinite ease-in-out !important;
     }
 
     .modal-grid-2 {
@@ -1360,7 +1388,7 @@
               </td>
               <td data-label="Requested At" class="font-mono text-dim td-time" style="font-size:12px;">{{ req.created_at }}</td>
               <td data-label="Actions" class="td-actions" style="text-align:right;">
-                <div style="display:inline-flex; gap:8px;">
+                <div class="pending-actions-wrap" style="display:inline-flex; gap:8px;">
                   {% if req.is_random_mac %}
                     <button type="button" class="btn-approve btn-random-mac"
                       data-mac="{{ req.mac_address }}"
@@ -1372,7 +1400,7 @@
                       <svg style="width:13px; height:13px; fill:#f87171;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
                       <span>Random MAC</span>
                     </button>
-                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})" title="Reject Random MAC request">
+                    <button type="button" class="btn-reject" data-req-id="{{ req.id }}" data-action="reject" onclick="handleRejectClick(this, event, {{ req.id }})" title="Reject Random MAC request">
                       Reject
                     </button>
                   {% elif req.is_secondary %}
@@ -1415,7 +1443,7 @@
                       title="Review Subscriber & Authorize">
                       <span>Review</span>
                     </button>
-                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                    <button type="button" class="btn-reject" data-req-id="{{ req.id }}" data-action="reject" onclick="handleRejectClick(this, event, {{ req.id }})">
                       Reject
                     </button>
                   {% else %}
@@ -1437,7 +1465,7 @@
                       <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       <span>Approve</span>
                     </button>
-                    <button type="button" class="btn-reject" onclick="rejectRequest({{ req.id }})">
+                    <button type="button" class="btn-reject" data-req-id="{{ req.id }}" data-action="reject" onclick="handleRejectClick(this, event, {{ req.id }})">
                       Reject
                     </button>
                   {% endif %}
@@ -2496,22 +2524,141 @@
   }
   window.quickApproveSecondary = quickApproveSecondary;
 
-  async function rejectRequest(reqId) {
-    if (!(await cyberConfirm('Are you sure you want to reject this connection request?', { title: 'Reject Request', okText: 'Reject Request', danger: true }))) return;
+  // -------------------------------------------------------------
+  // Inline 2-Step Fail-Safe Reject Engine (Mobile & Desktop)
+  // -------------------------------------------------------------
+  function resetRejectButton(btn) {
+    if (!btn) return;
+    if (btn._resetTimer) {
+      clearTimeout(btn._resetTimer);
+      btn._resetTimer = null;
+    }
+    delete btn.dataset.confirming;
+    btn.classList.remove('btn-reject-confirming');
+    btn.innerHTML = btn._origText || 'Reject';
+    btn.style.pointerEvents = '';
+  }
+
+  async function executeReject(btn, reqId) {
+    if (btn) {
+      if (btn._resetTimer) clearTimeout(btn._resetTimer);
+      delete btn.dataset.confirming;
+      btn.classList.remove('btn-reject-confirming');
+      btn.disabled = true;
+      btn.style.opacity = '0.75';
+      btn.style.pointerEvents = 'none';
+      btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px;"><svg style="animation:spin 1s linear infinite; width:13px; height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>Rejecting...</span>`;
+    }
+
     try {
       const resp = await fetch(`/api/hotspot/requests/${reqId}/reject`, { method: 'POST' });
       const res = await resp.json();
       if (res.success) {
+        cyberToast('Join request rejected and removed.', 'info');
         const row = document.getElementById('req-row-' + reqId);
-        if (row) row.remove();
-        location.reload();
+        if (row) {
+          row.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+          row.style.opacity = '0';
+          row.style.transform = 'scale(0.92) translateX(30px)';
+          setTimeout(() => {
+            row.remove();
+            const statBadge = document.getElementById('statPendingNum');
+            if (statBadge) {
+              const cur = parseInt(statBadge.textContent || '0');
+              statBadge.textContent = Math.max(0, cur - 1);
+            }
+            const tbody = document.getElementById('pendingTableBody');
+            if (tbody && !tbody.querySelector('tr[id^="req-row-"]')) {
+              tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg><p style="font-weight:700; color:#ffffff; margin-bottom:4px;">No Pending Connection Requests</p><p style="font-size:12px;">When a user submits their phone number on the captive portal popup, it will appear here instantly for your review.</p></div></td></tr>`;
+            }
+          }, 320);
+        } else {
+          location.reload();
+        }
       } else {
-        cyberToast('Failed to reject: ' + (res.message || 'Error'), 'error');
+        cyberToast('Failed to reject: ' + (res.message || res.error || 'Error'), 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '';
+          btn.style.pointerEvents = '';
+          btn.innerHTML = btn._origText || 'Reject';
+        }
       }
     } catch (err) {
       cyberToast('Error: ' + err.message, 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
+        btn.innerHTML = btn._origText || 'Reject';
+      }
     }
   }
+
+  function handleRejectClick(btn, event, reqId) {
+    if (event) {
+      try { event.preventDefault(); } catch(e){}
+      try { event.stopPropagation(); } catch(e){}
+    }
+    if (!reqId) return;
+
+    if (!btn) {
+      btn = document.querySelector(`button.btn-reject[data-req-id="${reqId}"]`) || 
+            document.querySelector(`#req-row-${reqId} .btn-reject`);
+    }
+
+    if (!btn) {
+      executeReject(null, reqId);
+      return;
+    }
+
+    // Step 2: Already in confirming state -> Execute rejection immediately!
+    if (btn.dataset.confirming === '1') {
+      executeReject(btn, reqId);
+      return;
+    }
+
+    // Reset any other button currently in confirming state
+    document.querySelectorAll('.btn-reject[data-confirming="1"]').forEach(b => resetRejectButton(b));
+
+    // Step 1: Transition into confirming state
+    btn._origText = btn.innerHTML;
+    btn.dataset.confirming = '1';
+    btn.classList.add('btn-reject-confirming');
+    btn.innerHTML = `<span style="display:inline-flex; align-items:center; gap:5px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Tap Again to Reject</span>`;
+    cyberToast('Tap button again within 5s to confirm rejection', 'warning');
+
+    // 5-second auto revert
+    btn._resetTimer = setTimeout(() => {
+      resetRejectButton(btn);
+    }, 5000);
+
+    // Cancel if user taps anywhere else outside
+    const onDocClick = (e) => {
+      if (!btn.contains(e.target)) {
+        resetRejectButton(btn);
+        document.removeEventListener('click', onDocClick, true);
+        document.removeEventListener('touchend', onDocClick, true);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', onDocClick, true);
+      document.addEventListener('touchend', onDocClick, true);
+    }, 60);
+  }
+  window.handleRejectClick = handleRejectClick;
+
+  async function rejectRequest(reqId, force = false) {
+    if (!reqId) return;
+    const btn = document.querySelector(`button.btn-reject[data-req-id="${reqId}"]`) || 
+                document.querySelector(`#req-row-${reqId} .btn-reject`);
+    if (force || !btn) {
+      executeReject(btn, reqId);
+    } else {
+      handleRejectClick(btn, null, reqId);
+    }
+  }
+  window.rejectRequest = rejectRequest;
 
   async function revokeDevice(mac) {
     if (!(await cyberConfirm(`Revoke internet access for device ${mac}?`, { title: 'Revoke Device', okText: 'Revoke Access', danger: true }))) return;
@@ -2535,8 +2682,9 @@
   // Auto-poller for new pending requests every 4 seconds
   window.approvalsPollInterval = setInterval(async () => {
     try {
-      if (document.getElementById('approvalModal')?.classList.contains('open')) {
-        return; // Modal is open, do not disrupt administrator
+      if (document.getElementById('approvalModal')?.classList.contains('open') ||
+          document.getElementById('cyberConfirmOverlay')?.classList.contains('open')) {
+        return; // Modal or confirm overlay is open, do not disrupt administrator
       }
       const r = await fetch('/api/hotspot/pending-count');
       if (r.status === 401) {
@@ -2640,5 +2788,37 @@
     }
     document.body.removeChild(ta);
   }
+
+  // Fail-safe click & touch delegation listener for pending requests on Approvals desk
+  document.addEventListener('DOMContentLoaded', () => {
+    const tableBody = document.getElementById('pendingTableBody');
+    if (tableBody) {
+      tableBody.addEventListener('click', (e) => {
+        // Handle Reject delegation
+        const rejectBtn = e.target.closest('.btn-reject');
+        if (rejectBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const rId = rejectBtn.dataset.reqId || rejectBtn.getAttribute('onclick')?.match(/\d+/)?.[0];
+          if (rId) {
+            handleRejectClick(rejectBtn, e, parseInt(rId, 10));
+          }
+          return;
+        }
+
+        // Handle Approve delegation
+        const btn = e.target.closest('.btn-approve');
+        if (!btn) return;
+        if (btn.classList.contains('btn-random-mac') || btn.dataset.randomMac === '1') {
+          showRandomMacNotice(btn.dataset.mac, btn.dataset.phone);
+          return;
+        }
+        const modal = document.getElementById('approvalModal');
+        if (modal && !modal.classList.contains('open') && btn.dataset.reqId) {
+          openApprovalModalFromBtn(btn);
+        }
+      });
+    }
+  });
 </script>
 {% endblock %}

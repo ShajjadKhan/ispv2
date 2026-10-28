@@ -10,7 +10,7 @@
       } catch (e) {}
     })();
   </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>{% block title %}CyberNet OS | Clean Operations Dashboard{% endblock %}</title>
 
   <!-- Favicons & Touch Icons -->
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css">
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
     :root {
       --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -2274,14 +2274,24 @@
     .cyber-confirm-btn {
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 9px;
-      padding: 9px 15px;
+      padding: 10px 18px;
+      min-height: 44px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 800;
       color: #cbd5e1;
       background: rgba(255, 255, 255, 0.06);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s ease;
     }
     .cyber-confirm-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+    .cyber-confirm-btn:active { transform: scale(0.98); }
     .cyber-confirm-btn.primary {
       border-color: rgba(56, 189, 248, 0.35);
       background: linear-gradient(135deg, #0284c7, #38bdf8);
@@ -2291,6 +2301,8 @@
     .cyber-confirm-btn.danger {
       border-color: rgba(239, 68, 68, 0.45);
       background: linear-gradient(135deg, #b91c1c, #ef4444);
+      color: #ffffff !important;
+      box-shadow: 0 10px 22px rgba(239, 68, 68, 0.25);
     }
     @media (max-width: 640px) {
       .cyber-toast-stack {
@@ -2300,9 +2312,12 @@
       }
       .cyber-confirm-actions {
         flex-direction: column-reverse;
+        gap: 12px;
       }
       .cyber-confirm-btn {
         width: 100%;
+        min-height: 48px;
+        font-size: 14.5px;
       }
     }
     /* =========================================================
@@ -2761,12 +2776,19 @@
         cancel.textContent = options.cancelText || 'Cancel';
         ok.className = `cyber-confirm-btn ${options.danger ? 'danger' : 'primary'}`;
         overlay.classList.add('open');
-        ok.focus();
+        try { ok.focus({ preventScroll: true }); } catch (e) { try { ok.focus(); } catch(e2){} }
+
+        const openedAt = Date.now();
+        let isResolved = false;
 
         const cleanup = result => {
+          if (isResolved) return;
+          isResolved = true;
           overlay.classList.remove('open');
           ok.onclick = null;
           cancel.onclick = null;
+          ok.ontouchend = null;
+          cancel.ontouchend = null;
           overlay.onclick = null;
           document.removeEventListener('keydown', onKey);
           resolve(result);
@@ -2775,9 +2797,39 @@
           if (event.key === 'Escape') cleanup(false);
           if (event.key === 'Enter') cleanup(true);
         };
-        ok.onclick = () => cleanup(true);
-        cancel.onclick = () => cleanup(false);
+
+        const handleOk = (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          cleanup(true);
+        };
+
+        const handleCancel = (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          cleanup(false);
+        };
+
+        ok.onclick = handleOk;
+        cancel.onclick = handleCancel;
+
+        // Mobile touch responsiveness with ghost-click guard
+        ok.ontouchend = (e) => {
+          if (Date.now() - openedAt < 150) return;
+          handleOk(e);
+        };
+        cancel.ontouchend = (e) => {
+          if (Date.now() - openedAt < 150) return;
+          handleCancel(e);
+        };
+
         overlay.onclick = event => {
+          // Guard: ignore ghost clicks that occur during opening (within 350ms)
+          if (Date.now() - openedAt < 350) return;
           if (event.target === overlay) cleanup(false);
         };
         document.addEventListener('keydown', onKey);
@@ -2786,6 +2838,10 @@
 
     window.cyberToast = cyberToast;
     window.cyberConfirm = cyberConfirm;
+    window.isCyberConfirmOpen = function() {
+      const el = document.getElementById('cyberConfirmOverlay');
+      return !!(el && el.classList.contains('open'));
+    };
 
     // Global Auth Expiration Handler (Stops polling & redirects to login)
     window.handleAuthExpired = function() {

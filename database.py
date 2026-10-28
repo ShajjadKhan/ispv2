@@ -141,6 +141,17 @@ def init_db():
             pass
 
         # Migration: Suspension grace period & daily billing accrual
+        # Migration: Separate Payday from Hard Cutoff
+        try:
+            cursor.execute("ALTER TABLE customers ADD COLUMN pay_date TEXT")
+        except Exception:
+            pass
+
+        try:
+            cursor.execute("UPDATE customers SET pay_date = COALESCE(due_date, expiry_date) WHERE pay_date IS NULL")
+        except Exception:
+            pass
+
         try:
             cursor.execute("ALTER TABLE customers ADD COLUMN billing_start_date TEXT")
         except Exception:
@@ -817,13 +828,12 @@ def is_customer_expired(cust: Optional[Dict[str, Any]], today_str: Optional[str]
     if susp_until and str(susp_until).strip() >= today_str:
         return (False, f"Protected by active grace hold until {susp_until}", str(susp_until).strip())
 
-    # 2. Expiry / Due date check: check BOTH expiry_date and due_date
-    d_exp = str(cust.get("expiry_date") or "").split()[0].strip() if cust.get("expiry_date") else ""
-    d_due = str(cust.get("due_date") or "").split()[0].strip() if cust.get("due_date") else ""
-    valid_dates = [d for d in [d_exp, d_due] if len(d) == 10 and d[4] == '-' and d[7] == '-']
-    effective_date = max(valid_dates) if valid_dates else None
+    # 2. Hard Cutoff / Expiry date check: check expiry_date (Hard Suspension Date)
+    # Note: pay_date is for payment follow-ups & reminders; it NEVER cuts internet access!
+    d_exp = str(cust.get("expiry_date") or cust.get("due_date") or "").split()[0].strip()
+    effective_date = d_exp if len(d_exp) == 10 and d_exp[4] == '-' and d_exp[7] == '-' else None
 
-    # If subscriber has any valid date in the future or today, they have date and are NOT expired!
+    # If subscriber has hard suspension date in the future or today, they are NOT expired!
     if effective_date and effective_date >= today_str:
         return (False, f"Subscription active until {effective_date}", effective_date)
 
@@ -1944,19 +1954,37 @@ def get_all_customers(reseller_id: Optional[int] = None) -> List[Dict[str, Any]]
             item["billing_start_date"] = item.get("billing_start_date") or item.get("join_date") or (item.get("created_at")[:10] if item.get("created_at") else today_str)
             item["devices"] = cust_dev_map.get(item["id"], [])
             
-            # Days remaining calculation
-            expiry = item.get("expiry_date") or item.get("due_date")
-            if expiry:
+            # Payday & Hard Suspension resolution
+            pay_date_val = item.get("pay_date") or item.get("due_date") or item.get("expiry_date")
+            hard_suspend_val = item.get("expiry_date") or item.get("due_date")
+            item["pay_date"] = pay_date_val
+            item["expiry_date"] = hard_suspend_val
+
+            # Days to Payday (Follow-up target)
+            if pay_date_val:
                 try:
-                    exp_dt = datetime.strptime(expiry.split()[0], "%Y-%m-%d")
+                    p_dt = datetime.strptime(pay_date_val.split()[0], "%Y-%m-%d")
+                    item["days_to_payday"] = (p_dt.date() - now.date()).days
+                except Exception:
+                    item["days_to_payday"] = None
+            else:
+                item["days_to_payday"] = None
+
+            # Days remaining until Hard Suspension (Cutoff)
+            if hard_suspend_val:
+                try:
+                    exp_dt = datetime.strptime(hard_suspend_val.split()[0], "%Y-%m-%d")
                     delta = (exp_dt.date() - now.date()).days
                     item["days_remaining"] = delta
+                    item["days_to_suspension"] = delta
                     item["is_expired"] = delta < 0
                 except Exception:
                     item["days_remaining"] = None
+                    item["days_to_suspension"] = None
                     item["is_expired"] = False
             else:
                 item["days_remaining"] = None
+                item["days_to_suspension"] = None
                 item["is_expired"] = False
 
             # Speed resolution
@@ -2101,6 +2129,7 @@ def create_customer(
     pppoe_password: Optional[str] = None,
     pppoe_profile: Optional[str] = None,
     pppoe_remote_ip: Optional[str] = None,
+    pay_date: Optional[str] = None,
     **kwargs: Any
 ) -> Dict[str, Any]:
     """Manually creates a new customer with custom speed, fee, due date, device limit, advance credit handling, and optional reseller attribution."""
@@ -2176,10 +2205,14 @@ def create_customer(
         col_notes = f"Initial credit deposit: {clean_payment:.2f} SAR"
 
     expiry_date = final_due_date
+    final_pay_date = pay_date.strip() if pay_date and pay_date.strip() else (kwargs.get("pay_date") or final_due_date)
     try:
-        due_day = int(final_due_date.split("-")[2])
+        due_day = int(final_pay_date.split("-")[2])
     except Exception:
-        pass
+        try:
+            due_day = int(final_due_date.split("-")[2])
+        except Exception:
+            pass
 
     clean_limit = max(1, int(max_devices or 1))
     clean_speed = speed_limit.strip() if speed_limit and speed_limit.strip() else None
@@ -2201,16 +2234,16 @@ def create_customer(
                 max_devices, speed_limit, credit_balance, reseller_id,
                 join_date, billing_start_date, notes, connection_type,
                 pppoe_username, pppoe_password, pppoe_profile, pppoe_remote_ip,
-                created_at, updated_at
+                pay_date, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             phone.strip(), name.strip(), final_billing_type, package_name, monthly_fee,
             clean_payment, due_day, final_due_date, expiry_date,
             clean_limit, clean_speed, credit_to_add, reseller_id,
             final_join_date, final_billing_start, final_notes, final_conn_type,
             final_pppoe_user, final_pppoe_pass, final_pppoe_prof, final_pppoe_ip,
-            now_str, now_str
+            final_pay_date, now_str, now_str
         ))
         customer_id = cursor.lastrowid
 
@@ -2264,6 +2297,7 @@ def update_customer_details(
     pppoe_profile: Optional[str] = -1,
     pppoe_remote_ip: Optional[str] = -1,
     suspend_date: Optional[str] = None,
+    pay_date: Optional[str] = None,
     **kwargs: Any
 ) -> Optional[Dict[str, Any]]:
     """
@@ -2320,24 +2354,28 @@ def update_customer_details(
         else:
             new_speed = current.get("speed_limit")
 
-        # Due date & expiry date / suspend date
+        # Due date & expiry date / suspend date (Hard Cutoff Date)
         effective_date = (due_date.strip() if due_date and due_date.strip() else (suspend_date.strip() if suspend_date and suspend_date.strip() else kwargs.get("suspend_date")))
         if effective_date and str(effective_date).strip():
             new_due_date = str(effective_date).strip()
             new_expiry_date = new_due_date
-            try:
-                new_due_day = int(new_due_date.split("-")[2])
-            except Exception:
-                new_due_day = current.get("due_day") or 1
         else:
             new_due_date = current.get("due_date")
             new_expiry_date = current.get("expiry_date")
-            if new_join_date:
-                try:
-                    new_due_day = int(new_join_date.split("-")[2])
-                except Exception:
-                    new_due_day = current.get("due_day") or 1
-            else:
+
+        # Payday (Expected payment day)
+        raw_pay = pay_date.strip() if pay_date and pay_date.strip() else kwargs.get("pay_date")
+        if raw_pay and str(raw_pay).strip():
+            new_pay_date = str(raw_pay).strip()
+        else:
+            new_pay_date = current.get("pay_date") or new_due_date or new_expiry_date
+
+        try:
+            new_due_day = int(new_pay_date.split("-")[2])
+        except Exception:
+            try:
+                new_due_day = int(new_due_date.split("-")[2])
+            except Exception:
                 new_due_day = current.get("due_day") or 1
 
         today_iso = now_str[:10]
@@ -2357,7 +2395,7 @@ def update_customer_details(
                 speed_limit = ?, max_devices = ?, status = ?, credit_balance = ?, reseller_id = ?,
                 join_date = ?, billing_start_date = ?, suspension_held_until = ?, suspension_hold_reason = ?,
                 notes = ?, connection_type = ?, pppoe_username = ?, pppoe_password = ?,
-                pppoe_profile = ?, pppoe_remote_ip = ?, updated_at = ?
+                pppoe_profile = ?, pppoe_remote_ip = ?, pay_date = ?, updated_at = ?
             WHERE id = ?
         """, (
             new_name, new_phone, new_btype, new_pkg,
@@ -2365,7 +2403,7 @@ def update_customer_details(
             new_speed, new_max_devices, new_status, new_credit, final_reseller_id,
             new_join_date, new_bstart, new_susp_held, new_susp_reason,
             new_notes, new_conn_type, new_pppoe_user, new_pppoe_pass,
-            new_pppoe_prof, new_pppoe_ip, now_str,
+            new_pppoe_prof, new_pppoe_ip, new_pay_date, now_str,
             customer_id
         ))
 
@@ -2405,7 +2443,9 @@ def update_customer(
     speed_limit: Optional[str] = None,
     credit_balance: Optional[float] = None,
     billing_start_date: Optional[str] = None,
-    join_date: Optional[str] = None
+    join_date: Optional[str] = None,
+    pay_date: Optional[str] = None,
+    **kwargs: Any
 ) -> Optional[Dict[str, Any]]:
     """Legacy wrapper forwarding to update_customer_details."""
     return update_customer_details(
@@ -2421,7 +2461,9 @@ def update_customer(
         status=status,
         credit_balance=credit_balance,
         billing_start_date=billing_start_date,
-        join_date=join_date
+        join_date=join_date,
+        pay_date=pay_date or kwargs.get("pay_date"),
+        **kwargs
     )
 
 
@@ -5190,10 +5232,15 @@ def get_due_customers_for_whatsapp() -> List[Dict[str, Any]]:
         is_due = False
         effective_due = fee
 
+        days_to_pay = c.get("days_to_payday")
         if b_type == "postpaid":
             is_due = True
             effective_due = max(0.0, fee - credit) if credit < fee else fee
-        elif is_exp or (days_rem is not None and days_rem <= 3):
+        elif (days_to_pay is not None and days_to_pay <= 5):
+            # Pre-due follow-up 3-5 days before Payday, or Payday reached/passed
+            is_due = True
+            effective_due = fee
+        elif is_exp or (days_rem is not None and days_rem <= 0):
             is_due = True
             effective_due = fee
         elif c.get("status") in ("suspended", "expired"):

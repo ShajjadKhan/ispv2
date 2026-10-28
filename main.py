@@ -573,6 +573,7 @@ async def whatsapp_auto_dispatch_loop():
                     package_name=c.get("package_name", ""),
                     due_balance=float(c.get("effective_due", 0.0)),
                     expiry_date=c.get("expiry_date", ""),
+                    pay_date=c.get("pay_date") or c.get("due_date", ""),
                     support_phone=wa_settings.get("support_phone", "0597595059"),
                     movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
                     football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
@@ -1016,6 +1017,7 @@ class ApproveConnectionPayload(BaseModel):
     pppoe_password: Optional[str] = None
     pppoe_profile: Optional[str] = None
     pppoe_remote_ip: Optional[str] = None
+    pay_date: Optional[str] = None
     send_whatsapp: Optional[bool] = False
     is_guest: Optional[bool] = False
     guest_days: Optional[int] = 0
@@ -1073,9 +1075,15 @@ class EditCustomerPayload(BaseModel):
     pppoe_password: Optional[str] = -1
     pppoe_profile: Optional[str] = -1
     pppoe_remote_ip: Optional[str] = -1
+    pay_date: Optional[str] = None
 
 
 class SetSuspendDatePayload(BaseModel):
+    suspend_date: str
+
+
+class BatchSetSuspendDatePayload(BaseModel):
+    customer_ids: List[int]
     suspend_date: str
 
 
@@ -1452,7 +1460,13 @@ async def auth_middleware(request: Request, call_next):
             request.state.user = auth_service.validate_session(session_id)
         else:
             request.state.user = None
-        return await call_next(request)
+        response = await call_next(request)
+        content_type = response.headers.get("content-type", "")
+        if "text/html" in content_type:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
 
     # Check session cookie or Authorization header
     session_id = request.cookies.get(auth_service.COOKIE_NAME)
@@ -1485,7 +1499,13 @@ async def auth_middleware(request: Request, call_next):
         return RedirectResponse(url=f"/login?next={next_target}", status_code=303)
 
     request.state.user = user_session
-    return await call_next(request)
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if "text/html" in content_type:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 # =========================================================
@@ -3898,7 +3918,8 @@ async def create_new_customer(payload: CreateCustomerPayload):
             pppoe_username=payload.pppoe_username,
             pppoe_password=payload.pppoe_password,
             pppoe_profile=payload.pppoe_profile,
-            pppoe_remote_ip=payload.pppoe_remote_ip
+            pppoe_remote_ip=payload.pppoe_remote_ip,
+            pay_date=payload.pay_date
         )
 
         mt_ok = True
@@ -3984,7 +4005,8 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             pppoe_username=payload.pppoe_username,
             pppoe_password=payload.pppoe_password,
             pppoe_profile=payload.pppoe_profile,
-            pppoe_remote_ip=payload.pppoe_remote_ip
+            pppoe_remote_ip=payload.pppoe_remote_ip,
+            pay_date=payload.pay_date
         )
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "message": "Customer not found."})
@@ -4060,6 +4082,43 @@ async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspe
     except Exception as e:
         logger.exception(f"Error setting suspend date for #{customer_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/customers/batch-set-suspend-date")
+async def batch_set_customer_suspend_date_endpoint(payload: BatchSetSuspendDatePayload):
+    """
+    Cluster / Batch action: Updates the service suspend & expiry date for multiple selected customers.
+    Preserves existing payday (pay_date) 100% unchanged.
+    """
+    new_date = payload.suspend_date.strip()
+    if not new_date or len(new_date) < 10:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid date format. Use YYYY-MM-DD."})
+    if not payload.customer_ids:
+        return JSONResponse(status_code=400, content={"success": False, "error": "No customers selected."})
+
+    updated_ids = []
+    errors = []
+    for cid in payload.customer_ids:
+        try:
+            # Strictly preserves pay_date while updating due_date and expiry_date
+            updated = database.update_customer_details(customer_id=cid, due_date=new_date, suspend_date=new_date)
+            if updated:
+                updated_ids.append(cid)
+            else:
+                errors.append(f"Customer #{cid} not found")
+        except Exception as e:
+            logger.exception(f"Error updating customer #{cid} in cluster action: {e}")
+            errors.append(f"Customer #{cid}: {str(e)}")
+
+    logger.info(f"[Cluster Action] Batch updated suspend date to {new_date} for {len(updated_ids)}/{len(payload.customer_ids)} customers.")
+    return {
+        "success": True,
+        "message": f"Successfully updated hard suspension date to {new_date} for {len(updated_ids)} subscriber(s).",
+        "suspend_date": new_date,
+        "updated_count": len(updated_ids),
+        "updated_ids": updated_ids,
+        "errors": errors if errors else None
+    }
 
 
 @app.post("/api/customers/{customer_id}/toggle-status")
