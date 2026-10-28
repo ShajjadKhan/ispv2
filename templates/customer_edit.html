@@ -480,16 +480,25 @@
     justify-content: space-between;
     gap: 12px;
     font-size: 12px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
   }
   .queue-preview-box .q-info {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
   .queue-preview-box .q-code {
     font-family: var(--font-mono);
     color: #38bdf8;
     font-weight: 700;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   /* STEPPER CONTROL */
@@ -614,6 +623,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    min-width: 0;
   }
   .device-card-row .dev-mac {
     font-family: var(--font-mono);
@@ -717,10 +727,18 @@
   /* MEDIA QUERIES FOR MOBILE & TABLET */
   @media (max-width: 900px) {
     .edit-content-grid {
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .edit-form-flow {
+      order: 1; /* Form first so mobile users see editable fields immediately */
+      width: 100%;
     }
     .edit-sidebar-card {
+      order: 2; /* Snapshot below form on mobile */
       position: static;
+      width: 100%;
     }
   }
 
@@ -754,6 +772,9 @@
   }
 
   @media (max-width: 600px) {
+    .edit-page-container {
+      padding-bottom: max(180px, calc(160px + env(safe-area-inset-bottom))) !important;
+    }
     .edit-header-banner {
       padding: 16px;
       flex-direction: column;
@@ -780,7 +801,22 @@
       flex-direction: column-reverse;
       align-items: stretch;
       padding: 12px;
-      bottom: 10px;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      left: 10px;
+      right: 10px;
+      width: auto;
+    }
+    .edit-footer-btns {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      width: 100%;
+    }
+    .edit-footer-btns a,
+    .edit-footer-btns button {
+      width: 100% !important;
+      justify-content: center;
+      min-height: 44px !important;
     }
     .edit-sticky-footer .btn-save-master {
       width: 100%;
@@ -796,6 +832,25 @@
     .btn-nav-back {
       min-height: 40px !important;
       align-items: center !important;
+    }
+    .device-card-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .device-card-row .device-card-actions {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .inline-bind-mac-row {
+      flex-direction: column;
+    }
+    .inline-bind-mac-row input,
+    .inline-bind-mac-row button {
+      width: 100% !important;
+      min-width: 0 !important;
     }
   }
 
@@ -884,6 +939,11 @@
           {% else %}
             <span class="badge-plan postpaid">POSTPAID</span>
           {% endif %}
+          {% if c.is_sharing_hotspot %}
+            <span class="badge-status" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.45); font-weight:700;" title="{{ c.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">
+              📡 HOTSPOT SHARING BLOCKED
+            </span>
+          {% endif %}
         </div>
         <div class="banner-sub font-mono">
           <span>ID #{{ c.id }}</span>
@@ -944,8 +1004,13 @@
         </div>
 
         <div class="metric-item">
-          <span class="m-label">Due / Expiry Date</span>
-          <span class="m-value font-mono" id="sideDueDate">{{ c.due_date or c.expiry_date or '—' }}</span>
+          <span class="m-label">📅 Payday (Expected)</span>
+          <span class="m-value font-mono text-cyan" id="sidePayDate">{{ c.pay_date or c.due_date or '—' }}</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">✂️ Hard Suspension (Cutoff)</span>
+          <span class="m-value font-mono" id="sideDueDate" style="color:#fbbf24;">{{ c.expiry_date or c.due_date or '—' }}</span>
         </div>
 
         <div class="metric-item">
@@ -983,6 +1048,21 @@
         <div class="metric-item">
           <span class="m-label">Authorized Devices</span>
           <span class="m-value font-mono text-white" id="sideDeviceCount">{{ c.devices|length }} / {{ c.max_devices or 1 }} Active</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="m-label">Hotspot Sharing</span>
+          <span class="m-value" id="sideHotspotSharing">
+            {% if c.is_sharing_hotspot %}
+              <span style="color:#f87171; font-weight:700; display:inline-flex; align-items:center; gap:4px; font-size:11.5px;" title="{{ c.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">
+                ⚠️ Blocked (Sharing Detected)
+              </span>
+            {% else %}
+              <span style="color:#34d399; font-size:11.5px; display:inline-flex; align-items:center; gap:4px;">
+                🛡️ Protected (None Detected)
+              </span>
+            {% endif %}
+          </span>
         </div>
 
         <div class="metric-item">
@@ -1076,6 +1156,82 @@
         </div>
       </div>
 
+      <!-- SECTION 2: CONNECTION MODE & PPPOE PROVISIONING -->
+      <div class="form-section-card">
+        <div class="form-section-head">
+          <div class="sec-icon" style="background:rgba(192,132,252,0.15); color:#c084fc;">
+            <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+          </div>
+          <div>
+            <div class="sec-title">Network Access Mode &amp; PPPoE Account</div>
+          </div>
+          <span class="sec-desc">Hotspot Wi-Fi, PPPoE Router, or Hybrid</span>
+        </div>
+
+        <div class="form-section-body">
+          <div class="form-group">
+            <label>Connection Protocol</label>
+            <div class="billing-card-picker">
+              <div class="b-picker-card {% if c.connection_type == 'hotspot' or not c.connection_type %}selected{% endif %}" id="cardPickConnHotspot" onclick="selectConnectionType('hotspot')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title">Hotspot (MAC Bypass)</div>
+                  <div class="b-picker-sub">Wi-Fi phone/laptop direct access</div>
+                </div>
+              </div>
+
+              <div class="b-picker-card {% if c.connection_type == 'pppoe' %}selected{% endif %}" id="cardPickConnPppoe" onclick="selectConnectionType('pppoe')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title" style="color:#c084fc;">PPPoE Fiber / Router</div>
+                  <div class="b-picker-sub">Dedicated PPPoE username dial-up</div>
+                </div>
+              </div>
+
+              <div class="b-picker-card {% if c.connection_type == 'both' %}selected{% endif %}" id="cardPickConnBoth" onclick="selectConnectionType('both')">
+                <div class="card-radio-circle"></div>
+                <div class="b-picker-content">
+                  <div class="b-picker-title" style="color:#38bdf8;">Hybrid (Hotspot + PPPoE)</div>
+                  <div class="b-picker-sub">Both Wi-Fi MACs and Home Router</div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="custConnectionType" name="connection_type" value="{{ c.connection_type or 'hotspot' }}">
+          </div>
+
+          <div id="pppoeFieldsWrap" style="{% if c.connection_type not in ['pppoe', 'both'] and not c.pppoe_username %}display:none;{% endif %} margin-top:14px; padding:14px; background:rgba(192,132,252,0.04); border:1px solid rgba(192,132,252,0.2); border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <span style="font-size:12px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.04em;">🔑 MikroTik PPPoE Secret Credentials:</span>
+              <span class="badge" style="background:rgba(192,132,252,0.15); color:#c084fc; font-size:10px; font-weight:700; padding:2px 8px; border-radius:5px;">ALL ROUTERS SYNCED</span>
+            </div>
+
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>PPPoE Username</label>
+                <input type="text" class="form-input font-mono" id="custPppoeUser" name="pppoe_username" value="{{ c.pppoe_username or '' }}" placeholder="e.g. {{ c.phone }} or username">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>PPPoE Password</label>
+                <input type="text" class="form-input font-mono" id="custPppoePass" name="pppoe_password" value="{{ c.pppoe_password or 'cyber123' }}" placeholder="cyber123">
+              </div>
+            </div>
+
+            <div class="modal-grid-2" style="margin-top:12px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>PPPoE Profile</label>
+                <input type="text" class="form-input font-mono" id="custPppoeProfile" name="pppoe_profile" value="{{ c.pppoe_profile or 'pppoe-profile-ether4' }}" placeholder="pppoe-profile-ether4">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Fixed Remote IP (Optional)</label>
+                <input type="text" class="form-input font-mono" id="custPppoeIp" name="pppoe_remote_ip" value="{{ c.pppoe_remote_ip or '' }}" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SECTION 2: PLAN & BANDWIDTH (MIKROTIK QUEUE) -->
       <div class="form-section-card">
         <div class="form-section-head">
@@ -1117,8 +1273,8 @@
             <label>Assigned Speed Package</label>
             <select class="form-select" id="custPackage" name="package_name" onchange="onPackageSelectChange()">
               {% for pkg in packages %}
-                <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" {% if pkg.name == c.package_name %}selected{% endif %}>
-                  {{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.rate_limit }})
+                <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}" {% if pkg.name == c.package_name %}selected{% endif %}>
+                  {{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.rate_limit }} &bull; {{ pkg.validity_days or 30 }}d)
                 </option>
               {% endfor %}
             </select>
@@ -1170,20 +1326,35 @@
         </div>
 
         <div class="form-section-body">
-          <div class="modal-grid-3">
+          <div class="modal-grid-2" style="gap:12px;">
             <div class="form-group" style="margin-bottom:0;">
               <label>Monthly Rate (SAR) <span style="color:#ef4444;">*</span></label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="custFee" name="monthly_fee" value="{{ '%.2f'|format(c.monthly_fee) }}" required style="color:#38bdf8; font-weight:700;">
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-              <label>Payment Due Date / Expiry <span style="color:#ef4444;">*</span></label>
-              <input type="text" class="form-input font-mono cyber-datepicker" id="custDueDate" name="due_date" value="{{ c.due_date or c.expiry_date or '' }}" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <label>Customer Credit Wallet (SAR)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="custCredit" name="credit_balance" value="{{ '%.2f'|format(c.credit_balance or 0.0) }}" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <div class="modal-grid-2" style="margin-top:12px; gap:12px; padding:12px; background:rgba(56,189,248,0.03); border:1px solid rgba(56,189,248,0.15); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="margin-bottom:0;">📅 Payday (Expected Payment Date) <span style="color:#38bdf8;">*</span></label>
+                <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Follow-up &amp; Reminders</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="custPayDate" name="pay_date" value="{{ c.pay_date or c.due_date or '' }}" placeholder="YYYY-MM-DD" required autocomplete="off" oninput="syncSnapshotDueDate()" onchange="syncSnapshotDueDate()">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Day when customer is expected to pay. Follow-up alerts &amp; WhatsApp reminders trigger 3-5 days before this day. <strong>Internet remains ACTIVE</strong>.</span>
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-              <label>Customer Credit Wallet (SAR)</label>
-              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="custCredit" name="credit_balance" value="{{ '%.2f'|format(c.credit_balance or 0.0) }}" style="color:#34d399; font-weight:700;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="margin-bottom:0;">✂️ Hard Suspension Date (Internet Cutoff) <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeSuspendCalc" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="custDueDate" name="due_date" value="{{ c.expiry_date or c.due_date or '' }}" placeholder="YYYY-MM-DD" required autocomplete="off" oninput="syncSnapshotDueDate()" onchange="syncSnapshotDueDate()">
+              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Day when total internet will automatically suspend if unpaid. Enforced strictly by MikroTik fleet enforcer.</span>
             </div>
           </div>
 
@@ -1196,21 +1367,43 @@
 
             <div class="form-group" style="margin-bottom:0;">
               <label>Billing Cycle Start Date <span style="font-size:11px; font-weight:normal; color:var(--text-dim);">(Cycle Ledger Origin)</span></label>
-              <input type="text" class="form-input font-mono cyber-datepicker" id="custBillingStartDate" name="billing_start_date" value="{{ c.billing_start_date or c.join_date or c.created_at[:10] }}" placeholder="YYYY-MM-DD" autocomplete="off">
+              <input type="text" class="form-input font-mono cyber-datepicker" id="custBillingStartDate" name="billing_start_date" value="{{ c.billing_start_date or c.join_date or c.created_at[:10] }}" placeholder="YYYY-MM-DD" autocomplete="off" onchange="if(confirmApplyOnStartChange) applyPackageValidityDate();">
               <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Software debt ledger &amp; cycle calculation start date.</span>
             </div>
           </div>
 
-          <!-- QUICK DUE DATE EXTENDERS -->
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <span style="font-size:11px; color:var(--text-dim);">Quick Extend Due Date:</span>
-            <button type="button" class="btn-preset" onclick="shiftDueDate(30)">+30 Days</button>
-            <button type="button" class="btn-preset" onclick="shiftDueDate(60)">+60 Days</button>
-            <button type="button" class="btn-preset" onclick="shiftDueDate(90)">+90 Days</button>
-            <button type="button" class="btn-preset" onclick="setEndOfMonth()">End of Current Month</button>
+          <!-- QUICK SUSPEND DATE CONTROLS -->
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; padding:10px; background:rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.05); border-radius:8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.04em;">Suspend Date Presets &amp; Day Selection:</span>
+              <span style="font-size:11px; color:var(--text-dim);" id="lblActivePkgDuration">Package validity: 30 days</span>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="applyPackageValidityDate()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;" title="Reset Suspend Date as per currently selected package duration">
+                📦 As per Package (<span id="btnPkgDaysText">30d</span>)
+              </button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setEndOfMonth()">End of Month</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim); margin-right:2px;">Suspend on Specific Day of Month:</span>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setSpecificDayOfMonth(30)">Day 30</button>
+            </div>
           </div>
-          <p style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">
-            💡 <strong>Credit Wallet Note:</strong> When recording customer collections, any surplus cash paid over the monthly fee automatically deposits into Credit Balance.
+          <p style="font-size:11.5px; color:var(--text-dim); margin-top:6px;">
+            💡 <strong>Auto-Suspend Rule:</strong> When the suspend date arrives or passes, the automated expiration engine suspends the customer and blocks access.
           </p>
         </div>
       </div>
@@ -1259,12 +1452,12 @@
               {% if c.devices %}
                 {% for dev in c.devices %}
                 <div class="device-card-row" id="devRow-{{ dev.id }}">
-                  <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(56,189,248,0.1); color:#38bdf8; display:flex; align-items:center; justify-content:center;">
+                  <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1 1 auto;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(56,189,248,0.1); color:#38bdf8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                       <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z"/></svg>
                     </div>
-                    <div>
-                      <div class="dev-mac" style="display:flex; align-items:center; gap:6px;">
+                    <div style="min-width:0; flex:1 1 auto; overflow:hidden;">
+                      <div class="dev-mac" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; word-break:break-all;">
                         <span class="dev-status-indicator {{ dev.state or 'offline' }}" title="{{ dev.status_label or 'Offline' }}"></span>
                         <span>{{ dev.mac_address }}</span>
                         {% if dev.state == 'online' %}
@@ -1275,13 +1468,13 @@
                           <span class="badge-status disabled" style="font-size:9px; padding:1px 5px;">OFFLINE</span>
                         {% endif %}
                       </div>
-                      <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">
+                      <div style="font-size:11px; color:var(--text-dim); margin-top:2px; word-break:break-word; overflow-wrap:anywhere;">
                         {{ dev.friendly_name or dev.device_name or 'Client Device' }}{% if dev.live_ip %} &bull; IP: {{ dev.live_ip }}{% endif %}{% if dev.detail %} &bull; {{ dev.detail }}{% endif %} &bull; Bound {{ dev.created_at[:10] }}
                       </div>
                     </div>
                   </div>
 
-                  <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="device-card-actions" style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                     <span class="badge-status running" style="font-size:10px;">AUTHORIZED</span>
                     <button type="button" class="btn-action-sm" onclick="unlinkDevice({{ dev.id }})" style="color:#f87171; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.25); font-size:11px;">
                       Unlink
@@ -1299,7 +1492,7 @@
             <!-- INLINE ADD SECONDARY DEVICE FORM -->
             <div style="margin-top:10px; background:var(--bg-card); border:1px dashed var(--border-accent); border-radius:10px; padding:12px;">
               <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">+ Bind New Hardware MAC Address</div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div class="inline-bind-mac-row" style="display:flex; gap:8px; flex-wrap:wrap;">
                 <input type="text" class="form-input font-mono" id="quickMacInput" placeholder="Device MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; flex:1; min-width:180px;">
                 <input type="text" class="form-input" id="quickDevName" placeholder="Device Label (e.g. iPhone)" style="font-size:12px; flex:1; min-width:140px;">
                 <button type="button" id="btnQuickDevSubmit" class="btn-approve" onclick="submitQuickDevice({{ c.id }})" style="padding:7px 14px; font-size:12px; white-space:nowrap;">
@@ -1352,7 +1545,7 @@
           </span>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center;">
+        <div class="edit-footer-btns" style="display:flex; gap:10px; align-items:center;">
           <a href="/customers" class="btn-nav-back" style="padding:10px 16px;">Discard &amp; Back</a>
           <button type="submit" class="btn-save-master" id="btnSubmitEdit">
             <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
@@ -1430,11 +1623,112 @@
     }
   }
 
+  function selectConnectionType(type) {
+    const hiddenEl = document.getElementById('custConnectionType');
+    if (hiddenEl) hiddenEl.value = type;
+    const hCard = document.getElementById('cardPickConnHotspot');
+    const pCard = document.getElementById('cardPickConnPppoe');
+    const bCard = document.getElementById('cardPickConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (type === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (type === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (type === 'both' && bCard) bCard.classList.add('selected');
+
+    const wrap = document.getElementById('pppoeFieldsWrap');
+    if (wrap) {
+      if (type === 'pppoe' || type === 'both') {
+        wrap.style.display = 'block';
+        const userEl = document.getElementById('custPppoeUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('custPhone')?.value.trim() || '';
+        }
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+  }
+
+  function getSelectedPackageDays() {
+    const sel = document.getElementById('custPackage');
+    if (!sel || sel.selectedIndex < 0) return 30;
+    const opt = sel.options[sel.selectedIndex];
+    return parseInt(opt.getAttribute('data-days')) || 30;
+  }
+
+  function applyPackageValidityDate() {
+    const days = getSelectedPackageDays();
+    const bStartInput = document.getElementById('custBillingStartDate');
+    const today = new Date();
+    let baseDate = today;
+    if (bStartInput && bStartInput.value) {
+      const parsed = window.parseDateISO ? window.parseDateISO(bStartInput.value) : new Date(bStartInput.value);
+      if (!isNaN(parsed.getTime())) {
+        baseDate = parsed;
+      }
+    }
+    const target = new Date(baseDate);
+    target.setDate(target.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
+    setDueDateValue(dateStr);
+    const badge = document.getElementById('badgeSuspendCalc');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d from package`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function setSpecificDayOfMonth(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth(); // 0-indexed
+
+    // If dayNum already passed this month, target next month
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) {
+        m = 0;
+        y += 1;
+      }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setDueDateValue(dateStr);
+    const badge = document.getElementById('badgeSuspendCalc');
+    if (badge) {
+      badge.textContent = `Custom: Day ${dayNum}`;
+      badge.style.color = '#34d399';
+    }
+  }
+
+  function setDueDateValue(dateStr) {
+    const el = document.getElementById('custDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) {
+      window.setPickerDate('custDueDate', dateStr);
+    }
+    syncSnapshotDueDate();
+  }
+
+  function syncSnapshotDueDate() {
+    const val = document.getElementById('custDueDate')?.value || '—';
+    const sideEl = document.getElementById('sideDueDate');
+    if (sideEl) sideEl.textContent = val;
+    const payVal = document.getElementById('custPayDate')?.value || '—';
+    const sidePayEl = document.getElementById('sidePayDate');
+    if (sidePayEl) sidePayEl.textContent = payVal;
+  }
+
   function onPackageSelectChange() {
     const sel = document.getElementById('custPackage');
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     
     document.getElementById('custFee').value = parseFloat(price).toFixed(2);
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
@@ -1442,6 +1736,14 @@
     } else {
       setBandwidthSpeed('Unlimited');
     }
+
+    const lblDays = document.getElementById('lblActivePkgDuration');
+    if (lblDays) lblDays.textContent = `Package validity: ${days} days`;
+    const btnDays = document.getElementById('btnPkgDaysText');
+    if (btnDays) btnDays.textContent = `${days}d`;
+
+    // Auto-calculate and update suspend date based on selected package
+    applyPackageValidityDate();
   }
 
   function setBandwidthSpeed(spd) {
@@ -1485,22 +1787,14 @@
     if (isNaN(current.getTime())) current = new Date();
     current.setDate(current.getDate() + days);
     const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
-    if (window.setPickerDate) {
-      window.setPickerDate('custDueDate', dateStr);
-    } else {
-      el.value = dateStr;
-    }
+    setDueDateValue(dateStr);
   }
 
   function setEndOfMonth() {
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
-    if (window.setPickerDate) {
-      window.setPickerDate('custDueDate', dateStr);
-    } else {
-      document.getElementById('custDueDate').value = dateStr;
-    }
+    setDueDateValue(dateStr);
   }
 
   async function handleFormSubmit(e) {
@@ -1522,12 +1816,18 @@
       speed_limit: document.getElementById('custSpeed').value.trim(),
       monthly_fee: parseFloat(document.getElementById('custFee').value) || 0.0,
       due_date: document.getElementById('custDueDate').value,
+      pay_date: document.getElementById('custPayDate') ? document.getElementById('custPayDate').value : null,
       credit_balance: parseFloat(document.getElementById('custCredit').value) || 0.0,
       max_devices: parseInt(document.getElementById('custMaxDevices').value) || 1,
       reseller_id: resellerId,
       join_date: document.getElementById('custJoinDate') ? document.getElementById('custJoinDate').value : null,
       billing_start_date: document.getElementById('custBillingStartDate') ? document.getElementById('custBillingStartDate').value : null,
-      notes: document.getElementById('custNotes') ? document.getElementById('custNotes').value.trim() : ''
+      notes: document.getElementById('custNotes') ? document.getElementById('custNotes').value.trim() : '',
+      connection_type: document.getElementById('custConnectionType') ? document.getElementById('custConnectionType').value : 'hotspot',
+      pppoe_username: document.getElementById('custPppoeUser') ? document.getElementById('custPppoeUser').value.trim() : null,
+      pppoe_password: document.getElementById('custPppoePass') ? document.getElementById('custPppoePass').value.trim() : null,
+      pppoe_profile: document.getElementById('custPppoeProfile') ? document.getElementById('custPppoeProfile').value.trim() : null,
+      pppoe_remote_ip: document.getElementById('custPppoeIp') ? document.getElementById('custPppoeIp').value.trim() : null
     };
 
     try {

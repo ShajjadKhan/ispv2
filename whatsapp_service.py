@@ -68,6 +68,18 @@ DEFAULT_SUPPORT_PHONE = os.getenv("SUPPORT_PHONE", "0597595059")
 DEFAULT_MOVIE_SERVER = os.getenv("MOVIE_SERVER", "http://10.12.14.16:8082")
 DEFAULT_FOOTBALL_SERVER = os.getenv("FOOTBALL_SERVER", "http://10.12.14.16:8080")
 
+DEFAULT_PAYMENT_ACCOUNTS = (
+    "💳 *Payment Accounts / طرق الدفع:*\n\n"
+    "1️⃣ *Shajjad Khan:*\n"
+    "📱 +966597595059 (STC Pay, Barq, AlinmaPay)\n"
+    "🏦 Alinma Bank IBAN:\n"
+    "`SA3305000068206538133000`\n\n"
+    "2️⃣ *Riyad Hossain:*\n"
+    "📱 +966552036454 (STC Pay, Barq)\n"
+    "🏦 Alinma Bank IBAN:\n"
+    "`SA5805000068207720354000`"
+)
+
 # STRICT TEST SANDBOX SAFETY SHIELD
 # Only this authorized phone number may receive test messages during sandbox mode.
 ALLOWED_TEST_PHONE = "966597595059"
@@ -256,27 +268,52 @@ def start_whatsapp_session() -> Dict[str, Any]:
 def reset_and_relink_whatsapp_session() -> Dict[str, Any]:
     """
     Completely purges any existing WhatsApp session from OpenWA,
+    deletes persistent Chromium profile data on disk,
     creates a brand new ispv2-bot session, and starts it to generate a fresh QR code.
     This guarantees any previous WhatsApp account is logged out and removed.
     """
     global _cached_session_id
+    import subprocess
+    import time
     headers = {"X-API-Key": OPENWA_API_KEY}
-    current_id = get_openwa_session_id()
 
-    # 1. Stop and Delete old session if it exists
-    if current_id:
-        try:
-            requests.post(f"{OPENWA_URL}/api/sessions/{current_id}/stop", headers=headers, timeout=6)
-        except Exception:
-            pass
-        try:
-            requests.delete(f"{OPENWA_URL}/api/sessions/{current_id}", headers=headers, timeout=8)
-        except Exception as e:
-            logger.warning(f"Could not delete old session {current_id}: {e}")
+    # 1. Stop and Delete all existing sessions in OpenWA
+    try:
+        r = requests.get(f"{OPENWA_URL}/api/sessions", headers=headers, timeout=4)
+        if r.status_code == 200:
+            for s in r.json():
+                s_id = s.get("id")
+                try:
+                    requests.post(f"{OPENWA_URL}/api/sessions/{s_id}/stop", headers=headers, timeout=5)
+                except Exception:
+                    pass
+                try:
+                    requests.delete(f"{OPENWA_URL}/api/sessions/{s_id}", headers=headers, timeout=5)
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning(f"Error deleting sessions via OpenWA API: {e}")
 
     _cached_session_id = None
 
-    # 2. Create fresh session
+    # 2. Deep purge persistent Chromium session directory on host to eliminate lingering auth keys
+    try:
+        if "10.12.14.16" in OPENWA_URL:
+            # OpenWA is hosted on tserver
+            purge_cmd = "sudo rm -rf /home/tserver/isp_v2/whatsapp_data/sessions/session-* && docker restart ispv2_whatsapp"
+            subprocess.run(
+                ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "tserver@10.12.14.16", purge_cmd],
+                timeout=12,
+                capture_output=True
+            )
+            time.sleep(3.5)
+        else:
+            # Locally hosted OpenWA
+            subprocess.run(["sh", "-c", "rm -rf /home/tserver/isp_v2/whatsapp_data/sessions/session-* || true"], timeout=5)
+    except Exception as e:
+        logger.warning(f"Could not purge session files on host: {e}")
+
+    # 3. Create fresh session in OpenWA
     try:
         cr = requests.post(f"{OPENWA_URL}/api/sessions", json={"name": "ispv2-bot"}, headers=headers, timeout=8)
         if cr.status_code in (200, 201):
@@ -284,12 +321,29 @@ def reset_and_relink_whatsapp_session() -> Dict[str, Any]:
             new_id = session_data.get("id")
             _cached_session_id = new_id
 
-            # 3. Start fresh session
-            requests.post(f"{OPENWA_URL}/api/sessions/{new_id}/start", headers=headers, timeout=8)
+            # 4. Start fresh session
+            try:
+                requests.post(f"{OPENWA_URL}/api/sessions/{new_id}/start", headers=headers, timeout=8)
+            except Exception:
+                pass
+
+            # Update .env
+            try:
+                env_path = os.path.join(os.path.dirname(__file__), ".env")
+                if os.path.exists(env_path):
+                    with open(env_path, "r") as f:
+                        content = f.read()
+                    if "OPENWA_SESSION_ID=" in content:
+                        content = re.sub(r"OPENWA_SESSION_ID=.*", f"OPENWA_SESSION_ID={new_id}", content)
+                        with open(env_path, "w") as f:
+                            f.write(content)
+            except Exception as e:
+                logger.warning(f"Could not update .env with new session ID: {e}")
+
             return {
                 "success": True,
                 "session_id": new_id,
-                "message": "Session reset successfully. A new QR code is generating..."
+                "message": "Previous WhatsApp session completely purged. Fresh QR code is generating..."
             }
         else:
             return {"success": False, "error": f"Failed to create new session: {cr.text}"}
@@ -345,23 +399,35 @@ def render_message_template(
     support_phone: str = DEFAULT_SUPPORT_PHONE,
     movie_server: str = DEFAULT_MOVIE_SERVER,
     football_server: str = DEFAULT_FOOTBALL_SERVER,
+    payment_accounts: str = "",
     collector_name: str = "",
     payment_method: str = "",
     pending_debt: float = 0.0,
     previous_debt: float = 0.0,
     credit_balance: float = 0.0,
-    account_status: str = ""
+    account_status: str = "",
+    pay_date: str = "",
+    **kwargs: Any
 ) -> str:
     """
     Replaces standard dynamic tags in WhatsApp message templates, including
     intelligent accounting ledger breakdown for partial payments, full settlements,
-    and advance credits.
+    advance credits, and payment bank account details.
     """
     msg = template_str
     clean_paid = float(amount_paid or 0.0)
     clean_pending = float(pending_debt or 0.0)
     clean_prev = float(previous_debt or 0.0)
     clean_credit = float(credit_balance or 0.0)
+
+    # Resolve payment accounts details
+    if not payment_accounts:
+        try:
+            import database
+            wa_sett = database.get_whatsapp_settings()
+            payment_accounts = wa_sett.get("payment_accounts") or DEFAULT_PAYMENT_ACCOUNTS
+        except Exception:
+            payment_accounts = DEFAULT_PAYMENT_ACCOUNTS
 
     # Dynamic Account Status generation if not explicitly provided
     if not account_status:
@@ -385,11 +451,14 @@ def render_message_template(
         "[AMOUNT]": f"{clean_paid:.2f}" if clean_paid > 0 else f"{due_balance:.2f}",
         "[DUE_BALANCE]": f"{due_balance:.2f}",
         "[EXPIRY_DATE]": str(expiry_date or "End of Month"),
+        "[SUSPENSION_DATE]": str(expiry_date or "End of Month"),
+        "[PAYDAY]": str(pay_date or expiry_date or "Due Date"),
         "[PIN]": pin or "N/A",
         "[RECEIPT_NO]": receipt_no or "REC-" + datetime.now().strftime("%Y%m%d%H%M"),
         "[HELPLINE]": support_phone,
         "[MOVIES]": movie_server,
         "[FOOTBALL]": football_server,
+        "[PAYMENT_ACCOUNTS]": payment_accounts,
         "[COLLECTOR]": collector_name or "Admin",
         "[PAYMENT_METHOD]": payment_method or "Cash",
         "[COMPANY_NAME]": "CyberNet ISP",
@@ -402,6 +471,25 @@ def render_message_template(
     }
     for tag, val in replacements.items():
         msg = msg.replace(tag, str(val))
+
+    # Safety Guard: If template is a Reminder or Service Alert / Expiration Notice
+    # and [PAYMENT_ACCOUNTS] was omitted from the template, auto-inject payment details
+    # so subscribers always know how and where to pay.
+    tpl_lower = template_str.lower()
+    needs_accounts = (
+        "[payment_accounts]" not in tpl_lower
+        and "sa33050" not in msg
+        and ("reminder" in tpl_lower or "due" in tpl_lower or "alert" in tpl_lower or "expir" in tpl_lower or "suspend" in tpl_lower or due_balance > 0 or clean_pending > 0)
+    )
+    if needs_accounts:
+        if "🎬" in msg:
+            parts = msg.split("🎬", 1)
+            msg = f"{parts[0].rstrip()}\n\n{payment_accounts}\n\n🎬{parts[1]}"
+        elif "📞 Support" in msg:
+            parts = msg.split("📞 Support", 1)
+            msg = f"{parts[0].rstrip()}\n\n{payment_accounts}\n\n📞 Support{parts[1]}"
+        else:
+            msg = f"{msg.rstrip()}\n\n{payment_accounts}"
 
     # Backward compatibility: Replace legacy hardcoded 'Fully Paid & Settled' in templates
     # if the template didn't use the explicit [ACCOUNT_STATUS] tag

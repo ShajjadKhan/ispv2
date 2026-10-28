@@ -1149,6 +1149,240 @@
       min-width: 0;
       width: 100%;
     }
+
+    /* SMART COLLECT PAYMENT MODAL - NATIVE MOBILE PHONE OPTIMIZATION (<= 640px) */
+    #collectModal.modal-overlay {
+      padding: 0 !important;
+      align-items: flex-end !important;
+      justify-content: center !important;
+      background: rgba(3, 7, 18, 0.88) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+    }
+
+    #collectModal .modal-box {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 22px 22px 0 0 !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: none !important;
+      border-top: 1px solid rgba(56, 189, 248, 0.35) !important;
+      margin: 0 !important;
+      max-height: 94vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+      animation: modalSlideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      overscroll-behavior: contain !important;
+    }
+
+    @keyframes modalSlideUpMobile {
+      from { transform: translateY(100%); opacity: 0.5; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    #collectModal .modal-header-custom {
+      position: relative !important;
+      padding: 18px 16px 12px 16px !important;
+      flex-shrink: 0 !important;
+      border-radius: 22px 22px 0 0 !important;
+    }
+    #collectModal .modal-header-custom::before {
+      content: '' !important;
+      display: block !important;
+      position: absolute !important;
+      top: 6px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 44px !important;
+      height: 4px !important;
+      border-radius: 2px !important;
+      background: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    #collectModal .modal-body-custom {
+      padding: 14px 16px 20px 16px !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+      max-height: calc(94vh - 65px) !important;
+    }
+
+    #collectModal .coll-form-grid-2,
+    #collectModal div[style*="grid-template-columns: 1fr 1fr"],
+    #collectModal div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+
+    #collectModal input,
+    #collectModal select {
+      font-size: 16px !important;
+    }
+    #collectModal #collPaymentType,
+    #collectModal #collNotes {
+      height: 44px !important;
+      padding: 8px 12px !important;
+      border-radius: 9px !important;
+    }
+
+    #collectModal #collAmount {
+      height: 52px !important;
+      font-size: 26px !important;
+      padding-right: 14px !important;
+      border-radius: 12px !important;
+    }
+
+    #collectModal .coll-presets-bar,
+    #collectModal div:has(> .btn-preset-chip) {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 6px !important;
+      margin-top: 8px !important;
+    }
+    #collectModal .btn-preset-chip {
+      min-height: 38px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
+      padding: 6px 4px !important;
+      text-align: center !important;
+    }
+    #collectModal #btnPresetClear {
+      grid-column: span 1 !important;
+    }
+
+    #collectModal #collWalletStatusCard {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+    }
+    #collectModal #collWalletAmount {
+      font-size: 22px !important;
+    }
+
+    #collectModal .coll-wa-card,
+    #collectModal div:has(> #collSendWa) {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+    }
+    #collectModal label[for="collSendWa"] {
+      font-size: 13px !important;
+      gap: 10px !important;
+    }
+    #collectModal #collSendWa {
+      width: 20px !important;
+      height: 20px !important;
+    }
+
+    #collectModal .coll-footer-row,
+    #collectModal div[style*="justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid"] {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      padding-top: 14px !important;
+      margin-top: 10px !important;
+    }
+    #collectModal .coll-collector-text,
+    #collectModal div[style*="color:var(--text-dim)"]:has(#collCollectorLabel) {
+      font-size: 12px !important;
+      text-align: center !important;
+      justify-content: center !important;
+      margin-bottom: 2px !important;
+    }
+    #collectModal .coll-footer-btns,
+    #collectModal div:has(> #btnRecordPayment) {
+      display: flex !important;
+      width: 100% !important;
+      gap: 10px !important;
+    }
+    #collectModal .coll-footer-btns button,
+    #collectModal div:has(> #btnRecordPayment) button {
+      min-height: 48px !important;
+      border-radius: 10px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    #collectModal .btn-action-sm:first-child {
+      flex: 1 !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    #collectModal #btnRecordPayment {
+      flex: 2 !important;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    /* 10. SUSPENSION HOLD / PROMISE MODAL - NATIVE MOBILE PHONE OPTIMIZATION */
+    #promiseModal.modal-overlay {
+      padding: 0 !important;
+      align-items: flex-end !important;
+      justify-content: center !important;
+      background: rgba(3, 7, 18, 0.88) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+    }
+    #promiseModal .modal-box {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      max-height: 90dvh !important;
+      border-radius: 18px 18px 0 0 !important;
+      margin: 0 !important;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    #promiseModal .modal-body-scroll {
+      padding: 14px 16px !important;
+      gap: 12px !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    #promiseModal .preset-wrap {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+    }
+    #promiseModal #promiseDaysInput {
+      width: 100% !important;
+      font-size: 18px !important;
+      text-align: center !important;
+      min-height: 44px !important;
+      box-sizing: border-box !important;
+    }
+    #promiseModal .preset-wrap .btn-preset {
+      flex: 1 1 calc(25% - 4px) !important;
+      min-height: 38px !important;
+      text-align: center !important;
+      justify-content: center !important;
+      font-size: 13px !important;
+    }
+    #promiseModal div[style*="justify-content:flex-end; gap:10px"] {
+      flex-direction: column-reverse !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding: 12px 16px !important;
+      padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    }
+    #promiseModal div[style*="justify-content:flex-end; gap:10px"] button {
+      width: 100% !important;
+      min-height: 46px !important;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 10px !important;
+    }
   }
 
   /* PRINT STYLES */
@@ -1173,6 +1407,164 @@
       margin: 0 auto;
     }
     .no-print { display: none !important; }
+  }
+
+  /* 6. STAFF COLLECTOR BREAKDOWN STYLES */
+  .collector-breakdown-strip {
+    padding: 12px 18px;
+    background: #090e1a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .collector-strip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .collector-strip-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #e2e8f0;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .collector-strip-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .collector-strip-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .collector-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .collector-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    box-sizing: border-box;
+  }
+  .collector-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(56, 189, 248, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  .collector-card.active-collector {
+    background: rgba(56, 189, 248, 0.12) !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.25) !important;
+  }
+  .col-card-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .col-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12px;
+    color: #ffffff;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  }
+  .theme-col-0 .col-avatar { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+  .theme-col-1 .col-avatar { background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%); }
+  .theme-col-2 .col-avatar { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+  .theme-col-3 .col-avatar { background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%); }
+
+  .col-meta {
+    min-width: 0;
+  }
+  .col-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .col-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .col-pct-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+  }
+  .col-count-row {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 1px;
+  }
+  .col-card-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .col-amount {
+    font-size: 14.5px;
+    font-weight: 800;
+  }
+  .theme-col-0 .col-amount { color: #34d399; }
+  .theme-col-1 .col-amount { color: #38bdf8; }
+  .theme-col-2 .col-amount { color: #c084fc; }
+  .theme-col-3 .col-amount { color: #fbbf24; }
+
+  .col-currency {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 640px) {
+    .collector-cards-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .collector-card {
+      padding: 9px 12px;
+    }
+    .collector-strip-hint {
+      display: none;
+    }
   }
 </style>
 {% endblock %}
@@ -1264,6 +1656,17 @@
         <span>{{ bs.month_tx_count }} receipts &bull; {{ bs.total_subscribers }} Subscribers</span>
         <div class="bs-filter-hint"><span>🔍 Filter Month Receipts ↓</span></div>
       </div>
+      {% if bs.month_collectors %}
+      <div class="bs-collectors-micro-bar" style="display:flex; align-items:center; gap:5px; margin-top:8px; flex-wrap:wrap; border-top:1px dashed rgba(255,255,255,0.08); padding-top:6px;">
+        <span style="font-size:10px; color:var(--text-dim); text-transform:uppercase; font-weight:700;">Intake:</span>
+        {% for mc in bs.month_collectors %}
+        <span style="font-size:11px; padding:2px 6px; border-radius:5px; background:rgba(255,255,255,0.05); color:#e2e8f0; font-family:var(--font-mono, monospace); display:inline-flex; align-items:center; gap:4px; border:1px solid rgba(255,255,255,0.07);">
+          <span style="font-weight:700; color:{% if loop.index0 == 0 %}#34d399{% elif loop.index0 == 1 %}#38bdf8{% elif loop.index0 == 2 %}#c084fc{% else %}#fbbf24{% endif %};">{{ mc.collector.split()[0] }}:</span>
+          <span style="font-weight:800;">{{ "%.0f"|format(mc.total) }}</span>
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
 
     <!-- CARD 3: ACCOUNTS RECEIVABLE (DUE & OVERDUE) -->
@@ -1424,12 +1827,16 @@
           </div>
         </div>
 
-        <!-- 4. Submit CTA -->
-        <div>
+        <!-- 4. Submit CTA & WhatsApp Toggle -->
+        <div style="display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
           <button type="submit" class="btn-pos-collect" id="btnPosSubmit">
             <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
             <span>Collect &amp; Extend</span>
           </button>
+          <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:11.5px; font-weight:700; color:#4ade80; margin:0; user-select:none;">
+            <input type="checkbox" id="posSendWhatsApp" checked style="accent-color:#25d366; width:15px; height:15px; cursor:pointer;">
+            <span>📱 Send WhatsApp Receipt</span>
+          </label>
         </div>
       </div>
     </form>
@@ -1581,15 +1988,55 @@
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
         <span class="font-mono text-white" style="font-size:13.5px; font-weight:700;">
-          Total: <span class="text-cyan font-mono" id="ledgerTotalSar">{{ "%.2f"|format(filtered_total) }} SAR</span> ({{ filtered_tx_count }} Receipts)
+          Total: <span class="text-cyan font-mono" id="ledgerTotalSar">{{ "%.2f"|format(filtered_total) }} SAR</span> (<span id="ledgerTotalCount">{{ filtered_tx_count }}</span> Receipts)
         </span>
       </div>
     </div>
 
+    <!-- COLLECTOR SUMMARY BREAKDOWN STRIP -->
+    {% if collector_breakdown %}
+    <div class="collector-breakdown-strip">
+      <div class="collector-strip-header">
+        <div class="collector-strip-title">
+          <svg style="width:15px; height:15px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Staff Intake Breakdown</span>
+          <span class="collector-strip-badge">{{ collector_breakdown|length }} {{ 'Collector' if collector_breakdown|length == 1 else 'Collectors' }}</span>
+        </div>
+        <div class="collector-strip-hint">Click a collector card to filter transactions</div>
+      </div>
+      <div class="collector-cards-grid">
+        {% for col in collector_breakdown %}
+        <div class="collector-card theme-col-{{ loop.index0 % 4 }}" 
+             data-collector="{{ col.collector }}" 
+             onclick="filterLedgerByCollector('{{ col.collector|escape }}')" 
+             title="Click to view all {{ col.count }} collections by {{ col.collector }}">
+          <div class="col-card-left">
+            <div class="col-avatar">{{ col.initials }}</div>
+            <div class="col-meta">
+              <div class="col-name-row">
+                <span class="col-name">{{ col.collector }}</span>
+                <span class="col-pct-pill font-mono">{{ col.percentage }}%</span>
+              </div>
+              <div class="col-count-row font-mono text-dim">
+                {{ col.count }} {{ 'Receipt' if col.count == 1 else 'Receipts' }}
+              </div>
+            </div>
+          </div>
+          <div class="col-card-right">
+            <div class="col-amount font-mono">+{{ "%.2f"|format(col.total) }}</div>
+            <div class="col-currency font-mono">SAR</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- SEARCH FILTER INPUT -->
     <div style="padding:14px 22px; background:#090e1a; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:12px;">
       <svg style="width:18px; height:18px; fill:var(--text-dim);" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="text" class="search-input" id="ledgerSearchInput" placeholder="Filter ledger by receipt #, subscriber name, phone, or notes..." oninput="filterLedgerTable()" style="background:transparent; border:none; outline:none; color:#ffffff; font-size:13.5px; width:100%;">
+      <input type="text" class="search-input" id="ledgerSearchInput" placeholder="Filter ledger by receipt #, subscriber name, phone, collector, or notes..." oninput="filterLedgerTable()" style="background:transparent; border:none; outline:none; color:#ffffff; font-size:13.5px; width:100%;">
+      <button type="button" id="ledgerSearchClearBtn" onclick="clearLedgerSearch()" style="display:none; background:rgba(255,255,255,0.08); border:none; color:var(--text-dim); border-radius:50%; width:22px; height:22px; font-size:12px; cursor:pointer; align-items:center; justify-content:center;" title="Clear filter">&times;</button>
     </div>
 
     <div class="table-responsive">
@@ -1609,7 +2056,10 @@
         <tbody>
           {% if ledger %}
             {% for tx in ledger %}
-            <tr class="ledger-row" data-search="{{ (tx.customer_name or '')|lower }} {{ tx.customer_phone or '' }} {{ (tx.notes or '')|lower }} col-{{ tx.id }}">
+            <tr class="ledger-row" 
+                data-amount="{{ tx.amount }}" 
+                data-collector="{{ (tx.collected_by or 'Admin')|lower }}" 
+                data-search="{{ (tx.customer_name or '')|lower }} {{ tx.customer_phone or '' }} {{ (tx.notes or '')|lower }} {{ (tx.collected_by or 'Admin')|lower }} col-{{ tx.id }}">
               <td data-label="Receipt #" class="font-mono text-cyan" style="font-weight:800;">#COL-{{ tx.id }}</td>
               <td data-label="Date & Time" class="font-mono text-dim" style="font-size:12px;">{{ tx.collected_at }}</td>
               <td data-label="Customer">
@@ -1645,6 +2095,14 @@
               </td>
             </tr>
             {% endfor %}
+            <tr id="ledgerNoMatchRow" style="display:none;">
+              <td colspan="8">
+                <div class="empty-state" style="padding:32px; text-align:center;">
+                  <p style="font-weight:800; color:var(--text-main, #ffffff); font-size:14px; margin-bottom:4px;">No Matching Collections Found</p>
+                  <p style="font-size:12px; color:var(--text-dim);">No transactions match your current search query or collector filter.</p>
+                </div>
+              </td>
+            </tr>
 
           {% else %}
             <tr>
@@ -1948,37 +2406,133 @@
 <!-- =========================================================
      9. COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder)
      ========================================================= -->
-<div class="modal-overlay" id="collectModal">
-  <div class="modal-box modal-box-lg" style="max-width: 680px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
-    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
-      <h5 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
-        <i class="fas fa-money-bill-wave" style="color:#10b981;"></i> Collect Payment
-      </h5>
-      <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
-    </div>
-    <div class="modal-body-custom" style="padding: 20px;">
-      <form id="collectForm" onsubmit="event.preventDefault(); submitCollectForm();">
-        <input type="hidden" id="coll_cid">
-        <div id="coll_name" style="margin-bottom: 14px; font-weight: 700; font-size: 14px; color: #38bdf8;"></div>
-        <div id="unpaidList"></div>
-        <hr class="divider" style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin: 16px 0 14px 0;">
-        <div class="alert alert-info" style="margin-bottom: 16px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 10px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <i class="fas fa-calculator" style="color:#38bdf8;"></i>
-            <span style="font-size:13.5px; color:var(--text-main, #ffffff);">Total to collect: <strong class="mono" id="totalAmt" style="font-size:18px; color:#34d399; font-weight:800;">0.00</strong> SAR</span>
-          </div>
-          <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:12px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:3px 8px; border-radius:6px;">
-            ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
-          </div>
-          <div id="collPendingNote" style="display:none; color:#38bdf8; font-size:12px; font-weight:700; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:3px 8px; border-radius:6px;">
-            ⏱ <span id="collPendingVal">0.00</span> SAR Remains Pending
-          </div>
+<div class="modal-overlay" id="collectModal" style="z-index: 10005 !important;" onclick="if(event.target===this)closeCollectModal()">
+  <div class="modal-box" style="max-width: 540px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-accent, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.65); overflow:hidden;">
+    
+    <!-- Modal Header -->
+    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(15,23,42,0.6) 100%);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:#34d399; font-size:16px;">
+          <i class="fas fa-money-bill-wave"></i>
         </div>
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-          <button type="button" class="btn-action-sm" onclick="closeCollectModal()" style="padding:8px 16px; font-size:12.5px;">Cancel</button>
-          <button type="submit" class="btn-action-sm" id="btnRecordPayment" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 20px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer;">
-            <i class="fas fa-check"></i> Record Payment
-          </button>
+        <div>
+          <h5 style="margin:0; font-size:15px; font-weight:800; color:var(--text-main, #ffffff);">Collect Payment</h5>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">Fast subscriber collection &amp; auto-settlement</div>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all 0.15s ease;">&times;</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body-custom" style="padding: 20px;">
+      <form id="collectForm" novalidate onsubmit="event.preventDefault(); submitSmartCollectForm();">
+        <input type="hidden" id="coll_cid">
+
+        <!-- Loading Spinner State -->
+        <div id="collLoadingState" style="display:none; padding:35px 20px; text-align:center; color:var(--text-dim);">
+          <i class="fas fa-spinner fa-spin" style="font-size:26px; color:#38bdf8; margin-bottom:12px;"></i>
+          <div style="font-size:13.5px; font-weight:600; color:var(--text-main, #ffffff);">Loading subscriber wallet details…</div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="collContentArea">
+          <!-- Customer Profile Summary Header -->
+          <div class="coll-cust-summary-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-dim); letter-spacing:0.5px;">Subscriber</div>
+              <div id="collCustName" style="font-size:16px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12px; color:var(--text-dim); flex-wrap:wrap;">
+                <span id="collCustPhone" class="mono" style="color:#93c5fd;">—</span>
+                <span id="collCustRoom" style="background:rgba(56,189,248,0.12); color:#38bdf8; padding:1px 6px; border-radius:4px; font-weight:600; display:none;">—</span>
+                <span id="collCustPkg" style="color:var(--text-dim);">—</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span id="collCustStatusBadge" class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">ACTIVE</span>
+              <div id="collCustExpiryInfo" style="font-size:11px; color:var(--text-dim); margin-top:5px;">—</div>
+            </div>
+          </div>
+
+          <!-- Prominent Wallet Status Card -->
+          <div id="collWalletStatusCard" style="border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">
+            <div>
+              <div id="collWalletTitle" style="font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; color:#f87171;">WALLET STATUS: OVERDUE DEBT</div>
+              <div id="collWalletAmount" class="mono" style="font-size:24px; font-weight:900; color:#ef4444; margin-top:2px;">-30.00 SAR</div>
+              <div id="collWalletSubtext" style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">1 cycle unpaid</div>
+            </div>
+            <div id="collWalletIcon" style="width:42px; height:42px; border-radius:10px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; font-size:18px; color:#ef4444;">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+
+          <!-- Single Amount Input Box -->
+          <div style="margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="collAmount" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin:0;">
+                Collection Amount (SAR) <span style="color:#ef4444;">*</span>
+              </label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:600;">Authority Input Only</span>
+            </div>
+            <div style="position:relative;">
+              <input type="number" id="collAmount" name="amount" step="0.01" min="0.01" required class="form-control mono" style="width:100%; height:46px; font-size:22px; font-weight:900; color:#34d399; background:rgba(9,14,26,0.9); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:6px 14px 6px 50px; text-align:right;" placeholder="0.00" oninput="updateLiveCalculationPreview()">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:800; color:var(--text-dim); pointer-events:none;">SAR</span>
+            </div>
+
+            <!-- Quick 1-Click Preset Buttons -->
+            <div class="coll-presets-bar" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+              <button type="button" id="btnPresetExact" class="btn-preset-chip" onclick="applySmartPreset('exact')" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;">Exact Due</button>
+              <button type="button" id="btnPreset1Mo" class="btn-preset-chip" onclick="applySmartPreset(30)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">30 SAR (1 Mo)</button>
+              <button type="button" id="btnPreset2Mo" class="btn-preset-chip" onclick="applySmartPreset(60)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">60 SAR (2 Mo)</button>
+              <button type="button" id="btnPreset3Mo" class="btn-preset-chip" onclick="applySmartPreset(90)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">90 SAR (3 Mo)</button>
+              <button type="button" id="btnPresetClear" class="btn-preset-chip" onclick="applySmartPreset('clear')" style="background:none; border:none; color:var(--text-dim); font-size:11px; cursor:pointer; padding:4px 6px;">Clear</button>
+            </div>
+          </div>
+
+          <!-- Live Auto-Calculation Preview Alert -->
+          <div id="collLiveCalcPreview" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-magic" style="color:#38bdf8; font-size:14px;"></i>
+            <div id="collLiveCalcText" style="flex:1;">System will calculate cycle allocation automatically upon payment.</div>
+          </div>
+
+          <!-- Payment Method & Notes Grid -->
+          <div class="coll-form-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <label for="collPaymentType" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Payment Method</label>
+              <select id="collPaymentType" class="form-control" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 8px; color:var(--text-main, #ffffff);">
+                <option value="cash">💵 Cash Payment</option>
+                <option value="stc_pay">📱 STC Pay / Barq</option>
+                <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
+                <option value="pos_card">💳 POS / Card</option>
+                <option value="other">📝 Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="collNotes" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Notes (Optional)</label>
+              <input type="text" id="collNotes" placeholder="e.g. Paid in full / STC Ref" class="form-control" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 10px; color:var(--text-main, #ffffff);">
+            </div>
+          </div>
+
+          <!-- WhatsApp Instant Receipt Dispatch Toggle -->
+          <div class="coll-wa-card" style="padding:10px 14px; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.25); border-radius:8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <label for="collSendWa" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:12px; font-weight:700; color:#4ade80;">
+              <input type="checkbox" id="collSendWa" checked style="accent-color:#25d366; width:16px; height:16px; cursor:pointer;">
+              <span>📱 Send WhatsApp Receipt to Subscriber</span>
+            </label>
+            <span style="font-size:11px; color:#94a3b8;" class="mono">Instant Push</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="coll-footer-row" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08));">
+            <div class="coll-collector-text" style="font-size:11.5px; color:var(--text-dim);">
+              Collector: <strong id="collCollectorLabel" style="color:var(--text-main, #ffffff);">{{ (request.state.user.full_name or request.state.user.username) if (request.state and request.state.user) else 'Shajjad Khan' }}</strong>
+            </div>
+            <div class="coll-footer-btns" style="display:flex; gap:10px;">
+              <button type="button" class="btn-action-sm" onclick="closeCollectModal()" style="padding:9px 18px; font-size:12.5px; background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-dim); border-radius:8px; cursor:pointer;">Cancel</button>
+              <button type="submit" id="btnRecordPayment" class="btn-action-sm" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 22px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-check-circle"></i> Confirm &amp; Record Payment
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -2290,6 +2844,7 @@
     const custId = document.getElementById('posSelectedCustomerId').value;
     const amt = parseFloat(document.getElementById('posAmountInput').value) || 0;
     const notes = document.getElementById('posNotesInput').value.trim() || 'Cash Payment';
+    const sendWa = document.getElementById('posSendWhatsApp') ? document.getElementById('posSendWhatsApp').checked : true;
 
     if (!custId) {
       cyberToast('Please search and select a subscriber from the suggestions list.', 'warning');
@@ -2305,12 +2860,20 @@
       const resp = await fetch(`/api/customers/${custId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, notes: notes })
+        body: JSON.stringify({ amount: amt, notes: notes, send_whatsapp: sendWa })
       });
       const res = await resp.json();
       if (res.success) {
-        cyberToast(res.message || 'Payment successfully recorded!', 'success');
-        location.reload();
+        let feedback = res.message || 'Payment successfully recorded!';
+        if (res.whatsapp_receipt) {
+          if (res.whatsapp_receipt.sent) {
+            feedback += ' 📱 WhatsApp digital receipt dispatched!';
+          } else if (res.whatsapp_receipt.status === 'blocked_sandbox') {
+            feedback += ' (WhatsApp held: Sandbox shield active)';
+          }
+        }
+        cyberToast(feedback, 'success');
+        setTimeout(() => location.reload(), 1200);
       } else {
         cyberToast('Collection failed: ' + (res.message || res.error), 'error');
         btn.disabled = false;
@@ -2373,14 +2936,82 @@
     });
   }
 
-  // Filter Ledger Table
+  // Filter Ledger Table and Collector Breakdown Interactivity
+  let activeCollectorFilter = '';
+
+  function filterLedgerByCollector(name) {
+    const input = document.getElementById('ledgerSearchInput');
+    const normName = (name || '').trim();
+    if (activeCollectorFilter.toLowerCase() === normName.toLowerCase()) {
+      // Toggle off
+      activeCollectorFilter = '';
+      if (input) input.value = '';
+    } else {
+      activeCollectorFilter = normName;
+      if (input) input.value = normName;
+    }
+    filterLedgerTable();
+  }
+
+  function clearLedgerSearch() {
+    activeCollectorFilter = '';
+    const input = document.getElementById('ledgerSearchInput');
+    if (input) input.value = '';
+    filterLedgerTable();
+  }
+
   function filterLedgerTable() {
-    const q = document.getElementById('ledgerSearchInput').value.toLowerCase().trim();
+    const input = document.getElementById('ledgerSearchInput');
+    const clearBtn = document.getElementById('ledgerSearchClearBtn');
+    const q = (input ? input.value : '').toLowerCase().trim();
+    if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
+
     const rows = document.querySelectorAll('.ledger-row');
+    const cards = document.querySelectorAll('.collector-card');
+
+    // Sync active state on collector cards
+    cards.forEach(c => {
+      const colName = (c.getAttribute('data-collector') || '').toLowerCase();
+      if (q && (colName === q || colName.includes(q))) {
+        c.classList.add('active-collector');
+      } else {
+        c.classList.remove('active-collector');
+      }
+    });
+
+    let visibleTotal = 0.0;
+    let visibleCount = 0;
+
     rows.forEach(r => {
       const searchData = r.getAttribute('data-search') || '';
-      r.style.display = (!q || searchData.includes(q)) ? '' : 'none';
+      const matches = (!q || searchData.includes(q));
+      r.style.display = matches ? '' : 'none';
+      if (matches) {
+        visibleCount++;
+        const amt = parseFloat(r.getAttribute('data-amount') || 0);
+        if (amt > 0) visibleTotal += amt;
+      }
     });
+
+    // Toggle No Match feedback row
+    const noMatchRow = document.getElementById('ledgerNoMatchRow');
+    if (noMatchRow) {
+      noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+    }
+
+    // Dynamically update the header total when searching/filtering!
+    const totalEl = document.getElementById('ledgerTotalSar');
+    const countEl = document.getElementById('ledgerTotalCount');
+    if (totalEl) {
+      if (q) {
+        totalEl.innerHTML = visibleTotal.toFixed(2) + ' SAR <span style="font-size:11px; font-weight:normal; color:#38bdf8; margin-left:3px;">(Filtered)</span>';
+      } else {
+        totalEl.textContent = '{{ "%.2f"|format(filtered_total) }} SAR';
+      }
+    }
+    if (countEl) {
+      countEl.textContent = q ? visibleCount : '{{ filtered_tx_count }}';
+    }
   }
 
   // Print Receipt Slip Modal
@@ -2774,67 +3405,197 @@
   }
 
   // =========================================================
-  // COLLECT PAYMENT & SETTLEMENT CONTROLLER (MATCHING BILLING REMINDER)
+  // UNIFIED SMART COLLECT PAYMENT CONTROLLER
   // =========================================================
   let activeCollCustId = null;
+  let activeCollBreakdown = null;
 
-  function openCollectModal(cid, name) {
+  async function openCollectModal(cid, name) {
     activeCollCustId = cid;
+    activeCollBreakdown = null;
+
     const modal = document.getElementById('collectModal');
     if (modal) modal.classList.add('open', 'show');
     document.body.style.overflow = 'hidden';
 
     document.getElementById('coll_cid').value = cid;
-    document.getElementById('coll_name').textContent = 'Customer: ' + (name || 'ID #' + cid);
-    document.getElementById('unpaidList').innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;"><i class="fas fa-spinner fa-spin" style="margin-right:6px"></i> Loading unpaid bills…</div>';
+    const loadingState = document.getElementById('collLoadingState');
+    const contentArea = document.getElementById('collContentArea');
+    if (loadingState) loadingState.style.display = 'block';
+    if (contentArea) contentArea.style.display = 'none';
 
-    fetch('/api/customers/' + cid + '/unpaid')
-      .then(r => r.json())
-      .then(data => {
-        if (!data || !data.length) {
-          document.getElementById('unpaidList').innerHTML = '<div class="alert alert-success" style="padding:14px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:#34d399; font-weight:700;"><i class="fas fa-check-circle" style="margin-right:6px"></i> All bills are paid for this customer!</div>';
-          document.getElementById('totalAmt').textContent = '0.00';
-          const waivedNote = document.getElementById('collWaivedNote');
-          if (waivedNote) waivedNote.style.display = 'none';
-          const btnRec = document.getElementById('btnRecordPayment');
-          if (btnRec) btnRec.style.display = 'none';
-          return;
+    try {
+      const resp = await fetch('/api/customers/' + cid + '/billing-breakdown');
+      const data = await resp.json();
+      const b = data.breakdown || data;
+      activeCollBreakdown = b;
+
+      // Populate subscriber details
+      const custName = b.customer_name || name || ('Subscriber #' + cid);
+      document.getElementById('collCustName').textContent = custName;
+      document.getElementById('collCustPhone').textContent = b.phone || '—';
+
+      const roomEl = document.getElementById('collCustRoom');
+      if (roomEl) {
+        if (b.room) {
+          roomEl.textContent = '📍 ' + b.room;
+          roomEl.style.display = 'inline-block';
+        } else {
+          roomEl.style.display = 'none';
         }
+      }
 
-        const btnRec = document.getElementById('btnRecordPayment');
-        if (btnRec) btnRec.style.display = 'inline-flex';
+      const pkgEl = document.getElementById('collCustPkg');
+      if (pkgEl) {
+        const monthlyRate = parseFloat(b.monthly_fee || 30.0).toFixed(2);
+        pkgEl.textContent = (b.package_name ? b.package_name + ' · ' : '') + monthlyRate + ' SAR/mo';
+      }
 
-        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:150px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
+      const statusBadge = document.getElementById('collCustStatusBadge');
+      if (statusBadge) {
+        const st = (b.status || 'active').toUpperCase();
+        statusBadge.textContent = st;
+        if (st === 'ACTIVE') {
+          statusBadge.style.background = 'rgba(16,185,129,0.15)';
+          statusBadge.style.color = '#34d399';
+          statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+        } else {
+          statusBadge.style.background = 'rgba(239,68,68,0.15)';
+          statusBadge.style.color = '#f87171';
+          statusBadge.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+      }
 
-        data.forEach((m) => {
-          const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
-          const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
-          const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
+      const expEl = document.getElementById('collCustExpiryInfo');
+      if (expEl) {
+        if (b.expiry_date) {
+          expEl.textContent = 'Due / Expiry: ' + b.expiry_date;
+        } else {
+          expEl.textContent = '';
+        }
+      }
 
-          html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle;">
-            <td style="padding:10px 8px; text-align:center;">
-              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
-            </td>
-            <td style="padding:10px 8px;">
-              <div style="font-weight:700; color:#ffffff;">${mLabel}${graceBadge}</div>
-              ${paidBadge}
-              <div class="row-status-note" id="collRowNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
-            </td>
-            <td style="padding:10px 8px;">
-              <span class="badge badge-red mono" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
-            </td>
-            <td style="padding:10px 8px; text-align:right;">
-              <input type="number" name="amounts[]" inputmode="decimal" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:#090e1a; border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:6px 10px; text-align:right;" oninput="updateTotal()">
-            </td>
-          </tr>`;
-        });
-        html += '</tbody></table></div>';
-        document.getElementById('unpaidList').innerHTML = html;
-        updateTotal();
-      })
-      .catch(err => {
-        document.getElementById('unpaidList').innerHTML = `<div class="alert alert-danger" style="padding:12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:8px;">Error loading bills: ${err.message}</div>`;
-      });
+      // Configure Wallet Status Card
+      const bal = parseFloat(b.credit_balance || 0.0);
+      const totalDue = parseFloat(b.total_due || 0.0);
+      const unpaidCount = (b.unpaid_cycles || []).length;
+      const walletCard = document.getElementById('collWalletStatusCard');
+      const walletTitle = document.getElementById('collWalletTitle');
+      const walletAmount = document.getElementById('collWalletAmount');
+      const walletSubtext = document.getElementById('collWalletSubtext');
+      const walletIcon = document.getElementById('collWalletIcon');
+
+      if (bal < -0.01 || totalDue > 0.01) {
+        // Debt State
+        const dueShow = totalDue > 0 ? totalDue : Math.abs(bal);
+        if (walletCard) {
+          walletCard.style.background = 'rgba(239,68,68,0.08)';
+          walletCard.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: OVERDUE DEBT';
+          walletTitle.style.color = '#f87171';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '-' + dueShow.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#ef4444';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = unpaidCount > 0 ? `${unpaidCount} unpaid cycle(s) pending` : 'Accrued calendar balance';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(239,68,68,0.15)';
+          walletIcon.style.color = '#ef4444';
+          walletIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        }
+      } else if (bal > 0.01) {
+        // Credit State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(16,185,129,0.08)';
+          walletCard.style.borderColor = 'rgba(16,185,129,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: CREDIT BALANCE';
+          walletTitle.style.color = '#34d399';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '+' + bal.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#10b981';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'Advance surplus in subscriber wallet';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(16,185,129,0.15)';
+          walletIcon.style.color = '#10b981';
+          walletIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        }
+      } else {
+        // Settled State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(56,189,248,0.08)';
+          walletCard.style.borderColor = 'rgba(56,189,248,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: SETTLED & PAID';
+          walletTitle.style.color = '#38bdf8';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '0.00 SAR';
+          walletAmount.style.color = '#38bdf8';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'No outstanding debts · Ready for renewal';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(56,189,248,0.15)';
+          walletIcon.style.color = '#38bdf8';
+          walletIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
+        }
+      }
+
+      // Pre-fill amount
+      const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+      let defaultAmt = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      const amtInput = document.getElementById('collAmount');
+      if (amtInput) {
+        amtInput.value = defaultAmt.toFixed(2);
+      }
+
+      // Update preset chips
+      const exactBtn = document.getElementById('btnPresetExact');
+      if (exactBtn) {
+        if (totalDue > 0 || bal < -0.01) {
+          const exactOwed = (totalDue > 0 ? totalDue : Math.abs(bal)).toFixed(2);
+          exactBtn.textContent = `Exact Due (${exactOwed} SAR)`;
+          exactBtn.style.display = 'inline-block';
+        } else {
+          exactBtn.style.display = 'none';
+        }
+      }
+
+      const p1Btn = document.getElementById('btnPreset1Mo');
+      if (p1Btn) p1Btn.textContent = `${monthlyFee.toFixed(0)} SAR (1 Mo)`;
+      const p2Btn = document.getElementById('btnPreset2Mo');
+      if (p2Btn) p2Btn.textContent = `${(monthlyFee * 2).toFixed(0)} SAR (2 Mo)`;
+      const p3Btn = document.getElementById('btnPreset3Mo');
+      if (p3Btn) p3Btn.textContent = `${(monthlyFee * 3).toFixed(0)} SAR (3 Mo)`;
+
+      // Show content and calculate preview
+      if (loadingState) loadingState.style.display = 'none';
+      if (contentArea) contentArea.style.display = 'block';
+      updateLiveCalculationPreview();
+
+      if (amtInput) {
+        setTimeout(() => amtInput.focus(), 150);
+      }
+    } catch (err) {
+      if (loadingState) {
+        loadingState.innerHTML = `<div class="alert alert-danger" style="padding:14px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:10px;">
+          Failed to load subscriber details: ${err.message}
+        </div>`;
+      }
+    }
   }
 
   function closeCollectModal() {
@@ -2842,140 +3603,148 @@
     if (modal) modal.classList.remove('open', 'show');
     document.body.style.overflow = '';
     activeCollCustId = null;
+    activeCollBreakdown = null;
   }
 
-  function updateTotal() {
-    let total = 0.0;
-    let totalWaived = 0.0;
-    let totalPending = 0.0;
+  function applySmartPreset(val) {
+    const amtInput = document.getElementById('collAmount');
+    if (!amtInput) return;
+    const b = activeCollBreakdown;
+    const monthlyFee = parseFloat((b && b.monthly_fee) || 30.0);
+    const totalDue = parseFloat((b && b.total_due) || 0.0);
+    const bal = parseFloat((b && b.credit_balance) || 0.0);
 
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const due = parseFloat(inp.getAttribute('data-due') || 0.0);
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-      const noteEl = document.getElementById('collRowNote-' + month);
-
-      // Always add collected amount
-      total += amt;
-
-      if (isChecked) {
-        if (amt < due - 0.01) {
-          const waived = due - amt;
-          totalWaived += waived;
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#fbbf24;">✓ Settle Checked: ${waived.toFixed(2)} SAR will be waived as discount (month solved)</span>`;
-          }
-        } else if (amt > due + 0.01) {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle with surplus (+${(amt - due).toFixed(2)} SAR)</span>`;
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle (month solved)</span>`;
-          }
-        }
-      } else {
-        // Settle UNCHECKED
-        if (amt < due - 0.01) {
-          const rem = due - amt;
-          totalPending += rem;
-          if (noteEl) {
-            if (amt === 0) {
-              noteEl.innerHTML = `<span style="color:var(--text-dim);">— Untouched (0 SAR collected, full ${due.toFixed(2)} SAR remains pending)</span>`;
-            } else {
-              noteEl.innerHTML = `<span style="color:#38bdf8;">⏱ Settle Unchecked: Partial payment (${rem.toFixed(2)} SAR remains pending and collectable)</span>`;
-            }
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full payment (${amt.toFixed(2)} SAR paid)</span>`;
-          }
-        }
-      }
-    });
-
-    const totEl = document.getElementById('totalAmt');
-    if (totEl) totEl.textContent = total.toFixed(2);
-
-    const waivedBox = document.getElementById('collWaivedNote');
-    const waivedVal = document.getElementById('collWaivedVal');
-    if (waivedBox && waivedVal) {
-      if (totalWaived > 0.05) {
-        waivedBox.style.display = 'inline-block';
-        waivedVal.textContent = totalWaived.toFixed(2);
-      } else {
-        waivedBox.style.display = 'none';
-      }
+    if (val === 'exact') {
+      const exactVal = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      amtInput.value = exactVal.toFixed(2);
+    } else if (val === 'clear') {
+      amtInput.value = '';
+      amtInput.focus();
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) amtInput.value = num.toFixed(2);
     }
-
-    const pendingBox = document.getElementById('collPendingNote');
-    const pendingVal = document.getElementById('collPendingVal');
-    if (pendingBox && pendingVal) {
-      if (totalPending > 0.05) {
-        pendingBox.style.display = 'inline-block';
-        pendingVal.textContent = totalPending.toFixed(2);
-      } else {
-        pendingBox.style.display = 'none';
-      }
-    }
+    updateLiveCalculationPreview();
   }
 
-  async function submitCollectForm() {
-    const cid = document.getElementById('coll_cid')?.value;
-    if (!cid) return;
+  function updateLiveCalculationPreview() {
+    const amtInput = document.getElementById('collAmount');
+    const previewText = document.getElementById('collLiveCalcText');
+    if (!amtInput || !previewText) return;
 
-    const items = [];
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-
-      items.push({
-        month: month,
-        amount: amt,
-        settle: isChecked
-      });
-    });
-
-    if (items.length === 0) {
-      cyberToast('No cycles to collect.');
+    const amt = parseFloat(amtInput.value) || 0.0;
+    const b = activeCollBreakdown;
+    if (!b) {
+      previewText.innerHTML = 'System will calculate cycle allocation automatically upon payment.';
       return;
     }
 
+    const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+    const unpaid = b.unpaid_cycles || [];
+    let rem = amt;
+
+    if (amt <= 0) {
+      previewText.innerHTML = '<span style="color:var(--text-dim);">Enter collection amount to preview auto-settlement.</span>';
+      return;
+    }
+
+    let settled = [];
+    let partial = null;
+
+    for (let c of unpaid) {
+      const due = parseFloat(c.rem_due || monthlyFee);
+      if (rem <= 0) break;
+      if (rem >= (due - 0.05)) {
+        settled.push(c.month);
+        rem -= due;
+      } else {
+        partial = { month: c.month, paid: rem, rem_due: (due - rem) };
+        rem = 0;
+        break;
+      }
+    }
+
+    let msgs = [];
+    if (settled.length > 0) {
+      msgs.push(`<strong style="color:#34d399;">✓ Settle &amp; close ${settled.length} cycle(s)</strong> (${settled.join(', ')})`);
+    }
+    if (partial) {
+      msgs.push(`<span style="color:#38bdf8;">⏱ Partial payment on ${partial.month} (${partial.paid.toFixed(2)} SAR paid, ${partial.rem_due.toFixed(2)} SAR remains due)</span>`);
+    }
+
+    if (rem > 0.05) {
+      const advMo = Math.floor(rem / monthlyFee);
+      const leftover = rem - (advMo * monthlyFee);
+      if (advMo > 0) {
+        msgs.push(`<strong style="color:#10b981;">🚀 Advance renewal: +${advMo} month(s)</strong>`);
+      }
+      if (leftover > 0.05) {
+        msgs.push(`<span style="color:#a7f3d0;">+${leftover.toFixed(2)} SAR wallet credit surplus</span>`);
+      }
+    }
+
+    if (msgs.length === 0) {
+      previewText.innerHTML = `Will credit <strong style="color:#34d399;">${amt.toFixed(2)} SAR</strong> to subscriber account and unblock active devices.`;
+    } else {
+      previewText.innerHTML = msgs.join(' · ');
+    }
+  }
+
+  async function submitSmartCollectForm() {
+    const cid = document.getElementById('coll_cid')?.value;
+    if (!cid) return;
+
+    const amtInput = document.getElementById('collAmount');
+    const amt = parseFloat(amtInput?.value || 0.0);
+    if (!amt || amt <= 0) {
+      alert('Please enter a valid collection amount.');
+      if (amtInput) amtInput.focus();
+      return;
+    }
+
+    const pType = document.getElementById('collPaymentType')?.value || 'cash';
+    const notes = document.getElementById('collNotes')?.value || '';
+    const sendWa = document.getElementById('collSendWa') ? document.getElementById('collSendWa').checked : true;
+
     const btn = document.getElementById('btnRecordPayment');
+    const origHtml = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording &amp; Calculating…';
     }
 
     try {
-      const resp = await fetch(`/api/customers/${cid}/settle-cycles`, {
+      const resp = await fetch(`/api/customers/${cid}/smart-collect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, notes: 'Collection & Settlement', send_whatsapp: true })
+        body: JSON.stringify({
+          amount: amt,
+          payment_type: pType,
+          notes: notes,
+          send_whatsapp: sendWa
+        })
       });
       const res = await resp.json();
       if (res.success) {
-        cyberToast(res.message || 'Payment recorded successfully!');
+        let msg = res.message || 'Payment collected successfully!';
+        if (res.data?.whatsapp_receipt?.sent) {
+          msg += '\n\n📱 WhatsApp digital receipt dispatched to subscriber!';
+        }
+        cyberToast(msg);
         closeCollectModal();
-        setTimeout(() => location.reload(), 1000);
+        setTimeout(() => location.reload(), 900);
       } else {
-        cyberToast('Payment failed: ' + (res.message || res.error));
+        alert('Payment recording failed: ' + (res.message || res.error || 'Server error'));
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-check"></i> Record Payment';
+          btn.innerHTML = origHtml;
         }
       }
     } catch (e) {
-      cyberToast('Error: ' + e.message);
+      alert('Error recording payment: ' + e.message);
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check"></i> Record Payment';
+        btn.innerHTML = origHtml;
       }
     }
   }
@@ -2983,6 +3752,10 @@
   // Aliases for compatibility
   window.openCollectModal = openCollectModal;
   window.closeCollectModal = closeCollectModal;
+  window.applySmartPreset = applySmartPreset;
+  window.updateLiveCalculationPreview = updateLiveCalculationPreview;
+  window.submitSmartCollectForm = submitSmartCollectForm;
+  window.submitCollectForm = submitSmartCollectForm;
   window.openSettleModal = openCollectModal;
   window.closeSettleModal = closeCollectModal;
   window.openModal = function(id) { document.getElementById(id)?.classList.add('open', 'show'); document.body.style.overflow = 'hidden'; };

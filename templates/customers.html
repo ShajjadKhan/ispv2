@@ -103,10 +103,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 7px;
-    padding: 5px 10px;
+    background: var(--bg-canvas, #090e1a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 6px 10px;
     flex-grow: 1;
     max-width: 320px;
   }
@@ -115,8 +115,8 @@
     background: transparent;
     border: none;
     outline: none;
-    color: #ffffff;
-    font-size: 12px;
+    color: var(--text-main, #ffffff);
+    font-size: 13px;
     width: 100%;
     font-family: inherit;
   }
@@ -414,6 +414,34 @@
     flex-direction: column;
   }
 
+  /* Edit Customer Modal Form Layout (Guarantees scrollable body and visible footer) */
+  #editCustomerModal {
+    z-index: 1100;
+  }
+  #editCustForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #editCustForm .modal-body-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #editCustForm .modal-footer {
+    flex-shrink: 0;
+  }
+
+  .prof-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
   /* Manage Modal Tabs Navigation */
   .manage-tabs-nav {
     display: flex;
@@ -558,8 +586,8 @@
 
   /* MOBILE CUSTOMER CARD STYLING */
   .cust-mobile-card {
-    background: #090e1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--bg-card, #090e1a);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
     border-radius: 14px;
     padding: 14px;
     display: flex;
@@ -581,7 +609,7 @@
     align-items: flex-start;
     gap: 8px;
     padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
     width: 100%;
     box-sizing: border-box;
   }
@@ -615,7 +643,7 @@
   .mobile-cust-name {
     font-size: 14.5px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: normal;
@@ -666,7 +694,7 @@
   .mobile-grid-item .m-val {
     font-size: 12.5px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-main, #ffffff);
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: normal;
@@ -956,6 +984,34 @@
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.25);
   }
+  .cust-mac-pill.sharing-blocked {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    font-weight: 700;
+  }
+  .badge-hotspot-sharing {
+    font-size: 10px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  html[data-theme="light"] .cust-mac-pill.sharing-blocked {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #f87171;
+  }
+  html[data-theme="light"] .badge-hotspot-sharing {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+  }
 
   /* MODAL RESPONSIVENESS */
   .modal-grid-2 {
@@ -1090,12 +1146,29 @@
     .preset-wrap input {
       width: 100% !important;
     }
+    .modal-overlay {
+      padding: 8px !important;
+      align-items: flex-end !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
     .modal-box, .modal-box-lg {
-      max-width: 95vw !important;
-      width: 95vw !important;
-      max-height: 90vh !important;
-      margin: 10px auto !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      max-height: 92vh !important;
+      margin: 0 auto !important;
+      border-radius: 18px 18px 0 0 !important;
       box-sizing: border-box !important;
+    }
+    #editCustomerModal .modal-footer {
+      padding: 12px 16px !important;
+      gap: 10px !important;
+      background: var(--bg-card-header, #0d1527) !important;
+      border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08)) !important;
+    }
+    #editCustomerModal .modal-footer button {
+      min-height: 44px !important;
+      font-size: 13px !important;
     }
     .custom-pay-grid {
       grid-template-columns: 1fr !important;
@@ -1152,6 +1225,182 @@
       min-height: 40px !important;
     }
   }
+
+  /* =========================================================
+     SMART COLLECT PAYMENT MODAL - NATIVE MOBILE PHONE OPTIMIZATION (<= 640px)
+     ========================================================= */
+  @media (max-width: 640px) {
+    #collectModal.modal-overlay {
+      padding: 0 !important;
+      align-items: flex-end !important;
+      justify-content: center !important;
+      background: rgba(3, 7, 18, 0.88) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+    }
+
+    #collectModal .modal-box {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 22px 22px 0 0 !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: none !important;
+      border-top: 1px solid rgba(56, 189, 248, 0.35) !important;
+      margin: 0 !important;
+      max-height: 94vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+      animation: modalSlideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      overscroll-behavior: contain !important;
+    }
+
+    @keyframes modalSlideUpMobile {
+      from { transform: translateY(100%); opacity: 0.5; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    #collectModal .modal-header-custom {
+      position: relative !important;
+      padding: 18px 16px 12px 16px !important;
+      flex-shrink: 0 !important;
+      border-radius: 22px 22px 0 0 !important;
+    }
+    #collectModal .modal-header-custom::before {
+      content: '' !important;
+      display: block !important;
+      position: absolute !important;
+      top: 6px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 44px !important;
+      height: 4px !important;
+      border-radius: 2px !important;
+      background: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    #collectModal .modal-body-custom {
+      padding: 14px 16px 20px 16px !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+      max-height: calc(94vh - 65px) !important;
+    }
+
+    #collectModal .coll-form-grid-2,
+    #collectModal div[style*="grid-template-columns: 1fr 1fr"],
+    #collectModal div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+
+    #collectModal input,
+    #collectModal select {
+      font-size: 16px !important;
+    }
+    #collectModal #collPaymentType,
+    #collectModal #collNotes {
+      height: 44px !important;
+      padding: 8px 12px !important;
+      border-radius: 9px !important;
+    }
+
+    #collectModal #collAmount {
+      height: 52px !important;
+      font-size: 26px !important;
+      padding-right: 14px !important;
+      border-radius: 12px !important;
+    }
+
+    #collectModal .coll-presets-bar,
+    #collectModal div:has(> .btn-preset-chip) {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 6px !important;
+      margin-top: 8px !important;
+    }
+    #collectModal .btn-preset-chip {
+      min-height: 38px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
+      padding: 6px 4px !important;
+      text-align: center !important;
+    }
+    #collectModal #btnPresetClear {
+      grid-column: span 1 !important;
+    }
+
+    #collectModal #collWalletStatusCard {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+    }
+    #collectModal #collWalletAmount {
+      font-size: 22px !important;
+    }
+
+    #collectModal .coll-wa-card,
+    #collectModal div:has(> #collSendWa) {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+    }
+    #collectModal label[for="collSendWa"] {
+      font-size: 13px !important;
+      gap: 10px !important;
+    }
+    #collectModal #collSendWa {
+      width: 20px !important;
+      height: 20px !important;
+    }
+
+    #collectModal .coll-footer-row,
+    #collectModal div[style*="justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid"] {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      padding-top: 14px !important;
+      margin-top: 10px !important;
+    }
+    #collectModal .coll-collector-text,
+    #collectModal div[style*="color:var(--text-dim)"]:has(#collCollectorLabel) {
+      font-size: 12px !important;
+      text-align: center !important;
+      justify-content: center !important;
+      margin-bottom: 2px !important;
+    }
+    #collectModal .coll-footer-btns,
+    #collectModal div:has(> #btnRecordPayment) {
+      display: flex !important;
+      width: 100% !important;
+      gap: 10px !important;
+    }
+    #collectModal .coll-footer-btns button,
+    #collectModal div:has(> #btnRecordPayment) button {
+      min-height: 48px !important;
+      border-radius: 10px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    #collectModal .btn-action-sm:first-child {
+      flex: 1 !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    #collectModal #btnRecordPayment {
+      flex: 2 !important;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -1169,6 +1418,7 @@
   {% set total_rev = customers | map(attribute='monthly_fee') | sum %}
   {% set positive_credit = customers | selectattr('credit_balance') | selectattr('credit_balance', '>', 0) | map(attribute='credit_balance') | sum %}
   {% set credit_subs = customers | selectattr('credit_balance') | selectattr('credit_balance', '>', 0) | list | length %}
+  {% set sharing_subs = customers | selectattr('is_sharing_hotspot') | list | length %}
 
   <!-- TOP SUMMARY CARDS (CLICKABLE FILTERS) -->
   <div class="stats-row">
@@ -1255,6 +1505,9 @@
     <div class="filter-group">
       <button type="button" class="filter-btn active" id="filterAll" onclick="setBillingFilter('all')">All ({{ total_subs }})</button>
       <button type="button" class="filter-btn" id="filterOnline" onclick="setBillingFilter('online')">🟢 Online ({{ online_subs }})</button>
+      {% if sharing_subs > 0 %}
+        <button type="button" class="filter-btn" id="filterSharing" onclick="setBillingFilter('sharing')" style="border-color:rgba(239,68,68,0.5); color:#fca5a5; background:rgba(239,68,68,0.12);">📡 Sharing ({{ sharing_subs }})</button>
+      {% endif %}
       <button type="button" class="filter-btn" id="filterActive" onclick="setBillingFilter('active')">Active ({{ active_subs }})</button>
       <button type="button" class="filter-btn" id="filterPrepaid" onclick="setBillingFilter('prepaid')">Prepaid ({{ prepaid_subs }})</button>
       <button type="button" class="filter-btn" id="filterPostpaid" onclick="setBillingFilter('postpaid')">Postpaid ({{ postpaid_subs }})</button>
@@ -1271,10 +1524,15 @@
         {% endfor %}
       </select>
 
-      <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
-        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        <span>Add Customer</span>
-      </button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="btn-add-customer" onclick="openAddCustomerModal()">
+          <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span>Add Customer</span>
+        </button>
+        <a href="/customers/add" class="btn-action-sm" title="Open Full-Page Customer Onboarding" style="background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); height:36px; padding:0 10px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:700; font-size:12px;">
+          <span>Full Page ↗</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -1293,6 +1551,9 @@
         <table class="clean-table" id="customersTable">
           <thead>
             <tr>
+              <th style="width:36px; text-align:center;">
+                <input type="checkbox" id="masterSubSelectAll" onchange="toggleSelectAllSubscribers(this)" title="Select All Visible Subscribers" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+              </th>
               <th>Customer</th>
               <th>Phone</th>
               <th>Type</th>
@@ -1307,7 +1568,10 @@
           <tbody>
             {% if customers %}
               {% for c in customers %}
-              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+              <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+                <td class="td-sub-select" style="text-align:center; vertical-align:middle; width:36px;">
+                  <input type="checkbox" class="sub-row-checkbox" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+                </td>
                 <td>
                   <div class="cust-name-cell">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1318,6 +1582,11 @@
                     </div>
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                       <span class="cust-meta">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+                      {% if c.is_sharing_hotspot %}
+                        <span class="badge-status badge-hotspot-sharing" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                          📡 Sharing Blocked
+                        </span>
+                      {% endif %}
                       {% if c.reseller_shop_name or c.reseller_username %}
                         <span class="badge-status" style="font-size:10px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">
                           🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1332,11 +1601,18 @@
                 </td>
                 <td class="font-mono text-white" style="font-weight:600; white-space:nowrap;">{{ c.phone }}</td>
                 <td>
-                  {% if c.billing_type == 'prepaid' %}
-                    <span class="badge-plan prepaid">PREPAID</span>
-                  {% else %}
-                    <span class="badge-plan postpaid">POSTPAID</span>
-                  {% endif %}
+                  <div style="display:flex; flex-direction:column; gap:4px;">
+                    {% if c.billing_type == 'prepaid' %}
+                      <span class="badge-plan prepaid">PREPAID</span>
+                    {% else %}
+                      <span class="badge-plan postpaid">POSTPAID</span>
+                    {% endif %}
+                    {% if c.connection_type == 'pppoe' %}
+                      <span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px; width:fit-content;" title="PPPoE: {{ c.pppoe_username or 'Active' }}">PPPoE</span>
+                    {% elif c.connection_type == 'both' %}
+                      <span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px; width:fit-content;" title="Hybrid: Hotspot + PPPoE ({{ c.pppoe_username or '' }})">HYBRID</span>
+                    {% endif %}
+                  </div>
                 </td>
                 <td>
                   <div class="cust-package-cell">
@@ -1351,28 +1627,41 @@
                 </td>
                 <td class="font-mono" style="white-space:nowrap;">
                   <div style="font-weight:700; color:#38bdf8;">{{ "%.2f"|format(c.monthly_fee) }} SAR</div>
-                  {% if c.credit_balance and c.credit_balance > 0 %}
+                  {% if c.credit_balance and c.credit_balance > 0.005 %}
                     <div style="font-size:10.5px; font-weight:700; color:#34d399; margin-top:3px; display:inline-flex; align-items:center; gap:3px; background:rgba(52,211,153,0.12); padding:1px 6px; border-radius:4px; border:1px solid rgba(52,211,153,0.25);">
-                      💳 +{{ "%.2f"|format(c.credit_balance) }} Credit
+                      💳 +{{ "%.2f"|format(c.credit_balance) }} Wallet
+                    </div>
+                  {% elif c.credit_balance and c.credit_balance < -0.005 %}
+                    <div style="font-size:10.5px; font-weight:700; color:#f87171; margin-top:3px; display:inline-flex; align-items:center; gap:3px; background:rgba(239,68,68,0.12); padding:1px 6px; border-radius:4px; border:1px solid rgba(239,68,68,0.25);">
+                      💳 {{ "%.2f"|format(c.credit_balance) }} Wallet
                     </div>
                   {% endif %}
                 </td>
                 <td>
                   <div class="cust-duedate-cell">
-                    <span class="font-mono text-white" style="font-size:12px; white-space:nowrap;">{{ c.due_date or c.expiry_date or '—' }}</span>
-                    {% if c.is_grace_held or c.suspension_held_until %}
-                      <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
-                        🤝 Grace: {{ c.suspension_held_until }}
-                      </span>
-                    {% elif c.days_remaining is not none %}
-                      {% if c.days_remaining < 0 %}
-                        <span class="badge-status disabled" style="font-size:10px; width:fit-content;">EXPIRED</span>
-                      {% elif c.days_remaining <= 3 %}
-                        <span class="badge-status stopped" style="font-size:10px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">{{ c.days_remaining }}d left</span>
-                      {% else %}
-                        <span class="badge-status running" style="font-size:10px; width:fit-content;">{{ c.days_remaining }}d left</span>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:10px; color:#38bdf8; font-weight:700;">📅 PAY:</span>
+                        <span class="font-mono text-cyan" style="font-size:11.5px; font-weight:700; white-space:nowrap;">{{ c.pay_date or c.due_date or '—' }}</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:10px; color:#fbbf24; font-weight:700;">✂️ CUT:</span>
+                        <span class="font-mono" style="font-size:11.5px; font-weight:600; color:#fbbf24; white-space:nowrap;">{{ c.expiry_date or c.due_date or '—' }}</span>
+                      </div>
+                      {% if c.is_grace_held or c.suspension_held_until %}
+                        <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                          🤝 Grace: {{ c.suspension_held_until }}
+                        </span>
+                      {% elif c.days_remaining is not none %}
+                        {% if c.days_remaining < 0 %}
+                          <span class="badge-status disabled" style="font-size:9.5px; width:fit-content;">CUTOFF EXPIRED</span>
+                        {% elif c.days_remaining <= 3 %}
+                          <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">Cut in {{ c.days_remaining }}d</span>
+                        {% else %}
+                          <span class="badge-status running" style="font-size:9.5px; width:fit-content;">Cut in {{ c.days_remaining }}d</span>
+                        {% endif %}
                       {% endif %}
-                    {% endif %}
+                    </div>
                   </div>
                 </td>
                 <td class="cust-devices-cell">
@@ -1408,6 +1697,9 @@
                               <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                             {% else %}
                               <span class="cust-mac-pill offline">OFFLINE</span>
+                            {% endif %}
+                            {% if d.is_sharing_hotspot %}
+                              <span class="cust-mac-pill sharing-blocked" title="{{ d.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">⚠️ SHARING BLOCKED</span>
                             {% endif %}
                           </div>
                         {% endfor %}
@@ -1472,7 +1764,7 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td colspan="9">
+                <td colspan="10">
                   <div class="empty-state">
                     <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Customers Registered Yet</p>
                     <p style="font-size:12px;">Approve hotspot connection requests or click "Add Customer" above to register accounts.</p>
@@ -1489,9 +1781,10 @@
     <div class="mobile-customer-deck" id="mobileCustomerDeck">
       {% if customers %}
         {% for c in customers %}
-        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+        <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
+              <input type="checkbox" class="sub-row-checkbox mobile-sub-check" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 19px; height: 19px; accent-color: #38bdf8; margin-right: 6px; flex-shrink: 0;">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
               <div class="mobile-cust-info">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1502,6 +1795,11 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                   <span class="mobile-cust-sub">ID #{{ c.id }} &bull; Joined {{ c.join_date or c.billing_start_date or c.created_at[:10] }}</span>
+                  {% if c.is_sharing_hotspot %}
+                    <span class="badge-status badge-hotspot-sharing" style="font-size:9.5px; padding:1px 5px;" title="{{ c.sharing_detail or 'Hotspot sharing detected (Blocked via TTL=1)' }}">
+                      📡 Sharing Blocked
+                    </span>
+                  {% endif %}
                   {% if c.reseller_shop_name or c.reseller_username %}
                     <span class="badge-status" style="font-size:9.5px; background:rgba(236,72,153,0.12); color:#f472b6; border:1px solid rgba(236,72,153,0.3); padding:1px 5px; border-radius:4px; font-weight:700;">
                       🏪 {{ c.reseller_shop_name or c.reseller_username }}
@@ -1525,6 +1823,11 @@
               {% else %}
                 <span class="badge-plan postpaid" style="font-size:10px;">POSTPAID</span>
               {% endif %}
+              {% if c.connection_type == 'pppoe' %}
+                <span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px;" title="PPPoE: {{ c.pppoe_username }}">PPPoE</span>
+              {% elif c.connection_type == 'both' %}
+                <span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:4px;" title="Hybrid: Hotspot + PPPoE">HYBRID</span>
+              {% endif %}
             </div>
           </div>
 
@@ -1541,26 +1844,49 @@
             <div class="mobile-grid-item">
               <span class="m-lbl">Monthly Rate</span>
               <span class="m-val font-mono text-cyan">{{ "%.2f"|format(c.monthly_fee) }} SAR</span>
-              {% if c.credit_balance and c.credit_balance > 0 %}
-                <span class="m-sub font-mono text-emerald" style="color:#34d399;">+{{ "%.2f"|format(c.credit_balance) }} Credit</span>
+              {% if c.credit_balance and c.credit_balance > 0.005 %}
+                <span class="m-sub font-mono text-emerald" style="color:#34d399; font-weight:700;">+{{ "%.2f"|format(c.credit_balance) }} Wallet</span>
+              {% elif c.credit_balance and c.credit_balance < -0.005 %}
+                <span class="m-sub font-mono" style="color:#f87171; font-weight:700;">{{ "%.2f"|format(c.credit_balance) }} Wallet</span>
               {% endif %}
             </div>
             <div class="mobile-grid-item">
-              <span class="m-lbl">Due / Expiry Date</span>
-              <span class="m-val font-mono" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
-              {% if c.is_grace_held or c.suspension_held_until %}
-                <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700; width:fit-content; margin-top:2px;" title="Suspension hold active until {{ c.suspension_held_until }}">
-                  🤝 Grace: {{ c.suspension_held_until }}
-                </span>
-              {% elif c.days_remaining is not none %}
-                {% if c.days_remaining < 0 %}
-                  <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; margin-top:2px;">EXPIRED</span>
-                {% elif c.days_remaining <= 3 %}
-                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content; margin-top:2px;">{{ c.days_remaining }}d left</span>
+              <span class="m-lbl" style="color:#38bdf8;">📅 Payday (Expected)</span>
+              <span class="m-val font-mono text-cyan" style="font-size:12px; font-weight:700;">{{ c.pay_date or c.due_date or '—' }}</span>
+              {% if c.days_to_payday is not none %}
+                {% if c.days_to_payday < 0 %}
+                  <span class="badge-status stopped" style="font-size:9px; background:rgba(245,158,11,0.15); color:#fbbf24; width:fit-content; margin-top:2px;">{{ c.days_to_payday|abs }}d past payday</span>
+                {% elif c.days_to_payday <= 3 %}
+                  <span class="badge-status stopped" style="font-size:9px; background:rgba(56,189,248,0.18); color:#38bdf8; width:fit-content; margin-top:2px; font-weight:700;">In {{ c.days_to_payday }}d</span>
                 {% else %}
-                  <span class="badge-status running" style="font-size:9.5px; width:fit-content; margin-top:2px;">{{ c.days_remaining }}d left</span>
+                  <span class="badge-status" style="font-size:9px; background:rgba(56,189,248,0.1); color:#38bdf8; width:fit-content; margin-top:2px;">In {{ c.days_to_payday }}d</span>
                 {% endif %}
               {% endif %}
+            </div>
+
+            <!-- Full-Width Hard Suspension Date (Internet Cutoff) -->
+            <div class="mobile-grid-item" style="grid-column: 1 / -1; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.22); border-radius:8px; padding:7px 10px; margin-top:2px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <div>
+                  <span class="m-lbl" style="color:#fbbf24; margin-bottom:1px;">✂️ Hard Suspension (Auto-Cut)</span>
+                  <div class="m-val font-mono" style="font-size:12px; color:#fbbf24; font-weight:700;">{{ c.expiry_date or c.due_date or '—' }}</div>
+                </div>
+                <div>
+                  {% if c.is_grace_held or c.suspension_held_until %}
+                    <span class="badge" style="background:rgba(245,158,11,0.22); color:#f59e0b; border:1px solid rgba(245,158,11,0.45); padding:2px 7px; border-radius:4px; font-size:9.5px; font-weight:700;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                      🤝 Grace: {{ c.suspension_held_until }}
+                    </span>
+                  {% elif c.days_remaining is not none %}
+                    {% if c.days_remaining < 0 %}
+                      <span class="badge-status disabled" style="font-size:9.5px; padding:2px 7px; font-weight:700;">CUT / EXPIRED</span>
+                    {% elif c.days_remaining <= 3 %}
+                      <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.2); font-weight:700; padding:2px 7px;">Cut in {{ c.days_remaining }}d</span>
+                    {% else %}
+                      <span class="badge-status running" style="font-size:9.5px; padding:2px 7px;">Cut in {{ c.days_remaining }}d</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
             </div>
             <div class="mobile-grid-item" style="grid-column: 1 / -1;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
@@ -1599,6 +1925,9 @@
                         <span class="cust-mac-pill recent">{% if d.router_short_name %}RECENT • {{ d.router_short_name }}{% else %}RECENT{% endif %}</span>
                       {% else %}
                         <span class="cust-mac-pill offline">OFFLINE</span>
+                      {% endif %}
+                      {% if d.is_sharing_hotspot %}
+                        <span class="cust-mac-pill sharing-blocked" title="{{ d.sharing_detail or 'Roommate tethering detected (Blocked via TTL=1)' }}">⚠️ SHARING BLOCKED</span>
                       {% endif %}
                     </div>
                   {% endfor %}
@@ -1683,7 +2012,11 @@
         <h3 id="profName">Customer Profile</h3>
         <p class="font-mono text-dim" style="font-size:12px;" id="profSubhead">Loading details...</p>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
+      <div class="prof-header-actions" style="display:flex; align-items:center; gap:8px;">
+        <button type="button" class="btn-action-sm btn-collect-cust" onclick="openCollectModal(activeCustomerId, document.getElementById('profName').textContent)" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:5px 12px; font-size:11.5px; border-radius:6px; box-shadow:0 2px 8px rgba(16,185,129,0.3); display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Collect Payment for this Subscriber">
+          <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          <span>Collect</span>
+        </button>
         <a id="profUsagePageBtn" href="#" class="btn-action-sm" style="background:rgba(168,85,247,0.15); color:#c084fc; border-color:rgba(168,85,247,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" title="Open Dedicated 90-Day Usage Dashboard">
           <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
           <span>90d Usage</span>
@@ -1758,10 +2091,10 @@
               </div>
             </div>
             <div>
-              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Payment Due Date</div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Suspend / Expiry Date</div>
               <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
                 <span style="font-weight:700; color:#fbbf24; font-family:var(--font-mono); font-size:13px;" id="profDueDate">—</span>
-                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Edit</button>
+                <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 6px;">Change</button>
               </div>
             </div>
             <div>
@@ -1779,6 +2112,39 @@
               <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Reseller / Partner</div>
               <div style="margin-top:2px; font-weight:700; color:#f472b6;" id="profReseller">—</div>
             </div>
+            <div>
+              <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Network Protocol</div>
+              <div style="margin-top:2px;" id="profConnType">—</div>
+            </div>
+          </div>
+
+          <!-- PPPOE CREDENTIALS (IF PPPOE OR HYBRID) -->
+          <div id="profPppoeCard" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:12px; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+                <i class="fas fa-network-wired"></i>
+                <span>PPPoE Router Secret (MikroTik /ppp/secret)</span>
+              </div>
+              <button type="button" class="btn-action-sm" onclick="openEditCustomerModal(activeCustomerId)" style="font-size:10px; padding:2px 8px; border-color:rgba(168,85,247,0.3); color:#c084fc;">Edit Secret</button>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; font-size:12px;">
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">PPPoE User:</span>
+                <strong class="font-mono" style="color:#ffffff;" id="profPppoeUser">—</strong>
+              </div>
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">Password:</span>
+                <strong class="font-mono" style="color:#ffffff;" id="profPppoePass">—</strong>
+              </div>
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">Profile:</span>
+                <strong class="font-mono" style="color:#38bdf8;" id="profPppoeProfile">—</strong>
+              </div>
+              <div>
+                <span style="color:var(--text-dim); font-size:10.5px; display:block;">Remote IP:</span>
+                <strong class="font-mono" style="color:#34d399;" id="profPppoeIp">—</strong>
+              </div>
+            </div>
           </div>
 
           <!-- LINKED DEVICES (MACS) -->
@@ -1795,7 +2161,7 @@
             </div>
 
             <!-- Add Device Inline Form -->
-            <div id="addDeviceInlineForm" style="display:none; background:#090e1a; border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
+            <div id="addDeviceInlineForm" style="display:none; background:var(--bg-card, #090e1a); border:1px dashed rgba(56,189,248,0.3); border-radius:10px; padding:12px; margin-top:8px;">
               <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px;">Link Device (Permanent or Guest Pass)</div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
                 <input type="text" class="form-input font-mono" id="newDeviceMac" placeholder="MAC e.g. AA:BB:CC:DD:EE:FF" style="font-size:12px; padding:8px 12px; flex:1; min-width:180px;">
@@ -1846,7 +2212,7 @@
                   <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
                   <span>Customer Credit Wallet</span>
                 </div>
-                <div style="font-size:13px; color:#ffffff; margin-top:3px;">
+                <div style="font-size:13px; color:var(--text-main, #ffffff); margin-top:3px;">
                   Available Balance: <strong class="text-cyan font-mono" style="font-size:16px;" id="creditWalletAmount">0.00 SAR</strong>
                 </div>
               </div>
@@ -1857,9 +2223,9 @@
           </div>
 
           <!-- 3. COLLECT ANY AMOUNT / ADVANCE PAYMENT CARD -->
-          <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px;">
+          <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.07)); border-radius:14px; padding:16px;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-              <div style="font-size:13px; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:8px;">
+              <div style="font-size:13px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
                 <svg style="width:16px; height:16px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 <span>Record Custom / Advance Payment</span>
               </div>
@@ -1907,10 +2273,10 @@
               <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Real-time transaction history</span>
             </div>
 
-            <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden;">
+            <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; overflow:hidden;">
               <div style="max-height:260px; overflow-y:auto;">
                 <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
-                  <thead style="background:#0d1527; color:var(--text-dim); position:sticky; top:0; z-index:2; border-bottom:1px solid rgba(255,255,255,0.08);">
+                  <thead style="background:var(--bg-card-header, #0d1527); color:var(--text-dim); position:sticky; top:0; z-index:2; border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08));">
                     <tr>
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Date &amp; Time</th>
                       <th style="padding:8px 12px; font-size:10.5px; text-transform:uppercase;">Amount</th>
@@ -1965,166 +2331,308 @@
 <!-- =========================================================
      MANUAL ADD CUSTOMER MODAL
      ========================================================= -->
+<!-- =========================================================
+     MANUAL ADD CUSTOMER MODAL
+     ========================================================= -->
 <div class="modal-overlay" id="addCustomerModal">
-  <div class="modal-box">
+  <div class="modal-box-lg" style="max-width:680px;">
     <div class="modal-header">
       <div>
-        <h3>Register New Customer</h3>
-        <p>Direct onboarding without captive portal submission</p>
+        <h3 id="addCustModalTitle" style="display:flex; align-items:center; gap:8px;">
+          <svg style="width:18px; height:18px; fill:#10b981;" viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <span>Register New Customer</span>
+        </h3>
+        <p>Direct MikroTik authorization, speed queueing &amp; billing setup</p>
       </div>
-      <button type="button" class="btn-close-modal" onclick="closeAddCustomerModal()">&times;</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="/customers/add" class="btn-action-sm" style="background:rgba(56,189,248,0.12); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+          <span>Full Page ↗</span>
+        </a>
+        <button type="button" class="btn-close-modal" onclick="closeAddCustomerModal()">&times;</button>
+      </div>
     </div>
 
     <form id="addCustForm" onsubmit="submitNewCustomer(event)">
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="newCustName">Customer Full Name</label>
-          <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi">
-        </div>
+      <div class="modal-body-scroll" style="max-height:75vh; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px;">
+        
+        <!-- SECTION 1: IDENTITY & CONTACT -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Subscriber Profile &amp; Contact</span>
+          </div>
 
-        <div class="form-group">
-          <label for="newCustPhone">Primary Phone Number</label>
-          <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
-        </div>
-
-        <div class="form-group">
-          <label for="newCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Customer Note / Room # / Flat</span>
-            <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
-          </label>
-          <input type="text" class="form-input" id="newCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
-        </div>
-
-        <div class="form-group">
-          <label for="addCustReseller">Assigned Reseller / Partner Shop (Optional)</label>
-          <select class="form-select" id="addCustReseller">
-            <option value="">🏢 Direct ISP (No Reseller)</option>
-            {% for r in resellers %}
-              <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }} ({{ r.commission_rate }}% discount)</option>
-            {% endfor %}
-          </select>
-          <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Attributes subscriber to a partner shop/broker for dedicated POS collection.</span>
-        </div>
-
-        <div class="form-group">
-          <label>Billing Type</label>
-          <div class="billing-type-grid">
-            <div class="type-option-card prepaid-selected selected" id="addTypePre" onclick="selectNewCustType('prepaid')">
-              <div class="title">Prepaid</div>
-              <div class="desc">Advance 30-day recharge</div>
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="newCustName">Customer Full Name <span style="color:#ef4444;">*</span></label>
+              <input type="text" class="form-input" id="newCustName" required placeholder="e.g. Tariq Al-Otaibi">
             </div>
-            <div class="type-option-card" id="addTypePost" onclick="selectNewCustType('postpaid')">
-              <div class="title">Postpaid</div>
-              <div class="desc">Recurring monthly cycle</div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="newCustPhone">Primary Phone Number <span style="color:#ef4444;">*</span></label>
+              <input type="text" class="form-input font-mono" id="newCustPhone" required placeholder="e.g. 0591234567">
             </div>
           </div>
-          <input type="hidden" id="addCustType" value="prepaid">
-        </div>
 
-        <div class="form-group">
-          <label for="addCustPkg">Speed Package</label>
-          <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
-            {% for pkg in packages %}
-            <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
-            {% endfor %}
-          </select>
-        </div>
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="newCustNotes" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Customer Note / Room # / Flat</span>
+                <span style="font-size:11px; color:var(--text-dim); font-weight:normal;">Optional</span>
+              </label>
+              <input type="text" class="form-input" id="newCustNotes" placeholder="e.g. Room 302, Flat 14, Building B">
+            </div>
 
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="addCustSpeed" style="margin-bottom:0;">Speed that Customer Will Get (Speed Limit)</label>
-            <span style="font-size:11px; color:var(--text-dim);">Live MikroTik Queue</span>
-          </div>
-          <div class="preset-wrap">
-            <input type="text" class="form-input font-mono" id="addCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('5M/5M')">5M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('10M/10M')">10M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('20M/20M')">20M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('30M/30M')">30M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('50M/50M')">50M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('100M/100M')">100M</button>
-              <button type="button" class="btn-preset" onclick="setAddCustSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustReseller">Assigned Reseller / Partner Shop</label>
+              <select class="form-select" id="addCustReseller">
+                <option value="">🏢 Direct ISP (No Reseller)</option>
+                {% for r in resellers %}
+                  <option value="{{ r.id }}">🏪 {{ r.shop_name or r.username }} ({{ r.commission_rate }}% discount)</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
-          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter upload/download speed (e.g. 15M/15M) or pick Unlimited.</p>
         </div>
 
-        <div class="modal-grid-2">
-          <div class="form-group">
-            <label for="addCustFee">Monthly Fee (SAR)</label>
-            <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()">
+        <!-- SECTION 2: NETWORK PROTOCOL & PPPOE -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+            <span>Network Access Mode &amp; PPPoE Account</span>
           </div>
-          <div class="form-group">
-            <label for="addCustDueDate">Payment Due Date (Manual)</label>
-            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
-          </div>
-        </div>
 
-        <div class="modal-grid-2">
-          <div class="form-group">
-            <label for="addCustJoinDate">Customer Joining Date</label>
-            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustJoinDate" placeholder="YYYY-MM-DD" autocomplete="off">
-            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Original date joined ISP (auto-registered, editable)</span>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Connection Protocol</label>
+            <div class="billing-type-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="type-option-card selected" id="addConnHotspot" onclick="selectAddCustConnType('hotspot')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-wifi" style="color:#38bdf8;"></i> Hotspot</div>
+                <div class="desc">MAC Bypass</div>
+              </div>
+              <div class="type-option-card" id="addConnPppoe" onclick="selectAddCustConnType('pppoe')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-network-wired" style="color:#a855f7;"></i> PPPoE</div>
+                <div class="desc">Router Dial-in</div>
+              </div>
+              <div class="type-option-card" id="addConnBoth" onclick="selectAddCustConnType('both')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-layer-group" style="color:#10b981;"></i> Hybrid</div>
+                <div class="desc">Dual Mode</div>
+              </div>
+            </div>
+            <input type="hidden" id="addCustConnType" value="hotspot">
           </div>
-          <div class="form-group">
-            <label for="addCustBillingStart">Billing Cycle Start Date</label>
-            <input type="text" class="form-input font-mono cyber-datepicker" id="addCustBillingStart" placeholder="YYYY-MM-DD" autocomplete="off">
-            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Calculation origin for billing ledger &amp; cycle</span>
-          </div>
-        </div>
 
-        <div class="form-group">
-          <label for="addCustInitialPay">Initial / Advance Payment Collected (SAR) (Optional)</label>
-          <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateAddCustAdvance()">
-          <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 30 SAR fee) goes to Credit Balance!</span>
-        </div>
-
-        <!-- Live Advance Preview for Add Customer -->
-        <div id="addCustAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px; margin-bottom:12px;">
-          <div style="font-size:12px; color:#e2e8f0; line-height:1.4;" id="addCustAdvanceText"></div>
-          <div style="margin-top:8px; display:flex; gap:14px; font-size:11.5px;">
-            <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
-              <input type="radio" name="add_cust_adv_mode" value="credit" checked onchange="calculateAddCustAdvance()">
-              <span>Save surplus as Account Credit</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
-              <input type="radio" name="add_cust_adv_mode" value="months" onchange="calculateAddCustAdvance()">
-              <span>Extend Multiple Months</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="addCustMaxDevices" style="margin-bottom:0;">Allowed Devices (Max Device Limit)</label>
-            <span style="font-size:11px; color:var(--text-dim);">Simultaneous logins</span>
-          </div>
-          <div class="preset-wrap">
-            <input type="number" min="1" max="100" inputmode="numeric" class="form-input font-mono" id="addCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
-            <div style="display:flex; gap:4px; flex-wrap:wrap;">
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(1)">1</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(2)">2</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(3)">3</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(5)">5</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(8)">8</button>
-              <button type="button" class="btn-preset" onclick="setAddCustDevLimit(10)">10</button>
+          <div id="addCustPppoeBlock" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:10px; padding:12px;">
+            <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              <i class="fas fa-key"></i>
+              <span>PPPoE Secret Configuration</span>
+            </div>
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="addCustPppoeUser" style="font-size:12px;">PPPoE Username</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoeUser" placeholder="e.g. phone or username">
+              </div>
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="addCustPppoePass" style="font-size:12px;">PPPoE Password</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoePass" value="cyber123" placeholder="cyber123">
+              </div>
+            </div>
+            <div class="modal-grid-2" style="margin-top:4px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustPppoeProfile" style="font-size:12px;">PPPoE Profile</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoeProfile" value="pppoe-profile-ether4" placeholder="pppoe-profile-ether4">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustPppoeIp" style="font-size:12px;">Fixed Remote IP (Optional)</label>
+                <input type="text" class="form-input font-mono" id="addCustPppoeIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              </div>
             </div>
           </div>
-          <p style="font-size:11px; color:var(--text-dim); margin-top:4px;">Enter manually or pick a preset for allowed concurrent devices.</p>
         </div>
 
-        <div class="form-group">
-          <label for="addCustMac">Initial Device MAC Address (Optional)</label>
-          <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74 (Auto-bypasses on MikroTik)">
-          <div id="addCustMacFeedback" style="display:none; margin-top:5px; font-size:11.5px; font-weight:600;"></div>
+        <!-- SECTION 3: PLAN & SPEED QUEUE -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span>Internet Plan &amp; MikroTik Speed Queue</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustPkg">Speed Package</label>
+            <select class="form-select" id="addCustPkg" onchange="onAddPkgChange()">
+              {% for pkg in packages %}
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="addCustSpeed" style="margin-bottom:0;">Speed Limit (Upload / Download)</label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:700;">Live MikroTik Queue</span>
+            </div>
+            <div class="preset-wrap">
+              <input type="text" class="form-input font-mono" id="addCustSpeed" placeholder="e.g. 20M/20M or 50M/50M or Unlimited" style="font-weight:700; color:#38bdf8;">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('5M/5M')">5M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('10M/10M')">10M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('20M/20M')">20M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('30M/30M')">30M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('50M/50M')">50M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('100M/100M')">100M</button>
+                <button type="button" class="btn-preset" onclick="setAddCustSpeed('Unlimited')" style="color:#fbbf24;">⚡ Unlimited</button>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <!-- SECTION 4: BILLING TERMS & SUSPEND DATE -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            <span>Billing Model &amp; Renewal Terms</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Billing Model</label>
+            <div class="billing-type-grid">
+              <div class="type-option-card prepaid-selected selected" id="addTypePre" onclick="selectNewCustType('prepaid')">
+                <div class="title">Prepaid</div>
+                <div class="desc">Advance recharge (Standard)</div>
+              </div>
+              <div class="type-option-card" id="addTypePost" onclick="selectNewCustType('postpaid')">
+                <div class="title">Postpaid</div>
+                <div class="desc">Recurring monthly cycle</div>
+              </div>
+            </div>
+            <input type="hidden" id="addCustType" value="prepaid">
+          </div>
+
+          <div class="modal-grid-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="addCustFee">Monthly Fee (SAR) <span style="color:#ef4444;">*</span></label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustFee" required value="75.00" oninput="calculateAddCustAdvance()" style="color:#38bdf8; font-weight:700;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="addCustDueDate" style="margin-bottom:0;">Service Suspend Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeAddSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto Cutoff</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="addCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+            </div>
+          </div>
+
+          <!-- Quick Suspend Presets -->
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Date Presets:</span>
+              <button type="button" class="btn-preset" onclick="applyAddPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                📦 As per Package (<span id="btnModalAddPkgDaysText">30d</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftAddDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setAddEndOfMonth()">End of Month</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setAddSpecificDay(30)">Day 30</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustInitialPay">Initial / Advance Payment Collected (SAR) (Optional)</label>
+            <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="addCustInitialPay" value="0.00" placeholder="e.g. 100.00" oninput="calculateAddCustAdvance()" style="color:#34d399; font-weight:700;">
+            <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Enter 0.00 if paying later. Any excess (e.g. 100 SAR for 75 SAR fee) is recorded to Credit Wallet!</span>
+          </div>
+
+          <!-- Live Advance Preview -->
+          <div id="addCustAdvancePreview" style="display:none; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:10px;">
+            <div style="font-size:12px; color:#e2e8f0; line-height:1.4;" id="addCustAdvanceText"></div>
+            <div style="margin-top:8px; display:flex; gap:14px; font-size:11.5px;">
+              <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
+                <input type="radio" name="add_cust_adv_mode" value="credit" checked onchange="calculateAddCustAdvance()">
+                <span>Save surplus as Account Credit</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:5px; color:#94a3b8; cursor:pointer;">
+                <input type="radio" name="add_cust_adv_mode" value="months" onchange="calculateAddCustAdvance()">
+                <span>Extend Multiple Months</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: DEVICE QUOTAS & MAC ADDRESS -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z M10 4h4v2h-4z"/></svg>
+            <span>Device Concurrency Quota &amp; Hardware MAC</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustMaxDevices" style="margin-bottom:6px;">Max Simultaneous Connected Devices</label>
+            <div class="preset-wrap">
+              <input type="number" min="1" max="100" inputmode="numeric" class="form-input font-mono" id="addCustMaxDevices" value="1" required style="width:100px; font-weight:700; color:#38bdf8;">
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(1)">1 Device</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(2)">2 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(3)">3 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(5)">5 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(8)">8 Devices</button>
+                <button type="button" class="btn-preset" onclick="setAddCustDevLimit(10)">10 Devices</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="addCustMac">Initial Hardware Device MAC Address (Optional)</label>
+            <input type="text" class="form-input font-mono" id="addCustMac" placeholder="e.g. 3C:38:24:0F:69:74" oninput="handleAddModalMacInput(this)">
+            <div id="addCustMacFeedback" style="display:none; margin-top:5px; font-size:11.5px; font-weight:600;"></div>
+          </div>
+        </div>
+
+        <!-- SECTION 6: ADVANCED DATES (COLLAPSIBLE) -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleAddAdvancedDrawer()">
+            <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+              <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+              <span>Advanced Registration Dates</span>
+            </div>
+            <span style="font-size:11px; color:#38bdf8;" id="addDrawerIndicator">Click to View / Edit ▾</span>
+          </div>
+
+          <div id="addAdvancedDrawerBody" style="display:none; margin-top:6px;">
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustJoinDate">Customer Joining Date</label>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustJoinDate" placeholder="YYYY-MM-DD" autocomplete="off">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Defaults to registration date</span>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="addCustBillingStart">Billing Cycle Start Date</label>
+                <input type="text" class="form-input font-mono cyber-datepicker" id="addCustBillingStart" placeholder="YYYY-MM-DD" autocomplete="off">
+                <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Origin anchor for monthly ledger</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="modal-footer">
         <button type="button" class="btn-cancel" onclick="closeAddCustomerModal()">Cancel</button>
-        <button type="submit" class="btn-confirm-approve" id="btnAddCustSubmit">
-          <span>Create &amp; Authorize Customer</span>
+        <button type="submit" class="btn-confirm-approve" id="btnAddCustSubmit" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%);">
+          <span>🚀 Create &amp; Authorize Customer</span>
         </button>
       </div>
     </form>
@@ -2153,7 +2661,7 @@
       <div class="modal-body-scroll" style="max-height:75vh; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px;">
         
         <!-- SECTION 1: PROFILE & CONTACT -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             <span>Subscriber Profile</span>
@@ -2177,8 +2685,61 @@
           </div>
         </div>
 
-        <!-- SECTION 2: INTERNET PLAN & QUEUE SPEED -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <!-- SECTION 2: CONNECTION MODE & PPPOE PROVISIONING -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+          <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 1v2h16V1H4zm0 4h16v6H4V5zm0 8h16v6H4v-6zm0 8h16v2H4v-2zM6 7h2v2H6V7zm0 8h2v2H6v-2z"/></svg>
+            <span>Network Access Mode &amp; PPPoE Account</span>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Connection Protocol</label>
+            <div class="billing-type-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="type-option-card selected" id="editConnHotspot" onclick="selectEditCustConnType('hotspot')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-wifi" style="color:#38bdf8;"></i> Hotspot</div>
+                <div class="desc">MAC Bypass</div>
+              </div>
+              <div class="type-option-card" id="editConnPppoe" onclick="selectEditCustConnType('pppoe')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-network-wired" style="color:#a855f7;"></i> PPPoE</div>
+                <div class="desc">Router Dial-in</div>
+              </div>
+              <div class="type-option-card" id="editConnBoth" onclick="selectEditCustConnType('both')">
+                <div class="title" style="display:flex; align-items:center; gap:5px;"><i class="fas fa-layer-group" style="color:#10b981;"></i> Hybrid</div>
+                <div class="desc">Dual Mode</div>
+              </div>
+            </div>
+            <input type="hidden" id="editCustConnType" value="hotspot">
+          </div>
+
+          <div id="editCustPppoeBlock" style="display:none; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.2); border-radius:10px; padding:12px;">
+            <div style="font-size:11px; font-weight:700; color:#c084fc; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">
+              <span>🔑 MikroTik PPPoE Secret Credentials:</span>
+            </div>
+            <div class="modal-grid-2">
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="editCustPppoeUser" style="font-size:12px;">PPPoE Username</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoeUser" placeholder="e.g. phone or username">
+              </div>
+              <div class="form-group" style="margin-bottom:6px;">
+                <label for="editCustPppoePass" style="font-size:12px;">PPPoE Password</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoePass" placeholder="cyber123">
+              </div>
+            </div>
+            <div class="modal-grid-2" style="margin-top:4px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="editCustPppoeProfile" style="font-size:12px;">PPPoE Profile</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoeProfile" placeholder="pppoe-profile-ether4">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="editCustPppoeIp" style="font-size:12px;">Fixed Remote IP (Optional)</label>
+                <input type="text" class="form-input font-mono" id="editCustPppoeIp" placeholder="e.g. 10.45.10.254 (empty for pool)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: INTERNET PLAN & QUEUE SPEED -->
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             <span>Plan &amp; MikroTik Speed Queue</span>
@@ -2203,7 +2764,7 @@
             <label for="editCustPkg">Speed Package</label>
             <select class="form-select" id="editCustPkg" onchange="onEditPkgChange()">
               {% for pkg in packages %}
-              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}">{{ pkg.name }} ({{ pkg.default_price }} SAR)</option>
+              <option value="{{ pkg.name }}" data-price="{{ pkg.default_price }}" data-rate="{{ pkg.rate_limit }}" data-days="{{ pkg.validity_days or 30 }}">{{ pkg.name }} ({{ pkg.default_price }} SAR &bull; {{ pkg.validity_days or 30 }}d)</option>
               {% endfor %}
             </select>
           </div>
@@ -2229,30 +2790,73 @@
         </div>
 
         <!-- SECTION 3: RATES & CYCLE -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
             <span>Billing Terms &amp; Renewal</span>
           </div>
 
-          <div class="modal-grid-3">
+          <div class="modal-grid-2" style="gap:10px;">
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustFee">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustDueDate">Payment Due Date</label>
-              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustCredit">Credit Balance (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
             </div>
           </div>
+
+          <div class="modal-grid-2" style="gap:10px; margin-top:10px; padding:10px; background:rgba(56,189,248,0.03); border:1px solid rgba(56,189,248,0.15); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustPayDate" style="margin-bottom:0;">📅 Payday <span style="color:#38bdf8;">*</span></label>
+                <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Follow-up Target</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustPayDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Expected pay day. Reminders trigger 3-5d before. <strong>Internet remains active</strong>.</span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">✂️ Hard Cutoff Date <span style="color:#ef4444;">*</span></label>
+                <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Internet cuts off on MikroTik on this day if unpaid.</span>
+            </div>
+          </div>
+
+          <!-- Quick Suspend Presets for Modal -->
+          <div style="background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase;">Quick Change Suspend Date:</span>
+              <button type="button" class="btn-preset" onclick="applyEditPkgValidity()" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3); font-weight:700;">
+                📦 As per Package (<span id="btnEditPkgDaysText">30d</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(7)">+7 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(15)">+15 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(30)">+30 Days</button>
+              <button type="button" class="btn-preset" onclick="shiftEditDueDate(60)">+60 Days</button>
+              <button type="button" class="btn-preset" onclick="setEditEndOfMonth()">End of Month</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:4px; padding-top:6px; border-top:1px dashed rgba(255,255,255,0.07);">
+              <span style="font-size:11px; color:var(--text-dim);">Set Specific Day:</span>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(1)">Day 1</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(5)">Day 5</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(10)">Day 10</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(15)">Day 15</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(20)">Day 20</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(25)">Day 25</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(28)">Day 28</button>
+              <button type="button" class="btn-preset" onclick="setEditSpecificDay(30)">Day 30</button>
+            </div>
+          </div>
         </div>
 
         <!-- SECTION 4: DEVICE QUOTA -->
-        <div style="background:#090e1a; border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.06)); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:12px;">
           <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px; height:13px; fill:currentColor;" viewBox="0 0 24 24"><path d="M4 6h16v10H4z M20 18H4v2h16v-2z M10 4h4v2h-4z"/></svg>
             <span>Device Concurrency Quota</span>
@@ -2289,37 +2893,133 @@
 <!-- =========================================================
      COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder)
      ========================================================= -->
-<div class="modal-overlay" id="collectModal">
-  <div class="modal-box modal-box-lg" style="max-width: 680px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-subtle, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
-    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center;">
-      <h5 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
-        <i class="fas fa-money-bill-wave" style="color:#10b981;"></i> Collect Payment
-      </h5>
-      <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
-    </div>
-    <div class="modal-body-custom" style="padding: 20px;">
-      <form id="collectForm" onsubmit="event.preventDefault(); submitCollectForm();">
-        <input type="hidden" id="coll_cid">
-        <div id="coll_name" style="margin-bottom: 14px; font-weight: 700; font-size: 14px; color: #38bdf8;"></div>
-        <div id="unpaidList"></div>
-        <hr class="divider" style="border:none; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08)); margin: 16px 0 14px 0;">
-        <div class="alert alert-info" style="margin-bottom: 16px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 10px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <i class="fas fa-calculator" style="color:#38bdf8;"></i>
-            <span style="font-size:13.5px; color:var(--text-main, #ffffff);">Total to collect: <strong class="mono" id="totalAmt" style="font-size:18px; color:#34d399; font-weight:800;">0.00</strong> SAR</span>
-          </div>
-          <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:12px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:3px 8px; border-radius:6px;">
-            ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
-          </div>
-          <div id="collPendingNote" style="display:none; color:#38bdf8; font-size:12px; font-weight:700; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:3px 8px; border-radius:6px;">
-            ⏱ <span id="collPendingVal">0.00</span> SAR Remains Pending
-          </div>
+<div class="modal-overlay" id="collectModal" style="z-index: 10005 !important;">
+  <div class="modal-box" style="max-width: 540px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-accent, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.65); overflow:hidden;">
+    
+    <!-- Modal Header -->
+    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(15,23,42,0.6) 100%);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:#34d399; font-size:16px;">
+          <i class="fas fa-money-bill-wave"></i>
         </div>
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-          <button type="button" class="btn-action-sm" onclick="closeCollectModal()" style="padding:8px 16px; font-size:12.5px;">Cancel</button>
-          <button type="submit" class="btn-action-sm" id="btnRecordPayment" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 20px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer;">
-            <i class="fas fa-check"></i> Record Payment
-          </button>
+        <div>
+          <h5 style="margin:0; font-size:15px; font-weight:800; color:var(--text-main, #ffffff);">Collect Payment</h5>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">Fast subscriber collection &amp; auto-settlement</div>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all 0.15s ease;">&times;</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body-custom" style="padding: 20px;">
+      <form id="collectForm" novalidate onsubmit="event.preventDefault(); submitSmartCollectForm();">
+        <input type="hidden" id="coll_cid">
+
+        <!-- Loading Spinner State -->
+        <div id="collLoadingState" style="display:none; padding:35px 20px; text-align:center; color:var(--text-dim);">
+          <i class="fas fa-spinner fa-spin" style="font-size:26px; color:#38bdf8; margin-bottom:12px;"></i>
+          <div style="font-size:13.5px; font-weight:600; color:var(--text-main, #ffffff);">Loading subscriber wallet details…</div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="collContentArea">
+          <!-- Customer Profile Summary Header -->
+          <div class="coll-cust-summary-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-dim); letter-spacing:0.5px;">Subscriber</div>
+              <div id="collCustName" style="font-size:16px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12px; color:var(--text-dim); flex-wrap:wrap;">
+                <span id="collCustPhone" class="mono" style="color:#93c5fd;">—</span>
+                <span id="collCustRoom" style="background:rgba(56,189,248,0.12); color:#38bdf8; padding:1px 6px; border-radius:4px; font-weight:600; display:none;">—</span>
+                <span id="collCustPkg" style="color:var(--text-dim);">—</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span id="collCustStatusBadge" class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">ACTIVE</span>
+              <div id="collCustExpiryInfo" style="font-size:11px; color:var(--text-dim); margin-top:5px;">—</div>
+            </div>
+          </div>
+
+          <!-- Prominent Wallet Status Card -->
+          <div id="collWalletStatusCard" style="border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">
+            <div>
+              <div id="collWalletTitle" style="font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; color:#f87171;">WALLET STATUS: OVERDUE DEBT</div>
+              <div id="collWalletAmount" class="mono" style="font-size:24px; font-weight:900; color:#ef4444; margin-top:2px;">-30.00 SAR</div>
+              <div id="collWalletSubtext" style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">1 cycle unpaid</div>
+            </div>
+            <div id="collWalletIcon" style="width:42px; height:42px; border-radius:10px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; font-size:18px; color:#ef4444;">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+
+          <!-- Single Amount Input Box -->
+          <div style="margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="collAmount" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin:0;">
+                Collection Amount (SAR) <span style="color:#ef4444;">*</span>
+              </label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:600;">Authority Input Only</span>
+            </div>
+            <div style="position:relative;">
+              <input type="number" id="collAmount" name="amount" step="0.01" min="0.01" required class="form-control mono" style="width:100%; height:46px; font-size:22px; font-weight:900; color:#34d399; background:rgba(9,14,26,0.9); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:6px 14px 6px 50px; text-align:right;" placeholder="0.00" oninput="updateLiveCalculationPreview()">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:800; color:var(--text-dim); pointer-events:none;">SAR</span>
+            </div>
+
+            <!-- Quick 1-Click Preset Buttons -->
+            <div class="coll-presets-bar" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+              <button type="button" id="btnPresetExact" class="btn-preset-chip" onclick="applySmartPreset('exact')" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;">Exact Due</button>
+              <button type="button" id="btnPreset1Mo" class="btn-preset-chip" onclick="applySmartPreset(30)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">30 SAR (1 Mo)</button>
+              <button type="button" id="btnPreset2Mo" class="btn-preset-chip" onclick="applySmartPreset(60)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">60 SAR (2 Mo)</button>
+              <button type="button" id="btnPreset3Mo" class="btn-preset-chip" onclick="applySmartPreset(90)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">90 SAR (3 Mo)</button>
+              <button type="button" id="btnPresetClear" class="btn-preset-chip" onclick="applySmartPreset('clear')" style="background:none; border:none; color:var(--text-dim); font-size:11px; cursor:pointer; padding:4px 6px;">Clear</button>
+            </div>
+          </div>
+
+          <!-- Live Auto-Calculation Preview Alert -->
+          <div id="collLiveCalcPreview" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-magic" style="color:#38bdf8; font-size:14px;"></i>
+            <div id="collLiveCalcText" style="flex:1;">System will calculate cycle allocation automatically upon payment.</div>
+          </div>
+
+          <!-- Payment Method & Notes Grid -->
+          <div class="coll-form-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <label for="collPaymentType" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Payment Method</label>
+              <select id="collPaymentType" class="form-control" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 8px; color:var(--text-main, #ffffff);">
+                <option value="cash">💵 Cash Payment</option>
+                <option value="stc_pay">📱 STC Pay / Barq</option>
+                <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
+                <option value="pos_card">💳 POS / Card</option>
+                <option value="other">📝 Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="collNotes" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Notes (Optional)</label>
+              <input type="text" id="collNotes" placeholder="e.g. Paid in full / STC Ref" class="form-control" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 10px; color:var(--text-main, #ffffff);">
+            </div>
+          </div>
+
+          <!-- WhatsApp Instant Receipt Dispatch Toggle -->
+          <div class="coll-wa-card" style="padding:10px 14px; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.25); border-radius:8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <label for="collSendWa" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:12px; font-weight:700; color:#4ade80;">
+              <input type="checkbox" id="collSendWa" checked style="accent-color:#25d366; width:16px; height:16px; cursor:pointer;">
+              <span>📱 Send WhatsApp Receipt to Subscriber</span>
+            </label>
+            <span style="font-size:11px; color:#94a3b8;" class="mono">Instant Push</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="coll-footer-row" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08));">
+            <div class="coll-collector-text" style="font-size:11.5px; color:var(--text-dim);">
+              Collector: <strong id="collCollectorLabel" style="color:var(--text-main, #ffffff);">{{ (request.state.user.full_name or request.state.user.username) if (request.state and request.state.user) else 'Shajjad Khan' }}</strong>
+            </div>
+            <div class="coll-footer-btns" style="display:flex; gap:10px;">
+              <button type="button" class="btn-action-sm" onclick="closeCollectModal()" style="padding:9px 18px; font-size:12.5px; background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-dim); border-radius:8px; cursor:pointer;">Cancel</button>
+              <button type="submit" id="btnRecordPayment" class="btn-action-sm" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 22px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-check-circle"></i> Confirm &amp; Record Payment
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -2526,6 +3226,7 @@
 
       let matchesFilter = true;
       if (activeFilter === 'online') matchesFilter = isOnline;
+      else if (activeFilter === 'sharing') matchesFilter = (el.getAttribute('data-sharing') === '1');
       else if (activeFilter === 'prepaid') matchesFilter = (type === 'prepaid');
       else if (activeFilter === 'postpaid') matchesFilter = (type === 'postpaid');
       else if (activeFilter === 'suspended') matchesFilter = (status === 'suspended');
@@ -2578,6 +3279,8 @@
     } else if (f === 'online') {
       const b = document.getElementById('filterOnline'); if (b) b.classList.add('active');
       const sc = document.getElementById('cardFilterOnline'); if (sc) sc.classList.add('active-card-filter');
+    } else if (f === 'sharing') {
+      const b = document.getElementById('filterSharing'); if (b) b.classList.add('active');
     } else if (f === 'active') {
       const b = document.getElementById('filterActive'); if (b) b.classList.add('active');
       const sc = document.getElementById('cardFilterActive'); if (sc) sc.classList.add('active-card-filter');
@@ -2901,27 +3604,54 @@
         `;
       }
 
-      // 2. Month-by-Month Cycle Settlement Table
+      // 2. Simplified Wallet Status & Quick Action Card
+      const bal = parseFloat(b.credit_balance || 0.0);
+      const totalDue = parseFloat(b.total_due || 0.0);
+      const isOwed = (totalDue > 0.01 || bal < -0.01);
+      const isCredit = (bal > 0.01);
+      const owedAmt = totalDue > 0.01 ? totalDue : Math.abs(bal);
+
       html += `
-        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; overflow:hidden;">
-          <div style="padding:12px 14px; background:var(--bg-card-header, #0d1527); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <div style="font-size:12.5px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:6px;">
-              <svg style="width:15px; height:15px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-              <span>Cycle Settlement &amp; Waiver Breakdown</span>
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; overflow:hidden; margin-bottom:16px;">
+          <!-- Wallet Status Banner -->
+          <div style="padding:16px; border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; ${isOwed ? 'background:rgba(239,68,68,0.08);' : (isCredit ? 'background:rgba(16,185,129,0.08);' : 'background:rgba(56,189,248,0.08);')}">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; ${isOwed ? 'color:#f87171;' : (isCredit ? 'color:#34d399;' : 'color:#38bdf8;')}">
+                ${isOwed ? 'WALLET STATUS: OVERDUE DEBT' : (isCredit ? 'WALLET STATUS: CREDIT SURPLUS' : 'WALLET STATUS: SETTLED & PAID')}
+              </div>
+              <div class="font-mono" style="font-size:22px; font-weight:900; margin-top:2px; ${isOwed ? 'color:#ef4444;' : (isCredit ? 'color:#10b981;' : 'color:#38bdf8;')}">
+                ${isOwed ? '-' + owedAmt.toFixed(2) + ' SAR' : (isCredit ? '+' + bal.toFixed(2) + ' SAR' : '0.00 SAR')}
+              </div>
+              <div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">
+                ${isOwed ? `${unpaid.length} unpaid cycle(s) pending · Ready for smart allocation` : (isCredit ? 'Advance prepaid credit stored in subscriber wallet' : 'All subscriptions up to date')}
+              </div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button type="button" class="btn-action-sm" onclick="openPromiseModal(${custId}, '${b.customer_name}', ${b.monthly_fee})" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3); font-size:11px; padding:4px 10px;">
-                🤝 Extend Grace Period
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn-approve" onclick="openCollectModal(${custId}, '${(b.customer_name || '').replace(/'/g, "\\'")}')" style="padding:10px 20px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-money-bill-wave"></i> ⚡ Collect Payment
+              </button>
+              <button type="button" class="btn-action-sm" onclick="openPromiseModal(${custId}, '${(b.customer_name || '').replace(/'/g, "\\'")}', ${b.monthly_fee})" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3); font-size:12px; padding:8px 14px; font-weight:700;">
+                🤝 Extend Grace
               </button>
             </div>
           </div>
+
+          <!-- Billing Cycles Transparent Statement Breakdown -->
+          <div style="padding:12px 14px; background:var(--bg-card-header, #0d1527); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.06)); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:12px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:6px;">
+              <svg style="width:14px; height:14px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              <span>Subscription &amp; Billing Cycles Ledger</span>
+            </div>
+            <span style="font-size:11px; color:var(--text-dim);">${b.package_name || 'Standard Package'} · ${parseFloat(b.monthly_fee || 30).toFixed(2)} SAR/mo</span>
+          </div>
       `;
 
-      if (unpaid.length === 0) {
+      const allCycles = (b.cycles && b.cycles.length > 0) ? b.cycles : unpaid;
+      if (!allCycles || allCycles.length === 0) {
         html += `
           <div style="padding:24px; text-align:center;">
             <div style="color:#34d399; font-size:14px; font-weight:800; margin-bottom:4px;">✅ All Billing Cycles Settled!</div>
-            <div style="color:var(--text-dim); font-size:12px;">This customer has zero outstanding past dues. Service is active.</div>
+            <div style="color:var(--text-dim); font-size:12px;">This subscriber has zero outstanding past dues. Service is active.</div>
           </div>
         `;
       } else {
@@ -2930,39 +3660,35 @@
             <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
               <thead style="background:var(--bg-card-header, #090e1a); color:var(--text-dim); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.06));">
                 <tr>
-                  <th style="padding:8px 12px; width:75px; text-align:center;">✓ Settle</th>
-                  <th style="padding:8px 12px;">Cycle Period</th>
+                  <th style="padding:8px 14px;">Cycle Period</th>
                   <th style="padding:8px 12px;">Expected Fee</th>
-                  <th style="padding:8px 12px;">Paid</th>
-                  <th style="padding:8px 12px;">Due</th>
-                  <th style="padding:8px 12px; width:140px;">Amount to Collect</th>
+                  <th style="padding:8px 12px;">Paid Amount</th>
+                  <th style="padding:8px 12px;">Outstanding Due</th>
+                  <th style="padding:8px 14px; text-align:right;">Cycle Status</th>
                 </tr>
               </thead>
-              <tbody id="settlementTbody">
+              <tbody>
         `;
 
-        unpaid.forEach((u, idx) => {
+        allCycles.forEach((u) => {
+          const isSettled = u.is_settled || (u.rem_due <= 0.01);
           const isGrace = u.is_grace;
-          const cycleLabel = isGrace ? `${u.label} <span class="badge" style="background:#f59e0b; color:#000; font-size:9.5px; padding:1px 5px; border-radius:4px; font-weight:700;">Grace (${u.grace_days}d)</span>` : u.label;
           html += `
             <tr style="border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.04));">
-              <td style="padding:8px 12px; text-align:center;">
-                <input type="checkbox" class="settle-cb" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" checked onchange="updateSettlementTotals()" title="Check to mark this month settled (solves cycle, waives remainder)">
-              </td>
-              <td style="padding:8px 12px; font-weight:700; color:var(--text-main, #ffffff);">
-                ${cycleLabel}
+              <td style="padding:8px 14px; font-weight:700; color:var(--text-main, #ffffff);">
+                ${u.label || u.month}
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono); color:var(--text-dim);">
-                ${u.expected_fee.toFixed(2)} SAR
+                ${parseFloat(u.expected_fee || 0).toFixed(2)} SAR
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono); color:#94a3b8;">
-                ${u.paid.toFixed(2)} SAR
+                ${parseFloat(u.paid || 0).toFixed(2)} SAR
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono);">
-                <span class="badge-status stopped" style="font-size:11px; font-weight:700;">${u.rem_due.toFixed(2)} SAR</span>
+                ${isSettled ? '<span style="color:#34d399; font-weight:700;">0.00 SAR</span>' : `<span class="badge-status stopped" style="font-size:11px; font-weight:700;">${parseFloat(u.rem_due || 0).toFixed(2)} SAR</span>`}
               </td>
-              <td style="padding:8px 12px;">
-                <input type="number" step="0.5" min="0" inputmode="decimal" class="form-input font-mono settle-amt-input" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" value="${u.rem_due.toFixed(2)}" style="padding:6px 10px; font-size:12.5px; width:110px; font-weight:700; color:#38bdf8;" oninput="updateSettlementTotals()">
+              <td style="padding:8px 14px; text-align:right;">
+                ${isSettled ? '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">✓ Settled</span>' : (isGrace ? `<span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">Grace (${u.grace_days}d)</span>` : '<span class="badge" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">● Unpaid</span>')}
               </td>
             </tr>
           `;
@@ -2972,26 +3698,8 @@
               </tbody>
             </table>
           </div>
-          <div style="padding:12px 16px; background:#0d1527; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
-              <div>
-                <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; display:block;">Total to Collect:</span>
-                <strong class="font-mono text-emerald" style="font-size:18px;" id="settleTotalAmt">0.00 SAR</strong>
-              </div>
-              <div id="settleWaivedWrap" style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
-                <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; display:block;">Waived Discount:</span>
-                <strong class="font-mono" style="font-size:16px; color:#fbbf24;" id="settleWaivedAmt">0.00 SAR</strong>
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button type="button" class="btn-approve" onclick="submitCycleSettlement()" id="btnSubmitSettlement" style="padding:9px 18px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow:0 4px 14px rgba(16,185,129,0.35);">
-                ✓ Record Settlement &amp; Solve Month(s)
-              </button>
-            </div>
-          </div>
         `;
       }
-
       html += `</div>`;
       eligBox.innerHTML = html;
       updateSettlementTotals();
@@ -3144,6 +3852,35 @@
           resField.innerHTML = `<span style="color:#f472b6;">🏪 ${c.reseller_shop_name || c.reseller_username}</span>`;
         } else {
           resField.innerHTML = `<span style="color:#94a3b8; font-weight:normal;">🏢 Direct ISP</span>`;
+        }
+      }
+
+      const connType = (c.connection_type || 'hotspot').toLowerCase();
+      const profConnTypeEl = document.getElementById('profConnType');
+      if (profConnTypeEl) {
+        if (connType === 'pppoe') {
+          profConnTypeEl.innerHTML = '<span class="badge" style="background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-network-wired"></i> PPPoE</span>';
+        } else if (connType === 'both') {
+          profConnTypeEl.innerHTML = '<span class="badge" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-layer-group"></i> HYBRID</span>';
+        } else {
+          profConnTypeEl.innerHTML = '<span class="badge" style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;"><i class="fas fa-wifi"></i> HOTSPOT</span>';
+        }
+      }
+
+      const pppoeCard = document.getElementById('profPppoeCard');
+      if (pppoeCard) {
+        if (connType === 'pppoe' || connType === 'both' || c.pppoe_username) {
+          pppoeCard.style.display = 'block';
+          const uEl = document.getElementById('profPppoeUser');
+          const pEl = document.getElementById('profPppoePass');
+          const prEl = document.getElementById('profPppoeProfile');
+          const ipEl = document.getElementById('profPppoeIp');
+          if (uEl) uEl.textContent = c.pppoe_username || '—';
+          if (pEl) pEl.textContent = c.pppoe_password || '—';
+          if (prEl) prEl.textContent = c.pppoe_profile || 'Default';
+          if (ipEl) ipEl.textContent = c.pppoe_remote_ip || 'Dynamic Pool';
+        } else {
+          pppoeCard.style.display = 'none';
         }
       }
 
@@ -3488,7 +4225,7 @@
             <div style="font-size:10.5px; text-transform:uppercase; color:var(--text-dim);">Live Session Status</div>
             <div style="margin-top:4px;">
               ${data.is_online 
-                ? `<span class="badge-status running" style="font-size:11px; padding:2px 8px;"><span class="pulse-dot"></span> ONLINE (${data.active_devices_count} active)</span>`
+                ? `<span class="badge-status running" style="font-size:11px; padding:2px 8px;"><span class="pulse-dot"></span> ONLINE (${data.online_devices_count || data.active_devices_count || 1} online)</span>`
                 : `<span class="badge-status disabled" style="font-size:11px; padding:2px 8px;">OFFLINE</span>`
               }
             </div>
@@ -3508,9 +4245,11 @@
           html += `
             <div style="background:var(--bg-card-header, #090e1a); border:1px solid ${isOnline ? 'rgba(52,211,153,0.3)' : 'var(--border-subtle, rgba(255,255,255,0.06))'}; border-radius:10px; padding:12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span>${d.mac_address && d.mac_address.startsWith('PPPOE:') ? '📡' : '📱'}</span>
                   <span class="font-mono text-cyan" style="font-weight:700; font-size:13px;">${d.mac_address}</span>
-                  <span style="font-size:12px; color:var(--text-main, #ffffff); font-weight:600;">${d.host_name || d.device_name || 'Device'}</span>
+                  <span style="font-size:12px; color:var(--text-main, #ffffff); font-weight:600;">${d.friendly_name || d.host_name || d.device_name || 'Device'}</span>
+                  ${d.interface ? `<span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; padding:1px 6px; border-radius:4px; font-family:var(--font-mono);">${d.interface}</span>` : ''}
                 </div>
                 <div>
                   ${isOnline 
@@ -3526,7 +4265,7 @@
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Session Uptime:</span>
-                  <span class="text-white">${d.uptime || '—'}</span>
+                  <span class="text-white">${d.uptime || d.formatted_active_time || '—'}</span>
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Last Seen:</span>
@@ -3534,15 +4273,15 @@
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Downloaded:</span>
-                  <span class="text-emerald font-mono" style="font-weight:700;">↓ ${d.download_formatted || '0 B'}</span>
+                  <span class="text-emerald font-mono" style="font-weight:700;">↓ ${d.formatted_down || d.download_formatted || '0 B'}</span>
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Uploaded:</span>
-                  <span class="text-cyan font-mono" style="font-weight:700;">↑ ${d.upload_formatted || '0 B'}</span>
+                  <span class="text-cyan font-mono" style="font-weight:700;">↑ ${d.formatted_up || d.upload_formatted || '0 B'}</span>
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Total Traffic:</span>
-                  <span class="text-white font-mono" style="font-weight:700;">${d.total_formatted || '0 B'}</span>
+                  <span class="text-white font-mono" style="font-weight:700;">${d.formatted_total || d.total_formatted || '0 B'}</span>
                 </div>
               </div>
             </div>
@@ -3585,7 +4324,7 @@
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection' })
+        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection', send_whatsapp: true })
       });
       const res = await resp.json();
       if (res.success) {
@@ -3636,7 +4375,7 @@
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment' })
+        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment', send_whatsapp: true })
       });
       const res = await resp.json();
       if (res.success) {
@@ -3763,13 +4502,125 @@
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('addCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('addCustSpeed').value = rate;
     } else {
       document.getElementById('addCustSpeed').value = 'Unlimited';
     }
+    const daysEl = document.getElementById('btnModalAddPkgDaysText');
+    if (daysEl) daysEl.textContent = `${days}d`;
+    // Auto-calculate suspend date for new customer based on selected package
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : target.toISOString().slice(0, 10);
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d`;
+      badge.style.color = '#38bdf8';
+    }
     calculateAddCustAdvance();
+  }
+
+  function setAddDueDateValue(dateStr) {
+    const el = document.getElementById('addCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) window.setPickerDate('addCustDueDate', dateStr);
+  }
+
+  function shiftAddDueDate(days) {
+    const el = document.getElementById('addCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = `+${days}d`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function applyAddPkgValidity() {
+    onAddPkgChange();
+  }
+
+  function setAddEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = 'End of Month';
+      badge.style.color = '#34d399';
+    }
+  }
+
+  function setAddSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setAddDueDateValue(dateStr);
+    const badge = document.getElementById('badgeAddSuspend');
+    if (badge) {
+      badge.textContent = `Day ${dayNum}`;
+      badge.style.color = '#34d399';
+    }
+  }
+
+  function toggleAddAdvancedDrawer() {
+    const b = document.getElementById('addAdvancedDrawerBody');
+    const ind = document.getElementById('addDrawerIndicator');
+    if (!b) return;
+    if (b.style.display === 'none') {
+      b.style.display = 'block';
+      if (ind) ind.textContent = 'Hide ▲';
+    } else {
+      b.style.display = 'none';
+      if (ind) ind.textContent = 'Click to View / Edit ▾';
+    }
+  }
+
+  function handleAddModalMacInput(el) {
+    let val = el.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+    let formatted = '';
+    for (let i = 0; i < val.length && i < 12; i++) {
+      if (i > 0 && i % 2 === 0) formatted += ':';
+      formatted += val[i];
+    }
+    el.value = formatted;
+
+    const feedback = document.getElementById('addCustMacFeedback');
+    if (!feedback) return;
+    if (!formatted) {
+      feedback.style.display = 'none';
+      return;
+    }
+
+    if (isRandomMac(formatted)) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#ef4444';
+      feedback.innerHTML = '⚠️ <strong>Randomized MAC Detected!</strong> Customer has Private Wi-Fi enabled.';
+    } else if (formatted.length === 17) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#34d399';
+      feedback.innerHTML = '✓ Valid Physical Hardware MAC Address';
+    } else {
+      feedback.style.display = 'none';
+    }
   }
 
   function setAddCustSpeed(spd) {
@@ -3802,6 +4653,12 @@
       const pkgSel = document.getElementById('editCustPkg');
       if (c.package_name) {
         pkgSel.value = c.package_name;
+        const opt = pkgSel.options[pkgSel.selectedIndex];
+        if (opt) {
+          const days = opt.getAttribute('data-days') || '30';
+          const btnDays = document.getElementById('btnEditPkgDaysText');
+          if (btnDays) btnDays.textContent = `${days}d`;
+        }
       }
 
       // Speed limit (explicit custom speed or effective speed)
@@ -3810,11 +4667,13 @@
       // Monthly fee
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
-      // Due date
+      // Payday and Hard Suspension dates
       if (window.setPickerDate) {
-        window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
+        window.setPickerDate('editCustPayDate', c.pay_date || c.due_date || '');
+        window.setPickerDate('editCustDueDate', c.expiry_date || c.due_date || '');
       } else {
-        document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+        if (document.getElementById('editCustPayDate')) document.getElementById('editCustPayDate').value = c.pay_date || c.due_date || '';
+        document.getElementById('editCustDueDate').value = c.expiry_date || c.due_date || '';
       }
 
       // Device limit
@@ -3826,6 +4685,17 @@
       // Customer notes / room number
       const editNotesEl = document.getElementById('editCustNotes');
       if (editNotesEl) editNotesEl.value = c.notes || '';
+
+      // Connection type & PPPoE credentials
+      selectEditCustConnType(c.connection_type || 'hotspot');
+      const editPppUserEl = document.getElementById('editCustPppoeUser');
+      if (editPppUserEl) editPppUserEl.value = c.pppoe_username || '';
+      const editPppPassEl = document.getElementById('editCustPppoePass');
+      if (editPppPassEl) editPppPassEl.value = c.pppoe_password || 'cyber123';
+      const editPppProfEl = document.getElementById('editCustPppoeProfile');
+      if (editPppProfEl) editPppProfEl.value = c.pppoe_profile || 'pppoe-profile-ether4';
+      const editPppIpEl = document.getElementById('editCustPppoeIp');
+      if (editPppIpEl) editPppIpEl.value = c.pppoe_remote_ip || '';
 
       document.getElementById('editCustomerModal').classList.add('open');
     } catch (err) {
@@ -3850,6 +4720,60 @@
     }
   }
 
+  function selectAddCustConnType(t) {
+    const hidden = document.getElementById('addCustConnType');
+    if (hidden) hidden.value = t;
+    const hCard = document.getElementById('addConnHotspot');
+    const pCard = document.getElementById('addConnPppoe');
+    const bCard = document.getElementById('addConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (t === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (t === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (t === 'both' && bCard) bCard.classList.add('selected');
+
+    const block = document.getElementById('addCustPppoeBlock');
+    if (block) {
+      if (t === 'pppoe' || t === 'both') {
+        block.style.display = 'block';
+        const userEl = document.getElementById('addCustPppoeUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('newCustPhone')?.value.trim() || '';
+        }
+      } else {
+        block.style.display = 'none';
+      }
+    }
+  }
+
+  function selectEditCustConnType(t) {
+    const hidden = document.getElementById('editCustConnType');
+    if (hidden) hidden.value = t;
+    const hCard = document.getElementById('editConnHotspot');
+    const pCard = document.getElementById('editConnPppoe');
+    const bCard = document.getElementById('editConnBoth');
+    if (hCard) hCard.classList.remove('selected');
+    if (pCard) pCard.classList.remove('selected');
+    if (bCard) bCard.classList.remove('selected');
+    if (t === 'hotspot' && hCard) hCard.classList.add('selected');
+    if (t === 'pppoe' && pCard) pCard.classList.add('selected');
+    if (t === 'both' && bCard) bCard.classList.add('selected');
+
+    const block = document.getElementById('editCustPppoeBlock');
+    if (block) {
+      if (t === 'pppoe' || t === 'both') {
+        block.style.display = 'block';
+        const userEl = document.getElementById('editCustPppoeUser');
+        if (userEl && !userEl.value.trim()) {
+          userEl.value = document.getElementById('editCustPhone')?.value.trim() || '';
+        }
+      } else {
+        block.style.display = 'none';
+      }
+    }
+  }
+
   function setEditCustSpeed(spd) {
     document.getElementById('editCustSpeed').value = spd;
   }
@@ -3863,11 +4787,75 @@
     const opt = sel.options[sel.selectedIndex];
     const price = opt.getAttribute('data-price') || '75.00';
     const rate = opt.getAttribute('data-rate') || '';
+    const days = parseInt(opt.getAttribute('data-days')) || 30;
     document.getElementById('editCustFee').value = price;
     if (rate && rate !== '0' && rate.toLowerCase() !== 'unlimited') {
       document.getElementById('editCustSpeed').value = rate;
     } else {
       document.getElementById('editCustSpeed').value = 'Unlimited';
+    }
+    const btnDays = document.getElementById('btnEditPkgDaysText');
+    if (btnDays) btnDays.textContent = `${days}d`;
+    applyEditPkgValidity();
+  }
+
+  function applyEditPkgValidity() {
+    const sel = document.getElementById('editCustPkg');
+    if (!sel || sel.selectedIndex < 0) return;
+    const days = parseInt(sel.options[sel.selectedIndex].getAttribute('data-days')) || 30;
+    const today = new Date();
+    today.setDate(today.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(today) : today.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Auto: +${days}d`;
+      badge.style.color = '#38bdf8';
+    }
+  }
+
+  function setEditDueDateValue(dateStr) {
+    const el = document.getElementById('editCustDueDate');
+    if (!el) return;
+    el.value = dateStr;
+    if (window.setPickerDate) {
+      window.setPickerDate('editCustDueDate', dateStr);
+    }
+  }
+
+  function shiftEditDueDate(days) {
+    const el = document.getElementById('editCustDueDate');
+    let current = el && el.value ? (window.parseDateISO ? window.parseDateISO(el.value) : new Date(el.value)) : new Date();
+    if (isNaN(current.getTime())) current = new Date();
+    current.setDate(current.getDate() + days);
+    const dateStr = window.formatDateISO ? window.formatDateISO(current) : current.toISOString().slice(0, 10);
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditEndOfMonth() {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const dateStr = window.formatDateISO ? window.formatDateISO(endOfMonth) : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endOfMonth.getDate()).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+  }
+
+  function setEditSpecificDay(dayNum) {
+    const today = new Date();
+    let y = today.getFullYear();
+    let m = today.getMonth();
+    if (today.getDate() >= dayNum) {
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    const maxDays = new Date(y, m + 1, 0).getDate();
+    const actualDay = Math.min(dayNum, maxDays);
+    const target = new Date(y, m, actualDay);
+    const dateStr = window.formatDateISO ? window.formatDateISO(target) : `${y}-${String(m + 1).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    setEditDueDateValue(dateStr);
+    const badge = document.getElementById('badgeEditSuspend');
+    if (badge) {
+      badge.textContent = `Day ${dayNum}`;
+      badge.style.color = '#34d399';
     }
   }
 
@@ -3885,8 +4873,14 @@
     const speed = document.getElementById('editCustSpeed').value.trim();
     const fee = parseFloat(document.getElementById('editCustFee').value) || 0.0;
     const dueDate = document.getElementById('editCustDueDate').value;
+    const payDate = document.getElementById('editCustPayDate') ? document.getElementById('editCustPayDate').value : dueDate;
     const maxDev = parseInt(document.getElementById('editCustMaxDevices').value) || 1;
     const credit = parseFloat(document.getElementById('editCustCredit').value) || 0.0;
+    const connType = document.getElementById('editCustConnType') ? document.getElementById('editCustConnType').value : 'hotspot';
+    const pppUser = document.getElementById('editCustPppoeUser') ? document.getElementById('editCustPppoeUser').value.trim() : null;
+    const pppPass = document.getElementById('editCustPppoePass') ? document.getElementById('editCustPppoePass').value.trim() : null;
+    const pppProf = document.getElementById('editCustPppoeProfile') ? document.getElementById('editCustPppoeProfile').value.trim() : null;
+    const pppIp = document.getElementById('editCustPppoeIp') ? document.getElementById('editCustPppoeIp').value.trim() : null;
 
     try {
       const resp = await fetch(`/api/customers/${activeEditCustomerId}/edit`, {
@@ -3900,9 +4894,15 @@
           speed_limit: speed,
           monthly_fee: fee,
           due_date: dueDate,
+          pay_date: payDate,
           max_devices: maxDev,
           credit_balance: credit,
-          notes: notes
+          notes: notes,
+          connection_type: connType,
+          pppoe_username: pppUser,
+          pppoe_password: pppPass,
+          pppoe_profile: pppProf,
+          pppoe_remote_ip: pppIp
         })
       });
 
@@ -3975,6 +4975,11 @@
     const joinDate = document.getElementById('addCustJoinDate') ? document.getElementById('addCustJoinDate').value : null;
     const bStart = document.getElementById('addCustBillingStart') ? document.getElementById('addCustBillingStart').value : null;
     const notes = document.getElementById('newCustNotes') ? document.getElementById('newCustNotes').value.trim() : '';
+    const connType = document.getElementById('addCustConnType') ? document.getElementById('addCustConnType').value : 'hotspot';
+    const pppUser = document.getElementById('addCustPppoeUser') ? document.getElementById('addCustPppoeUser').value.trim() : null;
+    const pppPass = document.getElementById('addCustPppoePass') ? document.getElementById('addCustPppoePass').value.trim() : null;
+    const pppProf = document.getElementById('addCustPppoeProfile') ? document.getElementById('addCustPppoeProfile').value.trim() : null;
+    const pppIp = document.getElementById('addCustPppoeIp') ? document.getElementById('addCustPppoeIp').value.trim() : null;
 
     if (mac && isRandomMac(mac)) {
       cyberToast('Cannot create customer: Randomized MAC address detected! CyberNet strictly requires the physical Device MAC. Please turn off Private Wi-Fi on the customer phone.');
@@ -4002,7 +5007,12 @@
           reseller_id: resellerId,
           join_date: joinDate || null,
           billing_start_date: bStart || null,
-          notes: notes
+          notes: notes,
+          connection_type: connType,
+          pppoe_username: pppUser,
+          pppoe_password: pppPass,
+          pppoe_profile: pppProf,
+          pppoe_remote_ip: pppIp
         })
       });
 
@@ -4172,67 +5182,197 @@
   });
 
   // =========================================================
-  // COLLECT PAYMENT & SETTLEMENT CONTROLLER (MATCHING BILLING REMINDER)
+  // UNIFIED SMART COLLECT PAYMENT CONTROLLER
   // =========================================================
   let activeCollCustId = null;
+  let activeCollBreakdown = null;
 
-  function openCollectModal(cid, name) {
+  async function openCollectModal(cid, name) {
     activeCollCustId = cid;
+    activeCollBreakdown = null;
+
     const modal = document.getElementById('collectModal');
     if (modal) modal.classList.add('open', 'show');
     document.body.style.overflow = 'hidden';
 
     document.getElementById('coll_cid').value = cid;
-    document.getElementById('coll_name').textContent = 'Customer: ' + (name || 'ID #' + cid);
-    document.getElementById('unpaidList').innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;"><i class="fas fa-spinner fa-spin" style="margin-right:6px"></i> Loading unpaid bills…</div>';
+    const loadingState = document.getElementById('collLoadingState');
+    const contentArea = document.getElementById('collContentArea');
+    if (loadingState) loadingState.style.display = 'block';
+    if (contentArea) contentArea.style.display = 'none';
 
-    fetch('/api/customers/' + cid + '/unpaid')
-      .then(r => r.json())
-      .then(data => {
-        if (!data || !data.length) {
-          document.getElementById('unpaidList').innerHTML = '<div class="alert alert-success" style="padding:14px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:#34d399; font-weight:700;"><i class="fas fa-check-circle" style="margin-right:6px"></i> All bills are paid for this customer!</div>';
-          document.getElementById('totalAmt').textContent = '0.00';
-          const waivedNote = document.getElementById('collWaivedNote');
-          if (waivedNote) waivedNote.style.display = 'none';
-          const btnRec = document.getElementById('btnRecordPayment');
-          if (btnRec) btnRec.style.display = 'none';
-          return;
+    try {
+      const resp = await fetch('/api/customers/' + cid + '/billing-breakdown');
+      const data = await resp.json();
+      const b = data.breakdown || data;
+      activeCollBreakdown = b;
+
+      // Populate subscriber details
+      const custName = b.customer_name || name || ('Subscriber #' + cid);
+      document.getElementById('collCustName').textContent = custName;
+      document.getElementById('collCustPhone').textContent = b.phone || '—';
+
+      const roomEl = document.getElementById('collCustRoom');
+      if (roomEl) {
+        if (b.room) {
+          roomEl.textContent = '📍 ' + b.room;
+          roomEl.style.display = 'inline-block';
+        } else {
+          roomEl.style.display = 'none';
         }
+      }
 
-        const btnRec = document.getElementById('btnRecordPayment');
-        if (btnRec) btnRec.style.display = 'inline-flex';
+      const pkgEl = document.getElementById('collCustPkg');
+      if (pkgEl) {
+        const monthlyRate = parseFloat(b.monthly_fee || 30.0).toFixed(2);
+        pkgEl.textContent = (b.package_name ? b.package_name + ' · ' : '') + monthlyRate + ' SAR/mo';
+      }
 
-        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:150px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
+      const statusBadge = document.getElementById('collCustStatusBadge');
+      if (statusBadge) {
+        const st = (b.status || 'active').toUpperCase();
+        statusBadge.textContent = st;
+        if (st === 'ACTIVE') {
+          statusBadge.style.background = 'rgba(16,185,129,0.15)';
+          statusBadge.style.color = '#34d399';
+          statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+        } else {
+          statusBadge.style.background = 'rgba(239,68,68,0.15)';
+          statusBadge.style.color = '#f87171';
+          statusBadge.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+      }
 
-        data.forEach((m) => {
-          const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
-          const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
-          const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
+      const expEl = document.getElementById('collCustExpiryInfo');
+      if (expEl) {
+        if (b.expiry_date) {
+          expEl.textContent = 'Due / Expiry: ' + b.expiry_date;
+        } else {
+          expEl.textContent = '';
+        }
+      }
 
-          html += `<tr style="border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.04)); vertical-align:middle;">
-            <td style="padding:10px 8px; text-align:center;">
-              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
-            </td>
-            <td style="padding:10px 8px;">
-              <div style="font-weight:700; color:var(--text-main, #ffffff);">${mLabel}${graceBadge}</div>
-              ${paidBadge}
-              <div class="row-status-note" id="custRowNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
-            </td>
-            <td style="padding:10px 8px;">
-              <span class="badge badge-red mono" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
-            </td>
-            <td style="padding:10px 8px; text-align:right;">
-              <input type="number" name="amounts[]" inputmode="decimal" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:6px; padding:6px 10px; text-align:right;" oninput="updateTotal()">
-            </td>
-          </tr>`;
-        });
-        html += '</tbody></table></div>';
-        document.getElementById('unpaidList').innerHTML = html;
-        updateTotal();
-      })
-      .catch(err => {
-        document.getElementById('unpaidList').innerHTML = `<div class="alert alert-danger" style="padding:12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:8px;">Error loading bills: ${err.message}</div>`;
-      });
+      // Configure Wallet Status Card
+      const bal = parseFloat(b.credit_balance || 0.0);
+      const totalDue = parseFloat(b.total_due || 0.0);
+      const unpaidCount = (b.unpaid_cycles || []).length;
+      const walletCard = document.getElementById('collWalletStatusCard');
+      const walletTitle = document.getElementById('collWalletTitle');
+      const walletAmount = document.getElementById('collWalletAmount');
+      const walletSubtext = document.getElementById('collWalletSubtext');
+      const walletIcon = document.getElementById('collWalletIcon');
+
+      if (bal < -0.01 || totalDue > 0.01) {
+        // Debt State
+        const dueShow = totalDue > 0 ? totalDue : Math.abs(bal);
+        if (walletCard) {
+          walletCard.style.background = 'rgba(239,68,68,0.08)';
+          walletCard.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: OVERDUE DEBT';
+          walletTitle.style.color = '#f87171';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '-' + dueShow.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#ef4444';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = unpaidCount > 0 ? `${unpaidCount} unpaid cycle(s) pending` : 'Accrued calendar balance';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(239,68,68,0.15)';
+          walletIcon.style.color = '#ef4444';
+          walletIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        }
+      } else if (bal > 0.01) {
+        // Credit State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(16,185,129,0.08)';
+          walletCard.style.borderColor = 'rgba(16,185,129,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: CREDIT BALANCE';
+          walletTitle.style.color = '#34d399';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '+' + bal.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#10b981';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'Advance surplus in subscriber wallet';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(16,185,129,0.15)';
+          walletIcon.style.color = '#10b981';
+          walletIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        }
+      } else {
+        // Settled State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(56,189,248,0.08)';
+          walletCard.style.borderColor = 'rgba(56,189,248,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: SETTLED & PAID';
+          walletTitle.style.color = '#38bdf8';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '0.00 SAR';
+          walletAmount.style.color = '#38bdf8';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'No outstanding debts · Ready for renewal';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(56,189,248,0.15)';
+          walletIcon.style.color = '#38bdf8';
+          walletIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
+        }
+      }
+
+      // Pre-fill amount
+      const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+      let defaultAmt = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      const amtInput = document.getElementById('collAmount');
+      if (amtInput) {
+        amtInput.value = defaultAmt.toFixed(2);
+      }
+
+      // Update preset chips
+      const exactBtn = document.getElementById('btnPresetExact');
+      if (exactBtn) {
+        if (totalDue > 0 || bal < -0.01) {
+          const exactOwed = (totalDue > 0 ? totalDue : Math.abs(bal)).toFixed(2);
+          exactBtn.textContent = `Exact Due (${exactOwed} SAR)`;
+          exactBtn.style.display = 'inline-block';
+        } else {
+          exactBtn.style.display = 'none';
+        }
+      }
+
+      const p1Btn = document.getElementById('btnPreset1Mo');
+      if (p1Btn) p1Btn.textContent = `${monthlyFee.toFixed(0)} SAR (1 Mo)`;
+      const p2Btn = document.getElementById('btnPreset2Mo');
+      if (p2Btn) p2Btn.textContent = `${(monthlyFee * 2).toFixed(0)} SAR (2 Mo)`;
+      const p3Btn = document.getElementById('btnPreset3Mo');
+      if (p3Btn) p3Btn.textContent = `${(monthlyFee * 3).toFixed(0)} SAR (3 Mo)`;
+
+      // Show content and calculate preview
+      if (loadingState) loadingState.style.display = 'none';
+      if (contentArea) contentArea.style.display = 'block';
+      updateLiveCalculationPreview();
+
+      if (amtInput) {
+        setTimeout(() => amtInput.focus(), 150);
+      }
+    } catch (err) {
+      if (loadingState) {
+        loadingState.innerHTML = `<div class="alert alert-danger" style="padding:14px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:10px;">
+          Failed to load subscriber details: ${err.message}
+        </div>`;
+      }
+    }
   }
 
   function closeCollectModal() {
@@ -4240,143 +5380,159 @@
     if (modal) modal.classList.remove('open', 'show');
     document.body.style.overflow = '';
     activeCollCustId = null;
+    activeCollBreakdown = null;
   }
 
-  function updateTotal() {
-    let total = 0.0;
-    let totalWaived = 0.0;
-    let totalPending = 0.0;
+  function applySmartPreset(val) {
+    const amtInput = document.getElementById('collAmount');
+    if (!amtInput) return;
+    const b = activeCollBreakdown;
+    const monthlyFee = parseFloat((b && b.monthly_fee) || 30.0);
+    const totalDue = parseFloat((b && b.total_due) || 0.0);
+    const bal = parseFloat((b && b.credit_balance) || 0.0);
 
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const due = parseFloat(inp.getAttribute('data-due') || 0.0);
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-      const noteEl = document.getElementById('custRowNote-' + month);
-
-      // Always add collected amount
-      total += amt;
-
-      if (isChecked) {
-        if (amt < due - 0.01) {
-          const waived = due - amt;
-          totalWaived += waived;
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#fbbf24;">✓ Settle Checked: ${waived.toFixed(2)} SAR will be waived as discount (month solved)</span>`;
-          }
-        } else if (amt > due + 0.01) {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle with surplus (+${(amt - due).toFixed(2)} SAR)</span>`;
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle (month solved)</span>`;
-          }
-        }
-      } else {
-        // Settle UNCHECKED
-        if (amt < due - 0.01) {
-          const rem = due - amt;
-          totalPending += rem;
-          if (noteEl) {
-            if (amt === 0) {
-              noteEl.innerHTML = `<span style="color:var(--text-dim);">— Untouched (0 SAR collected, full ${due.toFixed(2)} SAR remains pending)</span>`;
-            } else {
-              noteEl.innerHTML = `<span style="color:#38bdf8;">⏱ Settle Unchecked: Partial payment (${rem.toFixed(2)} SAR remains pending and collectable)</span>`;
-            }
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full payment (${amt.toFixed(2)} SAR paid)</span>`;
-          }
-        }
-      }
-    });
-
-    const totEl = document.getElementById('totalAmt');
-    if (totEl) totEl.textContent = total.toFixed(2);
-
-    const waivedBox = document.getElementById('collWaivedNote');
-    const waivedVal = document.getElementById('collWaivedVal');
-    if (waivedBox && waivedVal) {
-      if (totalWaived > 0.05) {
-        waivedBox.style.display = 'inline-block';
-        waivedVal.textContent = totalWaived.toFixed(2);
-      } else {
-        waivedBox.style.display = 'none';
-      }
+    if (val === 'exact') {
+      const exactVal = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      amtInput.value = exactVal.toFixed(2);
+    } else if (val === 'clear') {
+      amtInput.value = '';
+      amtInput.focus();
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) amtInput.value = num.toFixed(2);
     }
-
-    const pendingBox = document.getElementById('collPendingNote');
-    const pendingVal = document.getElementById('collPendingVal');
-    if (pendingBox && pendingVal) {
-      if (totalPending > 0.05) {
-        pendingBox.style.display = 'inline-block';
-        pendingVal.textContent = totalPending.toFixed(2);
-      } else {
-        pendingBox.style.display = 'none';
-      }
-    }
+    updateLiveCalculationPreview();
   }
 
-  async function submitCollectForm() {
-    const cid = document.getElementById('coll_cid')?.value;
-    if (!cid) return;
+  function updateLiveCalculationPreview() {
+    const amtInput = document.getElementById('collAmount');
+    const previewText = document.getElementById('collLiveCalcText');
+    if (!amtInput || !previewText) return;
 
-    const items = [];
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-
-      items.push({
-        month: month,
-        amount: amt,
-        settle: isChecked
-      });
-    });
-
-    if (items.length === 0) {
-      cyberToast('No cycles to collect.');
+    const amt = parseFloat(amtInput.value) || 0.0;
+    const b = activeCollBreakdown;
+    if (!b) {
+      previewText.innerHTML = 'System will calculate cycle allocation automatically upon payment.';
       return;
     }
 
+    const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+    const unpaid = b.unpaid_cycles || [];
+    let rem = amt;
+
+    if (amt <= 0) {
+      previewText.innerHTML = '<span style="color:var(--text-dim);">Enter collection amount to preview auto-settlement.</span>';
+      return;
+    }
+
+    let settled = [];
+    let partial = null;
+
+    for (let c of unpaid) {
+      const due = parseFloat(c.rem_due || monthlyFee);
+      if (rem <= 0) break;
+      if (rem >= (due - 0.05)) {
+        settled.push(c.month);
+        rem -= due;
+      } else {
+        partial = { month: c.month, paid: rem, rem_due: (due - rem) };
+        rem = 0;
+        break;
+      }
+    }
+
+    let msgs = [];
+    if (settled.length > 0) {
+      msgs.push(`<strong style="color:#34d399;">✓ Settle &amp; close ${settled.length} cycle(s)</strong> (${settled.join(', ')})`);
+    }
+    if (partial) {
+      msgs.push(`<span style="color:#38bdf8;">⏱ Partial payment on ${partial.month} (${partial.paid.toFixed(2)} SAR paid, ${partial.rem_due.toFixed(2)} SAR remains due)</span>`);
+    }
+
+    if (rem > 0.05) {
+      const advMo = Math.floor(rem / monthlyFee);
+      const leftover = rem - (advMo * monthlyFee);
+      if (advMo > 0) {
+        msgs.push(`<strong style="color:#10b981;">🚀 Advance renewal: +${advMo} month(s)</strong>`);
+      }
+      if (leftover > 0.05) {
+        msgs.push(`<span style="color:#a7f3d0;">+${leftover.toFixed(2)} SAR wallet credit surplus</span>`);
+      }
+    }
+
+    if (msgs.length === 0) {
+      previewText.innerHTML = `Will credit <strong style="color:#34d399;">${amt.toFixed(2)} SAR</strong> to subscriber account and unblock active devices.`;
+    } else {
+      previewText.innerHTML = msgs.join(' · ');
+    }
+  }
+
+  async function submitSmartCollectForm() {
+    const cid = document.getElementById('coll_cid')?.value;
+    if (!cid) return;
+
+    const amtInput = document.getElementById('collAmount');
+    const amt = parseFloat(amtInput?.value || 0.0);
+    if (!amt || amt <= 0) {
+      alert('Please enter a valid collection amount.');
+      if (amtInput) amtInput.focus();
+      return;
+    }
+
+    const pType = document.getElementById('collPaymentType')?.value || 'cash';
+    const notes = document.getElementById('collNotes')?.value || '';
+    const sendWa = document.getElementById('collSendWa') ? document.getElementById('collSendWa').checked : true;
+
     const btn = document.getElementById('btnRecordPayment');
+    const origHtml = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording &amp; Calculating…';
     }
 
     try {
-      const resp = await fetch(`/api/customers/${cid}/settle-cycles`, {
+      const resp = await fetch(`/api/customers/${cid}/smart-collect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, notes: 'Collection & Settlement', send_whatsapp: true })
+        body: JSON.stringify({
+          amount: amt,
+          payment_type: pType,
+          notes: notes,
+          send_whatsapp: sendWa
+        })
       });
       const res = await resp.json();
       if (res.success) {
-        cyberToast(res.message || 'Payment recorded successfully!');
+        let msg = res.message || 'Payment collected successfully!';
+        if (res.data?.whatsapp_receipt?.sent) {
+          msg += '\n\n📱 WhatsApp digital receipt dispatched to subscriber!';
+        }
+        cyberToast(msg);
         closeCollectModal();
-        setTimeout(() => location.reload(), 1000);
+        setTimeout(() => location.reload(), 900);
       } else {
-        cyberToast('Payment failed: ' + (res.message || res.error));
+        alert('Payment recording failed: ' + (res.message || res.error || 'Server error'));
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-check"></i> Record Payment';
+          btn.innerHTML = origHtml;
         }
       }
     } catch (e) {
-      cyberToast('Error: ' + e.message);
+      alert('Error recording payment: ' + e.message);
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check"></i> Record Payment';
+        btn.innerHTML = origHtml;
       }
     }
   }
+
+  // Aliases for global compatibility
+  window.openCollectModal = openCollectModal;
+  window.closeCollectModal = closeCollectModal;
+  window.applySmartPreset = applySmartPreset;
+  window.updateLiveCalculationPreview = updateLiveCalculationPreview;
+  window.submitSmartCollectForm = submitSmartCollectForm;
+  window.submitCollectForm = submitSmartCollectForm;
 
   // =========================================================
   // WHATSAPP STATUS & RENEWAL REMINDER CONTROLLER
@@ -4451,11 +5607,11 @@
   }
 
   function collectFromCustReminderModal() {
-    const cid = parseInt(document.getElementById('custRemId').value);
-    const name = document.getElementById('custRemNameText').textContent;
+    const cid = parseInt(document.getElementById('custRemId')?.value);
+    const name = document.getElementById('custRemNameText')?.textContent;
     closeWhatsAppReminderModal();
-    if (typeof openCollectModal === 'function') {
-      openCollectModal(cid, name);
+    if (cid && typeof openCollectModal === 'function') {
+      setTimeout(() => openCollectModal(cid, name), 60);
     }
   }
 
@@ -4516,5 +5672,475 @@
   window.copyCustReminderText = copyCustReminderText;
   window.collectFromCustReminderModal = collectFromCustReminderModal;
   window.sendCustWhatsAppReminderOpenWA = sendCustWhatsAppReminderOpenWA;
+
+  // =========================================================
+  // CLUSTER / BATCH ACTION ENGINE (CUTOFF DATE UPDATE)
+  // =========================================================
+  let selectedSubscriberIds = new Set();
+
+  function onSubCheckboxChange(cb) {
+    const cid = parseInt(cb.value);
+    if (cb.checked) {
+      selectedSubscriberIds.add(cid);
+      highlightSubRow(cid, true);
+    } else {
+      selectedSubscriberIds.delete(cid);
+      highlightSubRow(cid, false);
+    }
+    updateClusterBarUI();
+  }
+
+  function highlightSubRow(cid, isSelected) {
+    const row = document.getElementById('cust-row-' + cid);
+    if (row) {
+      if (isSelected) {
+        row.classList.add('cluster-selected-row');
+      } else {
+        row.classList.remove('cluster-selected-row');
+      }
+    }
+    const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+    if (card) {
+      if (isSelected) {
+        card.classList.add('cluster-selected-row');
+      } else {
+        card.classList.remove('cluster-selected-row');
+      }
+    }
+  }
+
+  function updateClusterBarUI() {
+    const bar = document.getElementById('clusterActionBar');
+    const countEl = document.getElementById('clusterSelectedCount');
+    const count = selectedSubscriberIds.size;
+
+    if (countEl) countEl.textContent = count;
+
+    const filteredCountEl = document.getElementById('clusterFilteredCount');
+    if (filteredCountEl) {
+      filteredCountEl.textContent = getVisibleSubscribersCount();
+    }
+
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      const totalVisible = getVisibleSubscribersCount();
+      if (count === 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+      } else if (count >= totalVisible && totalVisible > 0) {
+        masterCb.checked = true;
+        masterCb.indeterminate = false;
+      } else {
+        masterCb.indeterminate = true;
+      }
+    }
+
+    if (bar) {
+      bar.style.display = count > 0 ? 'block' : 'none';
+    }
+  }
+
+  function getVisibleSubscribersCount() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row')).filter(r => r.style.display !== 'none' && !r.classList.contains('cust-hidden'));
+    if (visibleRows.length > 0) return visibleRows.length;
+    const visibleCards = Array.from(document.querySelectorAll('.mobile-customer-deck .cust-row')).filter(c => c.style.display !== 'none' && !c.classList.contains('filtered-out'));
+    return visibleCards.length;
+  }
+
+  function toggleSelectAllSubscribers(masterCb) {
+    const shouldSelect = masterCb.checked;
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = shouldSelect;
+        const cid = parseInt(cb.value);
+        if (shouldSelect) {
+          selectedSubscriberIds.add(cid);
+          highlightSubRow(cid, true);
+        } else {
+          selectedSubscriberIds.delete(cid);
+          highlightSubRow(cid, false);
+        }
+      }
+    });
+
+    updateClusterBarUI();
+  }
+
+  function selectAllFilteredSubscribers() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = true;
+        const cid = parseInt(cb.value);
+        selectedSubscriberIds.add(cid);
+        highlightSubRow(cid, true);
+      }
+    });
+
+    updateClusterBarUI();
+    if (typeof cyberToast === 'function') {
+      cyberToast(`Selected all ${visibleRows.length} visible subscriber(s)`, 'success');
+    }
+  }
+
+  function deselectAllSubscribers() {
+    selectedSubscriberIds.clear();
+    document.querySelectorAll('.sub-row-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.cluster-selected-row').forEach(el => el.classList.remove('cluster-selected-row'));
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      masterCb.checked = false;
+      masterCb.indeterminate = false;
+    }
+    updateClusterBarUI();
+  }
+
+  function openClusterSuspendModal() {
+    if (selectedSubscriberIds.size === 0) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Please select at least one subscriber first.', 'warning');
+      }
+      return;
+    }
+    const modal = document.getElementById('clusterSuspendModal');
+    const modalCount = document.getElementById('clusterModalCount');
+    if (modalCount) modalCount.textContent = selectedSubscriberIds.size;
+
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      dateInput.value = today.toISOString().split('T')[0];
+    }
+    if (dateInput && window.flatpickr && !dateInput._flatpickr) {
+      flatpickr(dateInput, { dateFormat: 'Y-m-d', allowInput: true });
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeClusterSuspendModal() {
+    const modal = document.getElementById('clusterSuspendModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function setClusterPresetDate(daysToAdd) {
+    const d = new Date();
+    d.setDate(d.getDate() + daysToAdd);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  function setClusterPresetEndOfMonth() {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  async function submitClusterSuspendDate() {
+    const dateInput = document.getElementById('clusterDateInput');
+    const newDate = dateInput ? dateInput.value.trim() : '';
+    if (!newDate || newDate.length < 10) {
+      alert('Please enter a valid date in YYYY-MM-DD format.');
+      return;
+    }
+
+    const ids = Array.from(selectedSubscriberIds);
+    if (ids.length === 0) return;
+
+    const btn = document.getElementById('btnApplyClusterSuspend');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Applying...</span>';
+    }
+
+    try {
+      const resp = await fetch('/api/customers/batch-set-suspend-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_ids: ids,
+          suspend_date: newDate
+        })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Server error occurred');
+      }
+
+      closeClusterSuspendModal();
+
+      if (typeof cyberToast === 'function') {
+        cyberToast(`?? Cutoff date set to ${newDate} for ${ids.length} subscriber(s). Payday preserved!`, 'success');
+      } else {
+        alert(`Success! Updated ${ids.length} subscribers to cutoff date ${newDate}.`);
+      }
+
+      // Live DOM update for updated IDs
+      ids.forEach(cid => {
+        const row = document.getElementById('cust-row-' + cid);
+        if (row) {
+          const cutCell = row.querySelector('td[data-label="Due / Expiry Date"]');
+          if (cutCell) {
+            const cutVal = cutCell.querySelector('span[style*="#fbbf24"], span.font-mono:not(.text-cyan)');
+            if (cutVal) cutVal.textContent = newDate;
+          }
+        }
+        const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+        if (card) {
+          const cutVal = card.querySelector('div[style*="#fbbf24"] .m-val, span[style*="#fbbf24"]');
+          if (cutVal) cutVal.textContent = newDate;
+        }
+      });
+
+      deselectAllSubscribers();
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err) {
+      console.error('Cluster action error:', err);
+      alert('Failed to apply cluster action: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Apply Cutoff Date</span>';
+      }
+    }
+  }
+
+  window.onSubCheckboxChange = onSubCheckboxChange;
+  window.toggleSelectAllSubscribers = toggleSelectAllSubscribers;
+  window.selectAllFilteredSubscribers = selectAllFilteredSubscribers;
+  window.deselectAllSubscribers = deselectAllSubscribers;
+  window.openClusterSuspendModal = openClusterSuspendModal;
+  window.closeClusterSuspendModal = closeClusterSuspendModal;
+  window.setClusterPresetDate = setClusterPresetDate;
+  window.setClusterPresetEndOfMonth = setClusterPresetEndOfMonth;
+  window.submitClusterSuspendDate = submitClusterSuspendDate;
+
 </script>
+
+<!-- =========================================================
+     CLUSTER ACTION FLOATING BAR & MODAL
+     ========================================================= -->
+<style>
+.cluster-selected-row {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: linear-gradient(135deg, rgba(15, 35, 60, 0.98) 0%, rgba(20, 45, 80, 0.95) 100%) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
+}
+
+.cluster-action-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10500;
+  width: min(640px, calc(100vw - 24px));
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 14px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  animation: slideUpCluster 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpCluster {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.cluster-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cluster-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cluster-badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+.btn-cluster-deselect {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-cluster-deselect:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.btn-cluster-select-filtered {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cluster-select-filtered:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.btn-cluster-action-suspend {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+}
+.btn-cluster-action-suspend:hover {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .cluster-action-bar {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    padding: 10px 12px;
+  }
+  .cluster-bar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cluster-bar-left {
+    justify-content: space-between;
+  }
+  .btn-cluster-action-suspend {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+}
+</style>
+
+<!-- Floating Cluster Action Bar -->
+<div id="clusterActionBar" class="cluster-action-bar" style="display: none;">
+  <div class="cluster-bar-inner">
+    <div class="cluster-bar-left">
+      <div class="cluster-badge">
+        <span id="clusterSelectedCount">0</span> Selected
+      </div>
+      <button type="button" class="btn-cluster-deselect" onclick="deselectAllSubscribers()">
+        Clear
+      </button>
+      <button type="button" class="btn-cluster-select-filtered" onclick="selectAllFilteredSubscribers()">
+        Select All Filtered (<span id="clusterFilteredCount">0</span>)
+      </button>
+    </div>
+    <div class="cluster-bar-actions">
+      <button type="button" class="btn-cluster-action-suspend" onclick="openClusterSuspendModal()">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+        <span>Change Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Cluster Action Suspend Date Modal -->
+<div id="clusterSuspendModal" class="modal-overlay" style="display:none; z-index:12000;">
+  <div class="modal-box" style="max-width:480px; width:100%; border-radius:16px;">
+    <div class="modal-header" style="padding:14px 18px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚡</span>
+        <div>
+          <h3 style="font-size:15px; font-weight:800; color:#ffffff; margin:0;">Cluster Action: Set Hard Cutoff Date</h3>
+          <span style="font-size:11.5px; color:var(--text-dim);">Applying to <strong id="clusterModalCount" style="color:#38bdf8;">0</strong> selected subscriber(s)</span>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeClusterSuspendModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding:16px 18px;">
+      <!-- Payday Guarantee Alert Notice -->
+      <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 12px; margin-bottom:14px; display:flex; gap:10px; align-items:start;">
+        <span style="font-size:18px;">🔒</span>
+        <div style="font-size:12px; line-height:1.45; color:#cbd5e1;">
+          <strong style="color:#38bdf8;">Payday (pay_date) is strictly preserved:</strong> Each subscriber's expected Payday will remain exactly as previously configured. Only the <strong>Hard Suspension Date (Auto-Cutoff)</strong> will be synchronized to the date you choose below.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:#ffffff; display:block; margin-bottom:6px;">New Hard Suspension Date (Internet Cutoff):</label>
+        <input type="text" id="clusterDateInput" class="form-input font-mono cyber-datepicker" placeholder="YYYY-MM-DD" style="font-size:16px; padding:10px 12px; width:100%; font-weight:700; color:#fbbf24;">
+        <span style="font-size:11px; color:var(--text-dim); margin-top:4px; display:block;">Select the day when internet access will automatically suspend across the MikroTik fleet if unpaid.</span>
+      </div>
+
+      <!-- Quick Preset Pills -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(0)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">Today</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(3)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+3 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(5)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+5 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(7)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+7 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetEndOfMonth()" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">End of Month</button>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding:12px 18px; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end; gap:10px; background:var(--bg-card-header);">
+      <button type="button" class="btn-cancel" onclick="closeClusterSuspendModal()" style="padding:9px 16px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button type="button" id="btnApplyClusterSuspend" class="btn-primary" onclick="submitClusterSuspendDate()" style="padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; background:linear-gradient(135deg, #d97706, #f59e0b); border:1px solid rgba(245,158,11,0.5); color:#ffffff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+        <span>Apply Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

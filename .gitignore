@@ -18,6 +18,16 @@ __pycache__/
 venv/
 backups/
 *.tmp
+*.bak
+*.backup*
+*.pdf
+whatsapp_qr.png
+olt_*raw*.json
+parsed_*.json
+mikrotik_hotspot_backup*.json
+test_payload.json
+datetime
+=
 
 # Local diagnostics and runtime markers
 diagnostics/antigravity_*/

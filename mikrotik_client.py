@@ -177,7 +177,7 @@ class RouterClient:
         except Exception:
             pass
 
-    def get_live_status(self, max_cache_age_sec: float = 5.0) -> Dict[str, Any]:
+    def get_live_status(self, max_cache_age_sec: float = 20.0) -> Dict[str, Any]:
         """
         Connects to MikroTik and fetches live status, resource metrics, and interfaces.
         Returns a structured dictionary with success state, latency, and hardware telemetry.
@@ -912,10 +912,19 @@ class RouterClient:
                 'disabled': 'yes' if disabled else 'no',
                 'comment': comment or f"CyberNet PPPoE: {clean_user}"
             }
-            if remote_ip and remote_ip.strip():
-                params['remote-address'] = remote_ip.strip()
-            if local_ip and local_ip.strip():
-                params['local-address'] = local_ip.strip()
+            if remote_ip and str(remote_ip).strip():
+                clean_rip = str(remote_ip).strip()
+                # MikroTik only accepts valid IPv4 address or an IP pool name
+                if re.match(r"^(?:(?:\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9_\-]+)$", clean_rip) and not any(w in clean_rip.lower() for w in ("room", "router", "client", "none", "null")):
+                    params['remote-address'] = clean_rip
+                else:
+                    logger.warning(f"Omitted invalid remote_ip '{clean_rip}' for PPPoE secret '{clean_user}' on {self.host}")
+            if local_ip and str(local_ip).strip():
+                clean_lip = str(local_ip).strip()
+                if re.match(r"^(?:(?:\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9_\-]+)$", clean_lip) and not any(w in clean_lip.lower() for w in ("room", "router", "client", "none", "null")):
+                    params['local-address'] = clean_lip
+                else:
+                    logger.warning(f"Omitted invalid local_ip '{clean_lip}' for PPPoE secret '{clean_user}' on {self.host}")
 
             if existing_secs:
                 sec_res.set(id=existing_secs[0]['id'], **params)
@@ -1046,16 +1055,55 @@ class RouterClient:
             api = pool.get_api()
             active_res = api.get_resource('/ppp/active')
             sessions = active_res.get()
+
+            # Query dynamic PPPoE server interfaces to get live hardware byte counters
+            pppoe_ifaces_map = {}
+            try:
+                ifaces = api.get_resource('/interface').get(type='pppoe-in')
+                for iface in ifaces:
+                    iname = (iface.get('name') or '').strip()
+                    # e.g., "<pppoe-B1G7D>" or "pppoe-B1G7D"
+                    u_cand = iname.strip('<> ')
+                    if u_cand.lower().startswith('pppoe-in-'):
+                        u_cand = u_cand[9:]
+                    elif u_cand.lower().startswith('pppoe-'):
+                        u_cand = u_cand[6:]
+                    pppoe_ifaces_map[u_cand.lower()] = iface
+                    pppoe_ifaces_map[iname.lower()] = iface
+            except Exception as iface_err:
+                logger.debug(f"Failed to fetch pppoe-in interfaces on {self.host}: {iface_err}")
+
             clean = []
             for s in sessions:
+                s_name = (s.get("name") or "").strip()
+                iface = pppoe_ifaces_map.get(s_name.lower()) or pppoe_ifaces_map.get(f"<pppoe-{s_name.lower()}>") or pppoe_ifaces_map.get(f"pppoe-{s_name.lower()}")
+                
+                # In MikroTik RouterOS interface traffic:
+                # rx-byte = received from subscriber = Subscriber Upload
+                # tx-byte = transmitted to subscriber = Subscriber Download
+                rx_bytes = int(iface.get("rx-byte", 0) or 0) if iface else 0
+                tx_bytes = int(iface.get("tx-byte", 0) or 0) if iface else 0
+                total_bytes = rx_bytes + tx_bytes
+
                 clean.append({
                     "id": s.get("id"),
-                    "name": s.get("name"),
+                    "name": s_name,
                     "service": s.get("service", "pppoe"),
                     "caller_id": s.get("caller-id", ""),
                     "address": s.get("address", ""),
                     "uptime": s.get("uptime", ""),
-                    "encoding": s.get("encoding", "")
+                    "encoding": s.get("encoding", ""),
+                    "interface": (iface.get("name") if iface else f"<pppoe-{s_name}>"),
+                    "rx_bytes": rx_bytes,
+                    "tx_bytes": tx_bytes,
+                    "bytes_in": rx_bytes,
+                    "bytes_out": tx_bytes,
+                    "download_bytes": tx_bytes,
+                    "upload_bytes": rx_bytes,
+                    "total_bytes": total_bytes,
+                    "download_formatted": format_bytes(tx_bytes),
+                    "upload_formatted": format_bytes(rx_bytes),
+                    "total_formatted": format_bytes(total_bytes)
                 })
             return clean
         except Exception as e:
@@ -1520,6 +1568,17 @@ class RouterClient:
             except Exception as e:
                 logger.warning(f"Could not read DHCP leases: {e}")
 
+            # 3. Hotspot Sharing Suspects (Tethering attempts detected via ingress TTL=63 / TTL=127)
+            sharing_ips: Dict[str, Dict[str, Any]] = {}
+            try:
+                addr_list = api.get_resource('/ip/firewall/address-list').get(list='hotspot_sharing_suspects')
+                for ae in addr_list:
+                    addr = ae.get('address')
+                    if addr:
+                        sharing_ips[addr.strip()] = ae
+            except Exception as e:
+                logger.debug(f"Could not read hotspot_sharing_suspects from {self.host}: {e}")
+
             host_map: Dict[str, Dict[str, Any]] = {}
             for h in hosts:
                 m = h.get("mac-address")
@@ -1574,6 +1633,12 @@ class RouterClient:
                     status_label = "Offline"
                     detail = f"Last seen {last_seen_str}" if last_seen_str else "Offline"
 
+                # Check tethering detection
+                is_sharing = bool(live_ip and live_ip.strip() in sharing_ips)
+                sharing_entry = sharing_ips.get(live_ip.strip(), {}) if is_sharing else {}
+                sharing_timeout = sharing_entry.get("timeout")
+                sharing_detail = f"Hotspot sharing attempt detected (Blocked via TTL=1)" if is_sharing else None
+
                 telemetry[mac] = {
                     "mac_address": mac,
                     "state": state,
@@ -1584,7 +1649,10 @@ class RouterClient:
                     "uptime": uptime_str,
                     "last_seen": last_seen_str,
                     "idle_time": idle_str,
-                    "detail": detail
+                    "detail": detail,
+                    "is_sharing_hotspot": is_sharing,
+                    "sharing_timeout": sharing_timeout,
+                    "sharing_detail": sharing_detail
                 }
 
             self._telemetry_cache = telemetry
@@ -1734,7 +1802,7 @@ def get_router_short_code(router_name: Optional[str] = None, router_id: Optional
     return "MK"
 
 
-def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[str, Dict[str, Any]]:
+def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 20.0) -> Dict[str, Dict[str, Any]]:
     """
     Queries ALL active MikroTik routers in the fleet concurrently using ThreadPoolExecutor.
     Intelligently reconciles multi-gateway roaming states:
@@ -1743,7 +1811,7 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
     - If online on multiple routers, selects the router with the lowest idle_time.
     - Accurately attributes active router short code (MK10, MK20, MK30), live IP,
       and roaming indicator (is_roaming=True).
-    Cached in memory for max_cache_age_sec (default 4.0s) to keep CPU low and API sub-millisecond.
+    Cached in memory for max_cache_age_sec (default 20.0s) to keep CPU low and API sub-millisecond.
     """
     global _fleet_telemetry_cache, _fleet_telemetry_cache_time
     now = time.time()
@@ -1763,7 +1831,7 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
     def _fetch_for_router(r):
         try:
             client = get_client_for_router(r)
-            tmap = client.get_devices_telemetry_map(max_cache_age_sec=0)
+            tmap = client.get_devices_telemetry_map(max_cache_age_sec=max_cache_age_sec)
             return r, tmap, None
         except Exception as e:
             logger.debug(f"Fleet telemetry fetch failed for router {r.get('id')} ({r.get('name')}): {e}")
@@ -1849,11 +1917,70 @@ def broadcast_get_devices_telemetry_map(max_cache_age_sec: float = 4.0) -> Dict[
             final_telem["roaming_label"] = "Offline"
             final_telem["status_label"] = "Offline"
 
+        # Reconcile tethering detection across appearances
+        any_sharing = any(t.get("is_sharing_hotspot") for _, t in appearances)
+        sharing_t = next((t for _, t in appearances if t.get("is_sharing_hotspot")), None)
+        final_telem["is_sharing_hotspot"] = any_sharing
+        final_telem["sharing_timeout"] = sharing_t.get("sharing_timeout") if sharing_t else None
+        final_telem["sharing_detail"] = sharing_t.get("sharing_detail") if sharing_t else None
+
         fleet_telemetry[mac] = final_telem
 
     _fleet_telemetry_cache = fleet_telemetry
     _fleet_telemetry_cache_time = now
     return fleet_telemetry
+
+
+def broadcast_get_hotspot_sharing_suspects() -> List[Dict[str, Any]]:
+    """
+    Fetches all active hotspot sharing suspects from /ip/firewall/address-list across all active routers.
+    """
+    import database
+    try:
+        routers = database.get_all_routers(active_only=True)
+    except Exception:
+        routers = []
+
+    if not routers:
+        return []
+
+    def _fetch_suspects(r):
+        try:
+            client = get_client_for_router(r)
+            pool = routeros_api.RouterOsApiPool(
+                client.host,
+                username=client.username,
+                password=client.password,
+                port=client.port,
+                use_ssl=client.use_ssl,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            entries = api.get_resource('/ip/firewall/address-list').get(list='hotspot_sharing_suspects')
+            pool.disconnect()
+            r_name = r.get("name") or f"Router {r.get('id')}"
+            short_code = get_router_short_code(r_name, r.get("id"))
+            return [{
+                "router_id": r.get("id"),
+                "router_name": r_name,
+                "router_short_code": short_code,
+                "address": e.get("address"),
+                "timeout": e.get("timeout"),
+                "creation_time": e.get("creation-time"),
+                "comment": e.get("comment", "")
+            } for e in entries]
+        except Exception as e:
+            logger.debug(f"Could not fetch suspects from {r.get('name')}: {e}")
+            return []
+
+    with ThreadPoolExecutor(max_workers=len(routers) or 1) as executor:
+        results = list(executor.map(_fetch_suspects, routers))
+
+    all_suspects = []
+    for res in results:
+        all_suspects.extend(res)
+    return all_suspects
 
 
 def broadcast_get_online_mac_addresses(max_cache_age_sec: float = 4.0) -> List[str]:
@@ -2047,6 +2174,33 @@ def broadcast_get_active_pppoe_sessions() -> Dict[str, Dict[str, Any]]:
             s_data["router_name"] = r["name"]
             all_sessions[u_name] = s_data
     return all_sessions
+
+
+def broadcast_get_hotspot_hosts_raw() -> List[Dict[str, Any]]:
+    """
+    Aggregates raw /ip/hotspot/host entries across all active fleet routers in parallel.
+    Attaches router_name and router_id to each host.
+    """
+    import database
+    routers = database.get_all_routers(active_only=True)
+    all_hosts = []
+
+    def fetch_router_hosts(r_conf):
+        try:
+            client = get_client_for_router(r_conf)
+            hosts = client.get_hotspot_hosts_raw()
+            for h in hosts:
+                h["router_name"] = r_conf.get("name", "Router")
+                h["router_id"] = r_conf.get("id")
+            return hosts
+        except Exception:
+            return []
+
+    with ThreadPoolExecutor(max_workers=max(1, len(routers))) as executor:
+        for host_list in executor.map(fetch_router_hosts, routers):
+            all_hosts.extend(host_list)
+
+    return all_hosts
 
 
 def broadcast_disconnect_pppoe_session(username: str) -> Dict[str, bool]:

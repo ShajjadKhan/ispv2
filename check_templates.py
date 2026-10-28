@@ -1,0 +1,1 @@
+import jinja2; env = jinja2.Environment(loader=jinja2.FileSystemLoader(" templates\)); [print(t, \OK\) for t in [\customers.html\, \customer_edit.html\, \approvals.html\, \olt.html\] if env.get_template(t)]

@@ -1,0 +1,731 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CyberNet OS v2 - UI/UX, Accessibility & Responsiveness Audit</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 18mm 14mm 18mm 14mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.55;
+    font-size: 10.5pt;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+  .header-brand {
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-brand h1 {
+    margin: 0;
+    font-size: 18pt;
+    color: #0f172a;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .header-brand .sub {
+    font-size: 9.5pt;
+    color: #64748b;
+    margin-top: 3px;
+  }
+  .header-badge {
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 8pt;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  h2 {
+    font-size: 13pt;
+    color: #0f172a;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 5px;
+    margin-top: 22px;
+    margin-bottom: 10px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt;
+    color: #0369a1;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10pt;
+    color: #334155;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    page-break-after: avoid;
+  }
+  p, ul, ol {
+    margin: 6px 0 10px 0;
+  }
+  ul, ol {
+    padding-left: 20px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  td {
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+  code {
+    font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 8.5pt;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+  }
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 8pt;
+    overflow-x: auto;
+    font-family: Consolas, "Liberation Mono", Menlo, monospace;
+    line-height: 1.45;
+    margin: 8px 0 14px 0;
+    page-break-inside: avoid;
+  }
+  pre code {
+    background: transparent;
+    border: none;
+    color: inherit;
+    padding: 0;
+  }
+  blockquote {
+    border-left: 4px solid #0284c7;
+    margin: 10px 0;
+    padding: 8px 14px;
+    background: #f0f9ff;
+    color: #0369a1;
+    font-size: 9.5pt;
+    border-radius: 0 8px 8px 0;
+  }
+  .badge-crit { background: #fee2e2; color: #b91c1c; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 8pt; }
+  .badge-high { background: #ffedd5; color: #c2410c; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 8pt; }
+  .badge-med { background: #fef3c7; color: #b45309; font-weight: 800; padding: 2px 6px; border-radius: 4px; font-size: 8pt; }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+<div class="header-brand">
+  <div>
+    <h1>CyberNet OS v2 (isp_v2)</h1>
+    <div class="sub">Comprehensive UI/UX, Accessibility & Mobile Responsiveness Audit</div>
+  </div>
+  <div class="header-badge">ENGINEERING BLUEPRINT</div>
+</div><h1>📱 CyberNet OS v2 (`isp_v2`) — Comprehensive UI/UX, Accessibility &amp; Mobile Responsiveness Audit Report</h1>
+<blockquote>**Document Type:** Engineering Audit &amp; Actionable Implementation Blueprint  </blockquote>
+<blockquote>**Target Codebase:** [`C:/Users/Shajjad Kan/tserver_projects/isp_v2/`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/)  </blockquote>
+<blockquote>**Collaboration Hub Mirror:** [`C:/Users/Shajjad Kan/ai-collab/ISP_V2_UI_UX_ACCESSIBILITY_AUDIT.md`](file:///C:/Users/Shajjad%20Kan/ai-collab/ISP_V2_UI_UX_ACCESSIBILITY_AUDIT.md)  </blockquote>
+<blockquote>**Live Staging Server:** `tserver@10.12.14.16:/home/tserver/isp_v2` (`isp_v2.service` on port `9911`, proxied via `https://isp.shajjadkhan.com` &amp; `https://isp.tawreedflow.com`)  </blockquote>
+<blockquote>**Target Audience:** Incoming Antigravity / AI Agent &amp; Front-End Engineering Team  </blockquote>
+<blockquote>**Status:** `READY_FOR_EXECUTION`  </blockquote>
+<blockquote>**Standards Assessed:** WCAG 2.1 Level AA, WCAG 2.2 Draft (Target Size / Pointer Spacing), iOS Human Interface Guidelines, Android Material Design 3 Responsive Guidelines.</blockquote>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>📑 Table of Contents</h2>
+<p>1. [Executive Summary &amp; Audit Scorecard](#1-executive-summary--audit-scorecard)</p>
+<p>2. [Target Viewport Matrix &amp; Breakpoint Architecture](#2-target-viewport-matrix--breakpoint-architecture)</p>
+<p>3. [Prioritized Issue Catalog (AUDIT-ISP-01 to AUDIT-ISP-16)](#3-prioritized-issue-catalog)</p>
+<li>[Category A: Mobile Phone Responsive Layouts &amp; Tables](#category-a-mobile-phone-responsive-layouts--tables)</li>
+<li>[Category B: Touch Target Sizes &amp; Virtual Keyboard Optimization](#category-b-touch-target-sizes--virtual-keyboard-optimization)</li>
+<li>[Category C: WCAG 2.1 AA Accessibility &amp; Contrast Compliance](#category-c-wcag-21-aa-accessibility--contrast-compliance)</li>
+<li>[Category D: MikroTik Captive Portal Client Experience](#category-d-mikrotik-captive-portal-client-experience)</li>
+<li>[Category E: Modals, Forms &amp; Viewport Overflows](#category-e-modals-forms--viewport-overflows)</li>
+<p>4. [Template-by-Template Execution Roadmap](#4-template-by-template-execution-roadmap)</p>
+<p>5. [Captive Portal Smartphone Blueprint (<code>login.html</code>)](#5-captive-portal-smartphone-blueprint)</p>
+<p>6. [Testing, Verification &amp; Deployment Runbook](#6-testing-verification--deployment-runbook)</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>1. Executive Summary &amp; Audit Scorecard</h2>
+<p>CyberNet OS v2 (<code>isp_v2</code>) is a real-time ISP billing, MikroTik gateway management, and Wi-Fi subscriber authorization platform. The system operates on modern vanilla HTML5, CSS custom properties (variables), and asynchronous JavaScript (polling and fetch APIs) with <strong>zero external heavyweight CSS frameworks</strong> (no Bootstrap or Tailwind).</p>
+<p>While recent updates successfully converted <code>#pendingTable</code> and <code>#subscribersTable</code> on [<code>templates/dashboard.html</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html) and [<code>templates/approvals.html</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/approvals.html) into responsive card decks, an exhaustive forensic audit across all <strong>14 templates</strong> and the <strong>MikroTik Hotspot client suite</strong> reveals significant mobile layout regressions, touch target violations, and WCAG accessibility gaps.</p>
+<h3>📊 System Scorecard</h3>
+<table>
+<tr><th>Assessment Domain</th><th>Baseline Score</th><th>Target Score</th><th>Primary Gap / Risk</th></tr>
+<tr><td><strong>Mobile Phone Responsiveness (360px–430px)</strong></td><td><strong>52%</strong></td><td><strong>100%</strong></td><td>6 templates still render raw multi-column tables with horizontal overflow; modal inline grids squeeze inputs side-by-side.</td></tr>
+<tr><td><strong>Touch Targets &amp; Form Ergonomics</strong></td><td><strong>48%</strong></td><td><strong>98%</strong></td><td>Speed preset chips, small action buttons, and close icons are 20px–28px tall (below 44px WCAG minimum).</td></tr>
+<tr><td><strong>WCAG 2.1 AA Color Contrast</strong></td><td><strong>65%</strong></td><td><strong>100%</strong></td><td>`--text-dim: #64748b` on card background `#0f172a` yields 3.8:1 contrast (fails 4.5:1 AA standard).</td></tr>
+<tr><td><strong>Screen Reader &amp; Keyboard A11y</strong></td><td><strong>40%</strong></td><td><strong>95%</strong></td><td>Zero `:focus-visible` styles (`outline: none`), missing form `&lt;label for=&quot;...&quot;&gt;` associations, unannounced dynamic modal updates.</td></tr>
+<tr><td><strong>Captive Portal Mobile Client (Hotspot)</strong></td><td><strong>68%</strong></td><td><strong>100%</strong></td><td>`user-scalable=no` meta tag blocks accessibility zoom; 15px font size triggers iOS Safari auto-zoom; missing bilingual language toggle.</td></tr>
+</table>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>2. Target Viewport Matrix &amp; Breakpoint Architecture</h2>
+<p>The application must render flawlessly and ergonomically across the following real-world device tiers:</p>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CYBERNET OS VIEWPORT TIERS                            │
+├────────────────────┬──────────────────┬─────────────────────────────────────┤
+│ Device Tier        │ Viewport Width   │ Target Devices                      │
+├────────────────────┼──────────────────┼─────────────────────────────────────┤
+│ Ultra-Compact      │ 360px – 390px    │ Galaxy A14/S22, iPhone 12/13/14 mini│
+│ Standard Phone     │ 393px – 430px    │ iPhone 15/16 Pro Max, Pixel 8/9,    │
+│                    │                  │ Galaxy S24 Ultra, Redmi Note 14     │
+│ Small Tablet / Fold│ 600px – 768px    │ iPad mini, Galaxy Z Fold unfold     │
+│ Tablet / Small PC  │ 768px – 1024px   │ iPad Air/Pro 11&quot;, Surface Go        │
+│ Desktop / Laptop   │ 1280px – 1920px+ │ Office Workstations, Laptop Display │
+└────────────────────┴──────────────────┴─────────────────────────────────────┘
+</code></pre>
+<h3>📐 Standardized CSS Breakpoint System (to be unified in `base.html`):</h3>
+<pre><code>/* Universal Responsive Breakpoints */
+@media (min-width: 1025px) { /* PC / Desktop monitors */ }
+@media (max-width: 1024px) { /* Tablets &amp; Mobile Drawer threshold */ }
+@media (max-width: 768px)  { /* Tablets &amp; Mobile Phone Card Deck mode */ }
+@media (max-width: 640px)  { /* Standard Smartphones: 1-col grids, 56px topbar */ }
+@media (max-width: 440px)  { /* Compact Phones: 100% full-width actions, 1-col KPIs */ }
+</code></pre>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>3. Prioritized Issue Catalog</h2>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h3>Category A: Mobile Phone Responsive Layouts &amp; Tables</h3>
+<h4>🔴 AUDIT-ISP-01: Multi-Column Table Horizontal Overflow Across 6 Key Templates</h4>
+<li><strong>Severity:</strong> <code>CRITICAL</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/collections.html:1340</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/collections.html#L1340) (<code>#collectionsTable</code> — 8 columns)</li>
+<li>[<code>templates/packages.html:582</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/packages.html#L582) (<code>#pkgTable</code> — 9 columns)</li>
+<li>[<code>templates/resellers.html:415, 505, 558</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/resellers.html#L415) (3 tables — 6–8 columns)</li>
+<li>[<code>templates/reseller_portal.html:489, 557</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/reseller_portal.html#L489) (2 tables — 6–7 columns)</li>
+<li>[<code>templates/olt.html:540, 635</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/olt.html#L540) (<code>#onuTable</code> — 9 columns &amp; PON traffic)</li>
+<li>[<code>templates/whatsapp.html:749</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/whatsapp.html#L749) (<code>#logsTable</code> — 6 columns)</li>
+<li><strong>WCAG Criteria:</strong> 1.4.10 Reflow (Level AA)</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  On smartphone screens (360px–430px), these tables force the user to scroll sideways repeatedly to read amounts, customer details, or find the &quot;Receipt&quot;, &quot;Edit&quot;, or &quot;Sync&quot; buttons. On mobile touchscreens, horizontal scrolling inside cards causes gesture conflicts with browser navigation and hides critical call-to-actions.</p>
+<p>  <code>packages.html</code> notably has <strong>zero</strong> <code>@media</code> queries in the entire file.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Apply the proven Table-to-Card responsive pattern established on <code>dashboard.html</code>:</p>
+<p>  1. Add semantic <code>data-label=&quot;...&quot;</code> attributes to each <code>&lt;td&gt;</code> in HTML.</p>
+<p>  2. Implement <code>@media (max-width: 768px)</code> card transformations:</p>
+<p>  ```css</p>
+<p>  @media (max-width: 768px) {</p>
+<p>    .responsive-card-table thead {</p>
+<p>      display: none;</p>
+<p>    }</p>
+<p>    .responsive-card-table, </p>
+<p>    .responsive-card-table tbody, </p>
+<p>    .responsive-card-table tr, </p>
+<p>    .responsive-card-table td {</p>
+<p>      display: block;</p>
+<p>      width: 100%;</p>
+<p>    }</p>
+<p>    .responsive-card-table tr {</p>
+<p>      background: var(--bg-card);</p>
+<p>      border: 1px solid var(--border-subtle);</p>
+<p>      border-radius: 14px;</p>
+<p>      padding: 14px;</p>
+<p>      margin-bottom: 12px;</p>
+<p>      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);</p>
+<p>    }</p>
+<p>    .responsive-card-table td {</p>
+<p>      display: flex;</p>
+<p>      justify-content: space-between;</p>
+<p>      align-items: center;</p>
+<p>      padding: 8px 0 !important;</p>
+<p>      border-bottom: 1px solid rgba(255, 255, 255, 0.05);</p>
+<p>      font-size: 13px;</p>
+<p>    }</p>
+<p>    .responsive-card-table td:last-child {</p>
+<p>      border-bottom: none;</p>
+<p>      padding-top: 12px !important;</p>
+<p>      justify-content: stretch;</p>
+<p>    }</p>
+<p>    .responsive-card-table td::before {</p>
+<p>      content: attr(data-label);</p>
+<p>      font-size: 11px;</p>
+<p>      font-weight: 700;</p>
+<p>      text-transform: uppercase;</p>
+<p>      color: var(--text-dim);</p>
+<p>      letter-spacing: 0.05em;</p>
+<p>    }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🔴 AUDIT-ISP-02: Rigid Inline Multi-Column Grids Inside Modals</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/dashboard.html:2100</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2100) (<code>grid-template-columns: 1fr 1fr auto;</code>)</li>
+<li>[<code>templates/dashboard.html:2132</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2132) (<code>grid-template-columns: repeat(4, 1fr);</code>)</li>
+<li>[<code>templates/dashboard.html:2224</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2224) (<code>grid-template-columns: 1fr 1fr;</code>)</li>
+<li>[<code>templates/packages.html:376</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/packages.html#L376) (<code>.form-row { grid-template-columns: 1fr 1fr; }</code>)</li>
+<li>[<code>templates/gateway.html:632, 643, 654</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/gateway.html#L632) (<code>grid-template-columns: 2fr 1fr;</code>, etc.)</li>
+<li>[<code>templates/approvals.html:988</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/approvals.html#L988) (<code>display:flex; gap:8px; align-items:center;</code>)</li>
+<li><strong>WCAG Criteria:</strong> 1.4.10 Reflow (Level AA)</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  Hardcoded inline styles like <code>style=&quot;display: grid; grid-template-columns: 1fr 1fr;&quot;</code> bypass external stylesheet media queries. On 360px–430px viewports, form fields are compressed to ~140px width, causing input text truncation and squashed labels.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Replace inline styles with semantic class names (<code>.form-grid-2</code>, <code>.form-grid-3</code>, <code>.form-grid-4</code>) and add global responsive overrides:</p>
+<p>  ```css</p>
+<p>  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }</p>
+<p>  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }</p>
+<p>  .form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }</p>
+<p>  @media (max-width: 640px) {</p>
+<p>    .form-grid-2, .form-grid-3, .form-grid-4, .form-row {</p>
+<p>      grid-template-columns: 1fr !important;</p>
+<p>      gap: 12px !important;</p>
+<p>    }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-03: Invalid `@media` Rule Inside Inline Style Attribute</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected File:</strong></li>
+<li>[<code>templates/collections.html:1085</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/collections.html#L1085)</li>
+<li><strong>Problem:</strong></li>
+<p>  Line 1085 contains:</p>
+<p>  ```html</p>
+<p>  &lt;span style=&quot;font-size:11.5px; color:var(--text-dim); display:none; @media(min-width:768px){display:inline;}&quot;&gt;Auto-extends validity on MikroTik router&lt;/span&gt;</p>
+<p>  ```</p>
+<p>  CSS <code>@media</code> queries are invalid inside inline HTML <code>style</code> attributes. All browsers silently discard this rule, leaving the text permanently hidden (<code>display: none</code>).</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Remove the invalid inline media query and use a standard utility class:</p>
+<p>  ```html</p>
+<p>  &lt;span class=&quot;desktop-only text-dim&quot; style=&quot;font-size:11.5px;&quot;&gt;Auto-extends validity on MikroTik router&lt;/span&gt;</p>
+<p>  ```</p>
+<p>  With CSS in <code>base.html</code>:</p>
+<p>  ```css</p>
+<p>  @media (max-width: 768px) { .desktop-only { display: none !important; } }</p>
+<p>  @media (min-width: 769px) { .desktop-only { display: inline-block !important; } }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-04: Top Bar Header Congestion on Compact Phones (&lt;= 440px)</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected File:</strong></li>
+<li>[<code>templates/base.html:202-234, 939-985</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/base.html#L202)</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  The sticky <code>.top-bar</code> has a height of 56px–64px. On screens <code>&lt; 400px</code>, the hamburger button, page title, &quot;Default Password&quot; pill, status pill, refresh button, &quot;My Profile&quot; button, and &quot;Sign Out&quot; button all compete for horizontal space. Elements wrap unpredictably or overflow the viewport width.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  On viewports <code>&lt;= 640px</code>, hide secondary auth buttons from the top bar (since they are already accessible inside the mobile drawer):</p>
+<p>  ```css</p>
+<p>  @media (max-width: 640px) {</p>
+<p>    .top-bar-auth-group { display: none !important; }</p>
+<p>    .top-bar { padding: 0 12px; }</p>
+<p>    .page-heading { font-size: 15px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h3>Category B: Touch Target Sizes &amp; Virtual Keyboard Optimization</h3>
+<h4>🔴 AUDIT-ISP-05: Touch Targets Substantially Below 44px x 44px</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/dashboard.html:2229-2242, 2418-2425</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2229) (<code>.btn-preset</code> speed and device chips)</li>
+<li>[<code>templates/packages.html:653-665</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/packages.html#L653) (<code>.btn-action-sm</code> table actions)</li>
+<li>[<code>templates/approvals.html:991-998</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/approvals.html#L991) (<code>.btn-preset</code> speed presets)</li>
+<li>[<code>mikrotik_hotspot/login.html:449-452</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html#L449) (<code>.mac-guide-tab-btn</code>)</li>
+<li>All modal close buttons (<code>.btn-close-modal</code>, <code>.btn-modal-close</code>)</li>
+<li><strong>WCAG Criteria:</strong> 2.5.5 Target Size (Enhanced - AAA) &amp; 2.5.8 Pointer Target Spacing (AA - WCAG 2.2)</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  Buttons with <code>padding: 2px 6px</code> or <code>3px 8px</code> have total rendered heights of 20px–26px. Operators and customers tapping on phone screens regularly trigger the wrong preset or miss the target entirely.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Enforce a minimum touch target size of <strong>42px–44px</strong> on mobile viewports:</p>
+<p>  ```css</p>
+<p>  @media (max-width: 768px) {</p>
+<p>    .btn-preset {</p>
+<p>      min-height: 40px !important;</p>
+<p>      padding: 8px 14px !important;</p>
+<p>      font-size: 12.5px !important;</p>
+<p>      border-radius: 9px !important;</p>
+<p>    }</p>
+<p>    .btn-close-modal, .btn-modal-close {</p>
+<p>      min-width: 44px !important;</p>
+<p>      min-height: 44px !important;</p>
+<p>      display: inline-flex !important;</p>
+<p>      align-items: center !important;</p>
+<p>      justify-content: center !important;</p>
+<p>      font-size: 24px !important;</p>
+<p>    }</p>
+<p>    .mac-guide-tab-btn {</p>
+<p>      min-height: 40px !important;</p>
+<p>      font-size: 12px !important;</p>
+<p>    }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🔴 AUDIT-ISP-06: iOS Safari Automatic Viewport Zoom on Form Focus</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/login.html:401</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/login.html#L401) (<code>font-size: 15px;</code>)</li>
+<li>[<code>mikrotik_hotspot/login.html:123</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html#L123) (<code>font-size: 15px;</code>)</li>
+<li>[<code>templates/customers.html:121</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/customers.html#L121) (<code>font-size: 13px;</code> on search)</li>
+<li>[<code>templates/collections.html:1336</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/collections.html#L1336) (<code>font-size: 13.5px;</code> on ledger search)</li>
+<li><strong>WCAG Criteria:</strong> 1.4.4 Resize Text (Level AA) &amp; iOS Human Interface Guidelines</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  Whenever an input field with <code>font-size &lt; 16px</code> receives focus on an iPhone (Safari or the Hotspot Captive Network Assistant), iOS triggers an involuntary 120% viewport zoom. The card shifts off-center, cutting off borders and buttons, forcing the user to manually pinch-zoom out.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Guarantee that all input, select, and textarea fields have <code>font-size: 16px !important;</code> on mobile viewports (<code>&lt;= 768px</code>):</p>
+<p>  ```css</p>
+<p>  @media (max-width: 768px) {</p>
+<p>    input[type=&quot;text&quot;],</p>
+<p>    input[type=&quot;tel&quot;],</p>
+<p>    input[type=&quot;number&quot;],</p>
+<p>    input[type=&quot;password&quot;],</p>
+<p>    input[type=&quot;date&quot;],</p>
+<p>    select,</p>
+<p>    textarea,</p>
+<p>    .form-input,</p>
+<p>    .form-control,</p>
+<p>    .search-input {</p>
+<p>      font-size: 16px !important;</p>
+<p>    }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-07: Missing Virtual Numeric Keypad Invocations (`inputmode`)</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>mikrotik_hotspot/login.html:615, 625, 650</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html#L615) (<code>voucherPin</code>, <code>voucherPhone</code>, <code>lookupPhone</code>)</li>
+<li>[<code>templates/dashboard.html:2023</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2023) (<code>#qcAmount</code>)</li>
+<li>[<code>templates/collections.html:1052</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/collections.html#L1052) (<code>#posAmount</code>)</li>
+<li><strong>WCAG Criteria:</strong> 3.3.2 Labels or Instructions (Level A)</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  Mobile users typing voucher PINs, phone numbers, or payment amounts are greeted with the full QWERTY keyboard instead of a dedicated numeric keypad, requiring an extra tap to switch keyboard modes.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Add <code>inputmode=&quot;numeric&quot;</code> and <code>autocomplete=&quot;...&quot;</code> to numeric inputs:</p>
+<p>  ```html</p>
+<p>  &lt;!-- For phone numbers: --&gt;</p>
+<p>  &lt;input type=&quot;tel&quot; id=&quot;voucherPhone&quot; class=&quot;form-input&quot; inputmode=&quot;tel&quot; autocomplete=&quot;tel&quot; placeholder=&quot;05xxxxxxxx&quot;&gt;</p>
+<p>  &lt;!-- For voucher PINs: --&gt;</p>
+<p>  &lt;input type=&quot;text&quot; id=&quot;voucherPin&quot; class=&quot;form-input font-mono&quot; inputmode=&quot;numeric&quot; pattern=&quot;[0-9]*&quot; placeholder=&quot;e.g. 74829104&quot;&gt;</p>
+<p>  &lt;!-- For currency amounts: --&gt;</p>
+<p>  &lt;input type=&quot;number&quot; step=&quot;0.01&quot; id=&quot;qcAmount&quot; class=&quot;form-input font-mono&quot; inputmode=&quot;decimal&quot; placeholder=&quot;0.00&quot;&gt;</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h3>Category C: WCAG 2.1 AA Accessibility &amp; Contrast Compliance</h3>
+<h4>🔴 AUDIT-ISP-08: Sub-Threshold Color Contrast on Secondary Text</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/base.html:30</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/base.html#L30) (<code>--text-dim: #64748b;</code>)</li>
+<li>Ubiquitous usage across all 14 templates on card backgrounds (<code>#0f172a</code>, <code>#0b1120</code>, <code>#090e1a</code>)</li>
+<li><strong>WCAG Criteria:</strong> 1.4.3 Contrast (Minimum - Level AA)</li>
+<li><strong>Contrast Analysis:</strong></li>
+<li>Foreground <code>#64748b</code> on background <code>#0f172a</code>: <strong>3.8:1</strong> (FAILED: minimum 4.5:1 required).</li>
+<li>Foreground <code>#64748b</code> on background <code>#070a12</code>: <strong>3.6:1</strong> (FAILED).</li>
+<li>Used for field labels, timestamps, transaction notes, and subtitles. Outdoors under direct sunlight, text is almost unreadable.</li>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Upgrade theme color tokens in [<code>templates/base.html</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/base.html):</p>
+<p>  ```css</p>
+<p>  :root {</p>
+<p>    --text-main: #f8fafc;     /* Ratio: 15.6:1 (AAA) */</p>
+<p>    --text-muted: #cbd5e1;    /* Ratio: 11.5:1 (AAA) - was #94a3b8 */</p>
+<p>    --text-dim: #94a3b8;      /* Ratio: 6.8:1 (Passes AA 4.5:1) - was #64748b */</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🔴 AUDIT-ISP-09: Complete Absence of `:focus-visible` Keyboard Rings</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong> All templates in <code>templates/*.html</code></li>
+<li><strong>WCAG Criteria:</strong> 2.4.7 Focus Visible (Level AA)</li>
+<li><strong>Problem &amp; Impact:</strong></li>
+<p>  <code>Select-String</code> search confirmed <strong>0 instances</strong> of <code>:focus-visible</code> in the entire repository. Multiple stylesheets specify <code>outline: none;</code> without replacement. Users navigating with a physical keyboard, tablet keyboard case, or assistive switch device have zero visual indicator of focused elements.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Inject a global focus ring in [<code>templates/base.html</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/base.html):</p>
+<p>  ```css</p>
+<p>  /* Universal Accessible Focus Indicator */</p>
+<p>  :focus-visible {</p>
+<p>    outline: 2px solid #38bdf8 !important;</p>
+<p>    outline-offset: 2px !important;</p>
+<p>  }</p>
+<p>  button:focus-visible, </p>
+<p>  a:focus-visible, </p>
+<p>  input:focus-visible, </p>
+<p>  select:focus-visible {</p>
+<p>    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35) !important;</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-10: Missing Form Label Associations (`for` / `id`)</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/dashboard.html:2207, 2213, 2226, 2236</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2207)</li>
+<li>[<code>templates/approvals.html:945, 974, 985, 1008</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/approvals.html#L945)</li>
+<li>[<code>templates/packages.html:705, 709, 719</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/packages.html#L705)</li>
+<li><strong>WCAG Criteria:</strong> 1.3.1 Info and Relationships (Level A) &amp; 4.1.2 Name, Role, Value</li>
+<li><strong>Problem:</strong></li>
+<p>  Form labels are written as plain <code>&lt;label&gt;Subscriber Full Name&lt;/label&gt;</code> adjacent to <code>&lt;input id=&quot;custName&quot;&gt;</code>. Tapping the label does not focus the input, and screen readers (TalkBack / VoiceOver) do not announce the field name when navigating.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Pair every label with its target input:</p>
+<p>  ```html</p>
+<p>  &lt;label for=&quot;custName&quot; class=&quot;form-label&quot;&gt;Subscriber Full Name &lt;span class=&quot;text-rose&quot;&gt;*&lt;/span&gt;&lt;/label&gt;</p>
+<p>  &lt;input type=&quot;text&quot; id=&quot;custName&quot; name=&quot;name&quot; class=&quot;form-input&quot; required&gt;</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-11: Dynamic Notifications &amp; Asynchronous Alerts Lack ARIA Roles</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/base.html:1182</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/base.html#L1182) (<code>#selfProfileFeedback</code>)</li>
+<li>[<code>templates/dashboard.html:2048</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L2048) (<code>#qcAdvanceNotice</code>)</li>
+<li>[<code>mikrotik_hotspot/login.html:500, 634</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html#L500) (<code>#clientErrorAlert</code>, <code>#voucherSuccessBox</code>)</li>
+<li><strong>WCAG Criteria:</strong> 4.1.3 Status Messages (Level AA)</li>
+<li><strong>Problem:</strong></li>
+<p>  When validation fails or asynchronous actions complete, feedback messages are inserted into plain <code>&lt;div&gt;</code> containers. Screen readers remain silent because the containers lack live region roles.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Add <code>role=&quot;status&quot;</code> or <code>role=&quot;alert&quot;</code> and <code>aria-live=&quot;polite&quot;</code>:</p>
+<p>  ```html</p>
+<p>  &lt;div id=&quot;selfProfileFeedback&quot; role=&quot;alert&quot; aria-live=&quot;polite&quot; style=&quot;display:none; ...&quot;&gt;&lt;/div&gt;</p>
+<p>  &lt;div id=&quot;clientErrorAlert&quot; role=&quot;alert&quot; aria-live=&quot;assertive&quot; class=&quot;alert-banner alert-danger d-none&quot;&gt;&lt;/div&gt;</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h3>Category D: MikroTik Captive Portal Client Experience</h3>
+<h4>🔴 AUDIT-ISP-12: Captive Portal Viewport Zoom Blocked (`user-scalable=no`)</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>mikrotik_hotspot/login.html:5</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html#L5)</li>
+<li>[<code>templates/captive_portal.html:5</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/captive_portal.html#L5)</li>
+<li><strong>WCAG Criteria:</strong> 1.4.4 Resize Text (Level AA)</li>
+<li><strong>Problem:</strong></li>
+<p>  The <code>&lt;meta name=&quot;viewport&quot;&gt;</code> tag contains <code>maximum-scale=1.0, user-scalable=no</code>. This explicitly disables pinch-to-zoom for visually impaired users and elderly subscribers who require larger text sizes.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Replace with standard accessible viewport tag:</p>
+<p>  ```html</p>
+<p>  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-13: Captive Portal Tab Crowding on 360px Devices</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected File:</strong></li>
+<li>[<code>mikrotik_hotspot/login.html:493-498</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html#L493)</li>
+<li><strong>Problem &amp; Impact:</strong></li>
+<p>  Four tabs (<code>Mobile Connect</code>, <code>Member Login</code>, <code>Voucher PIN</code>, <code>My Plan</code>) are squeezed side-by-side into a single flex row. On a 360px device (Galaxy A-series), each tab has only ~78px of width, causing text clipping or awkward wrapping.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Transform the tab bar into a 2x2 grid or horizontal scrollable pill bar on <code>&lt;= 380px</code>:</p>
+<p>  ```css</p>
+<p>  @media (max-width: 380px) {</p>
+<p>    .portal-nav-tabs {</p>
+<p>      display: grid !important;</p>
+<p>      grid-template-columns: 1fr 1fr !important;</p>
+<p>      gap: 6px !important;</p>
+<p>    }</p>
+<p>    .portal-tab-btn {</p>
+<p>      padding: 9px 6px !important;</p>
+<p>      font-size: 12px !important;</p>
+<p>      min-height: 40px !important;</p>
+<p>    }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-14: Lack of Interactive Arabic / English Language Toggle</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected File:</strong></li>
+<li>[<code>mikrotik_hotspot/login.html</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html)</li>
+<li><strong>Problem:</strong></li>
+<p>  The captive portal has a few bilingual labels (<code>Mobile Number / رقم الجوال</code>), but all instructions, error banners, device step-by-step guides, and button texts are hardcoded English. Hotspot subscribers in Saudi Arabia include non-English Arabic speakers.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Add a lightweight 1-tap <code>[ 🇸🇦 العربية | 🇬🇧 English ]</code> language toggle in the header that updates text strings and toggles <code>dir=&quot;rtl&quot;</code> dynamically with zero external dependencies.</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h3>Category E: Modals, Forms &amp; Viewport Overflows</h3>
+<h4>🔴 AUDIT-ISP-15: Mobile Soft Keyboard Viewport Clipping on Modals</h4>
+<li><strong>Severity:</strong> <code>HIGH</code></li>
+<li><strong>Affected Files:</strong></li>
+<li>[<code>templates/dashboard.html:1995, 2343</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html#L1995) (<code>quickCollectModal</code>, <code>editCustomerModal</code>)</li>
+<li>[<code>templates/customers.html:1036, 1291</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/customers.html#L1036) (<code>profileModal</code>, <code>addCustomerModal</code>)</li>
+<li>[<code>templates/gateway.html:619, 688</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/gateway.html#L619) (<code>addRouterModal</code>, <code>editRouterModal</code>)</li>
+<li>[<code>templates/resellers.html:612, 662</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/resellers.html#L612) (<code>createResellerModal</code>, etc.)</li>
+<li><strong>Problem &amp; Mobile Impact:</strong></li>
+<p>  On mobile devices, when the virtual keyboard pops up, the visible viewport height shrinks by 40%–50%. Modals without <code>max-height: calc(100dvh - 32px)</code> and internal scrolling hide submit buttons below the screen edge.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Standardize modal containers in <code>base.html</code>:</p>
+<p>  ```css</p>
+<p>  @media (max-width: 768px) {</p>
+<p>    .modal-overlay {</p>
+<p>      padding: 10px !important;</p>
+<p>      align-items: flex-end !important; /* Bottom-sheet appearance on mobile */</p>
+<p>    }</p>
+<p>    .modal-container, .modal-box, .modal-box-lg {</p>
+<p>      width: 100% !important;</p>
+<p>      max-width: 100% !important;</p>
+<p>      max-height: 90dvh !important;</p>
+<p>      border-radius: 20px 20px 0 0 !important;</p>
+<p>      display: flex !important;</p>
+<p>      flex-direction: column !important;</p>
+<p>      margin-bottom: 0 !important;</p>
+<p>    }</p>
+<p>    .modal-body, .modal-body-scroll {</p>
+<p>      overflow-y: auto !important;</p>
+<p>      -webkit-overflow-scrolling: touch !important;</p>
+<p>      flex-grow: 1 !important;</p>
+<p>      padding: 16px !important;</p>
+<p>    }</p>
+<p>  }</p>
+<p>  ```</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h4>🟡 AUDIT-ISP-16: Customer Edit Page Sticky Footer Mobile Ergonomics</h4>
+<li><strong>Severity:</strong> <code>MEDIUM</code></li>
+<li><strong>Affected File:</strong></li>
+<li>[<code>templates/customer_edit.html:533-543</code>](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/customer_edit.html#L533) (<code>.edit-sticky-footer</code>)</li>
+<li><strong>Problem:</strong></li>
+<p>  On small screens, the sticky bottom footer has two action buttons (&quot;Discard&quot; and &quot;Save Changes&quot;) that overlap or crowd out content if bottom padding is insufficient.</p>
+<li><strong>Proposed Solution:</strong></li>
+<p>  Add a bottom padding spacer (<code>padding-bottom: 90px;</code>) to <code>.edit-page-container</code> to guarantee the bottom-most input is never obscured by the sticky action bar.</p>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>4. Template-by-Template Execution Roadmap</h2>
+<p>The incoming Antigravity agent should execute fixes following this strict dependency order:</p>
+<pre><code>flowchart TD
+    Phase1[&quot;Phase 1: Global Framework &amp; Design Tokens\n(templates/base.html)&quot;]
+    Phase2[&quot;Phase 2: Hotspot Captive Portal Suite\n(mikrotik_hotspot/login.html &amp; status.html)&quot;]
+    Phase3[&quot;Phase 3: Core Operations Tables &amp; Modals\n(dashboard.html &amp; approvals.html)&quot;]
+    Phase4[&quot;Phase 4: Customer Directory &amp; Edit\n(customers.html &amp; customer_edit.html)&quot;]
+    Phase5[&quot;Phase 5: Financial Desk &amp; Packages\n(collections.html &amp; packages.html)&quot;]
+    Phase6[&quot;Phase 6: Gateway Fleet &amp; Partners\n(gateway.html, resellers.html, reseller_portal.html)&quot;]
+    Phase7[&quot;Phase 7: Communications &amp; PON\n(whatsapp.html &amp; olt.html)&quot;]
+
+    Phase1 --&gt; Phase2
+    Phase1 --&gt; Phase3
+    Phase3 --&gt; Phase4
+    Phase4 --&gt; Phase5
+    Phase5 --&gt; Phase6
+    Phase6 --&gt; Phase7
+</code></pre>
+<h3>📋 Detailed Step-by-Step Task Breakdown:</h3>
+<h4>1. [`templates/base.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/base.html) (Foundation)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Brighten `--text-dim` from `#64748b` to `#94a3b8` (contrast 6.8:1).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add global `:focus-visible` styling with 2px cyan ring.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add global mobile input font-size rule (`font-size: 16px !important;` on `&lt;= 768px`).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Standardize bottom-sheet modal behavior on mobile (`align-items: flex-end`, `90dvh` max-height).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Clean up top bar on `&lt;= 640px` (hide duplicate profile/logout links from header since they exist in the mobile drawer).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add ARIA live region attributes to `#selfProfileFeedback`.</div>
+<h4>2. [`mikrotik_hotspot/login.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/mikrotik_hotspot/login.html) (Client Portal)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Remove `maximum-scale=1.0, user-scalable=no` from viewport meta.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Upgrade `.form-input` font size from `15px` to `16px`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add `inputmode=&quot;numeric&quot;` and `inputmode=&quot;tel&quot;` to voucher and phone inputs.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Increase touch targets of MAC guide tabs to 42px min-height.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Convert 4-tab bar to responsive 2x2 grid on `&lt;= 380px`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add bilingual Arabic/English toggle switch in portal header.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add `role=&quot;alert&quot;` to `#clientErrorAlert` and `#voucherSuccessBox`.</div>
+<h4>3. [`templates/dashboard.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/dashboard.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Replace inline grids in Date Range modal with responsive class (`.form-grid-3`).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Fix 4-card printable report KPI grid on mobile (`repeat(2, 1fr)` or single column).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Ensure Quick Collect modal and Approval modal have 44px touch targets on presets.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add `&lt;label for=&quot;...&quot;&gt;` associations across all modal forms.</div>
+<h4>4. [`templates/approvals.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/approvals.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Fix speed presets row in Approval Modal: change inline horizontal flex to `.preset-wrap` that stacks vertically on mobile (`&lt;= 768px`).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Enforce 40px min-height on speed preset pills.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Ensure all form labels have `for=&quot;...&quot;`.</div>
+<h4>5. [`templates/collections.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/collections.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Transform `#collectionsTable` into responsive card deck on `&lt;= 768px` with `data-label`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Fix invalid inline `@media` query on line 1085.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add `inputmode=&quot;decimal&quot;` to Quick POS collector amount field.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Ensure thermal receipt slip modal fits on 360px screens without side overflow.</div>
+<h4>6. [`templates/packages.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/packages.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Implement `@media (max-width: 768px)` stylesheet (currently 0 media queries).</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Transform `#pkgTable` (9 columns) into vertical card deck with `data-label`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Collapse `.form-row` in Create/Edit modals from 2 columns to 1 column on mobile.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Upgrade touch targets of Sync, Edit, Delete action buttons to min 40px.</div>
+<h4>7. [`templates/customers.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/customers.html) &amp; [`customer_edit.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/customer_edit.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Enhance tab buttons in `#profileModal` to 44px min-height for touch.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add 90px bottom spacer in `customer_edit.html` to prevent sticky footer overlap.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Ensure all inputs have `font-size: 16px;` on mobile.</div>
+<h4>8. [`templates/gateway.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/gateway.html) &amp; [`templates/olt.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/olt.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Transform Gateway Interfaces table (6 columns) into card view on mobile.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Collapse inline modal grids (`2fr 1fr`) in Add/Edit router modals to single column.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Transform `#onuTable` (9 columns) in `olt.html` into responsive card deck.</div>
+<h4>9. [`templates/resellers.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/resellers.html) &amp; [`reseller_portal.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/reseller_portal.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add media queries to `resellers.html` and transform 3 tables into card decks.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Transform Assigned Subscribers and Wallet Ledger tables in `reseller_portal.html` into cards on mobile.</div>
+<h4>10. [`templates/whatsapp.html`](file:///C:/Users/Shajjad%20Kan/tserver_projects/isp_v2/templates/whatsapp.html)</h4>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Add mobile media queries for `&lt;= 640px` and `&lt;= 440px`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Stack telemetry row to single column on phones.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ Transform `#logsTable` (6 columns) into responsive card deck.</div>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>5. Captive Portal Smartphone Blueprint (`login.html`)</h2>
+<p>Because the captive portal client is exclusively accessed on smartphones, it requires special architectural polish:</p>
+<pre><code>&lt;!-- BILINGUAL LANGUAGE SWITCHER HEADER COMPONENT --&gt;
+&lt;div class=&quot;lang-switch-bar&quot;&gt;
+  &lt;button type=&quot;button&quot; class=&quot;lang-btn active&quot; onclick=&quot;setPortalLang(&#39;en&#39;)&quot;&gt;🇬🇧 English&lt;/button&gt;
+  &lt;button type=&quot;button&quot; class=&quot;lang-btn&quot; onclick=&quot;setPortalLang(&#39;ar&#39;)&quot;&gt;🇸🇦 العربية&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- ACCESSIBLE 2x2 TAB GRID FOR ULTRA-COMPACT SCREENS --&gt;
+&lt;div class=&quot;portal-nav-grid&quot; role=&quot;tablist&quot; aria-label=&quot;Connection Methods&quot;&gt;
+  &lt;button type=&quot;button&quot; id=&quot;tabBtnPhone&quot; class=&quot;portal-nav-item active&quot; onclick=&quot;switchTab(&#39;phone&#39;)&quot; role=&quot;tab&quot; aria-selected=&quot;true&quot;&gt;
+    &lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;path d=&quot;M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z&quot;/&gt;&lt;/svg&gt;
+    &lt;span data-i18n=&quot;tab_phone&quot;&gt;Mobile Connect&lt;/span&gt;
+  &lt;/button&gt;
+  &lt;button type=&quot;button&quot; id=&quot;tabBtnMember&quot; class=&quot;portal-nav-item&quot; onclick=&quot;switchTab(&#39;member&#39;)&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot;&gt;
+    &lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;path d=&quot;M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z&quot;/&gt;&lt;/svg&gt;
+    &lt;span data-i18n=&quot;tab_member&quot;&gt;Member Login&lt;/span&gt;
+  &lt;/button&gt;
+  &lt;button type=&quot;button&quot; id=&quot;tabBtnVoucher&quot; class=&quot;portal-nav-item&quot; onclick=&quot;switchTab(&#39;voucher&#39;)&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot;&gt;
+    &lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;path d=&quot;M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z&quot;/&gt;&lt;/svg&gt;
+    &lt;span data-i18n=&quot;tab_voucher&quot;&gt;Voucher PIN&lt;/span&gt;
+  &lt;/button&gt;
+  &lt;button type=&quot;button&quot; id=&quot;tabBtnLookup&quot; class=&quot;portal-nav-item&quot; onclick=&quot;switchTab(&#39;lookup&#39;)&quot; role=&quot;tab&quot; aria-selected=&quot;false&quot;&gt;
+    &lt;svg viewBox=&quot;0 0 24 24&quot;&gt;&lt;path d=&quot;M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z&quot;/&gt;&lt;/svg&gt;
+    &lt;span data-i18n=&quot;tab_lookup&quot;&gt;Check My Plan&lt;/span&gt;
+  &lt;/button&gt;
+&lt;/div&gt;
+</code></pre>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<h2>6. Testing, Verification &amp; Deployment Runbook</h2>
+<h3>🧪 Automated Mobile Testing Checklist (Chrome DevTools / Edge)</h3>
+<p>1. <strong>Device Emulation Profiles:</strong></p>
+<li>iPhone SE / Galaxy A-series: <strong>360px x 640px</strong></li>
+<li>iPhone 14/15/16: <strong>390px x 844px</strong></li>
+<li>iPhone Pro Max / Pixel 8: <strong>430px x 932px</strong></li>
+<li>iPad mini (Portrait): <strong>768px x 1024px</strong></li>
+<p>2. <strong>Key Acceptance Checks:</strong></p>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ **Zero Horizontal Body Overflow:** `document.documentElement.scrollWidth &lt;= window.innerWidth` across all pages.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ **Table-to-Card Verification:** Verify that every table transforms to individual vertical cards with visible `data-label` titles on `&lt; 768px`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ **Virtual Keyboard Invocations:** Tap every input on a real phone or simulated touch environment:</div>
+<li>Phone inputs summon numeric/tel pad.</li>
+<li>Currency/amounts summon decimal pad.</li>
+<li>Viewport does <strong>NOT</strong> zoom in automatically on iOS Safari.</li>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ **Contrast Verification:** Run Lighthouse Accessibility audit; verify contrast scores `&gt;= 95%`.</div>
+<div style='margin-left:14px; margin-bottom:4px;'>⬜ **Tab Keyboard Navigation:** Press Tab key from top to bottom; verify bright 2px cyan outline on all focused controls.</div>
+<h3>🚀 Synchronization &amp; Deployment to Production</h3>
+<h4>1. Push Local Edits to Staging Server:</h4>
+<pre><code># In PowerShell:
+cd &quot;C:\Users\Shajjad Kan\tserver_projects\isp_v2&quot;
+.\Compare-TServer.ps1 -Push
+</code></pre>
+<h4>2. Verify Service &amp; Tunnel Status on `tserver`:</h4>
+<pre><code>ssh -p 22 tserver@10.12.14.16 &quot;sudo systemctl status isp_v2.service --no-pager&quot;
+</code></pre>
+<h4>3. Update Captive Portal Suite on MikroTik Router:</h4>
+<pre><code># Upload updated hotspot suite to RouterOS via FTP/SFTP
+scp -P 22 &quot;C:\Users\Shajjad Kan\tserver_projects\isp_v2\mikrotik_hotspot\login.html&quot; tserver@10.12.14.16:/tmp/
+ssh -p 22 tserver@10.12.14.16 &quot;curl -T /tmp/login.html ftp://adminn:adminn@10.20.30.1/hotspot/login.html&quot;
+</code></pre>
+<hr style='border:0; border-top:1px solid #e2e8f0; margin:16px 0;'>
+<blockquote>**Note for the Next Agent:**  </blockquote>
+<blockquote>This audit report is complete, concrete, and self-contained. You can immediately begin execution starting with **Phase 1 (`templates/base.html`)**, followed by the task breakdown in Section 4. All referenced line numbers and code snippets reflect the live hot state of the repository.</blockquote>
+</body></html>

@@ -1649,6 +1649,13 @@
               <div style="font-size: 10.5px; color: var(--text-dim); margin-top: 2px;">Tag: <code>[FOOTBALL]</code></div>
             </div>
           </div>
+
+          <!-- PAYMENT ACCOUNTS CONFIGURATION -->
+          <div style="margin-top: 14px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+            <label class="form-label" for="set_payment_accounts" style="color:#38bdf8; font-weight:700;">💳 Payment Accounts / طرق الدفع (Dispatched in Due Reminders &amp; Service Suspensions)</label>
+            <textarea id="set_payment_accounts" class="form-control font-mono" rows="7" style="font-size:12px; resize:vertical; line-height: 1.45;">{{ wa_settings.payment_accounts }}</textarea>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Dynamic tag: <code>[PAYMENT_ACCOUNTS]</code> &bull; Subscribers receive these bank IBAN / STC Pay instructions so they can pay immediately.</div>
+          </div>
         </div>
       </div>
 
@@ -1682,14 +1689,14 @@
           <div id="tabPane_tpl_reminder" class="settings-tpl-pane" style="display:none;">
             <label class="form-label" for="set_tpl_reminder">2. Due &amp; Account Status Reminder Template</label>
             <textarea id="set_tpl_reminder" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_reminder }}</textarea>
-            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[PACKAGE]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[PAYMENT_ACCOUNTS]</code>, <code>[HELPLINE]</code>, <code>[MOVIES]</code>, <code>[FOOTBALL]</code></div>
           </div>
 
           <!-- TAB 3: SERVICE EXPIRY -->
           <div id="tabPane_tpl_expiry" class="settings-tpl-pane" style="display:none;">
             <label class="form-label" for="set_tpl_expiry">3. Expiry &amp; Service Cutoff Alert Template</label>
             <textarea id="set_tpl_expiry" class="form-control font-mono" rows="7" style="font-size:12.5px; resize:vertical; line-height: 1.45;">{{ wa_settings.template_expiry }}</textarea>
-            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[HELPLINE]</code></div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">Dynamic tags: <code>[NAME]</code>, <code>[EXPIRY_DATE]</code>, <code>[DUE_BALANCE]</code>, <code>[PAYMENT_ACCOUNTS]</code>, <code>[HELPLINE]</code></div>
           </div>
 
           <!-- TAB 4: NEW SUBSCRIBER WELCOME -->
@@ -1803,7 +1810,7 @@
 
       <!-- PAIRING INSTRUCTIONS (Shown when QR is needed) -->
       <p id="qrInstructionText" style="font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.5;">
-        Open WhatsApp on test phone <strong style="color:#ffffff;">0597595059</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Linked Devices</strong> &rarr; <strong>Link a Device</strong> &rarr; Scan this QR:
+        Open WhatsApp on your phone &rarr; <strong>Settings</strong> &rarr; <strong>Linked Devices</strong> &rarr; <strong>Link a Device</strong> &rarr; Scan this QR:
       </p>
       
       <!-- QR CONTAINER -->
@@ -2811,17 +2818,17 @@
 
     if (activeBanner) activeBanner.style.display = 'none';
     if (qrContainer) qrContainer.style.display = 'inline-block';
-    loading.innerHTML = '<div style="font-size:24px; margin-bottom:8px;">⏳</div>Restarting session engine...';
+    loading.innerHTML = '<div style="font-size:24px; margin-bottom:8px;">⏳</div>Purging previous session and generating fresh QR code...';
     loading.style.display = 'flex';
     img.style.display = 'none';
 
     try {
-      const res = await fetch('/api/whatsapp/session/restart', { method: 'POST' });
+      const res = await fetch('/api/whatsapp/session/reset', { method: 'POST' });
       const data = await res.json();
-      cyberToast('Session restarted. Fetching fresh QR code...');
-      setTimeout(fetchLiveQr, 2000);
+      cyberToast(data.message || 'Previous session purged. Fetching fresh QR code...');
+      setTimeout(fetchLiveQr, 3000);
     } catch (e) {
-      cyberToast('Error restarting session: ' + e.message);
+      cyberToast('Error resetting session: ' + e.message);
     }
   }
 
@@ -3001,6 +3008,7 @@
       support_phone: document.getElementById('set_support_phone').value.trim(),
       movie_server: document.getElementById('set_movie_server').value.trim(),
       football_server: document.getElementById('set_football_server') ? document.getElementById('set_football_server').value.trim() : '',
+      payment_accounts: document.getElementById('set_payment_accounts') ? document.getElementById('set_payment_accounts').value.trim() : '',
       template_receipt: document.getElementById('set_tpl_receipt').value.trim(),
       template_reminder: document.getElementById('set_tpl_reminder').value.trim(),
       template_expiry: document.getElementById('set_tpl_expiry') ? document.getElementById('set_tpl_expiry').value.trim() : '',

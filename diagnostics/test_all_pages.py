@@ -2,7 +2,10 @@ import sqlite3
 import requests
 import time
 
-conn = sqlite3.connect('/home/tserver/isp_v2/isp_v2.db')
+import os
+
+db_path = '/home/sk/isp_v2/isp_v2.db' if os.path.exists('/home/sk/isp_v2/isp_v2.db') else ('/home/tserver/isp_v2/isp_v2.db' if os.path.exists('/home/tserver/isp_v2/isp_v2.db') else 'isp_v2.db')
+conn = sqlite3.connect(db_path)
 c = conn.cursor()
 c.execute('SELECT session_id FROM admin_sessions WHERE is_active = 1 AND user_id = 1 ORDER BY last_activity DESC LIMIT 1')
 row = c.fetchone()
@@ -26,7 +29,8 @@ pages = [
     '/packages',
     '/resellers',
     '/hotspot',
-    '/portal'
+    '/portal',
+    '/bandwidth'
 ]
 c.execute("SELECT id FROM customers WHERE status = 'active' LIMIT 1")
 cust_row = c.fetchone()
