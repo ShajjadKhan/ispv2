@@ -29,6 +29,109 @@ def get_riyadh_now() -> datetime:
         return datetime.now(RIYADH_TZ)
     return datetime.now()
 
+def calculate_extended_dates(
+    existing_expiry_str: Optional[str],
+    existing_pay_date_str: Optional[str],
+    due_day: Optional[int],
+    months_to_add: int,
+    now_dt: Optional[datetime] = None
+) -> Tuple[str, str, int]:
+    """
+    Calculates the extended expiry_date, pay_date, and due_day for a subscriber.
+    - Base date: if existing expiry_date is in the future (>= today), starts from that future date.
+                 if existing expiry_date is in the past (< today) or missing, starts from today.
+    - Adds months_to_add calendar months, preserving the subscriber's preferred due_day (1-31).
+    - Synchronizes pay_date so it also advances and never remains in the past after a full renewal.
+    """
+    if now_dt is None:
+        now_dt = get_riyadh_now() if RIYADH_TZ else datetime.now()
+    today = now_dt.date()
+
+    base_exp = None
+    if existing_expiry_str:
+        try:
+            base_exp = datetime.strptime(str(existing_expiry_str)[:10], "%Y-%m-%d").date()
+        except Exception:
+            base_exp = None
+
+    if base_exp and base_exp >= today:
+        calc_base = base_exp
+        target_exp_day = base_exp.day
+    else:
+        calc_base = today
+        target_exp_day = due_day if (due_day and 1 <= due_day <= 31) else today.day
+
+    if months_to_add > 0:
+        y = calc_base.year
+        m = calc_base.month + months_to_add
+        while m > 12:
+            m -= 12
+            y += 1
+        while m < 1:
+            m += 12
+            y -= 1
+        dim = calendar.monthrange(y, m)[1]
+        final_day = min(target_exp_day, dim)
+        new_exp_date = date(y, m, final_day)
+    else:
+        new_exp_date = calc_base
+
+    if new_exp_date < today:
+        new_exp_date = today
+
+    new_exp_str = new_exp_date.strftime("%Y-%m-%d")
+    new_due_day = new_exp_date.day
+
+    base_pay = None
+    if existing_pay_date_str:
+        try:
+            base_pay = datetime.strptime(str(existing_pay_date_str)[:10], "%Y-%m-%d").date()
+        except Exception:
+            base_pay = None
+
+    if base_pay and base_pay >= today and months_to_add > 0:
+        py = base_pay.year
+        pm = base_pay.month + months_to_add
+        while pm > 12:
+            pm -= 12
+            py += 1
+        while pm < 1:
+            pm += 12
+            py -= 1
+        p_dim = calendar.monthrange(py, pm)[1]
+        p_day = min(base_pay.day, p_dim)
+        new_pay_date = date(py, pm, p_day)
+    elif months_to_add > 0:
+        if base_pay:
+            py = today.year
+            pm = today.month + months_to_add
+            while pm > 12:
+                pm -= 12
+                py += 1
+            p_dim = calendar.monthrange(py, pm)[1]
+            p_day = min(base_pay.day, p_dim)
+            new_pay_date = date(py, pm, p_day)
+        elif due_day and 1 <= due_day <= 31:
+            py = calc_base.year
+            pm = calc_base.month + months_to_add
+            while pm > 12:
+                pm -= 12
+                py += 1
+            p_dim = calendar.monthrange(py, pm)[1]
+            p_day = min(due_day, p_dim)
+            new_pay_date = date(py, pm, p_day)
+        else:
+            new_pay_date = new_exp_date
+    else:
+        new_pay_date = base_pay if (base_pay and base_pay >= today) else new_exp_date
+
+    if months_to_add > 0 and new_pay_date < today:
+        new_pay_date = new_exp_date
+
+    new_pay_str = new_pay_date.strftime("%Y-%m-%d")
+
+    return new_exp_str, new_pay_str, new_due_day
+
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isp_v2.db")
 DB_PATH = os.getenv("DB_PATH", DEFAULT_DB_PATH)
 
@@ -2747,7 +2850,7 @@ def record_customer_payment(
     with get_db() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("SELECT expiry_date, due_date, billing_type, monthly_fee, credit_balance FROM customers WHERE id = ?", (customer_id,))
+        cursor.execute("SELECT expiry_date, due_date, pay_date, due_day, billing_type, monthly_fee, credit_balance FROM customers WHERE id = ?", (customer_id,))
         cust_row = cursor.fetchone()
         if not cust_row:
             raise ValueError(f"Customer #{customer_id} not found.")
@@ -2817,53 +2920,40 @@ def record_customer_payment(
         else:
             new_credit = rt_bal["balance"]
 
-        # 3. Update customer expiry / due date & credit_balance & billing_type
-        current_exp = cust["expiry_date"] or cust["due_date"]
-        try:
-            base_dt = datetime.strptime(current_exp, "%Y-%m-%d")
-            # If previous expiry is already in future and user is just paying regular bill, do not stack 60+ days
-            if base_dt.date() > (now.date() + timedelta(days=35)) and clean_amt <= monthly_fee:
-                calc_base = base_dt
-                actual_days = 0
-            elif base_dt.date() < now.date():
-                calc_base = now
+        # 3. Update customer expiry / due date / pay_date & credit_balance & billing_type
+        if monthly_fee > 0:
+            if clean_amt >= monthly_fee:
+                covered_months = int(clean_amt // monthly_fee)
+            elif current_credit > 0 and (current_credit + clean_amt) >= monthly_fee:
+                covered_months = int((current_credit + clean_amt) // monthly_fee)
             else:
-                calc_base = base_dt
-        except Exception:
-            calc_base = now
-
-        if actual_days > 0:
-            new_expiry = (calc_base + timedelta(days=actual_days)).strftime("%Y-%m-%d")
+                covered_months = 0
         else:
-            new_expiry = current_exp or now.strftime("%Y-%m-%d")
+            covered_months = int(extend_days or 30) // 30 if extend_days else 1
 
-        # Invariant: Expiry date must NEVER move backwards! It must remain consistent with admin setting.
-        if clean_amt > 0:
-            existing_admin_date = str(cust.get("expiry_date") or cust.get("due_date") or "")[:10]
-            cur_month_end = f"{now.year:04d}-{now.month:02d}-{calendar.monthrange(now.year, now.month)[1]:02d}"
-            valid_candidates = [d for d in [new_expiry, existing_admin_date, cur_month_end] if d and len(d) == 10 and d[4] == '-' and d[7] == '-']
-            new_expiry = max(valid_candidates) if valid_candidates else cur_month_end
-
-        try:
-            new_due_day = int(new_expiry.split("-")[2])
-        except Exception:
-            new_due_day = 1
+        new_expiry, new_pay_date, new_due_day = calculate_extended_dates(
+            existing_expiry_str=cust.get("expiry_date") or cust.get("due_date"),
+            existing_pay_date_str=cust.get("pay_date"),
+            due_day=cust.get("due_day"),
+            months_to_add=covered_months,
+            now_dt=now
+        )
 
         if clean_amt > 0:
             cursor.execute("""
                 UPDATE customers
-                SET expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?,
+                SET expiry_date = ?, due_date = ?, pay_date = ?, due_day = ?, credit_balance = ?,
                     collected_today = COALESCE(collected_today, 0.0) + ?,
                     billing_type = ?, status = 'active', updated_at = ?
                 WHERE id = ?
-            """, (new_expiry, new_expiry, new_due_day, new_credit, clean_amt, new_billing_type, now_str, customer_id))
+            """, (new_expiry, new_expiry, new_pay_date, new_due_day, new_credit, clean_amt, new_billing_type, now_str, customer_id))
         else:
             cursor.execute("""
                 UPDATE customers
-                SET expiry_date = ?, due_date = ?, due_day = ?, credit_balance = ?,
+                SET expiry_date = ?, due_date = ?, pay_date = ?, due_day = ?, credit_balance = ?,
                     billing_type = ?, status = 'active', updated_at = ?
                 WHERE id = ?
-            """, (new_expiry, new_expiry, new_due_day, new_credit, new_billing_type, now_str, customer_id))
+            """, (new_expiry, new_expiry, new_pay_date, new_due_day, new_credit, new_billing_type, now_str, customer_id))
 
         # Unblock any suspended customer devices
         cursor.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
@@ -7724,60 +7814,24 @@ def smart_collect_customer_payment(
         single_col_id = cur.lastrowid
         collection_ids = [single_col_id]
 
-        # 4. Compute new expiry/due date
-        new_exp = None
-        new_due_day = None
-        if settled_cycles:
-            last_settled = sorted(settled_cycles)[-1]
-            try:
-                ly, lm = int(last_settled[:4]), int(last_settled[5:7])
-                nm = lm + 1
-                ny = ly
-                if nm > 12:
-                    nm = 1
-                    ny += 1
-                dim = calendar.monthrange(ny, nm)[1]
+        # 4. Compute new expiry/due date & pay_date using month-aligned extension
+        current_credit = float(cust.get("credit_balance") or 0.0)
+        months_to_extend = 0
+        if monthly_fee > 0:
+            if clean_amt >= monthly_fee:
+                months_to_extend = int(clean_amt // monthly_fee)
+            elif current_credit > 0 and (current_credit + clean_amt) >= monthly_fee:
+                months_to_extend = int((current_credit + clean_amt) // monthly_fee)
+        else:
+            months_to_extend = 1
 
-                old_due_date = cust.get("due_date") or cust.get("expiry_date")
-                if old_due_date:
-                    orig_day = int(str(old_due_date).split("-")[2])
-                elif cust.get("join_date"):
-                    orig_day = int(str(cust["join_date"]).split("-")[2])
-                elif cust.get("billing_start_date"):
-                    orig_day = int(str(cust["billing_start_date"]).split("-")[2])
-                else:
-                    orig_day = int(cust.get("due_day") or 1)
-
-                new_due_day = min(orig_day, dim)
-                new_exp = f"{ny:04d}-{nm:02d}-{new_due_day:02d}"
-            except Exception:
-                new_exp = (now + timedelta(days=30)).strftime("%Y-%m-%d")
-                new_due_day = 1
-        elif clean_amt >= monthly_fee:
-            days_to_add = int(clean_amt // monthly_fee) * 30
-            current_exp = cust.get("expiry_date") or cust.get("due_date")
-            try:
-                base_dt = datetime.strptime(str(current_exp)[:10], "%Y-%m-%d")
-                calc_base = max(base_dt, now)
-            except Exception:
-                calc_base = now
-            new_exp = (calc_base + timedelta(days=days_to_add)).strftime("%Y-%m-%d")
-            try:
-                new_due_day = int(new_exp.split("-")[2])
-            except Exception:
-                new_due_day = 1
-
-        # Invariant: Whenever payment is collected, the customer has paid towards their subscription!
-        # The expiry date must NEVER be in the past. It must at minimum cover through the current month.
-        if clean_amt > 0:
-            cur_month_end = f"{now.year:04d}-{now.month:02d}-{calendar.monthrange(now.year, now.month)[1]:02d}"
-            existing_exp = str(cust.get("expiry_date") or cust.get("due_date") or "")[:10]
-            valid_candidates = [d for d in [new_exp, existing_exp, cur_month_end] if d and len(d) == 10 and d[4] == '-' and d[7] == '-']
-            new_exp = max(valid_candidates) if valid_candidates else cur_month_end
-            try:
-                new_due_day = int(new_exp.split("-")[2])
-            except Exception:
-                new_due_day = 1
+        new_exp, new_pay_date, new_due_day = calculate_extended_dates(
+            existing_expiry_str=cust.get("expiry_date") or cust.get("due_date"),
+            existing_pay_date_str=cust.get("pay_date"),
+            due_day=cust.get("due_day"),
+            months_to_add=months_to_extend,
+            now_dt=now
+        )
 
         # 5. Device unblocking & Suspension clearing
         cur.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer_id,))
@@ -7800,13 +7854,13 @@ def smart_collect_customer_payment(
         if new_exp:
             cur.execute("""
                 UPDATE customers
-                SET status = 'active', expiry_date = ?, due_date = ?, due_day = ?,
+                SET status = 'active', expiry_date = ?, due_date = ?, pay_date = ?, due_day = ?,
                     credit_balance = ?,
                     collected_today = COALESCE(collected_today, 0.0) + ?,
                     suspension_held_until = NULL, suspension_hold_reason = NULL,
                     updated_at = ?
                 WHERE id = ?
-            """, (new_exp, new_exp, new_due_day, new_credit, clean_amt, now_str, customer_id))
+            """, (new_exp, new_exp, new_pay_date, new_due_day, new_credit, clean_amt, now_str, customer_id))
         else:
             cur.execute("""
                 UPDATE customers
@@ -7849,6 +7903,7 @@ def smart_collect_customer_payment(
         "partial_cycles": partial_cycles,
         "new_credit_balance": new_credit,
         "new_expiry_date": new_exp or cust.get("expiry_date"),
+        "new_pay_date": new_pay_date or cust.get("pay_date"),
         "collection_id": collection_ids[0] if collection_ids else None,
         "collection_ids": collection_ids,
         "message": msg
