@@ -877,9 +877,13 @@
         <span class="label">Delivered Successfully</span>
         <span class="value text-emerald">{{ stats.sent_count }} Delivered</span>
       </div>
+      <div class="tele-box" style="cursor: pointer;" onclick="window.location.href='/whatsapp?filter=held_night'" title="Click to view held messages waiting for morning distribution">
+        <span class="label">⏸️ Held by Time Shield</span>
+        <span class="value" style="color: #f59e0b;">{{ stats.held_count or 0 }} Held</span>
+      </div>
       <div class="tele-box" style="cursor: pointer;" onclick="switchWaTopic('settings')" title="Click to configure night quiet shield">
         <span class="label">Protected by Night Shield</span>
-        <span class="value" style="color: #fbbf24;">{{ stats.blocked_count }} Blocked</span>
+        <span class="value" style="color: #fbbf24;">{{ stats.blocked_count }} Guarded</span>
       </div>
       <div class="tele-box" style="cursor: pointer;" onclick="switchWaTopic('queue')" title="Click to view pending queue subscribers">
         <span class="label">Subscribers Due for Notice</span>
@@ -972,20 +976,22 @@
           <div style="font-size: 13.5px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 8px;">
             <span>NIGHT QUIET HOURS SHIELD ACTIVE</span>
             <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
+            <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">🇸🇦 RIYADH TIME</span>
           </div>
           <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-            Customer sleep protection active. Outbound jobs pause safely and automatically catch up when morning window opens ({{ wa_settings.quiet_hours_end or '09:00' }} AM).
+            Customer sleep protection active. Outbound notices are placed on <strong>HOLD</strong> and will automatically distribute outside of quiet hours when the morning window opens ({{ wa_settings.quiet_hours_end or '11:00' }} AM).
           </div>
         </div>
         {% else %}
         <span style="font-size: 24px;">☀️</span>
         <div>
           <div style="font-size: 13.5px; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 8px;">
-            <span>DAYTIME NOTIFICATION WINDOW ACTIVE</span>
+            <span>DAYTIME SAFE NOTIFICATION WINDOW ACTIVE</span>
             <span class="font-mono text-dim" style="font-size: 11px;">({{ quiet_desc }})</span>
+            <span style="background: rgba(52, 211, 153, 0.2); color: #34d399; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">🇸🇦 RIYADH TIME</span>
           </div>
           <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-            Safe sending hours. Due notices and payment receipts can be dispatched courteously to customers.
+            Safe sending hours. Due notices and payment receipts are delivered courteously to customers. Any messages held from overnight will distribute automatically.
           </div>
         </div>
         {% endif %}
@@ -1005,6 +1011,31 @@
         </button>
       </div>
     </div>
+
+    <!-- HELD MESSAGES PROMPT BANNER (IF ANY ARE ON HOLD) -->
+    {% if stats.held_count and stats.held_count > 0 %}
+    <div class="night-shield-card" style="margin-top: 8px; border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.1);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 22px;">⏸️</span>
+        <div>
+          <div style="font-size: 13.5px; font-weight: 800; color: #fbbf24;">
+            {{ stats.held_count }} MESSAGE(S) ON HOLD BY TIME SHIELD
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            These messages were triggered during quiet hours and safely held. They will automatically distribute when daytime opens at {{ wa_settings.quiet_hours_end or '11:00' }} AM, or you can release them immediately.
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <a href="/whatsapp?filter=held_night" class="btn-simulate" style="font-size: 11px; padding: 5px 12px;">
+          View Held Messages
+        </a>
+        <button type="button" class="btn-primary" style="background: linear-gradient(135deg, #d97706, #f59e0b); font-size: 11px; padding: 5px 12px;" onclick="releaseHeldMessagesNow()">
+          ⚡ Release All Now
+        </button>
+      </div>
+    </div>
+    {% endif %}
 
 
 
@@ -1397,6 +1428,9 @@
       <a href="/whatsapp?filter=sent" class="chip-btn {% if current_filter == 'sent' %}active{% endif %}">
         <span style="color:#34d399;">●</span> Delivered ({{ stats.sent_count }})
       </a>
+      <a href="/whatsapp?filter=held_night" class="chip-btn {% if current_filter == 'held_night' %}active{% endif %}">
+        <span style="color:#f59e0b;">⏸️</span> Held (Time Shield) ({{ stats.held_count or 0 }})
+      </a>
       <a href="/whatsapp?filter=blocked_night" class="chip-btn {% if current_filter == 'blocked_night' %}active{% endif %}">
         <span style="color:#fbbf24;">●</span> Blocked by Shield ({{ stats.blocked_count }})
       </a>
@@ -1462,10 +1496,14 @@
               <td data-label="Status">
                 {% if l.status == 'sent' %}
                   <span class="badge-status running" style="font-size: 10px;">DELIVERED ✅</span>
+                {% elif l.status == 'held_night' %}
+                  <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; background:rgba(245,158,11,0.25); color:#fbbf24; border: 1px solid rgba(245,158,11,0.4);">HELD (SHIELD) ⏸️</span>
                 {% elif l.status == 'blocked_night' %}
                   <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; background:rgba(245,158,11,0.15); color:#fbbf24;">BLOCKED (NIGHT) 🌙</span>
                 {% elif l.status == 'simulated' %}
                   <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; background:rgba(56,189,248,0.15); color:#38bdf8;">SIMULATED 🛡️</span>
+                {% elif l.status == 'cancelled' %}
+                  <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; background:rgba(148,163,184,0.15); color:#94a3b8;">CANCELLED 🚫</span>
                 {% else %}
                   <span class="badge-status stopped" style="font-size: 10px;">FAILED ❌</span>
                 {% endif %}
@@ -1474,6 +1512,14 @@
                 <button type="button" class="btn-simulate" style="font-size: 10.5px; padding: 3px 8px;" onclick="viewFullMessage({{ l.id }}, '{{ l.phone }}', '{{ l.display_name }}', '{{ l.created_at }}', '{{ l.status }}')">
                   View Text
                 </button>
+                {% if l.status == 'held_night' %}
+                <button type="button" class="btn-primary" style="font-size: 10px; padding: 3px 8px; background: linear-gradient(135deg, #d97706, #f59e0b); margin-left: 4px;" onclick="releaseSingleHeldMessage({{ l.id }})" title="Release and send this held message now">
+                  ⚡ Send Now
+                </button>
+                <button type="button" class="btn-danger" style="font-size: 10px; padding: 3px 8px; margin-left: 2px;" onclick="cancelSingleHeldMessage({{ l.id }})" title="Cancel this message so it will not send">
+                  ❌ Cancel
+                </button>
+                {% endif %}
                 <textarea id="logText_{{ l.id }}" style="display:none;">{{ l.message_body }}</textarea>
               </td>
             </tr>
@@ -2390,6 +2436,8 @@
       if (data && data.success) {
         if (simulate) {
           cyberToast('🛡️ Simulation Success: Message preview logged into audit ledger. No actual network dispatch made.');
+        } else if (data.status === 'held_night') {
+          cyberToast(data.message || '⏸️ Message placed on HOLD by Time Shield. Will distribute automatically when daytime opens.', 'warning');
         } else {
           cyberToast('✅ WhatsApp message dispatched successfully!');
         }
@@ -2609,12 +2657,15 @@
     const pacingSeconds = parseInt(document.getElementById('batchPacing').value, 10) || 5;
     const templateKey = document.getElementById('batchTemplate').value || 'reminder';
 
+    let batchForceNight = true;
     if (IS_NIGHT && !simulate) {
       const confirmNight = await cyberConfirm(
-        "Night Quiet Hours Shield is ACTIVE (10:00 PM - 09:00 AM).\n\nDispatching notifications during sleeping hours may disturb customers.\n\nAre you sure you want to proceed?",
-        { title: 'Night Hours Alert', okText: 'Proceed Anyway', danger: true }
+        "🌙 NIGHT QUIET HOURS SHIELD ACTIVE:\n\n" +
+        "It is currently night quiet hours (" + (document.querySelector('.night-shield-card .font-mono')?.textContent || 'Night Shield') + ").\n\n" +
+        "Would you like to place these " + queue.length + " subscriber notice(s) on HOLD so they automatically distribute when safe morning hours open at {{ wa_settings.quiet_hours_end or '11:00' }} AM?",
+        { title: 'Time Shield Batch Protection', okText: 'Hold for Morning (Recommended)', cancelText: 'Send Immediately Anyway', danger: false }
       );
-      if (!confirmNight) return;
+      batchForceNight = !confirmNight;
     }
 
     // Filter queue
@@ -2693,7 +2744,7 @@
             message: msg,
             message_type: templateKey,
             customer_id: sub.id,
-            force_night: true,
+            force_night: batchForceNight,
             simulate: simulate
           })
         });
@@ -2705,6 +2756,9 @@
           if (data.status === 'simulated') {
             sentCount++;
             logBatchTerminal(`  ↳ 🛡️ Simulated & logged to outbox ledger.`);
+          } else if (data.status === 'held_night') {
+            sentCount++;
+            logBatchTerminal(`  ↳ ⏸️ Placed on HOLD by Time Shield (scheduled for daytime distribution).`);
           } else {
             sentCount++;
             logBatchTerminal(`  ↳ ✅ Dispatched to WhatsApp successfully!`);
@@ -2908,6 +2962,70 @@
 
   function closeViewMessageModal() {
     document.getElementById('viewMessageModal').classList.remove('open');
+  }
+
+  // =========================================================================
+  // TIME SHIELD HELD MESSAGES MANAGEMENT
+  // =========================================================================
+  async function releaseHeldMessagesNow() {
+    const ok = await cyberConfirm(
+      "⚡ RELEASE ALL HELD MESSAGES:\n\n" +
+      "Are you sure you want to release all held messages right now?\n\n" +
+      "They will be dispatched immediately with safe anti-ban pacing (3.5s delay).",
+      { title: 'Release Held Messages', okText: 'Release Now', danger: false }
+    );
+    if (!ok) return;
+
+    try {
+      cyberToast('⏳ Starting distribution of held messages...', 'info');
+      const res = await fetch('/api/whatsapp/held/release-now', { method: 'POST' });
+      const data = await res.json();
+      if (data && data.success) {
+        cyberToast('✅ ' + data.message, 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        cyberToast('Failed to release messages: ' + (data.error || 'Server error'), 'error');
+      }
+    } catch (e) {
+      cyberToast('Error releasing held messages: ' + e.message, 'error');
+    }
+  }
+
+  async function releaseSingleHeldMessage(logId) {
+    try {
+      cyberToast('⏳ Dispatching message #' + logId + '...', 'info');
+      const res = await fetch('/api/whatsapp/held/' + logId + '/send-now', { method: 'POST' });
+      const data = await res.json();
+      if (data && data.success) {
+        cyberToast('✅ ' + data.message, 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        cyberToast('Error: ' + (data.error || 'Could not send message'), 'error');
+      }
+    } catch (e) {
+      cyberToast('Network error: ' + e.message, 'error');
+    }
+  }
+
+  async function cancelSingleHeldMessage(logId) {
+    const ok = await cyberConfirm(
+      "❌ Cancel this held message?\n\nIt will be permanently marked cancelled and will NOT be sent to the subscriber.",
+      { title: 'Cancel Message', okText: 'Cancel Message', danger: true }
+    );
+    if (!ok) return;
+
+    try {
+      const res = await fetch('/api/whatsapp/held/' + logId + '/cancel', { method: 'POST' });
+      const data = await res.json();
+      if (data && data.success) {
+        cyberToast('🚫 ' + data.message, 'info');
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        cyberToast('Error: ' + (data.error || 'Could not cancel message'), 'error');
+      }
+    } catch (e) {
+      cyberToast('Network error: ' + e.message, 'error');
+    }
   }
 
   // Settings Modal / Pane Navigation

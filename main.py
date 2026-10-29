@@ -494,7 +494,7 @@ async def whatsapp_auto_dispatch_loop():
             if wa_settings.get("auto_dispatch_enabled") != "1":
                 continue
 
-            now = datetime.now()
+            now = whatsapp_service.get_riyadh_now()
             today_str = now.strftime("%Y-%m-%d")
 
             # Check if already completed today
@@ -502,9 +502,9 @@ async def whatsapp_auto_dispatch_loop():
             if last_run == today_str:
                 continue
 
-            # Check scheduled hour (e.g. "12:00") and quiet hours boundary
+            # Check scheduled hour (e.g. "12:00") and quiet hours boundary (Riyadh Time)
             sched_time = wa_settings.get("auto_dispatch_time", "12:00")
-            quiet_end = wa_settings.get("quiet_hours_end", "09:00")
+            quiet_end = wa_settings.get("quiet_hours_end", "11:00")
             current_time = now.strftime("%H:%M")
 
             # Quiet hours shield protection
@@ -615,6 +615,72 @@ async def whatsapp_auto_dispatch_loop():
             await asyncio.sleep(60)
 
 
+async def _distribute_held_batch(messages: List[Dict[str, Any]], source: str = "auto_worker"):
+    """Internal helper to dispatch a batch of held messages sequentially with anti-ban pacing."""
+    logger.info(f"[Time Shield Distributor] Starting batch dispatch of {len(messages)} held messages (source: {source})...")
+    for m in messages:
+        log_id = m.get("id")
+        phone = m.get("phone")
+        body = m.get("message_body")
+
+        clean_p = whatsapp_service.format_phone(phone)
+        if not clean_p or not body:
+            database.update_whatsapp_log_status(log_id, "failed", "Invalid phone or missing message body")
+            continue
+
+        await asyncio.sleep(3.5)  # Anti-ban human pacing
+        try:
+            ok, err = await asyncio.to_thread(whatsapp_service.send_whatsapp_raw, clean_p, body)
+            if not ok and "SANDBOX SHIELD" in str(err):
+                status_str = "blocked_sandbox"
+            else:
+                status_str = "sent" if ok else "failed"
+
+            now_str = whatsapp_service.get_riyadh_now().strftime("%Y-%m-%d %H:%M")
+            audit_note = f"Distributed outside quiet hours at {now_str}. " + (str(err) if err else "Delivered successfully.")
+            database.update_whatsapp_log_status(log_id, status_str, audit_note)
+            logger.info(f"[Time Shield Distributor] Distributed message #{log_id} to {clean_p} -> {status_str}")
+        except Exception as ex:
+            logger.error(f"[Time Shield Distributor] Error distributing message #{log_id}: {ex}")
+            database.update_whatsapp_log_status(log_id, "failed", f"Distribution exception: {ex}")
+
+
+async def whatsapp_held_distributor_loop():
+    """
+    Background worker that monitors the WhatsApp Time Shield held messages queue.
+    When daytime safe sending window opens (not is_night), it automatically and smoothly
+    distributes any messages that were placed on hold during night quiet hours.
+    """
+    logger.info("Background WhatsApp Time Shield Held Message Distributor initialized.")
+    while True:
+        try:
+            await asyncio.sleep(25)
+            wa_settings = database.get_whatsapp_settings()
+            quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+            is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+                wa_settings.get("quiet_hours_start", "22:00"),
+                wa_settings.get("quiet_hours_end", "11:00")
+            )
+
+            # Hold messages while quiet hours are active
+            if quiet_enabled and is_night:
+                continue
+
+            # Safe daytime window is active! Check for held messages
+            held_messages = database.get_held_whatsapp_messages()
+            if not held_messages:
+                continue
+
+            logger.info(f"[Time Shield Distributor] Safe window active ({quiet_desc}). Processing {len(held_messages)} held message(s)...")
+            await _distribute_held_batch(held_messages, source="auto_worker")
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in whatsapp_held_distributor_loop: {e}")
+            await asyncio.sleep(10)
+
+
 async def olt_telemetry_poller_loop():
     """Periodically queries physical OLT hardware to keep telemetry completely up to date."""
     await asyncio.sleep(12)
@@ -683,6 +749,8 @@ async def startup_event():
     asyncio.create_task(expiration_enforcement_loop())
     # Automated WhatsApp Billing Reminder Scheduled Loop
     asyncio.create_task(whatsapp_auto_dispatch_loop())
+    # WhatsApp Time Shield Held Messages Auto-Distributor Loop
+    asyncio.create_task(whatsapp_held_distributor_loop())
     # Live Physical OLT Hardware Telemetry Background Poller
     asyncio.create_task(olt_telemetry_poller_loop())
     # Automated Wallet Daily Accrual Synchronizer
@@ -784,6 +852,31 @@ def dispatch_payment_receipt_whatsapp(
             credit_balance=credit_bal
         )
 
+        # Time Shield Protection: Put on hold if collected during quiet hours
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "11:00")
+        )
+        if quiet_enabled and is_night:
+            log_id = database.log_whatsapp_message(
+                phone=clean_phone,
+                message_body=msg,
+                message_type="receipt",
+                status="held_night",
+                error_message=f"Receipt held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
+                customer_id=customer_id,
+                customer_name=cust.get("name"),
+                sent_by=f"collector_{collector}"
+            )
+            return {
+                "sent": False,
+                "status": "held_night",
+                "log_id": log_id,
+                "message": f"Payment recorded. WhatsApp receipt held by Time Shield until daytime opens ({quiet_desc}).",
+                "phone": clean_phone
+            }
+
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
             status_str = "blocked_sandbox"
@@ -859,6 +952,31 @@ def dispatch_welcome_notice_whatsapp(
 
         if (connection_type in ("pppoe", "both") or pppoe_user) and pppoe_user:
             msg += f"\n\n🔑 *PPPoE Credentials:*\n• User: `{pppoe_user}`\n• Pass: `{pppoe_pass or 'cyber123'}`"
+
+        # Time Shield Protection: Put on hold if approved during quiet hours
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "11:00")
+        )
+        if quiet_enabled and is_night:
+            log_id = database.log_whatsapp_message(
+                phone=clean_phone,
+                message_body=msg,
+                message_type="welcome",
+                status="held_night",
+                error_message=f"Welcome notice held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
+                customer_id=customer.get("id"),
+                customer_name=customer.get("name"),
+                sent_by="system_approval"
+            )
+            return {
+                "sent": False,
+                "status": "held_night",
+                "log_id": log_id,
+                "message": f"Welcome notice held by Time Shield until daytime opens ({quiet_desc}).",
+                "phone": clean_phone
+            }
 
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
@@ -945,6 +1063,31 @@ def dispatch_suspension_notice_whatsapp(
             football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
             payment_accounts=wa_settings.get("payment_accounts", "")
         )
+
+        # Time Shield Protection: Put on hold if suspended during quiet hours
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "11:00")
+        )
+        if quiet_enabled and is_night:
+            log_id = database.log_whatsapp_message(
+                phone=clean_phone,
+                message_body=msg,
+                message_type="expiry",
+                status="held_night",
+                error_message=f"Suspension notice held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
+                customer_id=customer_id,
+                customer_name=cust.get("name"),
+                sent_by="system_suspension"
+            )
+            return {
+                "sent": False,
+                "status": "held_night",
+                "log_id": log_id,
+                "message": f"Suspension notice held by Time Shield until daytime opens ({quiet_desc}).",
+                "phone": clean_phone
+            }
 
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
@@ -5546,9 +5689,10 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
     wa_settings = database.get_whatsapp_settings()
     is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
         wa_settings.get("quiet_hours_start", "22:00"),
-        wa_settings.get("quiet_hours_end", "09:00")
+        wa_settings.get("quiet_hours_end", "11:00")
     )
     logs = database.get_whatsapp_logs(limit=100, status_filter=filter, search=search)
+    held_messages = database.get_held_whatsapp_messages()
     due_customers = database.get_due_customers_for_whatsapp()
     all_customers = database.get_customers()
 
@@ -5556,11 +5700,15 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
     stats = {
         "total_logs": len(logs),
         "sent_count": sum(1 for l in logs if l.get("status") == "sent"),
-        "blocked_count": sum(1 for l in logs if l.get("status") == "blocked_night"),
+        "blocked_count": sum(1 for l in logs if l.get("status") in ("blocked_night", "blocked_sandbox")),
+        "held_count": len(held_messages),
         "failed_count": sum(1 for l in logs if l.get("status") == "failed"),
         "simulated_count": sum(1 for l in logs if l.get("status") == "simulated"),
         "due_count": len(due_customers)
     }
+
+    riyadh_now = whatsapp_service.get_riyadh_now()
+    riyadh_now_str = riyadh_now.strftime("%I:%M %p")
 
     return templates.TemplateResponse(
         request=request,
@@ -5573,7 +5721,9 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
             "wa_settings": wa_settings,
             "is_night": is_night,
             "quiet_desc": quiet_desc,
+            "riyadh_now_str": riyadh_now_str,
             "logs": logs,
+            "held_messages": held_messages,
             "current_filter": filter,
             "search": search,
             "due_customers": due_customers,
@@ -5618,6 +5768,42 @@ async def api_whatsapp_session_reset():
     return JSONResponse(res)
 
 
+@app.post("/api/whatsapp/held/release-now")
+async def api_whatsapp_held_release_now():
+    """Manually releases and distributes all messages currently on hold by Time Shield."""
+    held = database.get_held_whatsapp_messages()
+    if not held:
+        return JSONResponse({"success": True, "count": 0, "message": "No messages currently on hold."})
+
+    asyncio.create_task(_distribute_held_batch(held, source="admin_release_all"))
+    return JSONResponse({
+        "success": True,
+        "count": len(held),
+        "message": f"Triggered immediate distribution for {len(held)} held message(s)."
+    })
+
+
+@app.post("/api/whatsapp/held/{log_id}/send-now")
+async def api_whatsapp_held_send_one(log_id: int):
+    """Manually releases and dispatches a single held message immediately."""
+    held = database.get_held_whatsapp_messages()
+    target = next((m for m in held if m.get("id") == log_id), None)
+    if not target:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Held message not found or already processed."})
+
+    asyncio.create_task(_distribute_held_batch([target], source=f"admin_single_{log_id}"))
+    return JSONResponse({"success": True, "message": f"Held message #{log_id} is being dispatched now."})
+
+
+@app.post("/api/whatsapp/held/{log_id}/cancel")
+async def api_whatsapp_held_cancel_one(log_id: int):
+    """Cancels a held message before it distributes."""
+    ok = database.cancel_held_whatsapp_message(log_id)
+    if ok:
+        return JSONResponse({"success": True, "message": f"Held message #{log_id} was cancelled."})
+    return JSONResponse(status_code=404, content={"success": False, "error": "Could not cancel held message."})
+
+
 @app.post("/api/whatsapp/send")
 async def api_whatsapp_send(req: WhatsAppSendRequest):
     """
@@ -5634,7 +5820,7 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
         quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
         is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
             wa_settings.get("quiet_hours_start", "22:00"),
-            wa_settings.get("quiet_hours_end", "09:00")
+            wa_settings.get("quiet_hours_end", "11:00")
         )
 
         # Resolve customer name if customer_id supplied
@@ -5647,22 +5833,25 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
             except Exception as e:
                 logger.warning(f"Failed to resolve customer name for id {req.customer_id}: {e}")
 
-        # Safety Guard: Night Quiet Hours protection
+        # Safety Guard: Night Quiet Hours protection -> Place on HOLD instead of failing
         if quiet_enabled and is_night and not req.force_night and not req.simulate:
-            database.log_whatsapp_message(
+            quiet_end = wa_settings.get("quiet_hours_end", "11:00")
+            log_id = database.log_whatsapp_message(
                 phone=clean_p,
                 message_body=req.message,
                 message_type=req.message_type or "manual",
-                status="blocked_night",
-                error_message=f"Dispatch blocked by Night Quiet Hours shield ({quiet_desc})",
+                status="held_night",
+                error_message=f"Placed on HOLD by Night Quiet Hours shield ({quiet_desc}). Scheduled to distribute automatically when daytime opens at {quiet_end}.",
                 customer_id=req.customer_id,
                 customer_name=resolved_name,
                 sent_by="admin"
             )
-            return JSONResponse(status_code=403, content={
-                "success": False,
-                "status": "blocked_night",
-                "error": f"Night Quiet Hours Shield is ACTIVE: {quiet_desc}. Enable 'Confirm Night Send' if this is an authorized emergency."
+            return JSONResponse(status_code=200, content={
+                "success": True,
+                "status": "held_night",
+                "log_id": log_id,
+                "phone": clean_p,
+                "message": f"🌙 Night Quiet Hours Shield is ACTIVE ({quiet_desc}). Message placed on HOLD. It will automatically distribute when daytime opens at {quiet_end} (or check 'Emergency Night Send' to bypass)."
             })
 
         # Simulation / Test mode

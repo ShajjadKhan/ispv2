@@ -17,6 +17,18 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Tuple, Any
 
+try:
+    from zoneinfo import ZoneInfo
+    RIYADH_TZ = ZoneInfo("Asia/Riyadh")
+except Exception:
+    RIYADH_TZ = None
+
+def get_riyadh_now() -> datetime:
+    """Returns current datetime in Asia/Riyadh timezone (UTC+3)."""
+    if RIYADH_TZ:
+        return datetime.now(RIYADH_TZ)
+    return datetime.now()
+
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "isp_v2.db")
 DB_PATH = os.getenv("DB_PATH", DEFAULT_DB_PATH)
 
@@ -5143,8 +5155,8 @@ def log_whatsapp_message(
     customer_name: Optional[str] = None,
     sent_by: str = "admin"
 ) -> int:
-    """Records an outgoing or blocked WhatsApp dispatch to the permanent audit ledger."""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """Records an outgoing, held, or blocked WhatsApp dispatch to the permanent audit ledger."""
+    now_str = get_riyadh_now().strftime("%Y-%m-%d %H:%M:%S")
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -5156,6 +5168,43 @@ def log_whatsapp_message(
         """, (customer_id, customer_name, phone, message_type, message_body, status, error_message, sent_by, now_str))
         conn.commit()
         return cursor.lastrowid
+
+
+def get_held_whatsapp_messages() -> List[Dict[str, Any]]:
+    """Retrieves all WhatsApp messages currently on hold by Time Shield waiting for distribution."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT l.*, c.name as resolved_customer_name
+            FROM whatsapp_logs l
+            LEFT JOIN customers c ON l.customer_id = c.id
+            WHERE l.status = 'held_night'
+            ORDER BY l.id ASC
+        """)
+        rows = []
+        for r in cursor.fetchall():
+            item = dict(r)
+            item["display_name"] = item.get("resolved_customer_name") or item.get("customer_name") or "Direct Number"
+            rows.append(item)
+        return rows
+
+
+def update_whatsapp_log_status(log_id: int, status: str, error_message: Optional[str] = None) -> bool:
+    """Updates the status and error_message of a specific WhatsApp log entry."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE whatsapp_logs
+            SET status = ?, error_message = ?
+            WHERE id = ?
+        """, (status, error_message, log_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def cancel_held_whatsapp_message(log_id: int) -> bool:
+    """Cancels a held WhatsApp message before it distributes."""
+    return update_whatsapp_log_status(log_id, "cancelled", "Cancelled by admin before daytime distribution")
 
 
 def get_whatsapp_logs(
