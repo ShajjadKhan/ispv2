@@ -852,31 +852,8 @@ def dispatch_payment_receipt_whatsapp(
             credit_balance=credit_bal
         )
 
-        # Time Shield Protection: Put on hold if collected during quiet hours
-        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
-        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
-            wa_settings.get("quiet_hours_start", "22:00"),
-            wa_settings.get("quiet_hours_end", "11:00")
-        )
-        if quiet_enabled and is_night:
-            log_id = database.log_whatsapp_message(
-                phone=clean_phone,
-                message_body=msg,
-                message_type="receipt",
-                status="held_night",
-                error_message=f"Receipt held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
-                customer_id=customer_id,
-                customer_name=cust.get("name"),
-                sent_by=f"collector_{collector}"
-            )
-            return {
-                "sent": False,
-                "status": "held_night",
-                "log_id": log_id,
-                "message": f"Payment recorded. WhatsApp receipt held by Time Shield until daytime opens ({quiet_desc}).",
-                "phone": clean_phone
-            }
-
+        # Payment Collection Receipts: ALWAYS INSTANT 24/7 (Bypasses Time Shield)
+        # When money is collected, subscribers expect immediate payment confirmation & ledger proof.
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
             status_str = "blocked_sandbox"
@@ -5834,7 +5811,9 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
                 logger.warning(f"Failed to resolve customer name for id {req.customer_id}: {e}")
 
         # Safety Guard: Night Quiet Hours protection -> Place on HOLD instead of failing
-        if quiet_enabled and is_night and not req.force_night and not req.simulate:
+        # Exception: Payment Receipts are financial transaction proofs and must be delivered instantly 24/7
+        is_receipt = (req.message_type == "receipt")
+        if quiet_enabled and is_night and not req.force_night and not req.simulate and not is_receipt:
             quiet_end = wa_settings.get("quiet_hours_end", "11:00")
             log_id = database.log_whatsapp_message(
                 phone=clean_p,
