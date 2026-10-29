@@ -17,6 +17,19 @@ import requests
 from datetime import datetime, time as dtime
 from typing import Dict, Any, Optional, Tuple
 
+try:
+    from zoneinfo import ZoneInfo
+    RIYADH_TZ = ZoneInfo("Asia/Riyadh")
+except Exception:
+    RIYADH_TZ = None
+
+
+def get_riyadh_now() -> datetime:
+    """Returns the current datetime in Asia/Riyadh timezone (UTC+3)."""
+    if RIYADH_TZ:
+        return datetime.now(RIYADH_TZ)
+    return datetime.now()
+
 logger = logging.getLogger("whatsapp_service")
 
 # OpenWA Dedicated Container Configuration for ISPv2
@@ -361,10 +374,10 @@ def restart_whatsapp_session() -> Dict[str, Any]:
 
 def is_night_quiet_hours(start_str: str = "22:00", end_str: str = "09:00") -> Tuple[bool, str]:
     """
-    Evaluates whether the current local time falls within night quiet hours.
-    Default: 10:00 PM (22:00) to 09:00 AM (09:00).
+    Evaluates whether the current local time in Asia/Riyadh falls within night quiet hours.
+    Default: 10:00 PM (22:00) to 09:00 AM (09:00) Riyadh Time.
     """
-    now = datetime.now()
+    now = get_riyadh_now()
     current_time = now.time()
 
     try:
@@ -376,13 +389,13 @@ def is_night_quiet_hours(start_str: str = "22:00", end_str: str = "09:00") -> Tu
         start_t = dtime(22, 0)
         end_t = dtime(9, 0)
 
-    # Overnight range check (e.g. 22:00 to 09:00 next day)
+    # Overnight range check (e.g. 22:00 to 09:00 / 11:00 next day)
     if start_t > end_t:
         is_night = (current_time >= start_t) or (current_time < end_t)
     else:
         is_night = start_t <= current_time < end_t
 
-    desc = f"Current time is {now.strftime('%I:%M %p')} (Quiet hours: {start_t.strftime('%I:%M %p')} - {end_t.strftime('%I:%M %p')})"
+    desc = f"Riyadh Time: {now.strftime('%I:%M %p')} (Quiet hours: {start_t.strftime('%I:%M %p')} - {end_t.strftime('%I:%M %p')})"
     return is_night, desc
 
 
@@ -405,7 +418,9 @@ def render_message_template(
     pending_debt: float = 0.0,
     previous_debt: float = 0.0,
     credit_balance: float = 0.0,
-    account_status: str = ""
+    account_status: str = "",
+    pay_date: str = "",
+    **kwargs: Any
 ) -> str:
     """
     Replaces standard dynamic tags in WhatsApp message templates, including
@@ -449,8 +464,10 @@ def render_message_template(
         "[AMOUNT]": f"{clean_paid:.2f}" if clean_paid > 0 else f"{due_balance:.2f}",
         "[DUE_BALANCE]": f"{due_balance:.2f}",
         "[EXPIRY_DATE]": str(expiry_date or "End of Month"),
+        "[SUSPENSION_DATE]": str(expiry_date or "End of Month"),
+        "[PAYDAY]": str(pay_date or expiry_date or "Due Date"),
         "[PIN]": pin or "N/A",
-        "[RECEIPT_NO]": receipt_no or "REC-" + datetime.now().strftime("%Y%m%d%H%M"),
+        "[RECEIPT_NO]": receipt_no or "REC-" + get_riyadh_now().strftime("%Y%m%d%H%M"),
         "[HELPLINE]": support_phone,
         "[MOVIES]": movie_server,
         "[FOOTBALL]": football_server,
@@ -463,7 +480,7 @@ def render_message_template(
         "[REMAINING_DEBT]": f"{clean_pending:.2f}",
         "[PREVIOUS_DEBT]": f"{clean_prev:.2f}",
         "[CREDIT_BALANCE]": f"{clean_credit:.2f}",
-        "[DATE]": datetime.now().strftime("%Y-%m-%d %H:%M")
+        "[DATE]": get_riyadh_now().strftime("%Y-%m-%d %H:%M")
     }
     for tag, val in replacements.items():
         msg = msg.replace(tag, str(val))

@@ -16,7 +16,7 @@ import asyncio
 import logging
 import base64
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
@@ -74,6 +74,29 @@ STATIC_DIR = BASE_DIR / "static"
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+
+# ---------------------------------------------------------
+# Root Favicon / Apple Touch Icon (browsers request these
+# automatically at the origin root, e.g. /favicon.ico).
+# ---------------------------------------------------------
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico():
+    icon = STATIC_DIR / "favicon.ico"
+    if icon.exists():
+        return FileResponse(str(icon), media_type="image/x-icon",
+                            headers={"Cache-Control": "public, max-age=604800"})
+    raise HTTPException(status_code=404, detail="Not found")
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+async def apple_touch_icon():
+    icon = STATIC_DIR / "apple-touch-icon.png"
+    if icon.exists():
+        return FileResponse(str(icon), media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=604800"})
+    raise HTTPException(status_code=404, detail="Not found")
+
 # Initialize database schema and auth engine
 database.init_db()
 auth_service.init_auth_schema()
@@ -88,55 +111,111 @@ router_client = RouterClient(
 
 # Background Traffic Accounting & 90-Day Delta Collector
 _last_host_traffic_snapshot: Dict[str, Dict[str, Any]] = {}
+_live_device_speeds: Dict[str, Dict[str, Any]] = {}
 _last_daily_prune_time: float = 0.0
 
+def format_speed_bps(bps: Union[int, float]) -> str:
+    """Formats raw bit rate (bps) into standard Mbps, Kbps, or bps."""
+    try:
+        b = float(bps or 0)
+        if b >= 1_000_000:
+            return f"{b / 1_000_000:.2f} Mbps"
+        elif b >= 1_000:
+            return f"{b / 1_000:.0f} Kbps"
+        elif b > 0:
+            return f"{int(b)} bps"
+        return "0 bps"
+    except Exception:
+        return "0 bps"
+
+
 def collect_router_traffic_snapshot():
-    """Polls live hotspot hosts and PPPoE sessions from MikroTik, computes delta traffic, and writes to database."""
-    global _last_host_traffic_snapshot, _last_daily_prune_time
+    """Polls live hotspot hosts and PPPoE sessions across all fleet routers, computes delta traffic per router, tracks real-time speed, and writes to database."""
+    global _last_host_traffic_snapshot, _live_device_speeds, _last_daily_prune_time
     now = time.time()
     try:
-        hosts = router_client.get_hotspot_hosts_raw()
+        hosts = mikrotik_client.broadcast_get_hotspot_hosts_raw()
     except Exception as e:
         logger.debug(f"Traffic collector hotspot read error: {e}")
-        hosts = []
+        try:
+            hosts = router_client.get_hotspot_hosts_raw()
+        except Exception:
+            hosts = []
 
-    current_macs = set()
+    deltas_to_record: List[Dict[str, Any]] = []
+    current_host_keys = set()
     for h in hosts:
         mac = (h.get("mac-address") or "").strip().upper()
         if not mac:
             continue
-        current_macs.add(mac)
+        router_name = h.get("router_name", "Router-20")
+        host_key = f"{router_name}:{mac}"
+        current_host_keys.add(host_key)
 
         raw_in = int(h.get("bytes-in", 0) or 0)   # Upload from client
         raw_out = int(h.get("bytes-out", 0) or 0) # Download to client
         ip_addr = h.get("address")
 
-        prev = _last_host_traffic_snapshot.get(mac)
+        prev = _last_host_traffic_snapshot.get(host_key)
         if prev is not None:
-            delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
-            delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+            # Monotonic delta calculation: ignore if counter wrapped/reconnected
+            if raw_out >= prev["bytes_out"]:
+                delta_down = raw_out - prev["bytes_out"]
+            else:
+                delta_down = 0
+
+            if raw_in >= prev["bytes_in"]:
+                delta_up = raw_in - prev["bytes_in"]
+            else:
+                delta_up = 0
+
             delta_sec = int(now - prev["timestamp"])
             if delta_sec > 300:
                 delta_sec = 60
         else:
+            # First observation of this host on this router: baseline only
             delta_up = 0
             delta_down = 0
             delta_sec = 0
 
-        _last_host_traffic_snapshot[mac] = {
+        # Physical link sanity guard (max 100 Mbps WAN link = ~750 MB per 60s)
+        # Prevents rogue counters or reboot spikes from corrupting accounting
+        if delta_down > 500 * 1024 * 1024:
+            logger.debug(f"[Traffic Collector] Suppressed rogue delta_down ({delta_down} bytes) on {host_key}")
+            delta_down = 0
+        if delta_up > 200 * 1024 * 1024:
+            delta_up = 0
+
+        _last_host_traffic_snapshot[host_key] = {
             "bytes_in": raw_in,
             "bytes_out": raw_out,
             "timestamp": now,
-            "ip": ip_addr
+            "ip": ip_addr,
+            "router_name": router_name
         }
 
-        database.record_device_traffic_delta(
-            mac_address=mac,
-            download_bytes=delta_down,
-            upload_bytes=delta_up,
-            active_seconds=delta_sec,
-            ip_address=ip_addr
-        )
+        # Calculate live instantaneous wire speed
+        calc_sec = max(1, delta_sec)
+        speed_down_bps = int((delta_down * 8) / calc_sec) if delta_sec > 0 else 0
+        speed_up_bps = int((delta_up * 8) / calc_sec) if delta_sec > 0 else 0
+        
+        # Keep latest live wire speed per MAC
+        _live_device_speeds[mac] = {
+            "speed_down_bps": speed_down_bps,
+            "speed_up_bps": speed_up_bps,
+            "router_name": router_name,
+            "ip": ip_addr,
+            "timestamp": now
+        }
+
+        if delta_down > 0 or delta_up > 0:
+            deltas_to_record.append({
+                "mac_address": mac,
+                "download_bytes": delta_down,
+                "upload_bytes": delta_up,
+                "active_seconds": delta_sec,
+                "ip_address": ip_addr
+            })
 
     # Poll fleet-wide active PPPoE sessions
     current_pppoe_keys = set()
@@ -147,16 +226,26 @@ def collect_router_traffic_snapshot():
             if not clean_u:
                 continue
             pp_key = f"PPPOE:{clean_u.upper()}"
-            current_pppoe_keys.add(pp_key)
+            r_name = p_sess.get("router_name", "Router-20")
+            host_key = f"{r_name}:{pp_key}"
+            current_pppoe_keys.add(host_key)
 
             raw_in = int(p_sess.get("bytes_in", 0) or p_sess.get("rx_bytes", 0) or 0)   # Upload from subscriber
             raw_out = int(p_sess.get("bytes_out", 0) or p_sess.get("tx_bytes", 0) or 0) # Download to subscriber
             ip_addr = p_sess.get("address")
 
-            prev = _last_host_traffic_snapshot.get(pp_key)
+            prev = _last_host_traffic_snapshot.get(host_key)
             if prev is not None:
-                delta_up = (raw_in - prev["bytes_in"]) if raw_in >= prev["bytes_in"] else raw_in
-                delta_down = (raw_out - prev["bytes_out"]) if raw_out >= prev["bytes_out"] else raw_out
+                if raw_out >= prev["bytes_out"]:
+                    delta_down = raw_out - prev["bytes_out"]
+                else:
+                    delta_down = 0
+
+                if raw_in >= prev["bytes_in"]:
+                    delta_up = raw_in - prev["bytes_in"]
+                else:
+                    delta_up = 0
+
                 delta_sec = int(now - prev["timestamp"])
                 if delta_sec > 300:
                     delta_sec = 60
@@ -165,42 +254,67 @@ def collect_router_traffic_snapshot():
                 delta_down = 0
                 delta_sec = 0
 
-            _last_host_traffic_snapshot[pp_key] = {
+            if delta_down > 500 * 1024 * 1024:
+                delta_down = 0
+            if delta_up > 200 * 1024 * 1024:
+                delta_up = 0
+
+            _last_host_traffic_snapshot[host_key] = {
                 "bytes_in": raw_in,
                 "bytes_out": raw_out,
                 "timestamp": now,
-                "ip": ip_addr
+                "ip": ip_addr,
+                "router_name": r_name
             }
 
-            database.record_device_traffic_delta(
-                mac_address=pp_key,
-                download_bytes=delta_down,
-                upload_bytes=delta_up,
-                active_seconds=delta_sec,
-                ip_address=ip_addr,
-                device_name=f"PPPoE Router [{clean_u}]"
-            )
+            calc_sec = max(1, delta_sec)
+            speed_down_bps = int((delta_down * 8) / calc_sec) if delta_sec > 0 else 0
+            speed_up_bps = int((delta_up * 8) / calc_sec) if delta_sec > 0 else 0
+            _live_device_speeds[pp_key] = {
+                "speed_down_bps": speed_down_bps,
+                "speed_up_bps": speed_up_bps,
+                "router_name": r_name,
+                "ip": ip_addr,
+                "timestamp": now
+            }
+
+            if delta_down > 0 or delta_up > 0:
+                deltas_to_record.append({
+                    "mac_address": pp_key,
+                    "download_bytes": delta_down,
+                    "upload_bytes": delta_up,
+                    "active_seconds": delta_sec,
+                    "ip_address": ip_addr,
+                    "device_name": f"PPPoE Router [{clean_u}]"
+                })
     except Exception as p_err:
         logger.debug(f"PPPoE traffic poller error: {p_err}")
 
-    # Disconnected hotspot devices (exclude PPPOE keys)
-    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if not k.startswith("PPPOE:")}
-    disconnected_macs = prev_hotspot_keys - current_macs
-    for d_mac in disconnected_macs:
+    # Persist all traffic deltas in one single database transaction
+    if deltas_to_record:
+        database.record_device_traffic_deltas_batch(deltas_to_record)
+
+    # Disconnected hotspot devices (keyed by router_name:mac)
+    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" not in k}
+    disconnected_keys = prev_hotspot_keys - current_host_keys
+    for d_key in disconnected_keys:
+        d_mac = d_key.split(":", 1)[1] if ":" in d_key else d_key
         database.close_device_session(d_mac)
-        _last_host_traffic_snapshot.pop(d_mac, None)
+        _last_host_traffic_snapshot.pop(d_key, None)
 
     # Disconnected PPPoE sessions
-    prev_pppoe_keys = {k for k in _last_host_traffic_snapshot.keys() if k.startswith("PPPOE:")}
+    prev_pppoe_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" in k}
     disconnected_pppoe = prev_pppoe_keys - current_pppoe_keys
     for d_key in disconnected_pppoe:
-        database.close_device_session(d_key)
+        d_uname = d_key.split(":", 1)[1] if ":" in d_key else d_key
+        database.close_device_session(d_uname)
         _last_host_traffic_snapshot.pop(d_key, None)
 
     # Daily prune (> 90 days)
     if (now - _last_daily_prune_time) > 86400:
         database.purge_old_traffic_logs(days_to_keep=90)
         _last_daily_prune_time = now
+
 
 
 async def traffic_collector_loop():
@@ -214,7 +328,88 @@ async def traffic_collector_loop():
             break
         except Exception as e:
             logger.error(f"Traffic collector worker loop error: {e}")
-            await asyncio.sleep(15)
+def get_live_top_bandwidth_consumers(limit: int = 50, window_hours: int = 1, sort_by: str = "speed", building_filter: str = "all") -> Dict[str, Any]:
+    """
+    Enriches database historical traffic analytics with real-time in-memory wire speeds.
+    Ranks consumers by instantaneous speed or last-hour consumption.
+    """
+    global _live_device_speeds
+    data = database.get_bandwidth_consumer_analytics(window_hours=window_hours, limit=100)
+    raw_consumers = data.get("consumers", [])
+    now = time.time()
+
+    enriched = []
+    for c in raw_consumers:
+        if building_filter and building_filter.lower() != "all":
+            if building_filter.lower() not in c.get("building", "").lower():
+                continue
+
+        # Look up MACs and PPPoE keys
+        keys_to_check = [m.upper() for m in c.get("mac_addresses", [])]
+        if c.get("pppoe_username"):
+            keys_to_check.append(f"PPPOE:{c['pppoe_username'].strip().upper()}")
+
+        c_speed_down = 0
+        c_speed_up = 0
+        c_router = "—"
+        c_ip = c.get("ip_address") or "—"
+        is_online = False
+
+        for k in keys_to_check:
+            spd = _live_device_speeds.get(k)
+            if spd and (now - spd.get("timestamp", 0)) < 300: # Active within last 5m
+                is_online = True
+                c_speed_down += spd.get("speed_down_bps", 0)
+                c_speed_up += spd.get("speed_up_bps", 0)
+                if spd.get("router_name") and c_router == "—":
+                    c_router = spd["router_name"]
+                if spd.get("ip") and c_ip in ("—", "", None):
+                    c_ip = spd["ip"]
+
+        # Fallback router detection
+        if c_router == "—":
+            bld = c.get("building", "")
+            c_router = "Router-30" if "Building 2" in bld else "Router-20"
+
+        c["is_online"] = is_online
+        c["live_speed_down_bps"] = c_speed_down
+        c["live_speed_up_bps"] = c_speed_up
+        c["live_speed_mbps"] = round(c_speed_down / 1_000_000, 2)
+        c["live_speed_formatted"] = format_speed_bps(c_speed_down)
+        c["live_speed_up_formatted"] = format_speed_bps(c_speed_up)
+        c["router_name"] = c_router
+        c["active_ip"] = c_ip
+        c["is_streaming"] = c_speed_down >= 500_000
+
+        enriched.append(c)
+
+    # Sorting
+    if sort_by == "speed":
+        # Sort by live speed first; if equal/zero, sort by window download bytes
+        enriched.sort(key=lambda x: (x["live_speed_down_bps"], x["window_download_bytes"]), reverse=True)
+    elif sort_by == "today":
+        enriched.sort(key=lambda x: x["today_download_bytes"], reverse=True)
+    else: # "hour" / "window"
+        enriched.sort(key=lambda x: x["window_download_bytes"], reverse=True)
+
+    # Re-assign ranks
+    for idx, item in enumerate(enriched[:limit], start=1):
+        item["rank"] = idx
+
+    peak_user = enriched[0] if enriched else None
+    streaming_count = sum(1 for x in enriched if x.get("is_streaming"))
+
+    return {
+        "window_hours": window_hours,
+        "window_cutoff": data.get("window_cutoff"),
+        "generated_at": data.get("generated_at"),
+        "total_fleet_window_download": data.get("total_fleet_window_download"),
+        "total_fleet_window_upload": data.get("total_fleet_window_upload"),
+        "total_fleet_window_bytes": data.get("total_fleet_window_bytes"),
+        "streaming_count": streaming_count,
+        "peak_consumer": peak_user,
+        "consumers": enriched[:limit]
+    }
 
 
 async def expiration_enforcement_loop():
@@ -299,7 +494,7 @@ async def whatsapp_auto_dispatch_loop():
             if wa_settings.get("auto_dispatch_enabled") != "1":
                 continue
 
-            now = datetime.now()
+            now = whatsapp_service.get_riyadh_now()
             today_str = now.strftime("%Y-%m-%d")
 
             # Check if already completed today
@@ -307,9 +502,9 @@ async def whatsapp_auto_dispatch_loop():
             if last_run == today_str:
                 continue
 
-            # Check scheduled hour (e.g. "12:00") and quiet hours boundary
+            # Check scheduled hour (e.g. "12:00") and quiet hours boundary (Riyadh Time)
             sched_time = wa_settings.get("auto_dispatch_time", "12:00")
-            quiet_end = wa_settings.get("quiet_hours_end", "09:00")
+            quiet_end = wa_settings.get("quiet_hours_end", "11:00")
             current_time = now.strftime("%H:%M")
 
             # Quiet hours shield protection
@@ -378,6 +573,7 @@ async def whatsapp_auto_dispatch_loop():
                     package_name=c.get("package_name", ""),
                     due_balance=float(c.get("effective_due", 0.0)),
                     expiry_date=c.get("expiry_date", ""),
+                    pay_date=c.get("pay_date") or c.get("due_date", ""),
                     support_phone=wa_settings.get("support_phone", "0597595059"),
                     movie_server=wa_settings.get("movie_server", "http://10.12.14.16:8082"),
                     football_server=wa_settings.get("football_server", "http://10.12.14.16:8080"),
@@ -419,6 +615,72 @@ async def whatsapp_auto_dispatch_loop():
             await asyncio.sleep(60)
 
 
+async def _distribute_held_batch(messages: List[Dict[str, Any]], source: str = "auto_worker"):
+    """Internal helper to dispatch a batch of held messages sequentially with anti-ban pacing."""
+    logger.info(f"[Time Shield Distributor] Starting batch dispatch of {len(messages)} held messages (source: {source})...")
+    for m in messages:
+        log_id = m.get("id")
+        phone = m.get("phone")
+        body = m.get("message_body")
+
+        clean_p = whatsapp_service.format_phone(phone)
+        if not clean_p or not body:
+            database.update_whatsapp_log_status(log_id, "failed", "Invalid phone or missing message body")
+            continue
+
+        await asyncio.sleep(3.5)  # Anti-ban human pacing
+        try:
+            ok, err = await asyncio.to_thread(whatsapp_service.send_whatsapp_raw, clean_p, body)
+            if not ok and "SANDBOX SHIELD" in str(err):
+                status_str = "blocked_sandbox"
+            else:
+                status_str = "sent" if ok else "failed"
+
+            now_str = whatsapp_service.get_riyadh_now().strftime("%Y-%m-%d %H:%M")
+            audit_note = f"Distributed outside quiet hours at {now_str}. " + (str(err) if err else "Delivered successfully.")
+            database.update_whatsapp_log_status(log_id, status_str, audit_note)
+            logger.info(f"[Time Shield Distributor] Distributed message #{log_id} to {clean_p} -> {status_str}")
+        except Exception as ex:
+            logger.error(f"[Time Shield Distributor] Error distributing message #{log_id}: {ex}")
+            database.update_whatsapp_log_status(log_id, "failed", f"Distribution exception: {ex}")
+
+
+async def whatsapp_held_distributor_loop():
+    """
+    Background worker that monitors the WhatsApp Time Shield held messages queue.
+    When daytime safe sending window opens (not is_night), it automatically and smoothly
+    distributes any messages that were placed on hold during night quiet hours.
+    """
+    logger.info("Background WhatsApp Time Shield Held Message Distributor initialized.")
+    while True:
+        try:
+            await asyncio.sleep(25)
+            wa_settings = database.get_whatsapp_settings()
+            quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+            is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+                wa_settings.get("quiet_hours_start", "22:00"),
+                wa_settings.get("quiet_hours_end", "11:00")
+            )
+
+            # Hold messages while quiet hours are active
+            if quiet_enabled and is_night:
+                continue
+
+            # Safe daytime window is active! Check for held messages
+            held_messages = database.get_held_whatsapp_messages()
+            if not held_messages:
+                continue
+
+            logger.info(f"[Time Shield Distributor] Safe window active ({quiet_desc}). Processing {len(held_messages)} held message(s)...")
+            await _distribute_held_batch(held_messages, source="auto_worker")
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in whatsapp_held_distributor_loop: {e}")
+            await asyncio.sleep(10)
+
+
 async def olt_telemetry_poller_loop():
     """Periodically queries physical OLT hardware to keep telemetry completely up to date."""
     await asyncio.sleep(12)
@@ -435,32 +697,60 @@ async def olt_telemetry_poller_loop():
 
 async def wallet_accrual_sync_loop():
     """
-    Automated background worker that updates customers.credit_balance day-by-day.
-    Runs once on startup, then runs hourly so midnight roll-overs tick day by day
-    matching the billing_reminder accounting rules.
+    Automated continuous 60-second background watchdog and self-healing engine.
+    Audits and updates customers.credit_balance to ensure absolute mathematical synchronization
+    between the payment ledger (collections table) and customer wallet state.
     """
     await asyncio.sleep(5)  # brief startup delay
     while True:
         try:
-            logger.info("Running automated wallet accrual sync...")
             with database.get_db() as conn:
                 updated = database.sync_all_customer_realtime_balances(conn)
-            logger.info(f"Wallet accrual sync complete: {updated} customer records updated.")
+            if updated > 0:
+                logger.info(f"Self-healing watchdog: healed {updated} customer wallet balances.")
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Error in wallet_accrual_sync_loop: {e}")
-        await asyncio.sleep(3600)  # repeat every hour
+            logger.error(f"Error in wallet_accrual_sync_loop watchdog: {e}")
+        await asyncio.sleep(60)  # Continuous 60-second self-healing audit
+
+
+async def fleet_telemetry_cache_refresher_loop():
+    """
+    Background worker that continuously pre-warms MikroTik fleet telemetry and live status
+    every 12 seconds in memory.
+    Ensures that when any admin or user visits the dashboard or web UI, the data is ALWAYS
+    available instantly in memory (<1 ms) without waiting on MikroTik hardware socket roundtrips.
+    """
+    logger.info("Background Fleet Telemetry Pre-Warming Refresher Loop initialized.")
+    await asyncio.sleep(2)  # brief startup delay
+    while True:
+        try:
+            # Query all active fleet routers concurrently in thread pool
+            await asyncio.gather(
+                asyncio.to_thread(router_client.get_live_status, 0.0),
+                asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 0.0),
+                return_exceptions=True
+            )
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.debug(f"Fleet telemetry pre-warming notice: {e}")
+        await asyncio.sleep(12)
 
 
 @app.on_event("startup")
 async def startup_event():
+    # Fleet Telemetry In-Memory Pre-Warmer Loop (ensures sub-100ms dashboard latency)
+    asyncio.create_task(fleet_telemetry_cache_refresher_loop())
     # Real live data from MikroTik traffic collector only
     asyncio.create_task(traffic_collector_loop())
     # Customer subscription expiration enforcement loop across MikroTik fleet
     asyncio.create_task(expiration_enforcement_loop())
     # Automated WhatsApp Billing Reminder Scheduled Loop
     asyncio.create_task(whatsapp_auto_dispatch_loop())
+    # WhatsApp Time Shield Held Messages Auto-Distributor Loop
+    asyncio.create_task(whatsapp_held_distributor_loop())
     # Live Physical OLT Hardware Telemetry Background Poller
     asyncio.create_task(olt_telemetry_poller_loop())
     # Automated Wallet Daily Accrual Synchronizer
@@ -562,6 +852,31 @@ def dispatch_payment_receipt_whatsapp(
             credit_balance=credit_bal
         )
 
+        # Time Shield Protection: Put on hold if collected during quiet hours
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "11:00")
+        )
+        if quiet_enabled and is_night:
+            log_id = database.log_whatsapp_message(
+                phone=clean_phone,
+                message_body=msg,
+                message_type="receipt",
+                status="held_night",
+                error_message=f"Receipt held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
+                customer_id=customer_id,
+                customer_name=cust.get("name"),
+                sent_by=f"collector_{collector}"
+            )
+            return {
+                "sent": False,
+                "status": "held_night",
+                "log_id": log_id,
+                "message": f"Payment recorded. WhatsApp receipt held by Time Shield until daytime opens ({quiet_desc}).",
+                "phone": clean_phone
+            }
+
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
             status_str = "blocked_sandbox"
@@ -637,6 +952,31 @@ def dispatch_welcome_notice_whatsapp(
 
         if (connection_type in ("pppoe", "both") or pppoe_user) and pppoe_user:
             msg += f"\n\n🔑 *PPPoE Credentials:*\n• User: `{pppoe_user}`\n• Pass: `{pppoe_pass or 'cyber123'}`"
+
+        # Time Shield Protection: Put on hold if approved during quiet hours
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "11:00")
+        )
+        if quiet_enabled and is_night:
+            log_id = database.log_whatsapp_message(
+                phone=clean_phone,
+                message_body=msg,
+                message_type="welcome",
+                status="held_night",
+                error_message=f"Welcome notice held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
+                customer_id=customer.get("id"),
+                customer_name=customer.get("name"),
+                sent_by="system_approval"
+            )
+            return {
+                "sent": False,
+                "status": "held_night",
+                "log_id": log_id,
+                "message": f"Welcome notice held by Time Shield until daytime opens ({quiet_desc}).",
+                "phone": clean_phone
+            }
 
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
@@ -724,6 +1064,31 @@ def dispatch_suspension_notice_whatsapp(
             payment_accounts=wa_settings.get("payment_accounts", "")
         )
 
+        # Time Shield Protection: Put on hold if suspended during quiet hours
+        quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
+        is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
+            wa_settings.get("quiet_hours_start", "22:00"),
+            wa_settings.get("quiet_hours_end", "11:00")
+        )
+        if quiet_enabled and is_night:
+            log_id = database.log_whatsapp_message(
+                phone=clean_phone,
+                message_body=msg,
+                message_type="expiry",
+                status="held_night",
+                error_message=f"Suspension notice held by Time Shield ({quiet_desc}). Scheduled for morning distribution.",
+                customer_id=customer_id,
+                customer_name=cust.get("name"),
+                sent_by="system_suspension"
+            )
+            return {
+                "sent": False,
+                "status": "held_night",
+                "log_id": log_id,
+                "message": f"Suspension notice held by Time Shield until daytime opens ({quiet_desc}).",
+                "phone": clean_phone
+            }
+
         ok, err = whatsapp_service.send_whatsapp_raw(clean_phone, msg)
         if not ok and "SANDBOX SHIELD" in str(err):
             status_str = "blocked_sandbox"
@@ -763,6 +1128,8 @@ class HotspotSubmitRequest(BaseModel):
     mac: str
     ip: Optional[str] = None
     device_model: Optional[str] = None
+    customer_name: Optional[str] = None
+    room_location: Optional[str] = None
 
 
 class UpdateSubscriberDetailsRequest(BaseModel):
@@ -793,6 +1160,7 @@ class ApproveConnectionPayload(BaseModel):
     pppoe_password: Optional[str] = None
     pppoe_profile: Optional[str] = None
     pppoe_remote_ip: Optional[str] = None
+    pay_date: Optional[str] = None
     send_whatsapp: Optional[bool] = False
     is_guest: Optional[bool] = False
     guest_days: Optional[int] = 0
@@ -850,9 +1218,15 @@ class EditCustomerPayload(BaseModel):
     pppoe_password: Optional[str] = -1
     pppoe_profile: Optional[str] = -1
     pppoe_remote_ip: Optional[str] = -1
+    pay_date: Optional[str] = None
 
 
 class SetSuspendDatePayload(BaseModel):
+    suspend_date: str
+
+
+class BatchSetSuspendDatePayload(BaseModel):
+    customer_ids: List[int]
     suspend_date: str
 
 
@@ -868,8 +1242,19 @@ class SettleCycleItem(BaseModel):
     settle: bool = True
 
 
+class SmartCollectPayload(BaseModel):
+    customer_id: Optional[int] = None
+    amount: float
+    payment_type: Optional[str] = "cash"
+    collector: Optional[str] = None
+    notes: Optional[str] = ""
+    send_whatsapp: Optional[bool] = True
+
+
 class SettleCyclesPayload(BaseModel):
-    items: List[SettleCycleItem]
+    items: Optional[List[SettleCycleItem]] = None
+    amount: Optional[float] = None
+    payment_type: Optional[str] = "cash"
     notes: Optional[str] = ""
     send_whatsapp: Optional[bool] = False
 
@@ -947,7 +1332,7 @@ class RecordPaymentPayload(BaseModel):
     extend_days: int = 30
     notes: Optional[str] = "Manual Service Renewal"
     advance_mode: Optional[str] = "credit"  # "credit" or "months"
-    send_whatsapp: Optional[bool] = False
+    send_whatsapp: Optional[bool] = True
 
 
 class ApplyCreditPayload(BaseModel):
@@ -1184,6 +1569,8 @@ PUBLIC_EXACT_PATHS = {
     "/api/auth/login",
     "/api/auth/logout",
     "/favicon.ico",
+    "/apple-touch-icon.png",
+    "/apple-touch-icon-precomposed.png",
     "/portal",
     "/hotspot",
     "/hotspot/login",
@@ -1216,7 +1603,13 @@ async def auth_middleware(request: Request, call_next):
             request.state.user = auth_service.validate_session(session_id)
         else:
             request.state.user = None
-        return await call_next(request)
+        response = await call_next(request)
+        content_type = response.headers.get("content-type", "")
+        if "text/html" in content_type:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
 
     # Check session cookie or Authorization header
     session_id = request.cookies.get(auth_service.COOKIE_NAME)
@@ -1249,7 +1642,13 @@ async def auth_middleware(request: Request, call_next):
         return RedirectResponse(url=f"/login?next={next_target}", status_code=303)
 
     request.state.user = user_session
-    return await call_next(request)
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if "text/html" in content_type:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 # =========================================================
@@ -1681,8 +2080,13 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
     will-suspend expiration tiers, billing collection analytics,
     staff performance breakdown, and 1-click collections.
     """
-    live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    live_status_task = asyncio.to_thread(router_client.get_live_status, 20.0)
+    telemetry_map_task = asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 20.0)
+    top_bandwidth_task = asyncio.to_thread(get_live_top_bandwidth_consumers, 5, 1, "speed")
+
+    live_status, telemetry_map, top_bandwidth = await asyncio.gather(
+        live_status_task, telemetry_map_task, top_bandwidth_task
+    )
     online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
 
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
@@ -1698,7 +2102,10 @@ async def dashboard_view(request: Request, month: Optional[str] = None):
             "metrics": metrics,
             "pending_requests": pending_requests,
             "pending_count": len(pending_requests),
-            "packages": packages
+            "packages": packages,
+            "top_speed_consumers": top_bandwidth.get("consumers", []),
+            "top_speed_peak": top_bandwidth.get("peak_consumer"),
+            "top_speed_count": len(top_bandwidth.get("consumers", []))
         }
     )
 
@@ -1815,14 +2222,15 @@ async def olt_view(
     request: Request,
     olt_id: Optional[int] = None,
     port: Optional[int] = None,
-    filter: Optional[str] = "all"
+    filter: Optional[str] = "all",
+    limit: Optional[int] = 250
 ):
     """
     Step 5: OLT & Fiber PON Plant Monitoring.
     Clean read-only optical console providing:
     - Details about connected ONUs, their names, and optical signal levels.
     - Optical Link Errors & Diagnostics (Loss of Signal / Fiber Break, Dying Gasp, High Attenuation).
-    - ONU Uptime & Outage History Ledger.
+    - ONU Uptime & Outage History Ledger with optimized pagination limit.
     No setup/settings forms or VLAN assignment.
     """
     live_status = router_client.get_live_status()
@@ -1832,10 +2240,12 @@ async def olt_view(
     if not selected_olt_id and olts:
         selected_olt_id = olts[0]["id"]
 
+    effective_limit = limit if (limit and limit > 0) else 250
     olt_details = database.get_olt_details(selected_olt_id) if selected_olt_id else None
     onus = database.get_onus(olt_id=selected_olt_id, pon_port=port, status_filter=filter) if selected_olt_id else []
     active_errors = database.get_olt_active_errors(olt_id=selected_olt_id) if selected_olt_id else []
-    uptime_ledger = database.get_onu_uptime_ledger(olt_id=selected_olt_id) if selected_olt_id else []
+    uptime_ledger = database.get_onu_uptime_ledger(olt_id=selected_olt_id, limit=effective_limit) if selected_olt_id else []
+    total_ledger_count = database.get_onu_uptime_ledger_count(olt_id=selected_olt_id) if selected_olt_id else len(uptime_ledger)
     kpis = database.get_olt_kpis(olt_id=selected_olt_id) if selected_olt_id else {}
     pending_requests = database.get_pending_requests()
 
@@ -1850,6 +2260,8 @@ async def olt_view(
             "selected_olt_id": selected_olt_id,
             "selected_port": port,
             "current_filter": filter,
+            "current_limit": effective_limit,
+            "total_ledger_count": total_ledger_count,
             "onus": onus,
             "active_errors": active_errors,
             "uptime_ledger": uptime_ledger,
@@ -2045,7 +2457,7 @@ async def customers_view(request: Request):
     resellers = auth_service.get_resellers_list()
 
     # Live device telemetry (green/yellow/red status indicators across fleet)
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -2096,7 +2508,7 @@ async def customer_edit_view(request: Request, customer_id: int):
     resellers = auth_service.get_resellers_list()
 
     # Live device telemetry for customer devices
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     enrich_customer_devices_telemetry([cust], telemetry_map)
 
     return templates.TemplateResponse(
@@ -2159,7 +2571,7 @@ async def customer_usage_view(
     live_status = router_client.get_live_status()
 
     try:
-        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
         enrich_customer_devices_telemetry([analytics["customer"]], telemetry_map)
     except Exception:
         pass
@@ -2210,6 +2622,7 @@ async def collections_view(
             "ledger": data["ledger"],
             "filtered_total": data["filtered_total"],
             "filtered_tx_count": data["filtered_tx_count"],
+            "collector_breakdown": data.get("collector_breakdown", []),
             "period": period or "month",
             "start_date": start_date or "",
             "end_date": end_date or "",
@@ -2255,6 +2668,43 @@ async def balance_sheet_view(
         }
     )
 
+
+@app.api_route("/bandwidth", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/traffic", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def bandwidth_monitor_view(
+    request: Request,
+    window: Optional[int] = 1,
+    sort: Optional[str] = "speed",
+    building: Optional[str] = "all"
+):
+    """
+    Dedicated High-Speed Bandwidth & Peak Consumer Monitoring Desk.
+    Ranks subscribers by instantaneous wire speed and last 1-hour consumption.
+    """
+    live_status = router_client.get_live_status()
+    top_data = get_live_top_bandwidth_consumers(
+        limit=50,
+        window_hours=window or 1,
+        sort_by=sort or "speed",
+        building_filter=building or "all"
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="bandwidth.html",
+        context={
+            "router": live_status,
+            "active_page": "bandwidth",
+            "window_hours": window or 1,
+            "sort_by": sort or "speed",
+            "building_filter": building or "all",
+            "data": top_data,
+            "consumers": top_data.get("consumers", []),
+            "peak_consumer": top_data.get("peak_consumer"),
+            "streaming_count": top_data.get("streaming_count", 0),
+            "generated_at": top_data.get("generated_at")
+        }
+    )
 
 
 @app.api_route("/packages", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -2340,7 +2790,7 @@ async def reseller_portal_view(request: Request, as_reseller_id: Optional[int] =
     ledger = database.get_reseller_wallet_ledger(reseller_id=target_reseller_id, limit=30)
 
     # Live device telemetry
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     enrich_customer_devices_telemetry(my_customers, telemetry_map)
 
     return templates.TemplateResponse(
@@ -2688,7 +3138,9 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             phone=phone_clean,
             mac=mac_clean,
             ip=payload.ip,
-            device_model=payload.device_model
+            device_model=payload.device_model,
+            customer_name=payload.customer_name,
+            room_location=payload.room_location
         )
     except ValueError as e:
         return JSONResponse(
@@ -2738,7 +3190,8 @@ async def hotspot_submit(payload: HotspotSubmitRequest):
             "success": True,
             "status": "pending",
             "request_id": req_dict.get("id"),
-            "customer_name": req_dict.get("customer_name") or "",
+            "customer_name": req_dict.get("customer_name") or (payload.customer_name or "").strip(),
+            "room_location": req_dict.get("notes") or (payload.room_location or "").strip(),
             "phone": phone_clean,
             "mac": mac_clean,
             "is_secondary_device": is_secondary,
@@ -3076,6 +3529,26 @@ async def approve_request(req_id: int, payload: ApproveConnectionPayload):
         effective_rate = effective_speed if (effective_speed and effective_speed.strip()) else default_rate
 
         # 3. Apply to MikroTik fleet
+        # Ensure customer with valid future due/expiry date is active and never erroneously unbound
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        exp_d = str(customer.get("expiry_date") or "")[:10]
+        due_d = str(customer.get("due_date") or "")[:10]
+        valid_dates = [d for d in [exp_d, due_d] if len(d) == 10 and d[4] == '-' and d[7] == '-']
+        has_future_date = any(d >= today_str for d in valid_dates)
+
+        if has_future_date and customer.get("status") != "active":
+            try:
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                with database.get_db() as conn:
+                    conn.execute("UPDATE customers SET status = 'active', updated_at = ? WHERE id = ?", (now_str, customer["id"]))
+                    conn.execute("UPDATE customer_devices SET status = 'approved' WHERE customer_id = ?", (customer["id"],))
+                    conn.execute("UPDATE customer_suspensions SET resumed_at = ? WHERE customer_id = ? AND resumed_at IS NULL", (now_str, customer["id"]))
+                    conn.commit()
+                customer["status"] = "active"
+                customer["is_expired"] = False
+            except Exception as e:
+                logger.warning(f"Failed to auto-activate customer {customer.get('id')} in approve_request: {e}")
+
         is_active = (customer.get("status") == "active") and not customer.get("is_expired")
         notes_str = f" [{customer['notes'].strip()}]" if customer.get("notes") and customer["notes"].strip() else ""
 
@@ -3193,7 +3666,7 @@ async def get_customers_live_devices(request: Request):
     Returns live connection telemetry (green/yellow/red) for all customer devices,
     enabling real-time status dots, roaming badges, and connected counters across the fleet.
     """
-    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+    telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
     customers = database.get_all_customers()
     enrich_customer_devices_telemetry(customers, telemetry_map)
 
@@ -3294,7 +3767,7 @@ async def get_customer_details(customer_id: int):
     if not prof:
         raise HTTPException(status_code=404, detail="Customer not found")
     try:
-        tmap = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=4.0)
+        tmap = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
         enrich_customer_devices_telemetry([prof], tmap)
     except Exception as e:
         logger.debug(f"Could not enrich customer details telemetry: {e}")
@@ -3588,7 +4061,8 @@ async def create_new_customer(payload: CreateCustomerPayload):
             pppoe_username=payload.pppoe_username,
             pppoe_password=payload.pppoe_password,
             pppoe_profile=payload.pppoe_profile,
-            pppoe_remote_ip=payload.pppoe_remote_ip
+            pppoe_remote_ip=payload.pppoe_remote_ip,
+            pay_date=payload.pay_date
         )
 
         mt_ok = True
@@ -3674,7 +4148,8 @@ async def edit_customer_details(customer_id: int, payload: EditCustomerPayload):
             pppoe_username=payload.pppoe_username,
             pppoe_password=payload.pppoe_password,
             pppoe_profile=payload.pppoe_profile,
-            pppoe_remote_ip=payload.pppoe_remote_ip
+            pppoe_remote_ip=payload.pppoe_remote_ip,
+            pay_date=payload.pay_date
         )
         if not updated:
             return JSONResponse(status_code=404, content={"success": False, "message": "Customer not found."})
@@ -3750,6 +4225,43 @@ async def set_customer_suspend_date_endpoint(customer_id: int, payload: SetSuspe
     except Exception as e:
         logger.exception(f"Error setting suspend date for #{customer_id}: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/api/customers/batch-set-suspend-date")
+async def batch_set_customer_suspend_date_endpoint(payload: BatchSetSuspendDatePayload):
+    """
+    Cluster / Batch action: Updates the service suspend & expiry date for multiple selected customers.
+    Preserves existing payday (pay_date) 100% unchanged.
+    """
+    new_date = payload.suspend_date.strip()
+    if not new_date or len(new_date) < 10:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid date format. Use YYYY-MM-DD."})
+    if not payload.customer_ids:
+        return JSONResponse(status_code=400, content={"success": False, "error": "No customers selected."})
+
+    updated_ids = []
+    errors = []
+    for cid in payload.customer_ids:
+        try:
+            # Strictly preserves pay_date while updating due_date and expiry_date
+            updated = database.update_customer_details(customer_id=cid, due_date=new_date, suspend_date=new_date)
+            if updated:
+                updated_ids.append(cid)
+            else:
+                errors.append(f"Customer #{cid} not found")
+        except Exception as e:
+            logger.exception(f"Error updating customer #{cid} in cluster action: {e}")
+            errors.append(f"Customer #{cid}: {str(e)}")
+
+    logger.info(f"[Cluster Action] Batch updated suspend date to {new_date} for {len(updated_ids)}/{len(payload.customer_ids)} customers.")
+    return {
+        "success": True,
+        "message": f"Successfully updated hard suspension date to {new_date} for {len(updated_ids)} subscriber(s).",
+        "suspend_date": new_date,
+        "updated_count": len(updated_ids),
+        "updated_ids": updated_ids,
+        "errors": errors if errors else None
+    }
 
 
 @app.post("/api/customers/{customer_id}/toggle-status")
@@ -4097,8 +4609,9 @@ async def update_device_limit(customer_id: int, payload: UpdateDeviceLimitPayloa
 @app.get("/api/dashboard/metrics")
 async def api_dashboard_metrics(month: Optional[str] = None):
     """Returns real-time dashboard metrics, fleet roaming status, and online status in JSON."""
-    live_status = await asyncio.to_thread(router_client.get_live_status, 10.0)
-    telemetry_map = await asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 4.0)
+    live_status_task = asyncio.to_thread(router_client.get_live_status, 20.0)
+    telemetry_map_task = asyncio.to_thread(mikrotik_client.broadcast_get_devices_telemetry_map, 20.0)
+    live_status, telemetry_map = await asyncio.gather(live_status_task, telemetry_map_task)
     online_macs = [mac for mac, t in telemetry_map.items() if t.get("state") == "online"]
     metrics = database.get_dashboard_metrics(month_str=month, online_macs=online_macs, telemetry_map=telemetry_map)
     return JSONResponse({
@@ -4106,6 +4619,29 @@ async def api_dashboard_metrics(month: Optional[str] = None):
         "metrics": metrics,
         "router_connected": live_status.get("connected", False)
     })
+
+
+@app.get("/api/bandwidth/top-consumers")
+async def api_bandwidth_top_consumers(
+    limit: int = 50,
+    window: int = 1,
+    sort_by: str = "speed",
+    building: str = "all"
+):
+    """
+    Returns real-time top bandwidth consumers with live wire speed and last 1-hour traffic.
+    """
+    try:
+        data = await asyncio.to_thread(
+            get_live_top_bandwidth_consumers,
+            limit,
+            window,
+            sort_by,
+            building
+        )
+        return JSONResponse({"success": True, "data": data})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e), "data": {}}, status_code=500)
 
 
 @app.get("/api/reports/collections")
@@ -4606,6 +5142,79 @@ async def cancel_customer_promise_endpoint(customer_id: int):
         return JSONResponse(status_code=400, content={"success": False, "message": str(e)})
 
 
+@app.post("/api/customers/{customer_id}/smart-collect")
+@app.post("/api/customers/{customer_id}/collect")
+async def api_customer_smart_collect(customer_id: int, payload: SmartCollectPayload, request: Request):
+    """
+    Intelligent simplified collection endpoint:
+    Authority enters only the amount collected. The system automatically calculates
+    cycle settlements, advances expiry/due dates, retains credit balance,
+    reactivates subscriber and devices on MikroTik fleet, and dispatches WhatsApp receipt.
+    """
+    collector = get_request_collector_name(request)
+    if collector == "admin" and payload.collector and payload.collector.strip().lower() not in ("admin", "system administrator"):
+        collector = normalize_collector_id(payload.collector)
+    elif payload.collector and payload.collector.strip():
+        collector = payload.collector.strip()
+
+    try:
+        res = database.smart_collect_customer_payment(
+            customer_id=customer_id,
+            amount=payload.amount,
+            payment_type=payload.payment_type or "cash",
+            collector=collector,
+            notes=payload.notes or ""
+        )
+
+        # Restore/ensure active bindings and PPPoE secret on MikroTik fleet
+        try:
+            cust_profile = database.get_customer_profile(customer_id)
+            if cust_profile and cust_profile.get("status") == "active":
+                conn_type = (cust_profile.get("connection_type") or "hotspot").strip().lower()
+                has_pppoe = (conn_type in ("pppoe", "both")) or bool(cust_profile.get("pppoe_username"))
+                has_hotspot = (conn_type in ("hotspot", "both")) or not cust_profile.get("pppoe_username")
+
+                if has_pppoe:
+                    pp_user = cust_profile.get("pppoe_username") or cust_profile.get("phone")
+                    if pp_user:
+                        mikrotik_client.broadcast_toggle_pppoe_secret(pp_user, disabled=False)
+                        logger.info(f"Re-enabled PPPoE secret for '{pp_user}' after smart collection.")
+
+                if has_hotspot:
+                    for dev in cust_profile.get("devices", []):
+                        if dev.get("status") == "approved":
+                            mikrotik_client.broadcast_bind_device(
+                                mac_address=dev["mac_address"],
+                                ip_address=dev.get("ip_address"),
+                                comment=f"CyberNet: {cust_profile.get('phone')} - {cust_profile.get('name')} [{cust_profile.get('notes') or ''}]",
+                                rate_limit=cust_profile.get("effective_speed")
+                            )
+        except Exception as me:
+            logger.warning(f"Could not restore access after smart collection for #{customer_id}: {me}")
+
+        # Dispatch WhatsApp receipt if requested
+        wa_receipt_res = None
+        if payload.send_whatsapp:
+            wa_receipt_res = dispatch_payment_receipt_whatsapp(
+                customer_id=customer_id,
+                amount_paid=payload.amount,
+                receipt_no=f"COL-{res.get('collection_id', datetime.now().strftime('%Y%m%d%H%M'))}",
+                collector=collector,
+                payment_type=payload.payment_type or "cash",
+                notes=payload.notes or "Smart Collection"
+            )
+            res["whatsapp_receipt"] = wa_receipt_res
+
+        return JSONResponse(content={
+            "success": True,
+            "message": res["message"],
+            "data": res
+        })
+    except Exception as e:
+        logger.exception(f"Error in api_customer_smart_collect for #{customer_id}: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "message": str(e), "error": str(e)})
+
+
 @app.post("/api/customers/{customer_id}/settle-cycles")
 async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCyclesPayload, request: Request):
     """
@@ -4615,7 +5224,21 @@ async def settle_customer_cycles_endpoint(customer_id: int, payload: SettleCycle
     """
     try:
         session_user = get_request_collector_name(request)
-        items_dicts = [item.dict() for item in payload.items]
+        if not payload.items and payload.amount and payload.amount > 0:
+            return await api_customer_smart_collect(
+                customer_id=customer_id,
+                payload=SmartCollectPayload(
+                    customer_id=customer_id,
+                    amount=payload.amount,
+                    payment_type=payload.payment_type or "cash",
+                    collector=session_user,
+                    notes=payload.notes or "",
+                    send_whatsapp=payload.send_whatsapp
+                ),
+                request=request
+            )
+
+        items_dicts = [item.dict() for item in payload.items] if payload.items else []
 
         res = database.settle_customer_cycles(
             customer_id=customer_id,
@@ -5066,9 +5689,10 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
     wa_settings = database.get_whatsapp_settings()
     is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
         wa_settings.get("quiet_hours_start", "22:00"),
-        wa_settings.get("quiet_hours_end", "09:00")
+        wa_settings.get("quiet_hours_end", "11:00")
     )
     logs = database.get_whatsapp_logs(limit=100, status_filter=filter, search=search)
+    held_messages = database.get_held_whatsapp_messages()
     due_customers = database.get_due_customers_for_whatsapp()
     all_customers = database.get_customers()
 
@@ -5076,11 +5700,15 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
     stats = {
         "total_logs": len(logs),
         "sent_count": sum(1 for l in logs if l.get("status") == "sent"),
-        "blocked_count": sum(1 for l in logs if l.get("status") == "blocked_night"),
+        "blocked_count": sum(1 for l in logs if l.get("status") in ("blocked_night", "blocked_sandbox")),
+        "held_count": len(held_messages),
         "failed_count": sum(1 for l in logs if l.get("status") == "failed"),
         "simulated_count": sum(1 for l in logs if l.get("status") == "simulated"),
         "due_count": len(due_customers)
     }
+
+    riyadh_now = whatsapp_service.get_riyadh_now()
+    riyadh_now_str = riyadh_now.strftime("%I:%M %p")
 
     return templates.TemplateResponse(
         request=request,
@@ -5093,7 +5721,9 @@ async def whatsapp_hub_page(request: Request, filter: str = "all", search: str =
             "wa_settings": wa_settings,
             "is_night": is_night,
             "quiet_desc": quiet_desc,
+            "riyadh_now_str": riyadh_now_str,
             "logs": logs,
+            "held_messages": held_messages,
             "current_filter": filter,
             "search": search,
             "due_customers": due_customers,
@@ -5138,6 +5768,42 @@ async def api_whatsapp_session_reset():
     return JSONResponse(res)
 
 
+@app.post("/api/whatsapp/held/release-now")
+async def api_whatsapp_held_release_now():
+    """Manually releases and distributes all messages currently on hold by Time Shield."""
+    held = database.get_held_whatsapp_messages()
+    if not held:
+        return JSONResponse({"success": True, "count": 0, "message": "No messages currently on hold."})
+
+    asyncio.create_task(_distribute_held_batch(held, source="admin_release_all"))
+    return JSONResponse({
+        "success": True,
+        "count": len(held),
+        "message": f"Triggered immediate distribution for {len(held)} held message(s)."
+    })
+
+
+@app.post("/api/whatsapp/held/{log_id}/send-now")
+async def api_whatsapp_held_send_one(log_id: int):
+    """Manually releases and dispatches a single held message immediately."""
+    held = database.get_held_whatsapp_messages()
+    target = next((m for m in held if m.get("id") == log_id), None)
+    if not target:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Held message not found or already processed."})
+
+    asyncio.create_task(_distribute_held_batch([target], source=f"admin_single_{log_id}"))
+    return JSONResponse({"success": True, "message": f"Held message #{log_id} is being dispatched now."})
+
+
+@app.post("/api/whatsapp/held/{log_id}/cancel")
+async def api_whatsapp_held_cancel_one(log_id: int):
+    """Cancels a held message before it distributes."""
+    ok = database.cancel_held_whatsapp_message(log_id)
+    if ok:
+        return JSONResponse({"success": True, "message": f"Held message #{log_id} was cancelled."})
+    return JSONResponse(status_code=404, content={"success": False, "error": "Could not cancel held message."})
+
+
 @app.post("/api/whatsapp/send")
 async def api_whatsapp_send(req: WhatsAppSendRequest):
     """
@@ -5154,7 +5820,7 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
         quiet_enabled = wa_settings.get("quiet_hours_enabled", "1") == "1"
         is_night, quiet_desc = whatsapp_service.is_night_quiet_hours(
             wa_settings.get("quiet_hours_start", "22:00"),
-            wa_settings.get("quiet_hours_end", "09:00")
+            wa_settings.get("quiet_hours_end", "11:00")
         )
 
         # Resolve customer name if customer_id supplied
@@ -5167,22 +5833,25 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
             except Exception as e:
                 logger.warning(f"Failed to resolve customer name for id {req.customer_id}: {e}")
 
-        # Safety Guard: Night Quiet Hours protection
+        # Safety Guard: Night Quiet Hours protection -> Place on HOLD instead of failing
         if quiet_enabled and is_night and not req.force_night and not req.simulate:
-            database.log_whatsapp_message(
+            quiet_end = wa_settings.get("quiet_hours_end", "11:00")
+            log_id = database.log_whatsapp_message(
                 phone=clean_p,
                 message_body=req.message,
                 message_type=req.message_type or "manual",
-                status="blocked_night",
-                error_message=f"Dispatch blocked by Night Quiet Hours shield ({quiet_desc})",
+                status="held_night",
+                error_message=f"Placed on HOLD by Night Quiet Hours shield ({quiet_desc}). Scheduled to distribute automatically when daytime opens at {quiet_end}.",
                 customer_id=req.customer_id,
                 customer_name=resolved_name,
                 sent_by="admin"
             )
-            return JSONResponse(status_code=403, content={
-                "success": False,
-                "status": "blocked_night",
-                "error": f"Night Quiet Hours Shield is ACTIVE: {quiet_desc}. Enable 'Confirm Night Send' if this is an authorized emergency."
+            return JSONResponse(status_code=200, content={
+                "success": True,
+                "status": "held_night",
+                "log_id": log_id,
+                "phone": clean_p,
+                "message": f"🌙 Night Quiet Hours Shield is ACTIVE ({quiet_desc}). Message placed on HOLD. It will automatically distribute when daytime opens at {quiet_end} (or check 'Emergency Night Send' to bypass)."
             })
 
         # Simulation / Test mode
