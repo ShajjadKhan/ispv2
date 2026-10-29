@@ -1448,8 +1448,11 @@
         <button type="button" class="btn-action-sm" onclick="copyWhatsAppProof()" style="color:#ffffff; background:rgba(255,255,255,0.08); padding:8px 12px; font-size:12px; justify-content:center;">
           📋 Copy Proof
         </button>
-        <button type="button" class="btn-confirm-approve btn-wa-send" onclick="openWhatsAppWeb()" style="padding:8px 14px; font-size:12px; background:#10b981; border-color:#059669; justify-content:center;">
-          <span>📲 Send on WhatsApp</span>
+        <button type="button" class="btn-action-sm" onclick="openWhatsAppWeb()" style="color:#38bdf8; background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.3); padding:8px 12px; font-size:12px; justify-content:center;" title="Open in WhatsApp Web">
+          🌐 Web
+        </button>
+        <button type="button" class="btn-confirm-approve btn-wa-send" id="btnSendOpenWA" onclick="sendViaOpenWA()" style="padding:8px 14px; font-size:12px; background:#10b981; border-color:#059669; justify-content:center;">
+          <span>⚡ Send via OpenWA</span>
         </button>
       </div>
     </div>
@@ -1541,6 +1544,52 @@
     }).catch(() => {
       prompt('Copy message:', cachedWhatsAppMessage);
     });
+  }
+
+  async function sendViaOpenWA() {
+    if (!cachedWhatsAppMessage) {
+      cyberToast('⚠️ No verification message generated yet.', 'warning');
+      return;
+    }
+    const btn = document.getElementById('btnSendOpenWA');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Sending via OpenWA...</span>';
+    }
+
+    try {
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: customerPhone,
+          message: cachedWhatsAppMessage,
+          message_type: 'usage_proof',
+          customer_id: customerId,
+          force_night: true
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.status === 'held_night') {
+          cyberToast('🌙 ' + (data.message || 'Report placed on hold by Time Shield.'), 'info');
+        } else {
+          cyberToast('✅ Verification proof dispatched directly via OpenWA!', 'success');
+          setTimeout(() => { closeWhatsAppModal(); }, 1200);
+        }
+      } else {
+        cyberToast('❌ Failed to send via OpenWA: ' + (data.error || 'Server error'), 'error');
+      }
+    } catch (err) {
+      cyberToast('❌ Network error: ' + err.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
   }
 
   function openWhatsAppWeb() {

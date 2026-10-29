@@ -5811,9 +5811,9 @@ async def api_whatsapp_send(req: WhatsAppSendRequest):
                 logger.warning(f"Failed to resolve customer name for id {req.customer_id}: {e}")
 
         # Safety Guard: Night Quiet Hours protection -> Place on HOLD instead of failing
-        # Exception: Payment Receipts are financial transaction proofs and must be delivered instantly 24/7
-        is_receipt = (req.message_type == "receipt")
-        if quiet_enabled and is_night and not req.force_night and not req.simulate and not is_receipt:
+        # Exception: Payment Receipts & On-Demand Usage Proofs are delivered instantly 24/7
+        is_instant_type = (req.message_type in ("receipt", "usage_proof"))
+        if quiet_enabled and is_night and not req.force_night and not req.simulate and not is_instant_type:
             quiet_end = wa_settings.get("quiet_hours_end", "11:00")
             log_id = database.log_whatsapp_message(
                 phone=clean_p,
