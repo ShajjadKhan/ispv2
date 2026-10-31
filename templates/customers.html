@@ -1225,6 +1225,182 @@
       min-height: 40px !important;
     }
   }
+
+  /* =========================================================
+     SMART COLLECT PAYMENT MODAL - NATIVE MOBILE PHONE OPTIMIZATION (<= 640px)
+     ========================================================= */
+  @media (max-width: 640px) {
+    #collectModal.modal-overlay {
+      padding: 0 !important;
+      align-items: flex-end !important;
+      justify-content: center !important;
+      background: rgba(3, 7, 18, 0.88) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+    }
+
+    #collectModal .modal-box {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 22px 22px 0 0 !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: none !important;
+      border-top: 1px solid rgba(56, 189, 248, 0.35) !important;
+      margin: 0 !important;
+      max-height: 94vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+      animation: modalSlideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      overscroll-behavior: contain !important;
+    }
+
+    @keyframes modalSlideUpMobile {
+      from { transform: translateY(100%); opacity: 0.5; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    #collectModal .modal-header-custom {
+      position: relative !important;
+      padding: 18px 16px 12px 16px !important;
+      flex-shrink: 0 !important;
+      border-radius: 22px 22px 0 0 !important;
+    }
+    #collectModal .modal-header-custom::before {
+      content: '' !important;
+      display: block !important;
+      position: absolute !important;
+      top: 6px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 44px !important;
+      height: 4px !important;
+      border-radius: 2px !important;
+      background: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    #collectModal .modal-body-custom {
+      padding: 14px 16px 20px 16px !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
+      max-height: calc(94vh - 65px) !important;
+    }
+
+    #collectModal .coll-form-grid-2,
+    #collectModal div[style*="grid-template-columns: 1fr 1fr"],
+    #collectModal div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+
+    #collectModal input,
+    #collectModal select {
+      font-size: 16px !important;
+    }
+    #collectModal #collPaymentType,
+    #collectModal #collNotes {
+      height: 44px !important;
+      padding: 8px 12px !important;
+      border-radius: 9px !important;
+    }
+
+    #collectModal #collAmount {
+      height: 52px !important;
+      font-size: 26px !important;
+      padding-right: 14px !important;
+      border-radius: 12px !important;
+    }
+
+    #collectModal .coll-presets-bar,
+    #collectModal div:has(> .btn-preset-chip) {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 6px !important;
+      margin-top: 8px !important;
+    }
+    #collectModal .btn-preset-chip {
+      min-height: 38px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
+      padding: 6px 4px !important;
+      text-align: center !important;
+    }
+    #collectModal #btnPresetClear {
+      grid-column: span 1 !important;
+    }
+
+    #collectModal #collWalletStatusCard {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+    }
+    #collectModal #collWalletAmount {
+      font-size: 22px !important;
+    }
+
+    #collectModal .coll-wa-card,
+    #collectModal div:has(> #collSendWa) {
+      padding: 12px 14px !important;
+      border-radius: 10px !important;
+    }
+    #collectModal label[for="collSendWa"] {
+      font-size: 13px !important;
+      gap: 10px !important;
+    }
+    #collectModal #collSendWa {
+      width: 20px !important;
+      height: 20px !important;
+    }
+
+    #collectModal .coll-footer-row,
+    #collectModal div[style*="justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid"] {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      padding-top: 14px !important;
+      margin-top: 10px !important;
+    }
+    #collectModal .coll-collector-text,
+    #collectModal div[style*="color:var(--text-dim)"]:has(#collCollectorLabel) {
+      font-size: 12px !important;
+      text-align: center !important;
+      justify-content: center !important;
+      margin-bottom: 2px !important;
+    }
+    #collectModal .coll-footer-btns,
+    #collectModal div:has(> #btnRecordPayment) {
+      display: flex !important;
+      width: 100% !important;
+      gap: 10px !important;
+    }
+    #collectModal .coll-footer-btns button,
+    #collectModal div:has(> #btnRecordPayment) button {
+      min-height: 48px !important;
+      border-radius: 10px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    #collectModal .btn-action-sm:first-child {
+      flex: 1 !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    #collectModal #btnRecordPayment {
+      flex: 2 !important;
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -1375,6 +1551,9 @@
         <table class="clean-table" id="customersTable">
           <thead>
             <tr>
+              <th style="width:36px; text-align:center;">
+                <input type="checkbox" id="masterSubSelectAll" onchange="toggleSelectAllSubscribers(this)" title="Select All Visible Subscribers" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+              </th>
               <th>Customer</th>
               <th>Phone</th>
               <th>Type</th>
@@ -1390,6 +1569,9 @@
             {% if customers %}
               {% for c in customers %}
               <tr class="cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
+                <td class="td-sub-select" style="text-align:center; vertical-align:middle; width:36px;">
+                  <input type="checkbox" class="sub-row-checkbox" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 17px; height: 17px; accent-color: #38bdf8;">
+                </td>
                 <td>
                   <div class="cust-name-cell">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1457,20 +1639,29 @@
                 </td>
                 <td>
                   <div class="cust-duedate-cell">
-                    <span class="font-mono text-white" style="font-size:12px; white-space:nowrap;">{{ c.due_date or c.expiry_date or '—' }}</span>
-                    {% if c.is_grace_held or c.suspension_held_until %}
-                      <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
-                        🤝 Grace: {{ c.suspension_held_until }}
-                      </span>
-                    {% elif c.days_remaining is not none %}
-                      {% if c.days_remaining < 0 %}
-                        <span class="badge-status disabled" style="font-size:10px; width:fit-content;">EXPIRED</span>
-                      {% elif c.days_remaining <= 3 %}
-                        <span class="badge-status stopped" style="font-size:10px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">{{ c.days_remaining }}d left</span>
-                      {% else %}
-                        <span class="badge-status running" style="font-size:10px; width:fit-content;">{{ c.days_remaining }}d left</span>
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:10px; color:#38bdf8; font-weight:700;">📅 PAY:</span>
+                        <span class="font-mono text-cyan" style="font-size:11.5px; font-weight:700; white-space:nowrap;">{{ c.pay_date or c.due_date or '—' }}</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:5px;">
+                        <span style="font-size:10px; color:#fbbf24; font-weight:700;">✂️ CUT:</span>
+                        <span class="font-mono" style="font-size:11.5px; font-weight:600; color:#fbbf24; white-space:nowrap;">{{ c.expiry_date or c.due_date or '—' }}</span>
+                      </div>
+                      {% if c.is_grace_held or c.suspension_held_until %}
+                        <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1.5px 6px; border-radius:5px; font-size:9.5px; font-weight:700; width:fit-content; display:inline-flex; align-items:center; gap:3px;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                          🤝 Grace: {{ c.suspension_held_until }}
+                        </span>
+                      {% elif c.days_remaining is not none %}
+                        {% if c.days_remaining < 0 %}
+                          <span class="badge-status disabled" style="font-size:9.5px; width:fit-content;">CUTOFF EXPIRED</span>
+                        {% elif c.days_remaining <= 3 %}
+                          <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content;">Cut in {{ c.days_remaining }}d</span>
+                        {% else %}
+                          <span class="badge-status running" style="font-size:9.5px; width:fit-content;">Cut in {{ c.days_remaining }}d</span>
+                        {% endif %}
                       {% endif %}
-                    {% endif %}
+                    </div>
                   </div>
                 </td>
                 <td class="cust-devices-cell">
@@ -1573,7 +1764,7 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td colspan="9">
+                <td colspan="10">
                   <div class="empty-state">
                     <p style="font-weight:700; color:var(--text-main, #ffffff); margin-bottom:4px;">No Customers Registered Yet</p>
                     <p style="font-size:12px;">Approve hotspot connection requests or click "Add Customer" above to register accounts.</p>
@@ -1593,6 +1784,7 @@
         <div class="cust-mobile-card cust-row" data-cust-id="{{ c.id }}" data-type="{{ c.billing_type }}" data-status="{{ c.status }}" data-online="{{ '1' if c.is_online else '0' }}" data-sharing="{{ '1' if c.is_sharing_hotspot else '0' }}" data-credit="{{ c.credit_balance or 0 }}" data-fee="{{ c.monthly_fee or 0 }}" data-reseller="{{ c.reseller_id or '' }}" data-search="{{ c.name|lower }} {{ c.phone }} {{ c.package_name|lower }} {{ (c.notes or '')|lower }} {{ (c.reseller_shop_name or '')|lower }} {{ (c.reseller_username or '')|lower }}{% if c.is_sharing_hotspot %} sharing blocked tethering{% endif %}{% for d in c.devices %} {{ d.mac_address|lower }} {{ (d.device_name or '')|lower }} {{ (d.friendly_name or '')|lower }}{% endfor %}">
           <div class="mobile-card-header">
             <div class="mobile-card-user">
+              <input type="checkbox" class="sub-row-checkbox mobile-sub-check" value="{{ c.id }}" data-name="{{ c.name|escape }}" data-phone="{{ c.phone }}" onchange="onSubCheckboxChange(this)" style="cursor: pointer; width: 19px; height: 19px; accent-color: #38bdf8; margin-right: 6px; flex-shrink: 0;">
               <div class="mobile-cust-avatar">{{ c.name[:1]|upper }}</div>
               <div class="mobile-cust-info">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -1659,21 +1851,42 @@
               {% endif %}
             </div>
             <div class="mobile-grid-item">
-              <span class="m-lbl">Due / Expiry Date</span>
-              <span class="m-val font-mono" style="font-size:12px;">{{ c.due_date or c.expiry_date or '—' }}</span>
-              {% if c.is_grace_held or c.suspension_held_until %}
-                <span class="badge" style="background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:1px 5px; border-radius:4px; font-size:9px; font-weight:700; width:fit-content; margin-top:2px;" title="Suspension hold active until {{ c.suspension_held_until }}">
-                  🤝 Grace: {{ c.suspension_held_until }}
-                </span>
-              {% elif c.days_remaining is not none %}
-                {% if c.days_remaining < 0 %}
-                  <span class="badge-status disabled" style="font-size:9.5px; width:fit-content; margin-top:2px;">EXPIRED</span>
-                {% elif c.days_remaining <= 3 %}
-                  <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.15); width:fit-content; margin-top:2px;">{{ c.days_remaining }}d left</span>
+              <span class="m-lbl" style="color:#38bdf8;">📅 Payday (Expected)</span>
+              <span class="m-val font-mono text-cyan" style="font-size:12px; font-weight:700;">{{ c.pay_date or c.due_date or '—' }}</span>
+              {% if c.days_to_payday is not none %}
+                {% if c.days_to_payday < 0 %}
+                  <span class="badge-status stopped" style="font-size:9px; background:rgba(245,158,11,0.15); color:#fbbf24; width:fit-content; margin-top:2px;">{{ c.days_to_payday|abs }}d past payday</span>
+                {% elif c.days_to_payday <= 3 %}
+                  <span class="badge-status stopped" style="font-size:9px; background:rgba(56,189,248,0.18); color:#38bdf8; width:fit-content; margin-top:2px; font-weight:700;">In {{ c.days_to_payday }}d</span>
                 {% else %}
-                  <span class="badge-status running" style="font-size:9.5px; width:fit-content; margin-top:2px;">{{ c.days_remaining }}d left</span>
+                  <span class="badge-status" style="font-size:9px; background:rgba(56,189,248,0.1); color:#38bdf8; width:fit-content; margin-top:2px;">In {{ c.days_to_payday }}d</span>
                 {% endif %}
               {% endif %}
+            </div>
+
+            <!-- Full-Width Hard Suspension Date (Internet Cutoff) -->
+            <div class="mobile-grid-item" style="grid-column: 1 / -1; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.22); border-radius:8px; padding:7px 10px; margin-top:2px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                <div>
+                  <span class="m-lbl" style="color:#fbbf24; margin-bottom:1px;">✂️ Hard Suspension (Auto-Cut)</span>
+                  <div class="m-val font-mono" style="font-size:12px; color:#fbbf24; font-weight:700;">{{ c.expiry_date or c.due_date or '—' }}</div>
+                </div>
+                <div>
+                  {% if c.is_grace_held or c.suspension_held_until %}
+                    <span class="badge" style="background:rgba(245,158,11,0.22); color:#f59e0b; border:1px solid rgba(245,158,11,0.45); padding:2px 7px; border-radius:4px; font-size:9.5px; font-weight:700;" title="Suspension hold active until {{ c.suspension_held_until }}">
+                      🤝 Grace: {{ c.suspension_held_until }}
+                    </span>
+                  {% elif c.days_remaining is not none %}
+                    {% if c.days_remaining < 0 %}
+                      <span class="badge-status disabled" style="font-size:9.5px; padding:2px 7px; font-weight:700;">CUT / EXPIRED</span>
+                    {% elif c.days_remaining <= 3 %}
+                      <span class="badge-status stopped" style="font-size:9.5px; color:#fbbf24; background:rgba(245,158,11,0.2); font-weight:700; padding:2px 7px;">Cut in {{ c.days_remaining }}d</span>
+                    {% else %}
+                      <span class="badge-status running" style="font-size:9.5px; padding:2px 7px;">Cut in {{ c.days_remaining }}d</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
             </div>
             <div class="mobile-grid-item" style="grid-column: 1 / -1;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-wrap:wrap; gap:4px;">
@@ -1800,6 +2013,10 @@
         <p class="font-mono text-dim" style="font-size:12px;" id="profSubhead">Loading details...</p>
       </div>
       <div class="prof-header-actions" style="display:flex; align-items:center; gap:8px;">
+        <button type="button" class="btn-action-sm btn-collect-cust" onclick="openCollectModal(activeCustomerId, document.getElementById('profName').textContent)" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:5px 12px; font-size:11.5px; border-radius:6px; box-shadow:0 2px 8px rgba(16,185,129,0.3); display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Collect Payment for this Subscriber">
+          <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          <span>Collect</span>
+        </button>
         <a id="profUsagePageBtn" href="#" class="btn-action-sm" style="background:rgba(168,85,247,0.15); color:#c084fc; border-color:rgba(168,85,247,0.3); font-size:11px; padding:5px 10px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;" title="Open Dedicated 90-Day Usage Dashboard">
           <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
           <span>90d Usage</span>
@@ -2579,22 +2796,33 @@
             <span>Billing Terms &amp; Renewal</span>
           </div>
 
-          <div class="modal-grid-3">
+          <div class="modal-grid-2" style="gap:10px;">
             <div class="form-group" style="margin-bottom:0;">
               <label for="editCustFee">Monthly Fee (SAR)</label>
               <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustFee" required style="color:#38bdf8; font-weight:700;">
             </div>
             <div class="form-group" style="margin-bottom:0;">
+              <label for="editCustCredit">Credit Balance (SAR)</label>
+              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+            </div>
+          </div>
+
+          <div class="modal-grid-2" style="gap:10px; margin-top:10px; padding:10px; background:rgba(56,189,248,0.03); border:1px solid rgba(56,189,248,0.15); border-radius:8px;">
+            <div class="form-group" style="margin-bottom:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <label for="editCustDueDate" style="margin-bottom:0;">Suspend Date <span style="color:#ef4444;">*</span></label>
+                <label for="editCustPayDate" style="margin-bottom:0;">📅 Payday <span style="color:#38bdf8;">*</span></label>
+                <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Follow-up Target</span>
+              </div>
+              <input type="text" class="form-input font-mono cyber-datepicker" id="editCustPayDate" placeholder="YYYY-MM-DD" required autocomplete="off">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Expected pay day. Reminders trigger 3-5d before. <strong>Internet remains active</strong>.</span>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label for="editCustDueDate" style="margin-bottom:0;">✂️ Hard Cutoff Date <span style="color:#ef4444;">*</span></label>
                 <span class="badge" id="badgeEditSuspend" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px;">Auto-Cut Date</span>
               </div>
               <input type="text" class="form-input font-mono cyber-datepicker" id="editCustDueDate" placeholder="YYYY-MM-DD" required autocomplete="off">
-              <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Account suspends on this day.</span>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label for="editCustCredit">Credit Balance (SAR)</label>
-              <input type="number" step="0.01" inputmode="decimal" class="form-input font-mono" id="editCustCredit" value="0.00" style="color:#34d399; font-weight:700;">
+              <span style="font-size:10.5px; color:var(--text-dim); margin-top:2px;">Internet cuts off on MikroTik on this day if unpaid.</span>
             </div>
           </div>
 
@@ -2665,37 +2893,133 @@
 <!-- =========================================================
      COLLECT PAYMENT & MONTH-BY-MONTH SETTLEMENT MODAL (Matching Billing Reminder)
      ========================================================= -->
-<div class="modal-overlay" id="collectModal">
-  <div class="modal-box modal-box-lg" style="max-width: 680px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-subtle, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
-    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center;">
-      <h5 style="margin:0; font-size:16px; font-weight:800; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:8px;">
-        <i class="fas fa-money-bill-wave" style="color:#10b981;"></i> Collect Payment
-      </h5>
-      <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
-    </div>
-    <div class="modal-body-custom" style="padding: 20px;">
-      <form id="collectForm" onsubmit="event.preventDefault(); submitCollectForm();">
-        <input type="hidden" id="coll_cid">
-        <div id="coll_name" style="margin-bottom: 14px; font-weight: 700; font-size: 14px; color: #38bdf8;"></div>
-        <div id="unpaidList"></div>
-        <hr class="divider" style="border:none; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08)); margin: 16px 0 14px 0;">
-        <div class="alert alert-info" style="margin-bottom: 16px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 10px; padding: 12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <i class="fas fa-calculator" style="color:#38bdf8;"></i>
-            <span style="font-size:13.5px; color:var(--text-main, #ffffff);">Total to collect: <strong class="mono" id="totalAmt" style="font-size:18px; color:#34d399; font-weight:800;">0.00</strong> SAR</span>
-          </div>
-          <div id="collWaivedNote" style="display:none; color:#fbbf24; font-size:12px; font-weight:700; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:3px 8px; border-radius:6px;">
-            ⚡ <span id="collWaivedVal">0.00</span> SAR Waived Discount
-          </div>
-          <div id="collPendingNote" style="display:none; color:#38bdf8; font-size:12px; font-weight:700; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); padding:3px 8px; border-radius:6px;">
-            ⏱ <span id="collPendingVal">0.00</span> SAR Remains Pending
-          </div>
+<div class="modal-overlay" id="collectModal" style="z-index: 10005 !important;">
+  <div class="modal-box" style="max-width: 540px; background: var(--bg-card, #0f172a); border: 1px solid var(--border-accent, rgba(56, 189, 248, 0.25)); border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.65); overflow:hidden;">
+    
+    <!-- Modal Header -->
+    <div class="modal-header-custom" style="padding: 16px 20px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(15,23,42,0.6) 100%);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:#34d399; font-size:16px;">
+          <i class="fas fa-money-bill-wave"></i>
         </div>
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-          <button type="button" class="btn-action-sm" onclick="closeCollectModal()" style="padding:8px 16px; font-size:12.5px;">Cancel</button>
-          <button type="submit" class="btn-action-sm" id="btnRecordPayment" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 20px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer;">
-            <i class="fas fa-check"></i> Record Payment
-          </button>
+        <div>
+          <h5 style="margin:0; font-size:15px; font-weight:800; color:var(--text-main, #ffffff);">Collect Payment</h5>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">Fast subscriber collection &amp; auto-settlement</div>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeCollectModal()" style="background:rgba(255,255,255,0.06); border:none; color:var(--text-dim); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all 0.15s ease;">&times;</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body-custom" style="padding: 20px;">
+      <form id="collectForm" novalidate onsubmit="event.preventDefault(); submitSmartCollectForm();">
+        <input type="hidden" id="coll_cid">
+
+        <!-- Loading Spinner State -->
+        <div id="collLoadingState" style="display:none; padding:35px 20px; text-align:center; color:var(--text-dim);">
+          <i class="fas fa-spinner fa-spin" style="font-size:26px; color:#38bdf8; margin-bottom:12px;"></i>
+          <div style="font-size:13.5px; font-weight:600; color:var(--text-main, #ffffff);">Loading subscriber wallet details…</div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="collContentArea">
+          <!-- Customer Profile Summary Header -->
+          <div class="coll-cust-summary-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-dim); letter-spacing:0.5px;">Subscriber</div>
+              <div id="collCustName" style="font-size:16px; font-weight:800; color:#ffffff; margin-top:2px;">—</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12px; color:var(--text-dim); flex-wrap:wrap;">
+                <span id="collCustPhone" class="mono" style="color:#93c5fd;">—</span>
+                <span id="collCustRoom" style="background:rgba(56,189,248,0.12); color:#38bdf8; padding:1px 6px; border-radius:4px; font-weight:600; display:none;">—</span>
+                <span id="collCustPkg" style="color:var(--text-dim);">—</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span id="collCustStatusBadge" class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">ACTIVE</span>
+              <div id="collCustExpiryInfo" style="font-size:11px; color:var(--text-dim); margin-top:5px;">—</div>
+            </div>
+          </div>
+
+          <!-- Prominent Wallet Status Card -->
+          <div id="collWalletStatusCard" style="border-radius:12px; padding:14px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">
+            <div>
+              <div id="collWalletTitle" style="font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; color:#f87171;">WALLET STATUS: OVERDUE DEBT</div>
+              <div id="collWalletAmount" class="mono" style="font-size:24px; font-weight:900; color:#ef4444; margin-top:2px;">-30.00 SAR</div>
+              <div id="collWalletSubtext" style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">1 cycle unpaid</div>
+            </div>
+            <div id="collWalletIcon" style="width:42px; height:42px; border-radius:10px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; font-size:18px; color:#ef4444;">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+
+          <!-- Single Amount Input Box -->
+          <div style="margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="collAmount" style="font-size:11.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin:0;">
+                Collection Amount (SAR) <span style="color:#ef4444;">*</span>
+              </label>
+              <span style="font-size:11px; color:#38bdf8; font-weight:600;">Authority Input Only</span>
+            </div>
+            <div style="position:relative;">
+              <input type="number" id="collAmount" name="amount" step="0.01" min="0.01" required class="form-control mono" style="width:100%; height:46px; font-size:22px; font-weight:900; color:#34d399; background:rgba(9,14,26,0.9); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:6px 14px 6px 50px; text-align:right;" placeholder="0.00" oninput="updateLiveCalculationPreview()">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:14px; font-weight:800; color:var(--text-dim); pointer-events:none;">SAR</span>
+            </div>
+
+            <!-- Quick 1-Click Preset Buttons -->
+            <div class="coll-presets-bar" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+              <button type="button" id="btnPresetExact" class="btn-preset-chip" onclick="applySmartPreset('exact')" style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#f87171; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;">Exact Due</button>
+              <button type="button" id="btnPreset1Mo" class="btn-preset-chip" onclick="applySmartPreset(30)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">30 SAR (1 Mo)</button>
+              <button type="button" id="btnPreset2Mo" class="btn-preset-chip" onclick="applySmartPreset(60)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">60 SAR (2 Mo)</button>
+              <button type="button" id="btnPreset3Mo" class="btn-preset-chip" onclick="applySmartPreset(90)" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-main, #ffffff); font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; cursor:pointer;">90 SAR (3 Mo)</button>
+              <button type="button" id="btnPresetClear" class="btn-preset-chip" onclick="applySmartPreset('clear')" style="background:none; border:none; color:var(--text-dim); font-size:11px; cursor:pointer; padding:4px 6px;">Clear</button>
+            </div>
+          </div>
+
+          <!-- Live Auto-Calculation Preview Alert -->
+          <div id="collLiveCalcPreview" style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-magic" style="color:#38bdf8; font-size:14px;"></i>
+            <div id="collLiveCalcText" style="flex:1;">System will calculate cycle allocation automatically upon payment.</div>
+          </div>
+
+          <!-- Payment Method & Notes Grid -->
+          <div class="coll-form-grid-2" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <label for="collPaymentType" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Payment Method</label>
+              <select id="collPaymentType" class="form-control" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 8px; color:var(--text-main, #ffffff);">
+                <option value="cash">💵 Cash Payment</option>
+                <option value="stc_pay">📱 STC Pay / Barq</option>
+                <option value="bank_transfer">🏦 Alinma Bank Transfer</option>
+                <option value="pos_card">💳 POS / Card</option>
+                <option value="other">📝 Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="collNotes" style="font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; display:block; margin-bottom:4px;">Notes (Optional)</label>
+              <input type="text" id="collNotes" placeholder="e.g. Paid in full / STC Ref" class="form-control" style="width:100%; height:36px; font-size:12.5px; background:rgba(9,14,26,0.9); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:8px; padding:4px 10px; color:var(--text-main, #ffffff);">
+            </div>
+          </div>
+
+          <!-- WhatsApp Instant Receipt Dispatch Toggle -->
+          <div class="coll-wa-card" style="padding:10px 14px; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.25); border-radius:8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <label for="collSendWa" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:12px; font-weight:700; color:#4ade80;">
+              <input type="checkbox" id="collSendWa" checked style="accent-color:#25d366; width:16px; height:16px; cursor:pointer;">
+              <span>📱 Send WhatsApp Receipt to Subscriber</span>
+            </label>
+            <span style="font-size:11px; color:#94a3b8;" class="mono">Instant Push</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="coll-footer-row" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:12px; border-top:1px solid var(--border-subtle, rgba(255,255,255,0.08));">
+            <div class="coll-collector-text" style="font-size:11.5px; color:var(--text-dim);">
+              Collector: <strong id="collCollectorLabel" style="color:var(--text-main, #ffffff);">{{ (request.state.user.full_name or request.state.user.username) if (request.state and request.state.user) else 'Shajjad Khan' }}</strong>
+            </div>
+            <div class="coll-footer-btns" style="display:flex; gap:10px;">
+              <button type="button" class="btn-action-sm" onclick="closeCollectModal()" style="padding:9px 18px; font-size:12.5px; background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle, rgba(255,255,255,0.1)); color:var(--text-dim); border-radius:8px; cursor:pointer;">Cancel</button>
+              <button type="submit" id="btnRecordPayment" class="btn-action-sm" style="background:linear-gradient(135deg, #059669 0%, #10b981 100%); color:#ffffff; font-weight:800; border:none; padding:9px 22px; font-size:13px; border-radius:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-check-circle"></i> Confirm &amp; Record Payment
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -3280,27 +3604,54 @@
         `;
       }
 
-      // 2. Month-by-Month Cycle Settlement Table
+      // 2. Simplified Wallet Status & Quick Action Card
+      const bal = parseFloat(b.credit_balance || 0.0);
+      const totalDue = parseFloat(b.total_due || 0.0);
+      const isOwed = (totalDue > 0.01 || bal < -0.01);
+      const isCredit = (bal > 0.01);
+      const owedAmt = totalDue > 0.01 ? totalDue : Math.abs(bal);
+
       html += `
-        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; overflow:hidden;">
-          <div style="padding:12px 14px; background:var(--bg-card-header, #0d1527); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <div style="font-size:12.5px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:6px;">
-              <svg style="width:15px; height:15px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-              <span>Cycle Settlement &amp; Waiver Breakdown</span>
+        <div style="background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius:12px; overflow:hidden; margin-bottom:16px;">
+          <!-- Wallet Status Banner -->
+          <div style="padding:16px; border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.08)); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; ${isOwed ? 'background:rgba(239,68,68,0.08);' : (isCredit ? 'background:rgba(16,185,129,0.08);' : 'background:rgba(56,189,248,0.08);')}">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; ${isOwed ? 'color:#f87171;' : (isCredit ? 'color:#34d399;' : 'color:#38bdf8;')}">
+                ${isOwed ? 'WALLET STATUS: OVERDUE DEBT' : (isCredit ? 'WALLET STATUS: CREDIT SURPLUS' : 'WALLET STATUS: SETTLED & PAID')}
+              </div>
+              <div class="font-mono" style="font-size:22px; font-weight:900; margin-top:2px; ${isOwed ? 'color:#ef4444;' : (isCredit ? 'color:#10b981;' : 'color:#38bdf8;')}">
+                ${isOwed ? '-' + owedAmt.toFixed(2) + ' SAR' : (isCredit ? '+' + bal.toFixed(2) + ' SAR' : '0.00 SAR')}
+              </div>
+              <div style="font-size:11.5px; color:var(--text-dim); margin-top:2px;">
+                ${isOwed ? `${unpaid.length} unpaid cycle(s) pending · Ready for smart allocation` : (isCredit ? 'Advance prepaid credit stored in subscriber wallet' : 'All subscriptions up to date')}
+              </div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button type="button" class="btn-action-sm" onclick="openPromiseModal(${custId}, '${b.customer_name}', ${b.monthly_fee})" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3); font-size:11px; padding:4px 10px;">
-                🤝 Extend Grace Period
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn-approve" onclick="openCollectModal(${custId}, '${(b.customer_name || '').replace(/'/g, "\\'")}')" style="padding:10px 20px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow:0 4px 14px rgba(16,185,129,0.35); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fas fa-money-bill-wave"></i> ⚡ Collect Payment
+              </button>
+              <button type="button" class="btn-action-sm" onclick="openPromiseModal(${custId}, '${(b.customer_name || '').replace(/'/g, "\\'")}', ${b.monthly_fee})" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3); font-size:12px; padding:8px 14px; font-weight:700;">
+                🤝 Extend Grace
               </button>
             </div>
           </div>
+
+          <!-- Billing Cycles Transparent Statement Breakdown -->
+          <div style="padding:12px 14px; background:var(--bg-card-header, #0d1527); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.06)); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:12px; font-weight:700; color:var(--text-main, #ffffff); display:flex; align-items:center; gap:6px;">
+              <svg style="width:14px; height:14px; fill:#38bdf8;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+              <span>Subscription &amp; Billing Cycles Ledger</span>
+            </div>
+            <span style="font-size:11px; color:var(--text-dim);">${b.package_name || 'Standard Package'} · ${parseFloat(b.monthly_fee || 30).toFixed(2)} SAR/mo</span>
+          </div>
       `;
 
-      if (unpaid.length === 0) {
+      const allCycles = (b.cycles && b.cycles.length > 0) ? b.cycles : unpaid;
+      if (!allCycles || allCycles.length === 0) {
         html += `
           <div style="padding:24px; text-align:center;">
             <div style="color:#34d399; font-size:14px; font-weight:800; margin-bottom:4px;">✅ All Billing Cycles Settled!</div>
-            <div style="color:var(--text-dim); font-size:12px;">This customer has zero outstanding past dues. Service is active.</div>
+            <div style="color:var(--text-dim); font-size:12px;">This subscriber has zero outstanding past dues. Service is active.</div>
           </div>
         `;
       } else {
@@ -3309,39 +3660,35 @@
             <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
               <thead style="background:var(--bg-card-header, #090e1a); color:var(--text-dim); border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.06));">
                 <tr>
-                  <th style="padding:8px 12px; width:75px; text-align:center;">✓ Settle</th>
-                  <th style="padding:8px 12px;">Cycle Period</th>
+                  <th style="padding:8px 14px;">Cycle Period</th>
                   <th style="padding:8px 12px;">Expected Fee</th>
-                  <th style="padding:8px 12px;">Paid</th>
-                  <th style="padding:8px 12px;">Due</th>
-                  <th style="padding:8px 12px; width:140px;">Amount to Collect</th>
+                  <th style="padding:8px 12px;">Paid Amount</th>
+                  <th style="padding:8px 12px;">Outstanding Due</th>
+                  <th style="padding:8px 14px; text-align:right;">Cycle Status</th>
                 </tr>
               </thead>
-              <tbody id="settlementTbody">
+              <tbody>
         `;
 
-        unpaid.forEach((u, idx) => {
+        allCycles.forEach((u) => {
+          const isSettled = u.is_settled || (u.rem_due <= 0.01);
           const isGrace = u.is_grace;
-          const cycleLabel = isGrace ? `${u.label} <span class="badge" style="background:#f59e0b; color:#000; font-size:9.5px; padding:1px 5px; border-radius:4px; font-weight:700;">Grace (${u.grace_days}d)</span>` : u.label;
           html += `
             <tr style="border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.04));">
-              <td style="padding:8px 12px; text-align:center;">
-                <input type="checkbox" class="settle-cb" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" checked onchange="updateSettlementTotals()" title="Check to mark this month settled (solves cycle, waives remainder)">
-              </td>
-              <td style="padding:8px 12px; font-weight:700; color:var(--text-main, #ffffff);">
-                ${cycleLabel}
+              <td style="padding:8px 14px; font-weight:700; color:var(--text-main, #ffffff);">
+                ${u.label || u.month}
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono); color:var(--text-dim);">
-                ${u.expected_fee.toFixed(2)} SAR
+                ${parseFloat(u.expected_fee || 0).toFixed(2)} SAR
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono); color:#94a3b8;">
-                ${u.paid.toFixed(2)} SAR
+                ${parseFloat(u.paid || 0).toFixed(2)} SAR
               </td>
               <td style="padding:8px 12px; font-family:var(--font-mono);">
-                <span class="badge-status stopped" style="font-size:11px; font-weight:700;">${u.rem_due.toFixed(2)} SAR</span>
+                ${isSettled ? '<span style="color:#34d399; font-weight:700;">0.00 SAR</span>' : `<span class="badge-status stopped" style="font-size:11px; font-weight:700;">${parseFloat(u.rem_due || 0).toFixed(2)} SAR</span>`}
               </td>
-              <td style="padding:8px 12px;">
-                <input type="number" step="0.5" min="0" inputmode="decimal" class="form-input font-mono settle-amt-input" data-month="${u.month}" data-expected="${u.expected_fee}" data-paid="${u.paid}" data-due="${u.rem_due}" value="${u.rem_due.toFixed(2)}" style="padding:6px 10px; font-size:12.5px; width:110px; font-weight:700; color:#38bdf8;" oninput="updateSettlementTotals()">
+              <td style="padding:8px 14px; text-align:right;">
+                ${isSettled ? '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">✓ Settled</span>' : (isGrace ? `<span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;">Grace (${u.grace_days}d)</span>` : '<span class="badge" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">● Unpaid</span>')}
               </td>
             </tr>
           `;
@@ -3351,26 +3698,8 @@
               </tbody>
             </table>
           </div>
-          <div style="padding:12px 16px; background:#0d1527; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div style="display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;">
-              <div>
-                <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; display:block;">Total to Collect:</span>
-                <strong class="font-mono text-emerald" style="font-size:18px;" id="settleTotalAmt">0.00 SAR</strong>
-              </div>
-              <div id="settleWaivedWrap" style="border-left:1px solid rgba(255,255,255,0.1); padding-left:14px;">
-                <span style="font-size:10.5px; color:var(--text-dim); text-transform:uppercase; display:block;">Waived Discount:</span>
-                <strong class="font-mono" style="font-size:16px; color:#fbbf24;" id="settleWaivedAmt">0.00 SAR</strong>
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button type="button" class="btn-approve" onclick="submitCycleSettlement()" id="btnSubmitSettlement" style="padding:9px 18px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow:0 4px 14px rgba(16,185,129,0.35);">
-                ✓ Record Settlement &amp; Solve Month(s)
-              </button>
-            </div>
-          </div>
         `;
       }
-
       html += `</div>`;
       eligBox.innerHTML = html;
       updateSettlementTotals();
@@ -3935,8 +4264,8 @@
                   <span class="font-mono text-white" style="font-weight:600;">${d.ip_address || '—'}</span>
                 </div>
                 <div>
-                  <span style="color:var(--text-dim); display:block;">Session Uptime:</span>
-                  <span class="text-white">${d.uptime || d.formatted_active_time || '—'}</span>
+                  <span style="color:var(--text-dim); display:block;">${isOnline ? 'Session Uptime:' : 'Active Time (30d):'}</span>
+                  <span class="text-white">${isOnline ? (d.uptime || '?') : (d.formatted_active_time || '?')}</span>
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Last Seen:</span>
@@ -3995,7 +4324,7 @@
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection' })
+        body: JSON.stringify({ amount: parseFloat(amount), notes: 'Direct Cycle Bill Collection', send_whatsapp: true })
       });
       const res = await resp.json();
       if (res.success) {
@@ -4046,7 +4375,7 @@
       const resp = await fetch(`/api/customers/${activeCustomerId}/record-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment' })
+        body: JSON.stringify({ amount: amt, notes: notes || 'Custom Payment', send_whatsapp: true })
       });
       const res = await resp.json();
       if (res.success) {
@@ -4338,11 +4667,13 @@
       // Monthly fee
       document.getElementById('editCustFee').value = parseFloat(c.monthly_fee || 0).toFixed(2);
 
-      // Due date / suspend date
+      // Payday and Hard Suspension dates
       if (window.setPickerDate) {
-        window.setPickerDate('editCustDueDate', c.due_date || c.expiry_date || '');
+        window.setPickerDate('editCustPayDate', c.pay_date || c.due_date || '');
+        window.setPickerDate('editCustDueDate', c.expiry_date || c.due_date || '');
       } else {
-        document.getElementById('editCustDueDate').value = c.due_date || c.expiry_date || '';
+        if (document.getElementById('editCustPayDate')) document.getElementById('editCustPayDate').value = c.pay_date || c.due_date || '';
+        document.getElementById('editCustDueDate').value = c.expiry_date || c.due_date || '';
       }
 
       // Device limit
@@ -4542,6 +4873,7 @@
     const speed = document.getElementById('editCustSpeed').value.trim();
     const fee = parseFloat(document.getElementById('editCustFee').value) || 0.0;
     const dueDate = document.getElementById('editCustDueDate').value;
+    const payDate = document.getElementById('editCustPayDate') ? document.getElementById('editCustPayDate').value : dueDate;
     const maxDev = parseInt(document.getElementById('editCustMaxDevices').value) || 1;
     const credit = parseFloat(document.getElementById('editCustCredit').value) || 0.0;
     const connType = document.getElementById('editCustConnType') ? document.getElementById('editCustConnType').value : 'hotspot';
@@ -4562,6 +4894,7 @@
           speed_limit: speed,
           monthly_fee: fee,
           due_date: dueDate,
+          pay_date: payDate,
           max_devices: maxDev,
           credit_balance: credit,
           notes: notes,
@@ -4849,67 +5182,197 @@
   });
 
   // =========================================================
-  // COLLECT PAYMENT & SETTLEMENT CONTROLLER (MATCHING BILLING REMINDER)
+  // UNIFIED SMART COLLECT PAYMENT CONTROLLER
   // =========================================================
   let activeCollCustId = null;
+  let activeCollBreakdown = null;
 
-  function openCollectModal(cid, name) {
+  async function openCollectModal(cid, name) {
     activeCollCustId = cid;
+    activeCollBreakdown = null;
+
     const modal = document.getElementById('collectModal');
     if (modal) modal.classList.add('open', 'show');
     document.body.style.overflow = 'hidden';
 
     document.getElementById('coll_cid').value = cid;
-    document.getElementById('coll_name').textContent = 'Customer: ' + (name || 'ID #' + cid);
-    document.getElementById('unpaidList').innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-dim); font-size:13px;"><i class="fas fa-spinner fa-spin" style="margin-right:6px"></i> Loading unpaid bills…</div>';
+    const loadingState = document.getElementById('collLoadingState');
+    const contentArea = document.getElementById('collContentArea');
+    if (loadingState) loadingState.style.display = 'block';
+    if (contentArea) contentArea.style.display = 'none';
 
-    fetch('/api/customers/' + cid + '/unpaid')
-      .then(r => r.json())
-      .then(data => {
-        if (!data || !data.length) {
-          document.getElementById('unpaidList').innerHTML = '<div class="alert alert-success" style="padding:14px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:#34d399; font-weight:700;"><i class="fas fa-check-circle" style="margin-right:6px"></i> All bills are paid for this customer!</div>';
-          document.getElementById('totalAmt').textContent = '0.00';
-          const waivedNote = document.getElementById('collWaivedNote');
-          if (waivedNote) waivedNote.style.display = 'none';
-          const btnRec = document.getElementById('btnRecordPayment');
-          if (btnRec) btnRec.style.display = 'none';
-          return;
+    try {
+      const resp = await fetch('/api/customers/' + cid + '/billing-breakdown');
+      const data = await resp.json();
+      const b = data.breakdown || data;
+      activeCollBreakdown = b;
+
+      // Populate subscriber details
+      const custName = b.customer_name || name || ('Subscriber #' + cid);
+      document.getElementById('collCustName').textContent = custName;
+      document.getElementById('collCustPhone').textContent = b.phone || '—';
+
+      const roomEl = document.getElementById('collCustRoom');
+      if (roomEl) {
+        if (b.room) {
+          roomEl.textContent = '📍 ' + b.room;
+          roomEl.style.display = 'inline-block';
+        } else {
+          roomEl.style.display = 'none';
         }
+      }
 
-        const btnRec = document.getElementById('btnRecordPayment');
-        if (btnRec) btnRec.style.display = 'inline-flex';
+      const pkgEl = document.getElementById('collCustPkg');
+      if (pkgEl) {
+        const monthlyRate = parseFloat(b.monthly_fee || 30.0).toFixed(2);
+        pkgEl.textContent = (b.package_name ? b.package_name + ' · ' : '') + monthlyRate + ' SAR/mo';
+      }
 
-        let html = '<div class="table-wrap" style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08); text-align:left; color:var(--text-dim);"><th style="padding:8px; width:70px; text-align:center;">✓ Settle</th><th style="padding:8px;">Month</th><th style="padding:8px;">Due</th><th style="padding:8px; width:150px; text-align:right;">Amount Collected (SAR)</th></tr></thead><tbody>';
+      const statusBadge = document.getElementById('collCustStatusBadge');
+      if (statusBadge) {
+        const st = (b.status || 'active').toUpperCase();
+        statusBadge.textContent = st;
+        if (st === 'ACTIVE') {
+          statusBadge.style.background = 'rgba(16,185,129,0.15)';
+          statusBadge.style.color = '#34d399';
+          statusBadge.style.borderColor = 'rgba(16,185,129,0.3)';
+        } else {
+          statusBadge.style.background = 'rgba(239,68,68,0.15)';
+          statusBadge.style.color = '#f87171';
+          statusBadge.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+      }
 
-        data.forEach((m) => {
-          const mLabel = m.month_name || (new Date(m.month + '-02').toLocaleDateString('en', {year:'numeric', month:'long'}));
-          const graceBadge = m.is_grace ? ` <span class="badge" style="background:#f59e0b; color:#000; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:700;">Grace (${m.grace_days}d)</span>` : '';
-          const paidBadge = (m.paid && m.paid > 0) ? `<div style="font-size:11px; color:#38bdf8; font-weight:600; margin-top:2px;">(${m.paid.toFixed(2)} SAR already paid)</div>` : '';
+      const expEl = document.getElementById('collCustExpiryInfo');
+      if (expEl) {
+        if (b.expiry_date) {
+          expEl.textContent = 'Due / Expiry: ' + b.expiry_date;
+        } else {
+          expEl.textContent = '';
+        }
+      }
 
-          html += `<tr style="border-bottom:1px solid var(--border-subtle, rgba(255,255,255,0.04)); vertical-align:middle;">
-            <td style="padding:10px 8px; text-align:center;">
-              <input type="checkbox" name="months[]" value="${m.month}" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" class="month-cb" checked onchange="updateTotal()" title="Check = Settle &amp; Close month (waive remaining discount). Uncheck = Partial payment (remainder stays pending)." style="width:18px; height:18px; cursor:pointer; accent-color:#10b981;">
-            </td>
-            <td style="padding:10px 8px;">
-              <div style="font-weight:700; color:var(--text-main, #ffffff);">${mLabel}${graceBadge}</div>
-              ${paidBadge}
-              <div class="row-status-note" id="custRowNote-${m.month}" style="font-size:11px; margin-top:3px; font-weight:600;"></div>
-            </td>
-            <td style="padding:10px 8px;">
-              <span class="badge badge-red mono" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700; padding:3px 8px; border-radius:5px;">${parseFloat(m.due).toFixed(2)} SAR</span>
-            </td>
-            <td style="padding:10px 8px; text-align:right;">
-              <input type="number" name="amounts[]" inputmode="decimal" class="form-control amt-input font-mono" data-month="${m.month}" data-due="${m.due}" data-fee="${m.fee}" value="${parseFloat(m.due).toFixed(2)}" min="0" step="0.5" style="width:130px; font-weight:700; font-size:13px; color:#38bdf8; background:var(--bg-card, #090e1a); border:1px solid var(--border-subtle, rgba(255,255,255,0.15)); border-radius:6px; padding:6px 10px; text-align:right;" oninput="updateTotal()">
-            </td>
-          </tr>`;
-        });
-        html += '</tbody></table></div>';
-        document.getElementById('unpaidList').innerHTML = html;
-        updateTotal();
-      })
-      .catch(err => {
-        document.getElementById('unpaidList').innerHTML = `<div class="alert alert-danger" style="padding:12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:8px;">Error loading bills: ${err.message}</div>`;
-      });
+      // Configure Wallet Status Card
+      const bal = parseFloat(b.credit_balance || 0.0);
+      const totalDue = parseFloat(b.total_due || 0.0);
+      const unpaidCount = (b.unpaid_cycles || []).length;
+      const walletCard = document.getElementById('collWalletStatusCard');
+      const walletTitle = document.getElementById('collWalletTitle');
+      const walletAmount = document.getElementById('collWalletAmount');
+      const walletSubtext = document.getElementById('collWalletSubtext');
+      const walletIcon = document.getElementById('collWalletIcon');
+
+      if (bal < -0.01 || totalDue > 0.01) {
+        // Debt State
+        const dueShow = totalDue > 0 ? totalDue : Math.abs(bal);
+        if (walletCard) {
+          walletCard.style.background = 'rgba(239,68,68,0.08)';
+          walletCard.style.borderColor = 'rgba(239,68,68,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: OVERDUE DEBT';
+          walletTitle.style.color = '#f87171';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '-' + dueShow.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#ef4444';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = unpaidCount > 0 ? `${unpaidCount} unpaid cycle(s) pending` : 'Accrued calendar balance';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(239,68,68,0.15)';
+          walletIcon.style.color = '#ef4444';
+          walletIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        }
+      } else if (bal > 0.01) {
+        // Credit State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(16,185,129,0.08)';
+          walletCard.style.borderColor = 'rgba(16,185,129,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: CREDIT BALANCE';
+          walletTitle.style.color = '#34d399';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '+' + bal.toFixed(2) + ' SAR';
+          walletAmount.style.color = '#10b981';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'Advance surplus in subscriber wallet';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(16,185,129,0.15)';
+          walletIcon.style.color = '#10b981';
+          walletIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        }
+      } else {
+        // Settled State
+        if (walletCard) {
+          walletCard.style.background = 'rgba(56,189,248,0.08)';
+          walletCard.style.borderColor = 'rgba(56,189,248,0.3)';
+        }
+        if (walletTitle) {
+          walletTitle.textContent = 'WALLET STATUS: SETTLED & PAID';
+          walletTitle.style.color = '#38bdf8';
+        }
+        if (walletAmount) {
+          walletAmount.textContent = '0.00 SAR';
+          walletAmount.style.color = '#38bdf8';
+        }
+        if (walletSubtext) {
+          walletSubtext.textContent = 'No outstanding debts · Ready for renewal';
+        }
+        if (walletIcon) {
+          walletIcon.style.background = 'rgba(56,189,248,0.15)';
+          walletIcon.style.color = '#38bdf8';
+          walletIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
+        }
+      }
+
+      // Pre-fill amount
+      const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+      let defaultAmt = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      const amtInput = document.getElementById('collAmount');
+      if (amtInput) {
+        amtInput.value = defaultAmt.toFixed(2);
+      }
+
+      // Update preset chips
+      const exactBtn = document.getElementById('btnPresetExact');
+      if (exactBtn) {
+        if (totalDue > 0 || bal < -0.01) {
+          const exactOwed = (totalDue > 0 ? totalDue : Math.abs(bal)).toFixed(2);
+          exactBtn.textContent = `Exact Due (${exactOwed} SAR)`;
+          exactBtn.style.display = 'inline-block';
+        } else {
+          exactBtn.style.display = 'none';
+        }
+      }
+
+      const p1Btn = document.getElementById('btnPreset1Mo');
+      if (p1Btn) p1Btn.textContent = `${monthlyFee.toFixed(0)} SAR (1 Mo)`;
+      const p2Btn = document.getElementById('btnPreset2Mo');
+      if (p2Btn) p2Btn.textContent = `${(monthlyFee * 2).toFixed(0)} SAR (2 Mo)`;
+      const p3Btn = document.getElementById('btnPreset3Mo');
+      if (p3Btn) p3Btn.textContent = `${(monthlyFee * 3).toFixed(0)} SAR (3 Mo)`;
+
+      // Show content and calculate preview
+      if (loadingState) loadingState.style.display = 'none';
+      if (contentArea) contentArea.style.display = 'block';
+      updateLiveCalculationPreview();
+
+      if (amtInput) {
+        setTimeout(() => amtInput.focus(), 150);
+      }
+    } catch (err) {
+      if (loadingState) {
+        loadingState.innerHTML = `<div class="alert alert-danger" style="padding:14px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; border-radius:10px;">
+          Failed to load subscriber details: ${err.message}
+        </div>`;
+      }
+    }
   }
 
   function closeCollectModal() {
@@ -4917,143 +5380,159 @@
     if (modal) modal.classList.remove('open', 'show');
     document.body.style.overflow = '';
     activeCollCustId = null;
+    activeCollBreakdown = null;
   }
 
-  function updateTotal() {
-    let total = 0.0;
-    let totalWaived = 0.0;
-    let totalPending = 0.0;
+  function applySmartPreset(val) {
+    const amtInput = document.getElementById('collAmount');
+    if (!amtInput) return;
+    const b = activeCollBreakdown;
+    const monthlyFee = parseFloat((b && b.monthly_fee) || 30.0);
+    const totalDue = parseFloat((b && b.total_due) || 0.0);
+    const bal = parseFloat((b && b.credit_balance) || 0.0);
 
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const due = parseFloat(inp.getAttribute('data-due') || 0.0);
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-      const noteEl = document.getElementById('custRowNote-' + month);
-
-      // Always add collected amount
-      total += amt;
-
-      if (isChecked) {
-        if (amt < due - 0.01) {
-          const waived = due - amt;
-          totalWaived += waived;
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#fbbf24;">✓ Settle Checked: ${waived.toFixed(2)} SAR will be waived as discount (month solved)</span>`;
-          }
-        } else if (amt > due + 0.01) {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle with surplus (+${(amt - due).toFixed(2)} SAR)</span>`;
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full Settle (month solved)</span>`;
-          }
-        }
-      } else {
-        // Settle UNCHECKED
-        if (amt < due - 0.01) {
-          const rem = due - amt;
-          totalPending += rem;
-          if (noteEl) {
-            if (amt === 0) {
-              noteEl.innerHTML = `<span style="color:var(--text-dim);">— Untouched (0 SAR collected, full ${due.toFixed(2)} SAR remains pending)</span>`;
-            } else {
-              noteEl.innerHTML = `<span style="color:#38bdf8;">⏱ Settle Unchecked: Partial payment (${rem.toFixed(2)} SAR remains pending and collectable)</span>`;
-            }
-          }
-        } else {
-          if (noteEl) {
-            noteEl.innerHTML = `<span style="color:#34d399;">✓ Full payment (${amt.toFixed(2)} SAR paid)</span>`;
-          }
-        }
-      }
-    });
-
-    const totEl = document.getElementById('totalAmt');
-    if (totEl) totEl.textContent = total.toFixed(2);
-
-    const waivedBox = document.getElementById('collWaivedNote');
-    const waivedVal = document.getElementById('collWaivedVal');
-    if (waivedBox && waivedVal) {
-      if (totalWaived > 0.05) {
-        waivedBox.style.display = 'inline-block';
-        waivedVal.textContent = totalWaived.toFixed(2);
-      } else {
-        waivedBox.style.display = 'none';
-      }
+    if (val === 'exact') {
+      const exactVal = totalDue > 0 ? totalDue : (bal < -0.01 ? Math.abs(bal) : monthlyFee);
+      amtInput.value = exactVal.toFixed(2);
+    } else if (val === 'clear') {
+      amtInput.value = '';
+      amtInput.focus();
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) amtInput.value = num.toFixed(2);
     }
-
-    const pendingBox = document.getElementById('collPendingNote');
-    const pendingVal = document.getElementById('collPendingVal');
-    if (pendingBox && pendingVal) {
-      if (totalPending > 0.05) {
-        pendingBox.style.display = 'inline-block';
-        pendingVal.textContent = totalPending.toFixed(2);
-      } else {
-        pendingBox.style.display = 'none';
-      }
-    }
+    updateLiveCalculationPreview();
   }
 
-  async function submitCollectForm() {
-    const cid = document.getElementById('coll_cid')?.value;
-    if (!cid) return;
+  function updateLiveCalculationPreview() {
+    const amtInput = document.getElementById('collAmount');
+    const previewText = document.getElementById('collLiveCalcText');
+    if (!amtInput || !previewText) return;
 
-    const items = [];
-    document.querySelectorAll('.amt-input').forEach(inp => {
-      const row = inp.closest('tr');
-      const cb = row ? row.querySelector('.month-cb') : null;
-      const month = inp.getAttribute('data-month');
-      const amt = Math.max(0, parseFloat(inp.value) || 0.0);
-      const isChecked = cb ? cb.checked : true;
-
-      items.push({
-        month: month,
-        amount: amt,
-        settle: isChecked
-      });
-    });
-
-    if (items.length === 0) {
-      cyberToast('No cycles to collect.');
+    const amt = parseFloat(amtInput.value) || 0.0;
+    const b = activeCollBreakdown;
+    if (!b) {
+      previewText.innerHTML = 'System will calculate cycle allocation automatically upon payment.';
       return;
     }
 
+    const monthlyFee = parseFloat(b.monthly_fee || 30.0);
+    const unpaid = b.unpaid_cycles || [];
+    let rem = amt;
+
+    if (amt <= 0) {
+      previewText.innerHTML = '<span style="color:var(--text-dim);">Enter collection amount to preview auto-settlement.</span>';
+      return;
+    }
+
+    let settled = [];
+    let partial = null;
+
+    for (let c of unpaid) {
+      const due = parseFloat(c.rem_due || monthlyFee);
+      if (rem <= 0) break;
+      if (rem >= (due - 0.05)) {
+        settled.push(c.month);
+        rem -= due;
+      } else {
+        partial = { month: c.month, paid: rem, rem_due: (due - rem) };
+        rem = 0;
+        break;
+      }
+    }
+
+    let msgs = [];
+    if (settled.length > 0) {
+      msgs.push(`<strong style="color:#34d399;">✓ Settle &amp; close ${settled.length} cycle(s)</strong> (${settled.join(', ')})`);
+    }
+    if (partial) {
+      msgs.push(`<span style="color:#38bdf8;">⏱ Partial payment on ${partial.month} (${partial.paid.toFixed(2)} SAR paid, ${partial.rem_due.toFixed(2)} SAR remains due)</span>`);
+    }
+
+    if (rem > 0.05) {
+      const advMo = Math.floor(rem / monthlyFee);
+      const leftover = rem - (advMo * monthlyFee);
+      if (advMo > 0) {
+        msgs.push(`<strong style="color:#10b981;">🚀 Advance renewal: +${advMo} month(s)</strong>`);
+      }
+      if (leftover > 0.05) {
+        msgs.push(`<span style="color:#a7f3d0;">+${leftover.toFixed(2)} SAR wallet credit surplus</span>`);
+      }
+    }
+
+    if (msgs.length === 0) {
+      previewText.innerHTML = `Will credit <strong style="color:#34d399;">${amt.toFixed(2)} SAR</strong> to subscriber account and unblock active devices.`;
+    } else {
+      previewText.innerHTML = msgs.join(' · ');
+    }
+  }
+
+  async function submitSmartCollectForm() {
+    const cid = document.getElementById('coll_cid')?.value;
+    if (!cid) return;
+
+    const amtInput = document.getElementById('collAmount');
+    const amt = parseFloat(amtInput?.value || 0.0);
+    if (!amt || amt <= 0) {
+      alert('Please enter a valid collection amount.');
+      if (amtInput) amtInput.focus();
+      return;
+    }
+
+    const pType = document.getElementById('collPaymentType')?.value || 'cash';
+    const notes = document.getElementById('collNotes')?.value || '';
+    const sendWa = document.getElementById('collSendWa') ? document.getElementById('collSendWa').checked : true;
+
     const btn = document.getElementById('btnRecordPayment');
+    const origHtml = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording...';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recording &amp; Calculating…';
     }
 
     try {
-      const resp = await fetch(`/api/customers/${cid}/settle-cycles`, {
+      const resp = await fetch(`/api/customers/${cid}/smart-collect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, notes: 'Collection & Settlement', send_whatsapp: true })
+        body: JSON.stringify({
+          amount: amt,
+          payment_type: pType,
+          notes: notes,
+          send_whatsapp: sendWa
+        })
       });
       const res = await resp.json();
       if (res.success) {
-        cyberToast(res.message || 'Payment recorded successfully!');
+        let msg = res.message || 'Payment collected successfully!';
+        if (res.data?.whatsapp_receipt?.sent) {
+          msg += '\n\n📱 WhatsApp digital receipt dispatched to subscriber!';
+        }
+        cyberToast(msg);
         closeCollectModal();
-        setTimeout(() => location.reload(), 1000);
+        setTimeout(() => location.reload(), 900);
       } else {
-        cyberToast('Payment failed: ' + (res.message || res.error));
+        alert('Payment recording failed: ' + (res.message || res.error || 'Server error'));
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-check"></i> Record Payment';
+          btn.innerHTML = origHtml;
         }
       }
     } catch (e) {
-      cyberToast('Error: ' + e.message);
+      alert('Error recording payment: ' + e.message);
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check"></i> Record Payment';
+        btn.innerHTML = origHtml;
       }
     }
   }
+
+  // Aliases for global compatibility
+  window.openCollectModal = openCollectModal;
+  window.closeCollectModal = closeCollectModal;
+  window.applySmartPreset = applySmartPreset;
+  window.updateLiveCalculationPreview = updateLiveCalculationPreview;
+  window.submitSmartCollectForm = submitSmartCollectForm;
+  window.submitCollectForm = submitSmartCollectForm;
 
   // =========================================================
   // WHATSAPP STATUS & RENEWAL REMINDER CONTROLLER
@@ -5128,11 +5607,11 @@
   }
 
   function collectFromCustReminderModal() {
-    const cid = parseInt(document.getElementById('custRemId').value);
-    const name = document.getElementById('custRemNameText').textContent;
+    const cid = parseInt(document.getElementById('custRemId')?.value);
+    const name = document.getElementById('custRemNameText')?.textContent;
     closeWhatsAppReminderModal();
-    if (typeof openCollectModal === 'function') {
-      openCollectModal(cid, name);
+    if (cid && typeof openCollectModal === 'function') {
+      setTimeout(() => openCollectModal(cid, name), 60);
     }
   }
 
@@ -5193,5 +5672,475 @@
   window.copyCustReminderText = copyCustReminderText;
   window.collectFromCustReminderModal = collectFromCustReminderModal;
   window.sendCustWhatsAppReminderOpenWA = sendCustWhatsAppReminderOpenWA;
+
+  // =========================================================
+  // CLUSTER / BATCH ACTION ENGINE (CUTOFF DATE UPDATE)
+  // =========================================================
+  let selectedSubscriberIds = new Set();
+
+  function onSubCheckboxChange(cb) {
+    const cid = parseInt(cb.value);
+    if (cb.checked) {
+      selectedSubscriberIds.add(cid);
+      highlightSubRow(cid, true);
+    } else {
+      selectedSubscriberIds.delete(cid);
+      highlightSubRow(cid, false);
+    }
+    updateClusterBarUI();
+  }
+
+  function highlightSubRow(cid, isSelected) {
+    const row = document.getElementById('cust-row-' + cid);
+    if (row) {
+      if (isSelected) {
+        row.classList.add('cluster-selected-row');
+      } else {
+        row.classList.remove('cluster-selected-row');
+      }
+    }
+    const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+    if (card) {
+      if (isSelected) {
+        card.classList.add('cluster-selected-row');
+      } else {
+        card.classList.remove('cluster-selected-row');
+      }
+    }
+  }
+
+  function updateClusterBarUI() {
+    const bar = document.getElementById('clusterActionBar');
+    const countEl = document.getElementById('clusterSelectedCount');
+    const count = selectedSubscriberIds.size;
+
+    if (countEl) countEl.textContent = count;
+
+    const filteredCountEl = document.getElementById('clusterFilteredCount');
+    if (filteredCountEl) {
+      filteredCountEl.textContent = getVisibleSubscribersCount();
+    }
+
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      const totalVisible = getVisibleSubscribersCount();
+      if (count === 0) {
+        masterCb.checked = false;
+        masterCb.indeterminate = false;
+      } else if (count >= totalVisible && totalVisible > 0) {
+        masterCb.checked = true;
+        masterCb.indeterminate = false;
+      } else {
+        masterCb.indeterminate = true;
+      }
+    }
+
+    if (bar) {
+      bar.style.display = count > 0 ? 'block' : 'none';
+    }
+  }
+
+  function getVisibleSubscribersCount() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row')).filter(r => r.style.display !== 'none' && !r.classList.contains('cust-hidden'));
+    if (visibleRows.length > 0) return visibleRows.length;
+    const visibleCards = Array.from(document.querySelectorAll('.mobile-customer-deck .cust-row')).filter(c => c.style.display !== 'none' && !c.classList.contains('filtered-out'));
+    return visibleCards.length;
+  }
+
+  function toggleSelectAllSubscribers(masterCb) {
+    const shouldSelect = masterCb.checked;
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = shouldSelect;
+        const cid = parseInt(cb.value);
+        if (shouldSelect) {
+          selectedSubscriberIds.add(cid);
+          highlightSubRow(cid, true);
+        } else {
+          selectedSubscriberIds.delete(cid);
+          highlightSubRow(cid, false);
+        }
+      }
+    });
+
+    updateClusterBarUI();
+  }
+
+  function selectAllFilteredSubscribers() {
+    const visibleRows = Array.from(document.querySelectorAll('#subscribersTable tbody tr.cust-row, .mobile-customer-deck .cust-row')).filter(el => el.style.display !== 'none' && !el.classList.contains('cust-hidden') && !el.classList.contains('filtered-out'));
+    
+    visibleRows.forEach(el => {
+      const cb = el.querySelector('.sub-row-checkbox');
+      if (cb) {
+        cb.checked = true;
+        const cid = parseInt(cb.value);
+        selectedSubscriberIds.add(cid);
+        highlightSubRow(cid, true);
+      }
+    });
+
+    updateClusterBarUI();
+    if (typeof cyberToast === 'function') {
+      cyberToast(`Selected all ${visibleRows.length} visible subscriber(s)`, 'success');
+    }
+  }
+
+  function deselectAllSubscribers() {
+    selectedSubscriberIds.clear();
+    document.querySelectorAll('.sub-row-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.cluster-selected-row').forEach(el => el.classList.remove('cluster-selected-row'));
+    const masterCb = document.getElementById('masterSubSelectAll');
+    if (masterCb) {
+      masterCb.checked = false;
+      masterCb.indeterminate = false;
+    }
+    updateClusterBarUI();
+  }
+
+  function openClusterSuspendModal() {
+    if (selectedSubscriberIds.size === 0) {
+      if (typeof cyberToast === 'function') {
+        cyberToast('Please select at least one subscriber first.', 'warning');
+      }
+      return;
+    }
+    const modal = document.getElementById('clusterSuspendModal');
+    const modalCount = document.getElementById('clusterModalCount');
+    if (modalCount) modalCount.textContent = selectedSubscriberIds.size;
+
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      dateInput.value = today.toISOString().split('T')[0];
+    }
+    if (dateInput && window.flatpickr && !dateInput._flatpickr) {
+      flatpickr(dateInput, { dateFormat: 'Y-m-d', allowInput: true });
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeClusterSuspendModal() {
+    const modal = document.getElementById('clusterSuspendModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function setClusterPresetDate(daysToAdd) {
+    const d = new Date();
+    d.setDate(d.getDate() + daysToAdd);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  function setClusterPresetEndOfMonth() {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const yyyy = lastDay.getFullYear();
+    const mm = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const dd = String(lastDay.getDate()).padStart(2, '0');
+    const targetDate = `${yyyy}-${mm}-${dd}`;
+    const dateInput = document.getElementById('clusterDateInput');
+    if (dateInput) {
+      dateInput.value = targetDate;
+      if (dateInput._flatpickr) dateInput._flatpickr.setDate(targetDate);
+    }
+  }
+
+  async function submitClusterSuspendDate() {
+    const dateInput = document.getElementById('clusterDateInput');
+    const newDate = dateInput ? dateInput.value.trim() : '';
+    if (!newDate || newDate.length < 10) {
+      alert('Please enter a valid date in YYYY-MM-DD format.');
+      return;
+    }
+
+    const ids = Array.from(selectedSubscriberIds);
+    if (ids.length === 0) return;
+
+    const btn = document.getElementById('btnApplyClusterSuspend');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Applying...</span>';
+    }
+
+    try {
+      const resp = await fetch('/api/customers/batch-set-suspend-date', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_ids: ids,
+          suspend_date: newDate
+        })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Server error occurred');
+      }
+
+      closeClusterSuspendModal();
+
+      if (typeof cyberToast === 'function') {
+        cyberToast(`?? Cutoff date set to ${newDate} for ${ids.length} subscriber(s). Payday preserved!`, 'success');
+      } else {
+        alert(`Success! Updated ${ids.length} subscribers to cutoff date ${newDate}.`);
+      }
+
+      // Live DOM update for updated IDs
+      ids.forEach(cid => {
+        const row = document.getElementById('cust-row-' + cid);
+        if (row) {
+          const cutCell = row.querySelector('td[data-label="Due / Expiry Date"]');
+          if (cutCell) {
+            const cutVal = cutCell.querySelector('span[style*="#fbbf24"], span.font-mono:not(.text-cyan)');
+            if (cutVal) cutVal.textContent = newDate;
+          }
+        }
+        const card = document.querySelector(`.mobile-customer-deck .cust-row[data-cust-id="${cid}"]`);
+        if (card) {
+          const cutVal = card.querySelector('div[style*="#fbbf24"] .m-val, span[style*="#fbbf24"]');
+          if (cutVal) cutVal.textContent = newDate;
+        }
+      });
+
+      deselectAllSubscribers();
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err) {
+      console.error('Cluster action error:', err);
+      alert('Failed to apply cluster action: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Apply Cutoff Date</span>';
+      }
+    }
+  }
+
+  window.onSubCheckboxChange = onSubCheckboxChange;
+  window.toggleSelectAllSubscribers = toggleSelectAllSubscribers;
+  window.selectAllFilteredSubscribers = selectAllFilteredSubscribers;
+  window.deselectAllSubscribers = deselectAllSubscribers;
+  window.openClusterSuspendModal = openClusterSuspendModal;
+  window.closeClusterSuspendModal = closeClusterSuspendModal;
+  window.setClusterPresetDate = setClusterPresetDate;
+  window.setClusterPresetEndOfMonth = setClusterPresetEndOfMonth;
+  window.submitClusterSuspendDate = submitClusterSuspendDate;
+
 </script>
+
+<!-- =========================================================
+     CLUSTER ACTION FLOATING BAR & MODAL
+     ========================================================= -->
+<style>
+.cluster-selected-row {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: linear-gradient(135deg, rgba(15, 35, 60, 0.98) 0%, rgba(20, 45, 80, 0.95) 100%) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
+}
+
+.cluster-action-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10500;
+  width: min(640px, calc(100vw - 24px));
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 14px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  animation: slideUpCluster 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpCluster {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.cluster-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cluster-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cluster-badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+.btn-cluster-deselect {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-cluster-deselect:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.btn-cluster-select-filtered {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cluster-select-filtered:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.btn-cluster-action-suspend {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+}
+.btn-cluster-action-suspend:hover {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .cluster-action-bar {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    padding: 10px 12px;
+  }
+  .cluster-bar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cluster-bar-left {
+    justify-content: space-between;
+  }
+  .btn-cluster-action-suspend {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+}
+</style>
+
+<!-- Floating Cluster Action Bar -->
+<div id="clusterActionBar" class="cluster-action-bar" style="display: none;">
+  <div class="cluster-bar-inner">
+    <div class="cluster-bar-left">
+      <div class="cluster-badge">
+        <span id="clusterSelectedCount">0</span> Selected
+      </div>
+      <button type="button" class="btn-cluster-deselect" onclick="deselectAllSubscribers()">
+        Clear
+      </button>
+      <button type="button" class="btn-cluster-select-filtered" onclick="selectAllFilteredSubscribers()">
+        Select All Filtered (<span id="clusterFilteredCount">0</span>)
+      </button>
+    </div>
+    <div class="cluster-bar-actions">
+      <button type="button" class="btn-cluster-action-suspend" onclick="openClusterSuspendModal()">
+        <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+        <span>Change Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Cluster Action Suspend Date Modal -->
+<div id="clusterSuspendModal" class="modal-overlay" style="display:none; z-index:12000;">
+  <div class="modal-box" style="max-width:480px; width:100%; border-radius:16px;">
+    <div class="modal-header" style="padding:14px 18px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚡</span>
+        <div>
+          <h3 style="font-size:15px; font-weight:800; color:#ffffff; margin:0;">Cluster Action: Set Hard Cutoff Date</h3>
+          <span style="font-size:11.5px; color:var(--text-dim);">Applying to <strong id="clusterModalCount" style="color:#38bdf8;">0</strong> selected subscriber(s)</span>
+        </div>
+      </div>
+      <button type="button" class="btn-modal-close" onclick="closeClusterSuspendModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding:16px 18px;">
+      <!-- Payday Guarantee Alert Notice -->
+      <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 12px; margin-bottom:14px; display:flex; gap:10px; align-items:start;">
+        <span style="font-size:18px;">🔒</span>
+        <div style="font-size:12px; line-height:1.45; color:#cbd5e1;">
+          <strong style="color:#38bdf8;">Payday (pay_date) is strictly preserved:</strong> Each subscriber's expected Payday will remain exactly as previously configured. Only the <strong>Hard Suspension Date (Auto-Cutoff)</strong> will be synchronized to the date you choose below.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:#ffffff; display:block; margin-bottom:6px;">New Hard Suspension Date (Internet Cutoff):</label>
+        <input type="text" id="clusterDateInput" class="form-input font-mono cyber-datepicker" placeholder="YYYY-MM-DD" style="font-size:16px; padding:10px 12px; width:100%; font-weight:700; color:#fbbf24;">
+        <span style="font-size:11px; color:var(--text-dim); margin-top:4px; display:block;">Select the day when internet access will automatically suspend across the MikroTik fleet if unpaid.</span>
+      </div>
+
+      <!-- Quick Preset Pills -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;">
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(0)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">Today</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(3)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+3 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(5)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+5 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetDate(7)" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">+7 Days</button>
+        <button type="button" class="btn-preset" onclick="setClusterPresetEndOfMonth()" style="font-size:11.5px; padding:5px 10px; border-radius:6px;">End of Month</button>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding:12px 18px; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end; gap:10px; background:var(--bg-card-header);">
+      <button type="button" class="btn-cancel" onclick="closeClusterSuspendModal()" style="padding:9px 16px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button type="button" id="btnApplyClusterSuspend" class="btn-primary" onclick="submitClusterSuspendDate()" style="padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; background:linear-gradient(135deg, #d97706, #f59e0b); border:1px solid rgba(245,158,11,0.5); color:#ffffff; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+        <span>Apply Cutoff Date</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

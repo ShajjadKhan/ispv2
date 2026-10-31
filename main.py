@@ -144,13 +144,21 @@ def collect_router_traffic_snapshot():
 
     deltas_to_record: List[Dict[str, Any]] = []
     current_host_keys = set()
+    current_active_macs = set()
     for h in hosts:
         mac = (h.get("mac-address") or "").strip().upper()
         if not mac:
             continue
-        router_name = h.get("router_name", "Router-20")
-        host_key = f"{router_name}:{mac}"
+        router_id = h.get("router_id") or 1
+        router_name = h.get("router_name", f"Router-{router_id}")
+        ip_addr = (h.get("address") or "").strip()
+        host_id = (h.get("id") or "").strip()
+
+        # Hardened composite key: router_id::mac::ip_or_id
+        # Guarantees that separate host table records on the same or different routers never collide or oscillate
+        host_key = f"{router_id}::{mac}::{ip_addr or host_id}"
         current_host_keys.add(host_key)
+        current_active_macs.add(mac)
 
         raw_in = int(h.get("bytes-in", 0) or 0)   # Upload from client
         raw_out = int(h.get("bytes-out", 0) or 0) # Download to client
@@ -200,13 +208,14 @@ def collect_router_traffic_snapshot():
         speed_up_bps = int((delta_up * 8) / calc_sec) if delta_sec > 0 else 0
         
         # Keep latest live wire speed per MAC
-        _live_device_speeds[mac] = {
-            "speed_down_bps": speed_down_bps,
-            "speed_up_bps": speed_up_bps,
-            "router_name": router_name,
-            "ip": ip_addr,
-            "timestamp": now
-        }
+        if mac not in _live_device_speeds or (speed_down_bps > 0 or speed_up_bps > 0):
+            _live_device_speeds[mac] = {
+                "speed_down_bps": speed_down_bps,
+                "speed_up_bps": speed_up_bps,
+                "router_name": router_name,
+                "ip": ip_addr,
+                "timestamp": now
+            }
 
         if delta_down > 0 or delta_up > 0:
             deltas_to_record.append({
@@ -294,13 +303,16 @@ def collect_router_traffic_snapshot():
     if deltas_to_record:
         database.record_device_traffic_deltas_batch(deltas_to_record)
 
-    # Disconnected hotspot devices (keyed by router_name:mac)
-    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" not in k}
+    # Disconnected hotspot devices (keyed by router_id::mac::ip)
+    prev_hotspot_keys = {k for k in _last_host_traffic_snapshot.keys() if "::PPPOE:" not in k and "PPPOE:" not in k}
     disconnected_keys = prev_hotspot_keys - current_host_keys
     for d_key in disconnected_keys:
-        d_mac = d_key.split(":", 1)[1] if ":" in d_key else d_key
-        database.close_device_session(d_mac)
         _last_host_traffic_snapshot.pop(d_key, None)
+        parts = d_key.split("::")
+        d_mac = parts[1] if len(parts) > 1 else (d_key.split(":", 1)[1] if ":" in d_key else d_key)
+        # Only close session if this MAC is no longer active on ANY router / host
+        if d_mac not in current_active_macs:
+            database.close_device_session(d_mac)
 
     # Disconnected PPPoE sessions
     prev_pppoe_keys = {k for k in _last_host_traffic_snapshot.keys() if "PPPOE:" in k}
@@ -2550,6 +2562,20 @@ async def customer_usage_view(
     try:
         telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=20.0)
         enrich_customer_devices_telemetry([analytics["customer"]], telemetry_map)
+        for d in analytics.get("device_breakdown", []):
+            m_clean = (d.get("mac_address") or "").strip().upper()
+            if m_clean.startswith("PPPOE:"):
+                continue
+            telem = telemetry_map.get(m_clean)
+            if telem:
+                d["is_online"] = telem.get("is_online", False)
+                d["uptime"] = telem.get("uptime")
+                d["last_seen"] = telem.get("last_seen")
+                d["ip_address"] = telem.get("live_ip") or d.get("ip_address")
+                d["router_name"] = telem.get("router_name")
+                d["interface"] = telem.get("router_short_name")
+            else:
+                d["is_online"] = False
     except Exception:
         pass
 
@@ -3858,14 +3884,38 @@ async def api_customer_usage(
             summ["formatted_up"] = pppoe_sess.get("upload_formatted", "0 B")
             summ["formatted_total"] = pppoe_sess.get("total_formatted", "0 B")
 
+    # Live telemetry enrichment for customer devices
+    try:
+        telemetry_map = mikrotik_client.broadcast_get_devices_telemetry_map(max_cache_age_sec=15.0)
+    except Exception as e:
+        logger.debug(f"Could not fetch fleet telemetry in api_customer_usage: {e}")
+        telemetry_map = {}
+
+    for d in devs:
+        mac_raw = (d.get("mac_address") or "").strip().upper()
+        if mac_raw.startswith("PPPOE:"):
+            continue
+        telem = telemetry_map.get(mac_raw)
+        if telem:
+            d["is_online"] = telem.get("is_online", False)
+            d["uptime"] = telem.get("uptime")
+            d["last_seen"] = telem.get("last_seen")
+            d["ip_address"] = telem.get("live_ip") or d.get("ip_address")
+            d["router_name"] = telem.get("router_name")
+            d["interface"] = telem.get("router_short_name")
+        else:
+            d["is_online"] = False
+
+    online_count = len([d for d in devs if d.get("is_online")])
+    is_online = (online_count > 0) or bool(pppoe_sess)
     active_count = len([d for d in devs if d.get("total_bytes", 0) > 0 or d.get("is_online")])
-    is_online = bool(pppoe_sess) or (summ.get("total_active_seconds", 0) > 0)
 
     return {
         "success": True,
         "customer_id": customer_id,
         "customer_name": cust.get("name"),
         "is_online": is_online,
+        "online_devices_count": online_count,
         "active_devices_count": active_count,
         "total_download": summ.get("formatted_down", "0 B"),
         "total_upload": summ.get("formatted_up", "0 B"),
