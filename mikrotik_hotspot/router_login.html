@@ -1224,13 +1224,15 @@
 
 </div>
 
-<!-- Hidden native MikroTik Form for automated redirect after approval -->
+<!-- Native MikroTik Form Disabled: CyberNet authorizes via IP-binding bypass. Submitting native login triggers authentication failure. -->
+<!--
 <form id="nativeLoginForm" name="hidden_login" action="$(link-login-only)" method="post" style="display:none;">
   <input type="hidden" name="username" id="nativeUser" value="$(mac)">
   <input type="hidden" name="password" id="nativePass" value="">
   <input type="hidden" name="dst" value="$(link-orig)">
   <input type="hidden" name="popup" value="true">
 </form>
+-->
 
 <script>
   var ROUTER_MAC = "$(mac)";
@@ -1758,11 +1760,16 @@
   }
 
   function finishLogin() {
-    var form = document.getElementById("nativeLoginForm");
-    if (form.action && form.action.indexOf("$(") === -1) {
-      form.submit();
-    } else {
-      window.location.href = (DEST_URL && DEST_URL.indexOf("$(") === -1) ? DEST_URL : "http://www.google.com";
+    // CyberNet authorizes devices purely via MikroTik IP-binding (type=bypassed).
+    // Do NOT submit nativeLoginForm to MikroTik's local login servlet ($(link-login-only)),
+    // as that attempts local hotspot user authentication which fails and loops back to login.html.
+    var target = (DEST_URL && DEST_URL.indexOf("$(") === -1 && DEST_URL.indexOf("login") === -1)
+      ? DEST_URL
+      : "http://captive.apple.com/hotspot-detect.html";
+    try {
+      window.location.replace(target);
+    } catch (e) {
+      window.location.href = target;
     }
   }
 

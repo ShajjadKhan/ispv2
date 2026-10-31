@@ -2,8 +2,8 @@ import ftplib
 import os
 import sys
 
-LOGIN_HTML = '/home/tserver/isp_v2/mikrotik_hotspot/login.html'
-ROUTER_LOGIN_HTML = '/home/tserver/isp_v2/mikrotik_hotspot/router_login.html'
+LOGIN_HTML = '/home/sk/isp_v2/mikrotik_hotspot/login.html'
+ROUTER_LOGIN_HTML = '/home/sk/isp_v2/mikrotik_hotspot/router_login.html'
 
 if not os.path.exists(LOGIN_HTML):
     print(f'Error: {LOGIN_HTML} not found')

@@ -551,7 +551,7 @@ class RouterClient:
                 except Exception:
                     pass
 
-    def _tear_down_session(self, api, mac_clean: str, ip_address: Optional[str] = None):
+    def _tear_down_session(self, api, mac_clean: str, ip_address: Optional[str] = None, flush_conntrack: bool = False):
         """Internal helper to drop host, active session, cookie, and flushed conntrack."""
         client_ips = []
         if ip_address:
@@ -560,13 +560,22 @@ class RouterClient:
         try:
             host_res = api.get_resource('/ip/hotspot/host')
             for h in host_res.get():
-                if h.get('mac-address', '').upper() == mac_clean:
-                    h_ip = h.get('address')
+                h_mac = h.get('mac-address', '').upper()
+                h_ip = h.get('address')
+                h_to_ip = h.get('to-address')
+                if h_mac == mac_clean:
                     if h_ip and h_ip not in client_ips:
                         client_ips.append(h_ip)
                     try:
                         host_res.remove(id=h['id'])
                         logger.info(f"Removed host entry for {mac_clean} ({h_ip})")
+                    except Exception:
+                        pass
+                elif ip_address and (h_ip == ip_address or h_to_ip == ip_address):
+                    # Evict stale squatter host holding this IP to avoid 1:1 NAT Universal Client collisions
+                    try:
+                        host_res.remove(id=h['id'])
+                        logger.info(f"Evicted stale squatter host entry {h.get('id')} ({h_mac}) holding {ip_address}")
                     except Exception:
                         pass
         except Exception as e:
@@ -589,7 +598,7 @@ class RouterClient:
         except Exception:
             pass
 
-        if client_ips:
+        if flush_conntrack and client_ips:
             try:
                 conn_res = api.get_resource('/ip/firewall/connection')
                 flushed = 0
@@ -660,7 +669,7 @@ class RouterClient:
             logger.info(f"Created pure MAC-only BLOCKED IP binding for {mac_clean} on {self.host}.")
 
             # 2. Teardown active hotspot sessions, hosts, and conntracks
-            self._tear_down_session(api, mac_clean, ip_address)
+            self._tear_down_session(api, mac_clean, ip_address, flush_conntrack=True)
             return True
         except Exception as e:
             logger.error(f"Failed to block device {mac_clean} on MikroTik: {e}")
@@ -704,7 +713,7 @@ class RouterClient:
                     logger.info(f"Removed IP binding for {mac_clean}")
 
             # 2. Teardown host, session, cookie, conntrack, queue
-            self._tear_down_session(api, mac_clean, ip_address)
+            self._tear_down_session(api, mac_clean, ip_address, flush_conntrack=True)
             return True
         except Exception as e:
             logger.error(f"Failed to unbind device {mac_clean}: {e}")
