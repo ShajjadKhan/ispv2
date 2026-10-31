@@ -727,6 +727,23 @@ async def wallet_accrual_sync_loop():
         await asyncio.sleep(60)  # Continuous 60-second self-healing audit
 
 
+
+async def hotspot_housekeeping_loop():
+    """
+    Hourly fleet housekeeper that purges abandoned ghost hosts from /ip/hotspot/host
+    to guarantee zero 1:1 NAT IP conflicts and keep router CPU/memory pristine.
+    """
+    logger.info("Background Hotspot Host Housekeeping Loop initialized.")
+    await asyncio.sleep(120)  # Initial 2-minute delay after server boot
+    while True:
+        try:
+            res = await asyncio.to_thread(mikrotik_client.cleanup_stale_hotspot_hosts)
+            logger.info(f"[Hotspot Housekeeper] Cleaned fleet ghost hosts: {res}")
+        except Exception as e:
+            logger.error(f"[Hotspot Housekeeper] Error during ghost host sweep: {e}")
+        await asyncio.sleep(3600)  # Run once every hour
+
+
 async def fleet_telemetry_cache_refresher_loop():
     """
     Background worker that continuously pre-warms MikroTik fleet telemetry and live status
@@ -767,6 +784,7 @@ async def startup_event():
     asyncio.create_task(olt_telemetry_poller_loop())
     # Automated Wallet Daily Accrual Synchronizer
     asyncio.create_task(wallet_accrual_sync_loop())
+    asyncio.create_task(hotspot_housekeeping_loop())
 
 
 # =========================================================

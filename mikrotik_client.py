@@ -2360,3 +2360,88 @@ def broadcast_sync_all_approved_devices() -> Dict[str, Any]:
 
 
 
+
+
+def cleanup_stale_hotspot_hosts() -> Dict[str, Any]:
+    """
+    Automated Fleet Housekeeper:
+    Evicts abandoned unauthenticated sessions and multi-day idle ghost hosts from /ip/hotspot/host.
+    Guarantees that recycled DHCP IP leases never suffer 1:1 NAT Universal Client conflicts.
+    Does not touch active connections or /ip/hotspot/ip-binding.
+    """
+    import database
+    try:
+        routers = database.get_all_routers(active_only=True)
+    except Exception as e:
+        logger.warning(f"Could not load routers for host housekeeping: {e}")
+        return {}
+
+    total_evicted = 0
+    results = {}
+
+    for r in routers:
+        name = r.get("name", "Unknown")
+        host = r.get("host")
+        evicted = 0
+        pool = None
+        try:
+            pool = routeros_api.RouterOsApiPool(
+                host,
+                username=r["username"],
+                password=r["password"],
+                port=r["port"],
+                use_ssl=False,
+                ssl_verify=False,
+                plaintext_login=True
+            )
+            api = pool.get_api()
+            host_res = api.get_resource("/ip/hotspot/host")
+            all_hosts = host_res.get()
+
+            to_remove = []
+            for h in all_hosts:
+                idle = h.get("idle-time", "")
+                addr = h.get("address")
+                to_addr = h.get("to-address")
+                bypassed = (h.get("bypassed") == "true")
+                authorized = (h.get("authorized") == "true")
+
+                # Condition 1: 1:1 NAT conflict idle for > 15m
+                if addr and to_addr and addr != to_addr:
+                    if ("h" in idle or "d" in idle or "w" in idle) or ("m" in idle and int(idle.split("m")[0]) >= 15):
+                        to_remove.append(h["id"])
+                        continue
+
+                # Condition 2: Multi-day or multi-week idle host (dead subscriber / visitor session)
+                if "d" in idle or "w" in idle:
+                    to_remove.append(h["id"])
+                    continue
+
+                # Condition 3: Unauthenticated host abandoned for > 2 hours
+                if not bypassed and not authorized:
+                    if "h" in idle and int(idle.split("h")[0]) >= 2:
+                        to_remove.append(h["id"])
+                        continue
+
+            for hid in to_remove:
+                try:
+                    host_res.remove(id=hid)
+                    evicted += 1
+                except Exception:
+                    pass
+
+            results[name] = {"total_before": len(all_hosts), "evicted": evicted, "remaining": len(all_hosts) - evicted}
+            total_evicted += evicted
+            logger.info(f"[Host Housekeeper] {name}: Evicted {evicted} stale ghost hosts ({len(all_hosts) - evicted} active remaining).")
+        except Exception as e:
+            logger.error(f"[Host Housekeeper] Error on {name} ({host}): {e}")
+            results[name] = {"error": str(e)}
+        finally:
+            if pool is not None:
+                try:
+                    pool.disconnect()
+                except Exception:
+                    pass
+
+    logger.info(f"[Host Housekeeper] Fleet sweep complete: {total_evicted} total ghost hosts evicted.")
+    return results
