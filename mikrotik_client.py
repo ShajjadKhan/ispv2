@@ -484,15 +484,40 @@ class RouterClient:
             )
             logger.info(f"Pushed pure MAC-only bypassed IP binding for {mac_clean} on {self.host}.")
 
-            # 2. Clear any lingering unauthenticated active session
-            try:
-                active_res = api.get_resource('/ip/hotspot/active')
-                for sess in active_res.get():
-                    if sess.get('mac-address', '').upper() == mac_clean:
-                        active_res.remove(id=sess['id'])
-                        logger.info(f"Removed active hotspot session for {mac_clean}.")
-            except Exception as e:
-                logger.warning(f"Could not clear active session for {mac_clean}: {e}")
+            # 2. Resolve client target IP and teardown unauthenticated session / host cache
+            target_ip = ip_address if (ip_address and not ip_address.startswith("10.20.30.") and ip_address != "127.0.0.1") else None
+            if not target_ip:
+                try:
+                    for h in api.get_resource('/ip/hotspot/host').get():
+                        if h.get('mac-address', '').upper() == mac_clean and h.get('address'):
+                            target_ip = h.get('address')
+                            break
+                except Exception:
+                    pass
+            if not target_ip:
+                try:
+                    for l in api.get_resource('/ip/dhcp-server/lease').get():
+                        if l.get('mac-address', '').upper() == mac_clean and l.get('address'):
+                            target_ip = l.get('address')
+                            break
+                except Exception:
+                    pass
+            if not target_ip:
+                try:
+                    for b in existing_bindings:
+                        if b.get('mac-address', '').upper() == mac_clean and b.get('address'):
+                            target_ip = b.get('address')
+                            break
+                except Exception:
+                    pass
+
+            # CRITICAL: Purge /ip/hotspot/host, /ip/hotspot/active, /ip/hotspot/cookie, and redirected firewall connections.
+            # When an unauthenticated device touches the network, RouterOS creates an entry in /ip/hotspot/host with
+            # bypassed=false and translates port 80 traffic to the captive portal. RouterOS does NOT automatically
+            # refresh the bypassed flag on existing host entries when an IP-binding is added!
+            # Calling _tear_down_session forces RouterOS to cleanly reconstruct the host entry on the next packet
+            # with bypassed=true, instantly unlocking the customer's internet without stuck portal popups.
+            self._tear_down_session(api, mac_clean, target_ip or ip_address)
 
             # 3. Apply bandwidth limit via simple queue if requested
             norm_limit = normalize_rate_limit(rate_limit)
@@ -507,31 +532,6 @@ class RouterClient:
                         except Exception:
                             pass
                 else:
-                    target_ip = ip_address if (ip_address and not ip_address.startswith("10.20.30.") and ip_address != "127.0.0.1") else None
-                    if not target_ip:
-                        try:
-                            for h in api.get_resource('/ip/hotspot/host').get():
-                                if h.get('mac-address', '').upper() == mac_clean and h.get('address'):
-                                    target_ip = h.get('address')
-                                    break
-                        except Exception:
-                            pass
-                    if not target_ip:
-                        try:
-                            for l in api.get_resource('/ip/dhcp-server/lease').get():
-                                if l.get('mac-address', '').upper() == mac_clean and l.get('address'):
-                                    target_ip = l.get('address')
-                                    break
-                        except Exception:
-                            pass
-                    if not target_ip:
-                        try:
-                            for b in existing_bindings:
-                                if b.get('mac-address', '').upper() == mac_clean and b.get('address'):
-                                    target_ip = b.get('address')
-                                    break
-                        except Exception:
-                            pass
                     if target_ip:
                         if existing_q:
                             queue_res.set(id=existing_q[0]['id'], max_limit=norm_limit, target=target_ip)
