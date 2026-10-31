@@ -4264,8 +4264,8 @@
                   <span class="font-mono text-white" style="font-weight:600;">${d.ip_address || '—'}</span>
                 </div>
                 <div>
-                  <span style="color:var(--text-dim); display:block;">Session Uptime:</span>
-                  <span class="text-white">${d.uptime || d.formatted_active_time || '—'}</span>
+                  <span style="color:var(--text-dim); display:block;">${isOnline ? 'Session Uptime:' : 'Active Time (30d):'}</span>
+                  <span class="text-white">${isOnline ? (d.uptime || '?') : (d.formatted_active_time || '?')}</span>
                 </div>
                 <div>
                   <span style="color:var(--text-dim); display:block;">Last Seen:</span>
