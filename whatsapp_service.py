@@ -1,6 +1,10 @@
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    _env_file = "/home/sk/isp_v2/.env"
+    if os.path.exists(_env_file):
+        load_dotenv(_env_file, override=False)
+    else:
+        load_dotenv()
 except Exception:
     pass
 
@@ -33,7 +37,7 @@ def get_riyadh_now() -> datetime:
 logger = logging.getLogger("whatsapp_service")
 
 # OpenWA Dedicated Container Configuration for ISPv2
-OPENWA_URL = os.getenv("OPENWA_URL", "http://127.0.0.1:2790")
+OPENWA_URL = os.getenv("OPENWA_URL", "http://10.12.14.16:2790")
 OPENWA_API_KEY = os.getenv("OPENWA_API_KEY", "dev-admin-key")
 DEFAULT_OPENWA_SESSION_ID = os.getenv("OPENWA_SESSION_ID", "5d393908-58b1-4d36-93e4-69decc3ed193")
 
@@ -61,6 +65,11 @@ def get_openwa_session_id(force_refresh: bool = False) -> str:
                 for s in sessions:
                     if s.get("name") == "ispv2-bot":
                         _cached_session_id = s.get("id")
+                        if s.get("status") in ("disconnected", "FAILED", "failed"):
+                            try:
+                                requests.post(f"{OPENWA_URL}/api/sessions/{_cached_session_id}/start", headers=headers, timeout=5)
+                            except Exception:
+                                pass
                         return _cached_session_id
                 _cached_session_id = sessions[0].get("id")
                 return _cached_session_id
@@ -268,6 +277,16 @@ def start_whatsapp_session() -> Dict[str, Any]:
         url = f"{OPENWA_URL}/api/sessions/{session_id}/start"
         headers = {"X-API-Key": OPENWA_API_KEY}
         r = requests.post(url, headers=headers, timeout=10)
+        if r.status_code == 400 and "already started" in r.text:
+            # Stale/failed engine registered in OpenWA memory. Stop it first, then start fresh:
+            logger.info(f"OpenWA reported session {session_id} already registered. Unbinding stale engine via stop...")
+            try:
+                requests.post(f"{OPENWA_URL}/api/sessions/{session_id}/stop", headers=headers, timeout=6)
+            except Exception:
+                pass
+            import time
+            time.sleep(1)
+            r = requests.post(url, headers=headers, timeout=10)
         return {
             "success": r.status_code in (200, 201),
             "status_code": r.status_code,
@@ -563,6 +582,19 @@ def send_whatsapp_raw(phone: str, text: str) -> Tuple[bool, Optional[str]]:
         if r.status_code in (200, 201):
             logger.info(f"WhatsApp sent successfully to {clean_phone}")
             return True, None
+        elif r.status_code == 400 and ("not active" in r.text or "Start the session" in r.text):
+            logger.warning(f"OpenWA session {session_id} is inactive. Triggering auto-heal wake-up and retry...")
+            start_whatsapp_session()
+            import time
+            time.sleep(3)
+            r_retry = requests.post(url, json=payload, headers=headers, timeout=8)
+            if r_retry.status_code in (200, 201):
+                logger.info(f"WhatsApp sent successfully to {clean_phone} after auto-heal wake-up")
+                return True, None
+            else:
+                err = f"OpenWA HTTP {r_retry.status_code} (after auto-heal): {r_retry.text}"
+                logger.warning(err)
+                return False, err
         else:
             err = f"OpenWA HTTP {r.status_code}: {r.text}"
             logger.warning(err)
