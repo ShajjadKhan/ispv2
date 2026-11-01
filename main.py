@@ -727,6 +727,23 @@ async def wallet_accrual_sync_loop():
         await asyncio.sleep(60)  # Continuous 60-second self-healing audit
 
 
+
+async def hotspot_housekeeping_loop():
+    """
+    Hourly fleet housekeeper that purges abandoned ghost hosts from /ip/hotspot/host
+    to guarantee zero 1:1 NAT IP conflicts and keep router CPU/memory pristine.
+    """
+    logger.info("Background Hotspot Host Housekeeping Loop initialized.")
+    await asyncio.sleep(120)  # Initial 2-minute delay after server boot
+    while True:
+        try:
+            res = await asyncio.to_thread(mikrotik_client.cleanup_stale_hotspot_hosts)
+            logger.info(f"[Hotspot Housekeeper] Cleaned fleet ghost hosts: {res}")
+        except Exception as e:
+            logger.error(f"[Hotspot Housekeeper] Error during ghost host sweep: {e}")
+        await asyncio.sleep(3600)  # Run once every hour
+
+
 async def fleet_telemetry_cache_refresher_loop():
     """
     Background worker that continuously pre-warms MikroTik fleet telemetry and live status
@@ -751,6 +768,46 @@ async def fleet_telemetry_cache_refresher_loop():
         await asyncio.sleep(12)
 
 
+async def whatsapp_gateway_watchdog_loop():
+    """
+    Autonomous Watchdog for OpenWA WhatsApp Gateway.
+    Monitors session health every 30 seconds. If the container or server restarted,
+    or if the WhatsApp Web connection dropped to 'disconnected', this daemon
+    automatically triggers a wake-up / start call to restore the session immediately
+    without requiring operator manual intervention.
+    """
+    logger.info("Background WhatsApp Gateway Autonomous Watchdog Loop initialized.")
+    await asyncio.sleep(5)  # brief initial delay
+    while True:
+        try:
+            status = await asyncio.to_thread(whatsapp_service.get_whatsapp_gateway_status)
+            curr_status = str(status.get("status", "")).lower()
+            is_connected = status.get("connected", False)
+
+            # If disconnected and not currently waiting for a QR scan, auto-wake the session:
+            if not is_connected and curr_status in ("disconnected", "unknown", "failed"):
+                logger.warning(
+                    f"[WhatsApp Watchdog] OpenWA session is currently '{curr_status}'. "
+                    f"Triggering autonomous session wake-up..."
+                )
+                res = await asyncio.to_thread(whatsapp_service.start_whatsapp_session)
+                if res.get("success"):
+                    logger.info("[WhatsApp Watchdog] Autonomous wake-up dispatched successfully.")
+                    await asyncio.sleep(12)
+                    new_status = await asyncio.to_thread(whatsapp_service.get_whatsapp_gateway_status)
+                    logger.info(
+                        f"[WhatsApp Watchdog] Post-heal status: {new_status.get('status')} "
+                        f"(Phone: {new_status.get('phone')})"
+                    )
+                else:
+                    logger.warning(f"[WhatsApp Watchdog] Auto-heal start request returned: {res}")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.debug(f"[WhatsApp Watchdog] Notice during health probe: {e}")
+        await asyncio.sleep(30)
+
+
 @app.on_event("startup")
 async def startup_event():
     # Fleet Telemetry In-Memory Pre-Warmer Loop (ensures sub-100ms dashboard latency)
@@ -767,6 +824,9 @@ async def startup_event():
     asyncio.create_task(olt_telemetry_poller_loop())
     # Automated Wallet Daily Accrual Synchronizer
     asyncio.create_task(wallet_accrual_sync_loop())
+    asyncio.create_task(hotspot_housekeeping_loop())
+    # Automated WhatsApp Gateway Autonomous Watchdog & Auto-Healer
+    asyncio.create_task(whatsapp_gateway_watchdog_loop())
 
 
 # =========================================================
