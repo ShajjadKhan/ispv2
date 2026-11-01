@@ -179,18 +179,37 @@
     }
 
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm 10mm;
+      }
       body {
-        background: #ffffff;
-        padding: 0;
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #0f172a !important;
       }
       .report-sheet {
-        box-shadow: none;
-        border: none;
-        padding: 0;
-        max-width: 100%;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
       }
       .print-bar {
         display: none !important;
+      }
+      table {
+        page-break-inside: auto;
+      }
+      tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+      }
+      thead {
+        display: table-header-group !important;
+      }
+      tfoot {
+        display: table-footer-group !important;
       }
     }
     @media (max-width: 768px) {
@@ -211,10 +230,10 @@
   <div class="report-top-bar">
     <div class="brand-title">
       <h1>📶 CyberNet ISP</h1>
-      <p>Executive Monthly Collection &amp; Revenue Reconciliation Report</p>
+      <p>Executive Collection &amp; Financial Audit Report</p>
     </div>
     <div class="report-meta">
-      <div><strong>Reconciliation Month:</strong> {{ report.month_label }}</div>
+      <div><strong>Audit Period:</strong> {{ report.month_label }}</div>
       <div><strong>Accounting Period:</strong> {{ report.start_date }} → {{ report.end_date }}</div>
       <div><strong>Generated:</strong> <span class="mono">{{ report.transactions[0].collected_at[:16] if report.transactions else report.month }}</span></div>
     </div>
@@ -317,10 +336,10 @@
         <td class="mono" style="color:#94a3b8;">{{ loop.index }}</td>
         <td class="mono" style="font-size:11.5px;">{{ t.collected_at }}</td>
         <td><strong>{{ t.customer_name }}</strong></td>
-        <td style="color:#64748b;">{{ t.room or '—' }}</td>
-        <td class="mono">{{ t.month_year }}</td>
-        <td style="text-transform:capitalize;">{{ t.billing_type }}</td>
-        <td class="text-right mono" style="color:#059669; font-weight:700;">{{ "%.2f"|format(t.amount) }} SAR</td>
+        <td style="color:#64748b;">{{ t.room or t.mobile or "-" }}</td>
+        <td class="mono">{{ t.month_year or report.month or "-" }}</td>
+        <td style="text-transform:capitalize;">{{ t.billing_type or "Cash" }}</td>
+        <td class="text-right mono" style="color:#059669; font-weight:700;">{{ "%.2f"|format(t.amount|float) }} SAR</td>
         <td>{{ t.collected_by }}</td>
       </tr>
       {% else %}
@@ -336,5 +355,14 @@
   </div>
 </div>
 
+{% if autoprint %}
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      window.print();
+    }, 450);
+  });
+</script>
+{% endif %}
 </body>
 </html>

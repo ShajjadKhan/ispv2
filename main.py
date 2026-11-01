@@ -5100,19 +5100,26 @@ async def api_wallet_sync_endpoint():
 @app.get("/billing/report", response_class=HTMLResponse)
 async def balance_printable_report_view(
     request: Request,
-    month: Optional[str] = None
+    month: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    autoprint: Optional[str] = None
 ):
     """
-    Renders the executive printable month-end collection report.
+    Renders the executive printable month-end or custom date range collection report.
     Replicates report_print.php from legacy billing_reminder.
     """
-    data = database.get_monthly_reconciliation(month_str=month)
+    if start_date and end_date:
+        data = database.get_date_range_report(start_date=start_date, end_date=end_date)
+    else:
+        data = database.get_monthly_reconciliation(month_str=month)
     return templates.TemplateResponse(
         request=request,
         name="balance_report.html",
         context={
             "request": request,
-            "report": data
+            "report": data,
+            "autoprint": (str(autoprint).lower() in ("1", "true", "yes"))
         }
     )
 

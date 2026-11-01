@@ -4406,6 +4406,10 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
         items = []
         for it in raw_items:
             it["collected_by"] = resolve_collector_name(it.get("collected_by"))
+            it["room"] = it.get("customer_room") or ""
+            it["mobile"] = it.get("customer_phone") or ""
+            it["month_year"] = it.get("month_year") or (clean_start[:7] if clean_start else "")
+            it["billing_type"] = it.get("billing_type") or "Cash"
             items.append(it)
 
         # Totals
@@ -4451,15 +4455,54 @@ def get_date_range_report(start_date: str, end_date: str) -> Dict[str, Any]:
                 "percentage": pct
             })
 
+        # Method breakdown for range
+        cursor.execute("""
+            SELECT billing_type as method,
+                   COUNT(*) as count,
+                   COALESCE(SUM(amount), 0.0) as total
+            FROM collections
+            WHERE date(collected_at) >= date(?) AND date(collected_at) <= date(?) AND amount > 0
+            GROUP BY billing_type
+            ORDER BY total DESC
+        """, (clean_start, clean_end))
+        method_rows = [dict(r) for r in cursor.fetchall()]
+        method_breakdown = [
+            {
+                "method": str(r["method"] or "Cash").title(),
+                "count": int(r["count"] or 0),
+                "total": round(float(r["total"] or 0.0), 2)
+            }
+            for r in method_rows
+        ]
+
+        total_active_custs = cursor.execute("SELECT COUNT(*) FROM customers WHERE status != 'deleted'").fetchone()[0]
+        pending_subs = max(0, total_active_custs - unique_customers)
+
+        month_label = f"Period: {clean_start} → {clean_end}"
+        try:
+            if clean_start[:7] == clean_end[:7]:
+                sy, sm = int(clean_start[:4]), int(clean_start[5:7])
+                month_label = datetime(sy, sm, 1).strftime("%B %Y")
+        except Exception:
+            pass
+
         return {
             "start_date": clean_start,
             "end_date": clean_end,
+            "month": clean_start[:7] if clean_start else "",
+            "month_label": month_label,
             "total_collected": round(total_collected, 2),
             "tx_count": tx_count,
+            "total_transactions": tx_count,
             "unique_customers": unique_customers,
+            "paying_subscribers": unique_customers,
+            "pending_subscribers": pending_subs,
+            "total_active_subscribers": total_active_custs,
             "avg_transaction": avg_tx,
             "items": items,
-            "staff_breakdown": staff
+            "transactions": items,
+            "staff_breakdown": staff,
+            "method_breakdown": method_breakdown
         }
 
 
